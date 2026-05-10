@@ -38,3 +38,21 @@ def test_reads_apify_api_key(monkeypatch):
     monkeypatch.setenv("FISHERSCREEN_APIFY_API_KEY", "apify-key-abc")
     settings = FisherScreenSettings(_env_file=None)
     assert settings.apify_api_key == "apify-key-abc"
+
+
+def test_apify_api_key_defaults_to_empty(monkeypatch):
+    monkeypatch.delenv("FISHERSCREEN_APIFY_API_KEY", raising=False)
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.apify_api_key == ""
+
+
+def test_reads_github_token(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_GITHUB_TOKEN", "ghp_token123")
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.github_token == "ghp_token123"
+
+
+def test_github_token_defaults_to_empty(monkeypatch):
+    monkeypatch.delenv("FISHERSCREEN_GITHUB_TOKEN", raising=False)
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.github_token == ""
