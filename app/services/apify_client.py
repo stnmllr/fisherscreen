@@ -1,0 +1,6 @@
+from typing import Protocol
+
+
+class ApifyClient(Protocol):
+    def get_glassdoor_reviews(self, company: str, limit: int = 100) -> list[dict]: ...
+    def get_kununu_reviews(self, company: str, limit: int = 100) -> list[dict]: ...
