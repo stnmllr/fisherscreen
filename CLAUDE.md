@@ -335,6 +335,10 @@ Workaround: pytest immer als Python-Modul aufrufen:
 Hintergrund: `python.exe` ist freigegeben, frisch installierte EXEs aus `venv\Scripts\`
 werden vom Endpoint-Schutz blockiert.
 
+Zusätzlich blockiert der AV `coverage/tracer.cp312-win_amd64.pyd` (C-Extension für schnelles
+Tracing). Coverage.py fällt dann automatisch auf den reinen Python-Tracer zurück — Tests und
+Coverage-Messung funktionieren weiterhin korrekt, nur etwas langsamer. Keine Aktion nötig.
+
 ---
 
 ## Output-Dateinamen-Konventionen
