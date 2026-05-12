@@ -1,6 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
+import pytest
+
+from app.errors import DataSourceError
+
 
 def _make_client(yfinance_mock, firestore_mock):
     from app.services.cached_yfinance_client import CachedYFinanceClient
@@ -31,7 +35,7 @@ def test_cache_miss_fetches_from_yfinance_and_stores():
 def test_cache_hit_returns_cached_data_without_calling_yfinance():
     mock_yf = MagicMock()
     mock_fs = MagicMock()
-    fresh_ts = datetime.now(timezone.utc).isoformat()
+    fresh_ts = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
     mock_fs.get.return_value = {
         "shortName": "Apple",
         "marketCap": 3e12,
@@ -85,7 +89,22 @@ def test_get_financials_delegates_to_yfinance_without_cache():
     result = client.get_financials("AAPL")
 
     mock_yf.get_financials.assert_called_once_with("AAPL")
+    mock_fs.get.assert_not_called()
     assert result == {"Revenue": 394e9}
+
+
+def test_yfinance_error_propagates_on_cache_miss():
+    mock_yf = MagicMock()
+    mock_fs = MagicMock()
+    mock_fs.get.return_value = None
+    mock_yf.get_ticker_info.side_effect = DataSourceError("yfinance failed for AAPL: network error")
+
+    client = _make_client(mock_yf, mock_fs)
+
+    with pytest.raises(DataSourceError, match="yfinance failed"):
+        client.get_ticker_info("AAPL")
+
+    mock_fs.set.assert_not_called()
 
 
 def test_missing_cached_at_field_triggers_refetch():

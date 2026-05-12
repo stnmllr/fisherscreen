@@ -31,7 +31,7 @@ class CachedYFinanceClient:
             ticker,
             {**data, "_cached_at": datetime.now(timezone.utc).isoformat()},
         )
-        return data
+        return dict(data)
 
     def get_historical(self, ticker: str, period: str) -> Any:
         return self._yfinance.get_historical(ticker, period)
