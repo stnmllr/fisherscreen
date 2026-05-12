@@ -56,3 +56,14 @@ def test_github_token_defaults_to_empty(monkeypatch):
     monkeypatch.delenv("FISHERSCREEN_GITHUB_TOKEN", raising=False)
     settings = FisherScreenSettings(_env_file=None)
     assert settings.github_token == ""
+
+
+def test_reads_ticker_collection(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_TICKER_COLLECTION", "prod_ticker_cache")
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.ticker_collection == "prod_ticker_cache"
+
+
+def test_ticker_collection_defaults_to_dev():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.ticker_collection == "dev_ticker_cache"

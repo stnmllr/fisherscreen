@@ -7,6 +7,7 @@ class FisherScreenSettings(BaseSettings):
     gemini_token_cap: int = 500_000
     apify_api_key: str = ""
     github_token: str = ""
+    ticker_collection: str = "dev_ticker_cache"
 
     model_config = {
         "env_prefix": "FISHERSCREEN_",
