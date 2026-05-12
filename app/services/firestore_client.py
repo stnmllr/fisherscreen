@@ -22,11 +22,11 @@ class FirestoreClientImpl:
     def get(self, collection: str, document_id: str) -> dict[str, Any] | None:
         try:
             doc = self._db.collection(collection).document(document_id).get()
+            if not doc.exists:
+                return None
+            return doc.to_dict()
         except Exception as exc:
             raise DataSourceError(f"Firestore get failed: {exc}") from exc
-        if not doc.exists:
-            return None
-        return doc.to_dict()
 
     def set(self, collection: str, document_id: str, data: dict[str, Any]) -> None:
         try:

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.errors import DataSourceError
+from app.services.firestore_client import FirestoreClientImpl
 
 
 @patch("app.services.firestore_client.firestore")
@@ -14,7 +15,6 @@ def test_get_returns_dict_when_document_exists(mock_firestore_module):
     mock_doc.to_dict.return_value = {"ticker": "AAPL", "marketCap": 3e12}
     mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
 
-    from app.services.firestore_client import FirestoreClientImpl
     client = FirestoreClientImpl(project_id="test-project")
     result = client.get("dev_ticker_cache", "AAPL")
 
@@ -29,7 +29,6 @@ def test_get_returns_none_when_document_missing(mock_firestore_module):
     mock_doc.exists = False
     mock_db.collection.return_value.document.return_value.get.return_value = mock_doc
 
-    from app.services.firestore_client import FirestoreClientImpl
     client = FirestoreClientImpl(project_id="test-project")
     result = client.get("dev_ticker_cache", "UNKNOWN")
 
@@ -41,7 +40,6 @@ def test_set_calls_firestore_set(mock_firestore_module):
     mock_db = MagicMock()
     mock_firestore_module.Client.return_value = mock_db
 
-    from app.services.firestore_client import FirestoreClientImpl
     client = FirestoreClientImpl(project_id="test-project")
     client.set("dev_ticker_cache", "AAPL", {"marketCap": 3e12})
 
@@ -55,7 +53,6 @@ def test_delete_calls_firestore_delete(mock_firestore_module):
     mock_db = MagicMock()
     mock_firestore_module.Client.return_value = mock_db
 
-    from app.services.firestore_client import FirestoreClientImpl
     client = FirestoreClientImpl(project_id="test-project")
     client.delete("dev_ticker_cache", "AAPL")
 
@@ -70,7 +67,6 @@ def test_get_raises_data_source_error_on_failure(mock_firestore_module):
         "network error"
     )
 
-    from app.services.firestore_client import FirestoreClientImpl
     client = FirestoreClientImpl(project_id="test-project")
 
     with pytest.raises(DataSourceError, match="Firestore get failed"):
@@ -85,7 +81,33 @@ def test_init_raises_data_source_error_when_adc_missing(mock_firestore_module):
     mock_firestore_module.Client.return_value = mock_db
     mock_db.collections.side_effect = Exception("ADC not found")
 
-    from app.services.firestore_client import FirestoreClientImpl
-
     with pytest.raises(DataSourceError, match="ADC not configured"):
         FirestoreClientImpl(project_id="test-project")
+
+
+@patch("app.services.firestore_client.firestore")
+def test_set_raises_data_source_error_on_failure(mock_firestore_module):
+    mock_db = MagicMock()
+    mock_firestore_module.Client.return_value = mock_db
+    mock_db.collection.return_value.document.return_value.set.side_effect = Exception(
+        "write error"
+    )
+
+    client = FirestoreClientImpl(project_id="test-project")
+
+    with pytest.raises(DataSourceError, match="Firestore set failed"):
+        client.set("dev_ticker_cache", "AAPL", {"marketCap": 3e12})
+
+
+@patch("app.services.firestore_client.firestore")
+def test_delete_raises_data_source_error_on_failure(mock_firestore_module):
+    mock_db = MagicMock()
+    mock_firestore_module.Client.return_value = mock_db
+    mock_db.collection.return_value.document.return_value.delete.side_effect = Exception(
+        "delete error"
+    )
+
+    client = FirestoreClientImpl(project_id="test-project")
+
+    with pytest.raises(DataSourceError, match="Firestore delete failed"):
+        client.delete("dev_ticker_cache", "AAPL")
