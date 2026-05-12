@@ -47,9 +47,9 @@
 **Ziel**: PR erstellen + mergen, danach Phase 1.2 (EDGAR-Signale) planen
 
 **Vorbereitung vorab (vor Phase 1.2-Start):**
-- [ ] GCP-Projekt `fisherscreen-prod` anlegen
-- [ ] `gcloud auth application-default login` lokal einrichten
-- [ ] Firestore-API im Projekt aktivieren
+- [x] GCP-Projekt `fisherscreen-prod` vorhanden
+- [x] `gcloud auth application-default login` eingerichtet
+- [ ] Firestore-API im Projekt `fisherscreen-prod` aktivieren (prüfen: GCP Console → APIs)
 - [ ] `.env` mit `FISHERSCREEN_GCP_PROJECT_ID=fisherscreen-prod` befüllen
 
 **Phase-1.2-Scope** (aus Brainstorm-Doku):
