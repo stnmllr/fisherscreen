@@ -68,6 +68,14 @@ def test_from_yfinance_info_normalizes_zero_to_none():
     assert record.avg_daily_volume is None
 
 
+def test_from_yfinance_info_normalizes_zero_bid_ask_to_none():
+    # yfinance returns 0 for bid/ask on illiquid/OTC tickers
+    info = {"bid": 0, "ask": 0}
+    record = ScreenerRecord.from_yfinance_info("OTC", info)
+    assert record.bid is None
+    assert record.ask is None
+
+
 def test_record_is_mutable():
     record = ScreenerRecord(ticker="AAPL")
     record.filter_passed_basis = True
