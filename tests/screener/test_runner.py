@@ -73,3 +73,20 @@ def test_run_continues_after_individual_data_source_error():
 
     assert len(result) == 1
     assert result[0].ticker == "GOOD"
+
+
+def test_run_skips_ticker_with_malformed_yfinance_data():
+    # yfinance can return strings where floats are expected — Pydantic raises ValidationError
+    # The runner should treat this as a per-ticker failure, not crash the whole run
+    mock_yf = MagicMock()
+
+    def side_effect(ticker):
+        if ticker == "MALFORMED":
+            return {**_PASSING_INFO, "marketCap": "n/a"}
+        return _PASSING_INFO
+
+    mock_yf.get_ticker_info.side_effect = side_effect
+    result = run_basis_filter(["MALFORMED", "GOOD"], mock_yf)
+
+    assert len(result) == 1
+    assert result[0].ticker == "GOOD"
