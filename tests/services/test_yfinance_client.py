@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 
 from app.errors import DataSourceError
@@ -44,8 +45,6 @@ def test_get_ticker_info_raises_data_source_error_on_exception(mock_yf):
 
 @patch("app.services.yfinance_client.yf")
 def test_get_historical_returns_dataframe(mock_yf):
-    import pandas as pd
-
     mock_ticker = MagicMock()
     mock_ticker.history.return_value = pd.DataFrame({"Close": [100.0, 101.0]})
     mock_yf.Ticker.return_value = mock_ticker
@@ -58,12 +57,32 @@ def test_get_historical_returns_dataframe(mock_yf):
 
 
 @patch("app.services.yfinance_client.yf")
-def test_get_financials_returns_dict(mock_yf):
+def test_get_historical_raises_data_source_error_on_exception(mock_yf):
+    mock_yf.Ticker.side_effect = Exception("network error")
+
+    client = YFinanceClientImpl()
+
+    with pytest.raises(DataSourceError, match="yfinance history failed"):
+        client.get_historical("AAPL", "1mo")
+
+
+@patch("app.services.yfinance_client.yf")
+def test_get_financials_returns_dataframe(mock_yf):
     mock_ticker = MagicMock()
-    mock_ticker.financials = {"Revenue": 394_000_000_000}
+    mock_ticker.financials = pd.DataFrame({"Revenue": [394_000_000_000]})
     mock_yf.Ticker.return_value = mock_ticker
 
     client = YFinanceClientImpl()
     result = client.get_financials("AAPL")
 
-    assert result == {"Revenue": 394_000_000_000}
+    assert len(result) == 1
+
+
+@patch("app.services.yfinance_client.yf")
+def test_get_financials_raises_data_source_error_on_exception(mock_yf):
+    mock_yf.Ticker.side_effect = Exception("network error")
+
+    client = YFinanceClientImpl()
+
+    with pytest.raises(DataSourceError, match="yfinance financials failed"):
+        client.get_financials("AAPL")
