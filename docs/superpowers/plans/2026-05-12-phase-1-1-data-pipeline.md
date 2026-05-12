@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implement the yfinance service, Firestore service, TTL cache wrapper, ScreenerRecord model, and four basis filters so that `run_basis_filter(tickers, client)` reduces ~2100 tickers to ~400 locally without real API calls in tests.
+**Goal:** Implement the yfinance service, Firestore service, TTL cache wrapper, ScreenerRecord model, four basis filters, and a composition root so that `run_basis_filter(tickers, build_screener_pipeline())` reduces ~2100 tickers to ~400 locally without real API calls in tests.
 
-**Architecture:** Three layers: service layer (`YFinanceClientImpl`, `FirestoreClientImpl`), cache wrapper (`CachedYFinanceClient`), screener layer (`ScreenerRecord` + filters + runner). All layers accept Protocol types via DI — unit tests mock at the service boundary using `MagicMock`, no real network calls.
+**Architecture:** Three layers: service layer (`YFinanceClientImpl`, `FirestoreClientImpl`), cache wrapper (`CachedYFinanceClient`), screener layer (`ScreenerRecord` model + filters + runner). A composition root in `app/screener/compose.py` wires the services using settings and is the only place that touches concrete implementations. All other layers accept Protocol types via DI — unit tests mock at the service boundary using `MagicMock`, no real network calls.
 
 **Tech Stack:** Python 3.12, yfinance, google-cloud-firestore, pydantic (via pydantic-settings), pytest
 
@@ -45,6 +45,7 @@ git checkout -b feature/phase-1-1-data-pipeline
 | `app/screener/__init__.py` | create | Package marker |
 | `app/screener/filters.py` | create | Four filter functions + `apply_basis_filters()` |
 | `app/screener/runner.py` | create | `run_basis_filter()` entry point |
+| `app/screener/compose.py` | create | Wires concrete implementations using settings — the only place that instantiates real clients |
 | `tests/models/__init__.py` | create | Package marker |
 | `tests/models/test_screener_record.py` | create | Tests for ScreenerRecord model and `from_yfinance_info()` |
 | `tests/services/__init__.py` | create | Package marker |
@@ -52,8 +53,9 @@ git checkout -b feature/phase-1-1-data-pipeline
 | `tests/services/test_firestore_client.py` | create | Tests for FirestoreClientImpl (mocked google.cloud.firestore) |
 | `tests/services/test_cached_yfinance_client.py` | create | Tests for cache hit/miss/TTL expiry |
 | `tests/screener/__init__.py` | create | Package marker |
-| `tests/screener/test_filters.py` | create | Tests for each filter + `apply_basis_filters()` |
+| `tests/screener/test_filters.py` | create | Tests for each filter function + `apply_basis_filters()` |
 | `tests/screener/test_runner.py` | create | Tests for `run_basis_filter()` |
+| `tests/screener/test_compose.py` | create | Tests for `build_screener_pipeline()` wiring |
 
 ---
 
@@ -158,6 +160,7 @@ Create `tests/models/test_screener_record.py`:
 
 ```python
 from datetime import datetime, timezone
+
 from app.models.screener_record import ScreenerRecord
 
 
@@ -216,6 +219,14 @@ def test_from_yfinance_info_missing_fields_give_none():
     assert record.name is None
     assert record.market_cap is None
     assert record.price is None
+
+
+def test_from_yfinance_info_normalizes_zero_to_none():
+    # yfinance returns 0 for illiquid/OTC tickers instead of omitting the field
+    info = {"marketCap": 0, "averageVolume": 0}
+    record = ScreenerRecord.from_yfinance_info("OTC", info)
+    assert record.market_cap is None
+    assert record.avg_daily_volume is None
 
 
 def test_record_is_mutable():
@@ -292,8 +303,8 @@ class ScreenerRecord(BaseModel):
             ticker=ticker,
             name=info.get("shortName"),
             currency=info.get("currency"),
-            market_cap=info.get("marketCap"),
-            avg_daily_volume=info.get("averageVolume"),
+            market_cap=info.get("marketCap") or None,
+            avg_daily_volume=info.get("averageVolume") or None,
             price=info.get("currentPrice") or info.get("regularMarketPrice"),
             bid=info.get("bid"),
             ask=info.get("ask"),
@@ -309,7 +320,7 @@ class ScreenerRecord(BaseModel):
 uv run python -m pytest tests/models/ -v
 ```
 
-Expected: all 7 tests pass.
+Expected: all 8 tests pass.
 
 - [ ] **Step 6: Run full suite to verify coverage still holds**
 
@@ -323,7 +334,7 @@ Expected: all tests pass, coverage ≥ 90%.
 
 ```
 git add app/models/ tests/models/
-git commit -m "Add ScreenerRecord model with from_yfinance_info() classmethod"
+git commit -m "Add ScreenerRecord model with from_yfinance_info() and zero-normalization"
 ```
 
 ---
@@ -345,7 +356,9 @@ Create `tests/services/test_firestore_client.py`:
 
 ```python
 from unittest.mock import MagicMock, patch
+
 import pytest
+
 from app.errors import DataSourceError
 
 
@@ -423,7 +436,11 @@ def test_get_raises_data_source_error_on_failure(mock_firestore_module):
 
 @patch("app.services.firestore_client.firestore")
 def test_init_raises_data_source_error_when_adc_missing(mock_firestore_module):
-    mock_firestore_module.Client.side_effect = Exception("ADC not found")
+    # The smoke call next(self._db.collections(), None) forces credential validation.
+    # Simulate ADC failure by making collections() raise on the smoke call.
+    mock_db = MagicMock()
+    mock_firestore_module.Client.return_value = mock_db
+    mock_db.collections.side_effect = Exception("ADC not found")
 
     from app.services.firestore_client import FirestoreClientImpl
 
@@ -461,6 +478,7 @@ class FirestoreClientImpl:
     def __init__(self, project_id: str) -> None:
         try:
             self._db = firestore.Client(project=project_id)
+            next(self._db.collections(), None)  # force credential validation at init time
         except Exception as exc:
             raise DataSourceError(f"ADC not configured or Firestore unreachable: {exc}") from exc
 
@@ -506,7 +524,7 @@ Expected: all tests pass. `app/services/` is excluded from coverage — threshol
 
 ```
 git add app/services/firestore_client.py tests/services/
-git commit -m "Add FirestoreClientImpl with ADC error handling"
+git commit -m "Add FirestoreClientImpl with ADC fail-fast smoke call"
 ```
 
 ---
@@ -523,7 +541,9 @@ Create `tests/services/test_yfinance_client.py`:
 
 ```python
 from unittest.mock import MagicMock, patch
+
 import pytest
+
 from app.errors import DataSourceError
 
 
@@ -569,6 +589,7 @@ def test_get_ticker_info_raises_data_source_error_on_exception(mock_yf):
 @patch("app.services.yfinance_client.yf")
 def test_get_historical_returns_dataframe(mock_yf):
     import pandas as pd
+
     mock_ticker = MagicMock()
     mock_ticker.history.return_value = pd.DataFrame({"Close": [100.0, 101.0]})
     mock_yf.Ticker.return_value = mock_ticker
@@ -889,7 +910,6 @@ Create `tests/screener/__init__.py` — empty file.
 Create `tests/screener/test_filters.py`:
 
 ```python
-import pytest
 from app.models.screener_record import ScreenerRecord
 from app.screener.filters import (
     apply_basis_filters,
@@ -918,7 +938,7 @@ def test_market_cap_passes_above_threshold():
     assert passes_market_cap_filter(_record(market_cap=300_000_001)) is True
 
 
-def test_market_cap_fails_at_threshold():
+def test_market_cap_fails_below_threshold():
     assert passes_market_cap_filter(_record(market_cap=299_999_999)) is False
 
 
@@ -1127,8 +1147,6 @@ Create `tests/screener/test_runner.py`:
 ```python
 from unittest.mock import MagicMock
 
-import pytest
-
 from app.errors import DataSourceError
 from app.screener.runner import run_basis_filter
 
@@ -1255,6 +1273,100 @@ uv run python -m pytest tests/screener/test_runner.py -v
 
 Expected: all 5 tests pass.
 
+- [ ] **Step 5: Run full suite**
+
+```
+uv run python -m pytest -v
+```
+
+Expected: all tests pass, coverage ≥ 90%.
+
+- [ ] **Step 6: Commit**
+
+```
+git add app/screener/runner.py tests/screener/test_runner.py
+git commit -m "Add run_basis_filter() screener runner"
+```
+
+---
+
+## Task 8: Composition root
+
+This is the only place in the codebase that instantiates concrete implementations. It reads from `settings` and wires `YFinanceClientImpl + FirestoreClientImpl + CachedYFinanceClient`. This makes `ticker_collection` (added in Task 1) actually consumed.
+
+**Files:**
+- Create: `app/screener/compose.py`
+- Create: `tests/screener/test_compose.py`
+
+- [ ] **Step 1: Write failing test**
+
+Create `tests/screener/test_compose.py`:
+
+```python
+from unittest.mock import patch
+
+import app.screener.compose as compose_module
+
+
+def test_build_screener_pipeline_wires_components():
+    with (
+        patch("app.screener.compose.YFinanceClientImpl") as mock_yf_cls,
+        patch("app.screener.compose.FirestoreClientImpl") as mock_fs_cls,
+        patch("app.screener.compose.CachedYFinanceClient") as mock_cached_cls,
+        patch("app.screener.compose.settings") as mock_settings,
+    ):
+        mock_settings.gcp_project_id = "test-project"
+        mock_settings.ticker_collection = "dev_ticker_cache"
+
+        result = compose_module.build_screener_pipeline()
+
+        mock_yf_cls.assert_called_once_with()
+        mock_fs_cls.assert_called_once_with(project_id="test-project")
+        mock_cached_cls.assert_called_once_with(
+            yfinance=mock_yf_cls.return_value,
+            firestore=mock_fs_cls.return_value,
+            collection="dev_ticker_cache",
+        )
+        assert result == mock_cached_cls.return_value
+```
+
+- [ ] **Step 2: Run test to confirm it fails**
+
+```
+uv run python -m pytest tests/screener/test_compose.py -v
+```
+
+Expected: FAIL — `ModuleNotFoundError: No module named 'app.screener.compose'`
+
+- [ ] **Step 3: Implement the composition root**
+
+Create `app/screener/compose.py`:
+
+```python
+from app.config import settings
+from app.services.cached_yfinance_client import CachedYFinanceClient
+from app.services.firestore_client import FirestoreClientImpl
+from app.services.yfinance_client import YFinanceClientImpl
+
+
+def build_screener_pipeline() -> CachedYFinanceClient:
+    yfinance = YFinanceClientImpl()
+    firestore = FirestoreClientImpl(project_id=settings.gcp_project_id)
+    return CachedYFinanceClient(
+        yfinance=yfinance,
+        firestore=firestore,
+        collection=settings.ticker_collection,
+    )
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+```
+uv run python -m pytest tests/screener/test_compose.py -v
+```
+
+Expected: 1 test passes.
+
 - [ ] **Step 5: Run full suite with coverage**
 
 ```
@@ -1266,8 +1378,8 @@ Expected: all tests pass. Note the final coverage number — should be ≥ 90%.
 - [ ] **Step 6: Commit**
 
 ```
-git add app/screener/runner.py tests/screener/test_runner.py
-git commit -m "Add run_basis_filter() screener runner"
+git add app/screener/compose.py tests/screener/test_compose.py
+git commit -m "Add composition root build_screener_pipeline() using settings"
 ```
 
 ---
@@ -1286,8 +1398,10 @@ git commit -m "Add run_basis_filter() screener runner"
 | Basisfilter: Durchschnittsvolumen | Task 6 |
 | Basisfilter: Penny Stock (< $1) | Task 6 |
 | Basisfilter: Liquidität (Bid-Ask) | Task 6 |
-| Abhängigkeit `google-cloud-firestore` + Config-Feld | Task 1 |
-| Fehler früh und klar wenn ADC fehlt | Task 3 (`DataSourceError("ADC not configured")`) |
+| Abhängigkeit `google-cloud-firestore` + Config-Feld `ticker_collection` | Task 1 |
+| `ticker_collection` wird tatsächlich konsumiert (Kompositionswurzel) | Task 8 |
+| Fehler früh und klar wenn ADC fehlt — Smoke-Call in `__init__` | Task 3 |
+| Zero-Normalisierung für `marketCap: 0` und `averageVolume: 0` | Task 2 |
 | Kein echter Netzwerk-Call in Unit-Tests | All tasks — MagicMock throughout |
 
 All spec requirements covered. ✓
@@ -1298,6 +1412,7 @@ No TBDs, no TODOs, no "similar to Task N" references. All steps include complete
 
 ### Type consistency
 
-- `ScreenerRecord` defined in Task 2, used in Tasks 6 + 7 — field names (`market_cap`, `avg_daily_volume`, `price`, `bid`, `ask`, `filter_passed_basis`, `filter_failed_reason`) consistent throughout.
-- `YFinanceClient` Protocol (Task 4): `get_ticker_info(ticker: str) -> dict[str, Any]` — called identically in Task 5 (`CachedYFinanceClient`) and Task 7 (runner).
+- `ScreenerRecord` defined in Task 2, used in Tasks 6 + 7 — field names (`market_cap`, `avg_daily_volume`, `price`, `bid`, `ask`, `filter_passed_basis`, `filter_failed_reason`) consistent throughout. ✓
+- `YFinanceClient` Protocol (Task 4): `get_ticker_info(ticker: str) -> dict[str, Any]` — called identically in Task 5 (`CachedYFinanceClient`) and Task 7 (runner). ✓
 - `FirestoreClient` Protocol (Task 3): `get/set/delete` signatures — used identically in Task 5. ✓
+- `build_screener_pipeline()` returns `CachedYFinanceClient`, which satisfies `YFinanceClient` Protocol for use in `run_basis_filter()`. ✓
