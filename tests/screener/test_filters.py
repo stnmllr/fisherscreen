@@ -26,6 +26,10 @@ def test_market_cap_passes_above_threshold():
     assert passes_market_cap_filter(_record(market_cap=300_000_001)) is True
 
 
+def test_market_cap_passes_at_exact_threshold():
+    assert passes_market_cap_filter(_record(market_cap=300_000_000)) is True
+
+
 def test_market_cap_fails_below_threshold():
     assert passes_market_cap_filter(_record(market_cap=299_999_999)) is False
 
@@ -38,6 +42,10 @@ def test_market_cap_fails_when_none():
 
 def test_volume_passes_above_threshold():
     assert passes_volume_filter(_record(avg_daily_volume=100_001)) is True
+
+
+def test_volume_passes_at_exact_threshold():
+    assert passes_volume_filter(_record(avg_daily_volume=100_000)) is True
 
 
 def test_volume_fails_below_threshold():
@@ -105,6 +113,25 @@ def test_apply_basis_filters_sets_failed_reason():
     assert record.filter_failed_reason == "market_cap"
 
 
+def test_apply_basis_filters_sets_failed_reason_avg_volume():
+    record = _record(ticker="ILLIQUID", avg_daily_volume=10)
+    apply_basis_filters([record])
+    assert record.filter_failed_reason == "avg_volume"
+
+
+def test_apply_basis_filters_sets_failed_reason_liquidity():
+    # passes market_cap, volume, penny_stock but fails wide bid-ask
+    record = _record(ticker="SPREAD", bid=45.0, ask=55.0)
+    apply_basis_filters([record])
+    assert record.filter_failed_reason == "liquidity"
+
+
+def test_apply_basis_filters_failing_record_does_not_set_filter_passed_basis():
+    record = _record(ticker="SMALL", market_cap=100_000)
+    apply_basis_filters([record])
+    assert record.filter_passed_basis is None
+
+
 def test_apply_basis_filters_checks_filters_in_order():
     # fails both market_cap and volume — reason should be market_cap (first checked)
     record = _record(ticker="DOUBLE_FAIL", market_cap=100_000, avg_daily_volume=10)
@@ -115,3 +142,7 @@ def test_apply_basis_filters_checks_filters_in_order():
 def test_apply_basis_filters_returns_empty_for_all_failures():
     records = [_record(ticker="PENNY", price=0.50)]
     assert apply_basis_filters(records) == []
+
+
+def test_apply_basis_filters_returns_empty_list_for_empty_input():
+    assert apply_basis_filters([]) == []
