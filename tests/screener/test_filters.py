@@ -126,10 +126,10 @@ def test_apply_basis_filters_sets_failed_reason_liquidity():
     assert record.filter_failed_reason == "liquidity"
 
 
-def test_apply_basis_filters_failing_record_does_not_set_filter_passed_basis():
+def test_apply_basis_filters_sets_filter_passed_basis_false_on_failure():
     record = _record(ticker="SMALL", market_cap=100_000)
     apply_basis_filters([record])
-    assert record.filter_passed_basis is None
+    assert record.filter_passed_basis is False
 
 
 def test_apply_basis_filters_checks_filters_in_order():

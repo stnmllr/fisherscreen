@@ -58,6 +58,7 @@ def apply_basis_filters(records: list[ScreenerRecord]) -> list[ScreenerRecord]:
         reason = _get_fail_reason(record)
         if reason:
             record.filter_failed_reason = reason
+            record.filter_passed_basis = False
         else:
             record.filter_passed_basis = True
             passed.append(record)
