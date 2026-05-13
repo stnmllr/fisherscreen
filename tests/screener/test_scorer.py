@@ -38,7 +38,8 @@ def test_hard_cap_exactly_at_limit_does_not_raise():
     records = [_record(f"T{i}") for i in range(MAX_TICKERS_PER_RUN)]
     mock_gemini = MagicMock()
     mock_gemini.score_ticker.return_value = _score_result()
-    run_gemini_scoring(records, mock_gemini, _mock_tracker())
+    result = run_gemini_scoring(records, mock_gemini, _mock_tracker())
+    assert len(result) == MAX_TICKERS_PER_RUN
 
 
 def test_populates_gemini_dimensions_on_success():

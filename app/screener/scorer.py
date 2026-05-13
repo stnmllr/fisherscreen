@@ -27,6 +27,9 @@ def run_gemini_scoring(
     Hard cap: raises FisherScreenError if len(records) > MAX_TICKERS_PER_RUN.
     Per-ticker: GeminiError is caught, logged as WARNING, and the ticker is skipped
     (gemini_dimensions stays None). All records are returned, including skipped ones.
+
+    Contract for GeminiClient implementors: score_ticker() MUST wrap all exceptions
+    as GeminiError. Raw SDK or network exceptions will abort the entire run.
     """
     if len(records) > MAX_TICKERS_PER_RUN:
         raise FisherScreenError(
