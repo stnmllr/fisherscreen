@@ -34,9 +34,10 @@ class CachedGeminiClient:
         max_output_tokens: int = 1000,
     ) -> GeminiScoreResult:
         cached = self._firestore.get(self._collection, ticker)
-        if cached and self._is_fresh(cached):
+        dims = cached.get("dimensions") if cached else None
+        if cached and dims is not None and self._is_fresh(cached):
             return GeminiScoreResult(
-                dimensions=cached["dimensions"],
+                dimensions=dims,
                 summary=cached.get("summary", ""),
                 tokens_in=0,
                 tokens_out=0,
@@ -53,7 +54,10 @@ class CachedGeminiClient:
         raw = cached.get("_cached_at")
         if not raw:
             return False
-        cached_at = datetime.fromisoformat(raw)
+        try:
+            cached_at = datetime.fromisoformat(raw)
+        except ValueError:
+            return False
         if cached_at.tzinfo is None:
             cached_at = cached_at.replace(tzinfo=timezone.utc)
         return (datetime.now(timezone.utc) - cached_at).total_seconds() < _TTL_SECONDS

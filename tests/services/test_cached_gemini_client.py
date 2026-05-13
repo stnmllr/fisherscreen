@@ -61,7 +61,7 @@ def test_calls_gemini_when_no_cache():
     client = CachedGeminiClient(gemini=mock_gemini, firestore=mock_fs, collection="col")
     result = client.score_ticker("AAPL", _record())
 
-    mock_gemini.score_ticker.assert_called_once()
+    mock_gemini.score_ticker.assert_called_once_with("AAPL", _record(), 3000, 1000)
     assert result.dimensions["growth"] == 4
     assert result.tokens_in == 500
 
@@ -75,7 +75,7 @@ def test_calls_gemini_when_cache_is_stale():
     client = CachedGeminiClient(gemini=mock_gemini, firestore=mock_fs, collection="col")
     result = client.score_ticker("AAPL", _record())
 
-    mock_gemini.score_ticker.assert_called_once()
+    mock_gemini.score_ticker.assert_called_once_with("AAPL", _record(), 3000, 1000)
     assert result.dimensions["growth"] == 4
 
 
@@ -91,6 +91,7 @@ def test_writes_to_firestore_after_api_call():
     mock_fs.set.assert_called_once()
     written = mock_fs.set.call_args[0][2]
     assert "dimensions" in written
+    assert "summary" in written
     assert "_cached_at" in written
 
 
