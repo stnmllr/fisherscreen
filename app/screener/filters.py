@@ -64,3 +64,28 @@ def apply_basis_filters(records: list[ScreenerRecord]) -> list[ScreenerRecord]:
             passed.append(record)
     logger.info("basis_filter: %d/%d records passed", len(passed), len(records))
     return passed
+
+
+def apply_edgar_filters(records: list[ScreenerRecord]) -> list[ScreenerRecord]:
+    passed = []
+    for record in records:
+        if record.edgar_skipped:
+            record.filter_passed_edgar = None
+            passed.append(record)
+            continue
+        if record.has_restatement:
+            record.filter_passed_edgar = False
+            record.filter_failed_reason = "restatement"
+            continue
+        if record.has_going_concern:
+            record.filter_passed_edgar = False
+            record.filter_failed_reason = "going_concern"
+            continue
+        if record.has_active_enforcement:
+            record.filter_passed_edgar = False
+            record.filter_failed_reason = "enforcement"
+            continue
+        record.filter_passed_edgar = True
+        passed.append(record)
+    logger.info("edgar_filter: %d/%d records passed", len(passed), len(records))
+    return passed

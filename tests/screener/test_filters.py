@@ -146,3 +146,77 @@ def test_apply_basis_filters_returns_empty_for_all_failures():
 
 def test_apply_basis_filters_returns_empty_list_for_empty_input():
     assert apply_basis_filters([]) == []
+
+
+# --- apply_edgar_filters ---
+
+
+def _edgar_record(**kwargs) -> ScreenerRecord:
+    defaults = {
+        "ticker": "TEST",
+        "cik": "0000320193",
+        "market_cap": 500_000_000,
+        "avg_daily_volume": 200_000,
+        "price": 50.0,
+        "has_restatement": False,
+        "has_going_concern": False,
+        "has_active_enforcement": False,
+        "edgar_skipped": False,
+        "filter_passed_basis": True,
+    }
+    return ScreenerRecord(**{**defaults, **kwargs})
+
+
+def test_apply_edgar_filters_passes_clean_record():
+    from app.screener.filters import apply_edgar_filters
+    record = _edgar_record()
+    result = apply_edgar_filters([record])
+    assert len(result) == 1
+    assert result[0].filter_passed_edgar is True
+
+
+def test_apply_edgar_filters_fails_on_restatement():
+    from app.screener.filters import apply_edgar_filters
+    record = _edgar_record(has_restatement=True)
+    result = apply_edgar_filters([record])
+    assert result == []
+    assert record.filter_passed_edgar is False
+    assert record.filter_failed_reason == "restatement"
+
+
+def test_apply_edgar_filters_fails_on_going_concern():
+    from app.screener.filters import apply_edgar_filters
+    record = _edgar_record(has_going_concern=True)
+    result = apply_edgar_filters([record])
+    assert result == []
+    assert record.filter_passed_edgar is False
+    assert record.filter_failed_reason == "going_concern"
+
+
+def test_apply_edgar_filters_fails_on_active_enforcement():
+    from app.screener.filters import apply_edgar_filters
+    record = _edgar_record(has_active_enforcement=True)
+    result = apply_edgar_filters([record])
+    assert result == []
+    assert record.filter_passed_edgar is False
+    assert record.filter_failed_reason == "enforcement"
+
+
+def test_apply_edgar_filters_passes_through_skipped_records():
+    from app.screener.filters import apply_edgar_filters
+    record = _edgar_record(edgar_skipped=True)
+    result = apply_edgar_filters([record])
+    assert len(result) == 1
+    assert result[0].filter_passed_edgar is None
+
+
+def test_apply_edgar_filters_checks_restatement_before_going_concern():
+    from app.screener.filters import apply_edgar_filters
+    record = _edgar_record(has_restatement=True, has_going_concern=True)
+    apply_edgar_filters([record])
+    assert record.filter_failed_reason == "restatement"
+
+
+def test_apply_edgar_filters_returns_empty_for_empty_input():
+    from app.screener.filters import apply_edgar_filters
+    assert apply_edgar_filters([]) == []
