@@ -23,15 +23,16 @@ def test_edgar_user_agent_defaults_to_empty():
     assert settings.edgar_user_agent == ""
 
 
-def test_reads_gemini_token_cap(monkeypatch):
-    monkeypatch.setenv("FISHERSCREEN_GEMINI_TOKEN_CAP", "250000")
+def test_reads_gemini_api_key(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_GEMINI_API_KEY", "api-key-xyz")
     settings = FisherScreenSettings(_env_file=None)
-    assert settings.gemini_token_cap == 250000
+    assert settings.gemini_api_key == "api-key-xyz"
 
 
-def test_gemini_token_cap_default():
+def test_gemini_api_key_defaults_to_empty(monkeypatch):
+    monkeypatch.delenv("FISHERSCREEN_GEMINI_API_KEY", raising=False)
     settings = FisherScreenSettings(_env_file=None)
-    assert settings.gemini_token_cap == 500_000
+    assert settings.gemini_api_key == ""
 
 
 def test_reads_apify_api_key(monkeypatch):
@@ -58,6 +59,17 @@ def test_github_token_defaults_to_empty(monkeypatch):
     assert settings.github_token == ""
 
 
+def test_reads_gemini_token_cap(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_GEMINI_TOKEN_CAP", "250000")
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.gemini_token_cap == 250000
+
+
+def test_gemini_token_cap_default():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.gemini_token_cap == 500_000
+
+
 def test_reads_ticker_collection(monkeypatch):
     monkeypatch.setenv("FISHERSCREEN_TICKER_COLLECTION", "prod_ticker_cache")
     settings = FisherScreenSettings(_env_file=None)
@@ -78,18 +90,6 @@ def test_reads_edgar_collection(monkeypatch):
 def test_edgar_collection_defaults_to_dev():
     settings = FisherScreenSettings(_env_file=None)
     assert settings.edgar_collection == "dev_edgar_cache"
-
-
-def test_reads_gemini_api_key(monkeypatch):
-    monkeypatch.setenv("FISHERSCREEN_GEMINI_API_KEY", "api-key-xyz")
-    settings = FisherScreenSettings(_env_file=None)
-    assert settings.gemini_api_key == "api-key-xyz"
-
-
-def test_gemini_api_key_defaults_to_empty(monkeypatch):
-    monkeypatch.delenv("FISHERSCREEN_GEMINI_API_KEY", raising=False)
-    settings = FisherScreenSettings(_env_file=None)
-    assert settings.gemini_api_key == ""
 
 
 def test_reads_gemini_score_collection(monkeypatch):
