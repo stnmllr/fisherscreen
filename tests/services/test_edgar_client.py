@@ -151,7 +151,7 @@ def test_cik_is_zero_padded_to_10_digits_in_url(mock_httpx, mock_time):
 def test_has_active_enforcement_returns_false_and_logs_warning(caplog):
     import logging
     client = _make_client()
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(logging.WARNING, logger="app.services.edgar_client"):
         result = client.has_active_enforcement("320193")
     assert result is False
     assert "not implemented" in caplog.text

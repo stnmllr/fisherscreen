@@ -54,7 +54,7 @@ class EdgarClientImpl:
 
     def has_going_concern(self, cik: str, months: int = 24) -> bool:
         padded = cik.zfill(10)
-        startdt = (date.today() - timedelta(days=months * 30)).isoformat()
+        startdt = (date.today() - timedelta(days=months * 30)).isoformat()  # ~30 days/month approximation
         url = (
             f"{self._EFTS_BASE}/LATEST/search-index"
             f"?q=%22raise+substantial+doubt%22"
