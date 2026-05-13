@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from app.models.run_record import COST_PER_1M_INPUT_USD, COST_PER_1M_OUTPUT_USD, RunRecord
 
@@ -16,12 +16,14 @@ class RunTracker:
     def __init__(self, firestore: FirestoreClient, collection: str) -> None:
         self._firestore = firestore
         self._collection = collection
-        self._run_id = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(timezone.utc)
+        self._run_id = now.isoformat()
+        self._started_at = now
         self._tickers_processed = 0
         self._tickers_skipped = 0
         self._tokens_in = 0
         self._tokens_out = 0
-        self._started_at = datetime.now(timezone.utc)
+        self._finished = False
 
     def record_ticker(self, tokens_in: int, tokens_out: int) -> None:
         self._tickers_processed += 1
@@ -31,7 +33,10 @@ class RunTracker:
     def record_skip(self) -> None:
         self._tickers_skipped += 1
 
-    def finish(self, status: str = "success") -> RunRecord:
+    def finish(self, status: Literal["success", "partial", "aborted"] = "success") -> RunRecord:
+        if self._finished:
+            raise RuntimeError("RunTracker.finish() called more than once")
+        self._finished = True
         completed_at = datetime.now(timezone.utc)
         cost = (
             (self._tokens_in / 1_000_000 * COST_PER_1M_INPUT_USD)
@@ -48,6 +53,7 @@ class RunTracker:
             started_at=self._started_at,
             completed_at=completed_at,
         )
+        # Firestore failure propagates intentionally — fail loud (CLAUDE.md convention)
         self._firestore.set(self._collection, self._run_id, record.model_dump(mode="json"))
         logger.info(
             "run=%s status=%s tickers=%d skipped=%d tokens_in=%d tokens_out=%d cost=$%.4f",

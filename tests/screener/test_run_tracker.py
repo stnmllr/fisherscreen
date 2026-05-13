@@ -48,10 +48,13 @@ def test_finish_computes_cost_from_input_tokens():
 def test_finish_writes_to_firestore():
     tracker, mock_fs = _tracker(collection="dev_screener_runs")
     tracker.record_ticker(tokens_in=500, tokens_out=100)
-    tracker.finish()
+    record = tracker.finish()
     mock_fs.set.assert_called_once()
-    collection_arg = mock_fs.set.call_args[0][0]
+    collection_arg, run_id_arg, payload_arg = mock_fs.set.call_args[0]
     assert collection_arg == "dev_screener_runs"
+    assert run_id_arg == record.run_id
+    assert payload_arg["tickers_processed"] == 1
+    assert payload_arg["status"] == "success"
 
 
 def test_finish_sets_status():
@@ -64,9 +67,11 @@ def test_finish_sets_completed_at():
     tracker, _ = _tracker()
     record = tracker.finish()
     assert record.completed_at is not None
+    assert record.completed_at >= record.started_at
 
 
 def test_run_id_is_iso_timestamp_string():
+    from datetime import datetime
     tracker, _ = _tracker()
     record = tracker.finish()
-    assert "T" in record.run_id  # ISO format contains T separator
+    datetime.fromisoformat(record.run_id)  # raises ValueError if not valid ISO format
