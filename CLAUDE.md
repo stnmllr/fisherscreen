@@ -40,7 +40,7 @@ FisherScreen ist ein persönliches Werkzeug, das Phil Fishers 15 Prinzipien aus
 
 **Zwei Tools:**
 - **Tool A — Monthly Screener:** Monatlich automatisch via Cloud Scheduler. Negativ-Filter-Kaskade,
-  fünf Dimensions-Listen + Querliste als Markdown in Obsidian. **Keine kostenpflichtigen APIs.**
+  Gemini Flash Lite Scoring (mit Hard-Caps), fünf Dimensions-Listen + Querliste als Markdown in Obsidian.
 - **Tool B — Deep Dive:** Manuell via `fisherscreen deepdive <ticker>`. Hard + Soft Scuttlebutt,
   Sprach-/Tonalitäts-Analyse CEO-Briefe + Earnings Calls, Gemini-Synthesis gegen Fishers 15 Punkte.
 
@@ -57,7 +57,7 @@ FisherScreen ist ein persönliches Werkzeug, das Phil Fishers 15 Prinzipien aus
 | Datenbank | Firestore (Native Mode) | 2 Collections |
 | Scheduler | Cloud Scheduler | 1 Job, gratis |
 | Secrets | Secret Manager | Nie `.env` auf Cloud Run |
-| LLM Bulk | Gemini Flash Lite | Nur Tool B |
+| LLM Bulk | Gemini Flash Lite | Tool A (Scoring, mit Hard-Caps) + Tool B |
 | LLM Synthesis | Gemini Pro | Nur Tool B |
 | Package Manager | uv | Nur FisherScreen — RechPro/telefon-agent bleiben pip |
 | CI/CD | GitHub Actions | Deploy auf Cloud Run |
@@ -126,10 +126,47 @@ services/
 **Warum:** Tests mocken die Service-Klassen via Dependency-Injection. Kein echter Netzwerk-Call
 in Unit-Tests. Wer einen direkten `yfinance.download()`-Aufruf in Tool-A-Code sieht: das ist ein Bug.
 
-### Tool A vs. Tool B — Paid-API-Trennung
+### Tool A / Tool B Separation
 
-**Tool A (Monthly Screener) darf KEINE kostenpflichtigen APIs aufrufen.** Das ist eine
-Architektur-Grenze, keine Konfigurationsoption.
+Tool A (Monthly Screener) verarbeitet das gesamte Universum
+(~2.100 Stocks) automatisiert. Tool B (Deep Dive) läuft manuell
+auf einzelne Stocks.
+
+#### Kostenkontrolle Tool A
+
+Tool A darf Gemini Flash Lite für Massen-Scoring verwenden, unter
+folgenden nicht-verhandelbaren Bedingungen:
+
+1. Hard Cap Ticker-Anzahl: max. 3.000 Ticker pro Run.
+   Bei Überschreitung: Run-Abbruch mit AppError, kein Fallback.
+
+2. Token-Budget pro Ticker: max. 3.000 Input, 1.000 Output Tokens.
+   Bei Überschreitung: Ticker übersprungen, Warning geloggt,
+   Run läuft weiter.
+
+3. GCP Budget-Alerts (Setup ist Teil von Phase 1.3):
+   - $5/Monat → E-Mail-Warnung
+   - $10/Monat → Hard Stop via Cloud Function (deaktiviert
+     Cloud Scheduler). Reaktivierung erfolgt ausschließlich manuell
+     in der GCP Console nach Ursachenanalyse.
+
+4. Erlaubte APIs in Tool A: yfinance (kostenfrei), Gemini Flash Lite.
+   Verboten in Tool A: Gemini Pro, Search Grounding, andere
+   LLM-Modelle, jede API mit Per-Request-Kosten über $0.001.
+
+5. Logging-Pflicht: Jeder Run protokolliert in Firestore
+   (Collection screener_runs):
+   - tickers_processed (int)
+   - tokens_in_total (int)
+   - tokens_out_total (int)
+   - estimated_cost_usd (float)
+   - run_id (string, ISO-Timestamp)
+   - status (success | partial | aborted)
+
+   Wird für monatlichen Soll-Ist-Vergleich genutzt.
+
+Tool B (Deep Dive) hat keine API-Beschränkungen — Kosten sind dort
+durch manuelle Bedienung implizit gekappt.
 
 | API | Tool A | Tool B |
 |---|---|---|
@@ -137,11 +174,10 @@ Architektur-Grenze, keine Konfigurationsoption.
 | SEC EDGAR | ✅ | ✅ |
 | Firestore | ✅ | ✅ |
 | GitHub | ✅ | ✅ |
-| Gemini (Flash + Pro) | ❌ BUG | ✅ |
+| Gemini Flash Lite | ✅ (mit Hard-Caps) | ✅ |
+| Gemini Pro | ❌ BUG | ✅ |
 | Apify (Glassdoor/Kununu) | ❌ BUG | ✅ |
 | Marketaux | ❌ BUG | ✅ |
-
-Wenn Tool-A-Code einen `gemini_client`-Import hat, ist das ein Bug — sofort melden.
 
 ### Cost-Caps
 
@@ -163,6 +199,8 @@ APIFY_MAX_RUNS_PER_DEEPDIVE = int(os.environ.get("FISHERSCREEN_APIFY_RUN_CAP", "
 |---|---|---|
 | `universe_cache` | yfinance-Daten mit TTL | ticker |
 | `buy_snapshots` | Kennzahlen-Snapshot bei Kauf | ticker |
+| `dev_gemini_scores` | Gemini-Scores per Ticker (TTL 30d) | ticker |
+| `dev_screener_runs` | Cost-Tracking pro Run | run_id (ISO-Timestamp) |
 
 Naming: snake_case lowercase. Keine weiteren Collections ohne explizite Architektur-Entscheidung.
 
