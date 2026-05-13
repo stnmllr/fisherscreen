@@ -46,3 +46,45 @@ def test_build_edgar_pipeline_wires_components():
             collection="dev_edgar_cache",
         )
         assert result == mock_cached_cls.return_value
+
+
+def test_build_gemini_pipeline_wires_components():
+    with (
+        patch("app.screener.compose.GeminiClientImpl") as mock_gemini_cls,
+        patch("app.screener.compose.FirestoreClientImpl") as mock_fs_cls,
+        patch("app.screener.compose.CachedGeminiClient") as mock_cached_cls,
+        patch("app.screener.compose.settings") as mock_settings,
+    ):
+        mock_settings.gemini_api_key = "test-key"
+        mock_settings.gcp_project_id = "test-project"
+        mock_settings.gemini_score_collection = "dev_gemini_scores"
+
+        result = compose_module.build_gemini_pipeline()
+
+        mock_gemini_cls.assert_called_once_with(api_key="test-key")
+        mock_fs_cls.assert_called_once_with(project_id="test-project")
+        mock_cached_cls.assert_called_once_with(
+            gemini=mock_gemini_cls.return_value,
+            firestore=mock_fs_cls.return_value,
+            collection="dev_gemini_scores",
+        )
+        assert result == mock_cached_cls.return_value
+
+
+def test_build_run_tracker_wires_components():
+    with (
+        patch("app.screener.compose.FirestoreClientImpl") as mock_fs_cls,
+        patch("app.screener.compose.RunTracker") as mock_tracker_cls,
+        patch("app.screener.compose.settings") as mock_settings,
+    ):
+        mock_settings.gcp_project_id = "test-project"
+        mock_settings.screener_runs_collection = "dev_screener_runs"
+
+        result = compose_module.build_run_tracker()
+
+        mock_fs_cls.assert_called_once_with(project_id="test-project")
+        mock_tracker_cls.assert_called_once_with(
+            firestore=mock_fs_cls.return_value,
+            collection="dev_screener_runs",
+        )
+        assert result == mock_tracker_cls.return_value

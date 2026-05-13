@@ -1,8 +1,11 @@
 from app.config import settings
+from app.screener.run_tracker import RunTracker
 from app.services.cached_edgar_client import CachedEdgarClient
+from app.services.cached_gemini_client import CachedGeminiClient
 from app.services.cached_yfinance_client import CachedYFinanceClient
 from app.services.edgar_client import EdgarClientImpl
 from app.services.firestore_client import FirestoreClientImpl
+from app.services.gemini_client import GeminiClientImpl
 from app.services.yfinance_client import YFinanceClient, YFinanceClientImpl
 
 
@@ -23,4 +26,22 @@ def build_edgar_pipeline() -> CachedEdgarClient:
         edgar=edgar,
         firestore=firestore,
         collection=settings.edgar_collection,
+    )
+
+
+def build_gemini_pipeline() -> CachedGeminiClient:
+    gemini = GeminiClientImpl(api_key=settings.gemini_api_key)
+    firestore = FirestoreClientImpl(project_id=settings.gcp_project_id)
+    return CachedGeminiClient(
+        gemini=gemini,
+        firestore=firestore,
+        collection=settings.gemini_score_collection,
+    )
+
+
+def build_run_tracker() -> RunTracker:
+    firestore = FirestoreClientImpl(project_id=settings.gcp_project_id)
+    return RunTracker(
+        firestore=firestore,
+        collection=settings.screener_runs_collection,
     )
