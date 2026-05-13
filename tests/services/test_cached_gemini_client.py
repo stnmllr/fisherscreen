@@ -58,10 +58,11 @@ def test_calls_gemini_when_no_cache():
     mock_fs = MagicMock()
     mock_fs.get.return_value = None
 
+    record = _record()
     client = CachedGeminiClient(gemini=mock_gemini, firestore=mock_fs, collection="col")
-    result = client.score_ticker("AAPL", _record())
+    result = client.score_ticker("AAPL", record)
 
-    mock_gemini.score_ticker.assert_called_once_with("AAPL", _record(), 3000, 1000)
+    mock_gemini.score_ticker.assert_called_once_with("AAPL", record, 3000, 1000)
     assert result.dimensions["growth"] == 4
     assert result.tokens_in == 500
 
@@ -72,10 +73,11 @@ def test_calls_gemini_when_cache_is_stale():
     mock_fs = MagicMock()
     mock_fs.get.return_value = _stale_cached()
 
+    record = _record()
     client = CachedGeminiClient(gemini=mock_gemini, firestore=mock_fs, collection="col")
-    result = client.score_ticker("AAPL", _record())
+    result = client.score_ticker("AAPL", record)
 
-    mock_gemini.score_ticker.assert_called_once_with("AAPL", _record(), 3000, 1000)
+    mock_gemini.score_ticker.assert_called_once_with("AAPL", record, 3000, 1000)
     assert result.dimensions["growth"] == 4
 
 
