@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from google import genai as _genai
 from google.genai import types as _types
@@ -55,8 +55,13 @@ class GeminiClientImpl:
         try:
             token_resp = self._client.models.count_tokens(model=self._model, contents=prompt)
         except Exception as exc:
+            logger.warning("ticker=%s token count failed: %s", ticker, exc)
             raise GeminiError(f"Token count failed for {ticker}: {exc}") from exc
         if token_resp.total_tokens > max_input_tokens:
+            logger.warning(
+                "ticker=%s prompt too large: %d > %d tokens — skipping",
+                ticker, token_resp.total_tokens, max_input_tokens,
+            )
             raise GeminiError(
                 f"ticker={ticker} prompt too large: {token_resp.total_tokens} > {max_input_tokens} tokens"
             )
@@ -70,6 +75,7 @@ class GeminiClientImpl:
                 ),
             )
         except Exception as exc:
+            logger.warning("ticker=%s Gemini API call failed: %s", ticker, exc)
             raise GeminiError(f"Gemini API call failed for {ticker}: {exc}") from exc
         return _parse_response(ticker, response)
 
@@ -105,9 +111,9 @@ def _build_prompt(ticker: str, record: ScreenerRecord) -> str:
     return "\n".join(lines)
 
 
-def _parse_response(ticker: str, response: object) -> GeminiScoreResult:
+def _parse_response(ticker: str, response: Any) -> GeminiScoreResult:
     try:
-        data = json.loads(response.text)  # type: ignore[attr-defined]
+        data = json.loads(response.text)
     except (json.JSONDecodeError, AttributeError) as exc:
         raise GeminiError(f"Gemini returned invalid JSON for {ticker}: {exc}") from exc
     raw = data.get("dimensions", {})
@@ -117,8 +123,9 @@ def _parse_response(ticker: str, response: object) -> GeminiScoreResult:
         if not isinstance(val, (int, float)):
             raise GeminiError(f"Missing or invalid dimension '{dim}' for {ticker}")
         dimensions[dim] = max(1, min(5, int(val)))
-    tokens_in = getattr(getattr(response, "usage_metadata", None), "prompt_token_count", 0) or 0
-    tokens_out = getattr(getattr(response, "usage_metadata", None), "candidates_token_count", 0) or 0
+    usage = getattr(response, "usage_metadata", None)
+    tokens_in = getattr(usage, "prompt_token_count", 0) or 0
+    tokens_out = getattr(usage, "candidates_token_count", 0) or 0
     return GeminiScoreResult(
         dimensions=dimensions,
         summary=str(data.get("summary", "")),
