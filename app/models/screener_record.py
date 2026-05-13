@@ -21,6 +21,12 @@ class ScreenerRecord(BaseModel):
     gics_sector: str | None = None
     gics_industry: str | None = None
 
+    # Financial ratios (from yfinance info — populated in run_basis_filter)
+    revenue_growth_yoy: float | None = None   # info['revenueGrowth']
+    operating_margin: float | None = None      # info['operatingMargins']
+    return_on_equity: float | None = None      # info['returnOnEquity']
+    debt_to_equity: float | None = None        # info['debtToEquity']
+
     # EDGAR fields (populated in Phase 1.2)
     cik: str | None = None
     has_restatement: bool | None = None
@@ -28,8 +34,9 @@ class ScreenerRecord(BaseModel):
     has_active_enforcement: bool = False
     edgar_skipped: bool = False
 
-    # Score fields (populated in Phase 1.3)
-    gemini_score: float | None = None
+    # Gemini scoring (populated in Phase 1.3)
+    gemini_dimensions: dict[str, int] | None = None  # {"growth": 3, "profitability": 4, ...}
+    gemini_summary: str | None = None
 
     # Filter tracking
     filter_passed_basis: bool | None = None
@@ -55,4 +62,8 @@ class ScreenerRecord(BaseModel):
             gics_sector=info.get("sector"),
             gics_industry=info.get("industry"),
             cik=info.get("cik"),
+            revenue_growth_yoy=info.get("revenueGrowth"),
+            operating_margin=info.get("operatingMargins"),
+            return_on_equity=info.get("returnOnEquity"),
+            debt_to_equity=info.get("debtToEquity"),
         )

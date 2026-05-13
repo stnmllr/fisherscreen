@@ -9,7 +9,6 @@ def test_minimal_construction():
     assert record.market_cap is None
     assert record.filter_passed_basis is None
     assert record.has_restatement is None
-    assert record.gemini_score is None
 
 
 def test_screened_at_defaults_to_now():
@@ -86,3 +85,38 @@ def test_edgar_defaults():
     record = ScreenerRecord(ticker="AAPL")
     assert record.has_active_enforcement is False
     assert record.edgar_skipped is False
+
+
+def test_from_yfinance_info_populates_financial_ratios():
+    info = {
+        "revenueGrowth": 0.12,
+        "operatingMargins": 0.25,
+        "returnOnEquity": 0.18,
+        "debtToEquity": 45.0,
+    }
+    record = ScreenerRecord.from_yfinance_info("TEST", info)
+    assert record.revenue_growth_yoy == 0.12
+    assert record.operating_margin == 0.25
+    assert record.return_on_equity == 0.18
+    assert record.debt_to_equity == 45.0
+
+
+def test_financial_ratios_default_to_none_when_missing():
+    record = ScreenerRecord.from_yfinance_info("TEST", {})
+    assert record.revenue_growth_yoy is None
+    assert record.operating_margin is None
+    assert record.return_on_equity is None
+    assert record.debt_to_equity is None
+
+
+def test_gemini_dimension_fields_default_to_none():
+    record = ScreenerRecord(ticker="TEST")
+    assert record.gemini_dimensions is None
+    assert record.gemini_summary is None
+
+
+def test_gemini_dimensions_can_be_set():
+    dims = {"growth": 4, "profitability": 3, "management": 4, "innovation": 5, "resilience": 3}
+    record = ScreenerRecord(ticker="TEST", gemini_dimensions=dims, gemini_summary="Good company")
+    assert record.gemini_dimensions["growth"] == 4
+    assert record.gemini_summary == "Good company"
