@@ -8,7 +8,7 @@ def test_build_screener_pipeline_wires_components():
         patch("app.screener.compose.YFinanceClientImpl") as mock_yf_cls,
         patch("app.screener.compose.FirestoreClientImpl") as mock_fs_cls,
         patch("app.screener.compose.CachedYFinanceClient") as mock_cached_cls,
-        patch("app.screener.compose.settings") as mock_settings,
+        patch("app.screener.compose.settings", spec=True) as mock_settings,
     ):
         mock_settings.gcp_project_id = "test-project"
         mock_settings.ticker_collection = "dev_ticker_cache"
@@ -30,7 +30,7 @@ def test_build_edgar_pipeline_wires_components():
         patch("app.screener.compose.EdgarClientImpl") as mock_edgar_cls,
         patch("app.screener.compose.FirestoreClientImpl") as mock_fs_cls,
         patch("app.screener.compose.CachedEdgarClient") as mock_cached_cls,
-        patch("app.screener.compose.settings") as mock_settings,
+        patch("app.screener.compose.settings", spec=True) as mock_settings,
     ):
         mock_settings.edgar_user_agent = "Test Agent <test@example.com>"
         mock_settings.gcp_project_id = "test-project"
@@ -53,7 +53,7 @@ def test_build_gemini_pipeline_wires_components():
         patch("app.screener.compose.GeminiClientImpl") as mock_gemini_cls,
         patch("app.screener.compose.FirestoreClientImpl") as mock_fs_cls,
         patch("app.screener.compose.CachedGeminiClient") as mock_cached_cls,
-        patch("app.screener.compose.settings") as mock_settings,
+        patch("app.screener.compose.settings", spec=True) as mock_settings,
     ):
         mock_settings.gemini_api_key = "test-key"
         mock_settings.gcp_project_id = "test-project"
@@ -75,7 +75,7 @@ def test_build_run_tracker_wires_components():
     with (
         patch("app.screener.compose.FirestoreClientImpl") as mock_fs_cls,
         patch("app.screener.compose.RunTracker") as mock_tracker_cls,
-        patch("app.screener.compose.settings") as mock_settings,
+        patch("app.screener.compose.settings", spec=True) as mock_settings,
     ):
         mock_settings.gcp_project_id = "test-project"
         mock_settings.screener_runs_collection = "dev_screener_runs"
