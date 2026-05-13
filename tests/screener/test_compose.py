@@ -26,7 +26,6 @@ def test_build_screener_pipeline_wires_components():
 
 
 def test_build_edgar_pipeline_wires_components():
-    from unittest.mock import patch
     with (
         patch("app.screener.compose.EdgarClientImpl") as mock_edgar_cls,
         patch("app.screener.compose.FirestoreClientImpl") as mock_fs_cls,
