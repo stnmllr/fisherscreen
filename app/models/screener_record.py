@@ -50,6 +50,7 @@ class ScreenerRecord(BaseModel):
 
     @classmethod
     def from_yfinance_info(cls, ticker: str, info: dict[str, Any]) -> ScreenerRecord:
+        """Create record from yfinance info dict. Gemini scoring fields default to None — set by scorer."""
         return cls(
             ticker=ticker,
             name=info.get("shortName"),

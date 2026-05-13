@@ -120,3 +120,9 @@ def test_gemini_dimensions_can_be_set():
     record = ScreenerRecord(ticker="TEST", gemini_dimensions=dims, gemini_summary="Good company")
     assert record.gemini_dimensions["growth"] == 4
     assert record.gemini_summary == "Good company"
+
+
+def test_gemini_dimensions_accepts_any_dict_values():
+    # ScreenerRecord stores whatever is set — clamping/validation is GeminiClientImpl's job
+    record = ScreenerRecord(ticker="TEST", gemini_dimensions={"growth": 99, "other": -1})
+    assert record.gemini_dimensions == {"growth": 99, "other": -1}
