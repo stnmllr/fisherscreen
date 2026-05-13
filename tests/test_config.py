@@ -67,3 +67,14 @@ def test_reads_ticker_collection(monkeypatch):
 def test_ticker_collection_defaults_to_dev():
     settings = FisherScreenSettings(_env_file=None)
     assert settings.ticker_collection == "dev_ticker_cache"
+
+
+def test_reads_edgar_collection(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_EDGAR_COLLECTION", "prod_edgar_cache")
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.edgar_collection == "prod_edgar_cache"
+
+
+def test_edgar_collection_defaults_to_dev():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.edgar_collection == "dev_edgar_cache"
