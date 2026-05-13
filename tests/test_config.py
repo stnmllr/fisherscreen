@@ -78,3 +78,37 @@ def test_reads_edgar_collection(monkeypatch):
 def test_edgar_collection_defaults_to_dev():
     settings = FisherScreenSettings(_env_file=None)
     assert settings.edgar_collection == "dev_edgar_cache"
+
+
+def test_reads_gemini_api_key(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_GEMINI_API_KEY", "api-key-xyz")
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.gemini_api_key == "api-key-xyz"
+
+
+def test_gemini_api_key_defaults_to_empty(monkeypatch):
+    monkeypatch.delenv("FISHERSCREEN_GEMINI_API_KEY", raising=False)
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.gemini_api_key == ""
+
+
+def test_reads_gemini_score_collection(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_GEMINI_SCORE_COLLECTION", "prod_gemini_scores")
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.gemini_score_collection == "prod_gemini_scores"
+
+
+def test_gemini_score_collection_defaults_to_dev():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.gemini_score_collection == "dev_gemini_scores"
+
+
+def test_reads_screener_runs_collection(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_SCREENER_RUNS_COLLECTION", "prod_screener_runs")
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.screener_runs_collection == "prod_screener_runs"
+
+
+def test_screener_runs_collection_defaults_to_dev():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.screener_runs_collection == "dev_screener_runs"
