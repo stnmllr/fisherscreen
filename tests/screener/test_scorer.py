@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import MagicMock
 
 import pytest
@@ -92,3 +93,24 @@ def test_returns_all_records_including_skipped():
 def test_empty_input_returns_empty_list():
     mock_gemini = MagicMock()
     assert run_gemini_scoring([], mock_gemini, _mock_tracker()) == []
+
+
+def test_stops_when_token_cap_reached():
+    # _score_result() yields 580 tokens; cap=1000 → stop after 2nd ticker (1160 >= 1000)
+    records = [_record("A"), _record("B"), _record("C")]
+    mock_gemini = MagicMock()
+    mock_gemini.score_ticker.return_value = _score_result()
+    result = run_gemini_scoring(records, mock_gemini, _mock_tracker(), token_cap=1000)
+    assert result[0].gemini_dimensions is not None
+    assert result[1].gemini_dimensions is not None
+    assert result[2].gemini_dimensions is None
+
+
+def test_warns_at_80_pct_token_cap(caplog):
+    # _score_result() yields 580 tokens; 80% of 700 = 560 → warning after 1st ticker
+    records = [_record()]
+    mock_gemini = MagicMock()
+    mock_gemini.score_ticker.return_value = _score_result()
+    with caplog.at_level(logging.WARNING, logger="app.screener.scorer"):
+        run_gemini_scoring(records, mock_gemini, _mock_tracker(), token_cap=700)
+    assert any("80" in msg for msg in caplog.messages)

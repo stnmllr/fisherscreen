@@ -114,7 +114,7 @@ def _build_prompt(ticker: str, record: ScreenerRecord) -> str:
 def _parse_response(ticker: str, response: Any) -> GeminiScoreResult:
     try:
         data = json.loads(response.text)
-    except (json.JSONDecodeError, AttributeError) as exc:
+    except (json.JSONDecodeError, AttributeError, ValueError) as exc:
         raise GeminiError(f"Gemini returned invalid JSON for {ticker}: {exc}") from exc
     raw = data.get("dimensions", {})
     dimensions: dict[str, int] = {}

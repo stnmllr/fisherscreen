@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Literal
 
-from app.models.run_record import COST_PER_1M_INPUT_USD, COST_PER_1M_OUTPUT_USD, RunRecord
+from app.models.run_record import RunRecord
 
 if TYPE_CHECKING:
     from app.services.firestore_client import FirestoreClient
@@ -38,21 +38,17 @@ class RunTracker:
             raise RuntimeError("RunTracker.finish() called more than once")
         self._finished = True
         completed_at = datetime.now(timezone.utc)
-        cost = (
-            (self._tokens_in / 1_000_000 * COST_PER_1M_INPUT_USD)
-            + (self._tokens_out / 1_000_000 * COST_PER_1M_OUTPUT_USD)
-        )
         record = RunRecord(
             run_id=self._run_id,
             tickers_processed=self._tickers_processed,
             tickers_skipped=self._tickers_skipped,
             tokens_in_total=self._tokens_in,
             tokens_out_total=self._tokens_out,
-            estimated_cost_usd=cost,
             status=status,
             started_at=self._started_at,
             completed_at=completed_at,
         )
+        record.estimated_cost_usd = record.compute_cost()
         # Firestore failure propagates intentionally — fail loud (CLAUDE.md convention)
         self._firestore.set(self._collection, self._run_id, record.model_dump(mode="json"))
         logger.info(
@@ -63,6 +59,6 @@ class RunTracker:
             self._tickers_skipped,
             self._tokens_in,
             self._tokens_out,
-            cost,
+            record.estimated_cost_usd,
         )
         return record
