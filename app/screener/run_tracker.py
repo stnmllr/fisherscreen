@@ -1,0 +1,62 @@
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING
+
+from app.models.run_record import COST_PER_1M_INPUT_USD, COST_PER_1M_OUTPUT_USD, RunRecord
+
+if TYPE_CHECKING:
+    from app.services.firestore_client import FirestoreClient
+
+logger = logging.getLogger(__name__)
+
+
+class RunTracker:
+    def __init__(self, firestore: FirestoreClient, collection: str) -> None:
+        self._firestore = firestore
+        self._collection = collection
+        self._run_id = datetime.now(timezone.utc).isoformat()
+        self._tickers_processed = 0
+        self._tickers_skipped = 0
+        self._tokens_in = 0
+        self._tokens_out = 0
+        self._started_at = datetime.now(timezone.utc)
+
+    def record_ticker(self, tokens_in: int, tokens_out: int) -> None:
+        self._tickers_processed += 1
+        self._tokens_in += tokens_in
+        self._tokens_out += tokens_out
+
+    def record_skip(self) -> None:
+        self._tickers_skipped += 1
+
+    def finish(self, status: str = "success") -> RunRecord:
+        completed_at = datetime.now(timezone.utc)
+        cost = (
+            (self._tokens_in / 1_000_000 * COST_PER_1M_INPUT_USD)
+            + (self._tokens_out / 1_000_000 * COST_PER_1M_OUTPUT_USD)
+        )
+        record = RunRecord(
+            run_id=self._run_id,
+            tickers_processed=self._tickers_processed,
+            tickers_skipped=self._tickers_skipped,
+            tokens_in_total=self._tokens_in,
+            tokens_out_total=self._tokens_out,
+            estimated_cost_usd=cost,
+            status=status,
+            started_at=self._started_at,
+            completed_at=completed_at,
+        )
+        self._firestore.set(self._collection, self._run_id, record.model_dump(mode="json"))
+        logger.info(
+            "run=%s status=%s tickers=%d skipped=%d tokens_in=%d tokens_out=%d cost=$%.4f",
+            self._run_id,
+            status,
+            self._tickers_processed,
+            self._tickers_skipped,
+            self._tokens_in,
+            self._tokens_out,
+            cost,
+        )
+        return record
