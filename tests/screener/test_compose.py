@@ -23,3 +23,27 @@ def test_build_screener_pipeline_wires_components():
             collection="dev_ticker_cache",
         )
         assert result == mock_cached_cls.return_value
+
+
+def test_build_edgar_pipeline_wires_components():
+    from unittest.mock import patch
+    with (
+        patch("app.screener.compose.EdgarClientImpl") as mock_edgar_cls,
+        patch("app.screener.compose.FirestoreClientImpl") as mock_fs_cls,
+        patch("app.screener.compose.CachedEdgarClient") as mock_cached_cls,
+        patch("app.screener.compose.settings") as mock_settings,
+    ):
+        mock_settings.edgar_user_agent = "Test Agent <test@example.com>"
+        mock_settings.gcp_project_id = "test-project"
+        mock_settings.edgar_collection = "dev_edgar_cache"
+
+        result = compose_module.build_edgar_pipeline()
+
+        mock_edgar_cls.assert_called_once_with(user_agent="Test Agent <test@example.com>")
+        mock_fs_cls.assert_called_once_with(project_id="test-project")
+        mock_cached_cls.assert_called_once_with(
+            edgar=mock_edgar_cls.return_value,
+            firestore=mock_fs_cls.return_value,
+            collection="dev_edgar_cache",
+        )
+        assert result == mock_cached_cls.return_value

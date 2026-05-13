@@ -1,5 +1,7 @@
 from app.config import settings
+from app.services.cached_edgar_client import CachedEdgarClient
 from app.services.cached_yfinance_client import CachedYFinanceClient
+from app.services.edgar_client import EdgarClientImpl
 from app.services.firestore_client import FirestoreClientImpl
 from app.services.yfinance_client import YFinanceClient, YFinanceClientImpl
 
@@ -11,4 +13,14 @@ def build_screener_pipeline() -> YFinanceClient:
         yfinance=yfinance,
         firestore=firestore,
         collection=settings.ticker_collection,
+    )
+
+
+def build_edgar_pipeline() -> CachedEdgarClient:
+    edgar = EdgarClientImpl(user_agent=settings.edgar_user_agent)
+    firestore = FirestoreClientImpl(project_id=settings.gcp_project_id)
+    return CachedEdgarClient(
+        edgar=edgar,
+        firestore=firestore,
+        collection=settings.edgar_collection,
     )
