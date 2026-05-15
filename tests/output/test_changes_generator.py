@@ -97,7 +97,7 @@ def test_corrupt_frontmatter_falls_back_to_no_prior(tmp_path):
     path = generate([_record("AAPL")], _run_record("2026-05-13T08:00:00+00:00"), tmp_path)
     assert path.exists()
     content = path.read_text(encoding="utf-8")
-    assert "Erster verfügbarer Run" in content or "Vergleichsbasis" in content or "Warnung" in content
+    assert "Erster verfügbarer Run" in content
 
 
 def test_no_changes_produces_unchanged_message(tmp_path):
@@ -109,3 +109,5 @@ def test_no_changes_produces_unchanged_message(tmp_path):
     records = [_record("AAPL", growth=4)]  # same as prior
     path = generate(records, _run_record("2026-05-13T08:00:00+00:00"), tmp_path, score_threshold=4.0)
     assert path.exists()
+    content = path.read_text(encoding="utf-8")
+    assert "Keine Änderungen" in content
