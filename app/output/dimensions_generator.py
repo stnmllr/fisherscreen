@@ -82,14 +82,14 @@ def _compute_dimension_data(
     """Build per-dimension qualifying ticker lists, sorted by score descending, capped."""
     result: dict = {}
     for dim in DIMENSIONS:
-        qualifying = sorted(
+        all_qualifying = sorted(
             [r for r in scored if (r.gemini_dimensions or {}).get(dim, 0) >= score_threshold],
             key=lambda r, d=dim: (r.gemini_dimensions or {}).get(d, 0),
             reverse=True,
-        )[:cap]
+        )
         result[dim] = {
-            "qualifying_count": len(qualifying),
-            "tickers": [r.ticker for r in qualifying],
+            "qualifying_count": len(all_qualifying),
+            "tickers": [r.ticker for r in all_qualifying[:cap]],
         }
     return result
 

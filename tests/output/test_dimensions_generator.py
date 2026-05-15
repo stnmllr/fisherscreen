@@ -45,7 +45,7 @@ def test_generate_creates_universum_subdirectory(tmp_path):
 def test_frontmatter_has_required_top_level_keys(tmp_path):
     path = generate([_record("AAPL")], _run_record(), tmp_path)
     post = frontmatter.load(str(path))
-    for key in ("run_id", "generated_at", "universum_size", "score_threshold", "cap_per_dimension", "dimensions"):
+    for key in ("run_id", "generated_at", "universum_size", "score_threshold", "cap_per_dimension", "dimensions", "crosshits"):
         assert key in post.metadata, f"Missing frontmatter key: {key}"
 
 
@@ -116,3 +116,10 @@ def test_generate_overwrites_existing_file(tmp_path):
     existing.write_text("old content", encoding="utf-8")
     generate([_record("AAPL")], _run_record(), tmp_path)
     assert "old content" not in existing.read_text(encoding="utf-8")
+
+
+def test_frontmatter_qualifying_count_is_pre_cap(tmp_path):
+    records = [_record(f"T{i}", growth=5) for i in range(60)]
+    path = generate(records, _run_record(), tmp_path, score_threshold=4.0, cap=50)
+    post = frontmatter.load(str(path))
+    assert post.metadata["dimensions"]["growth"]["qualifying_count"] == 60
