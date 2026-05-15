@@ -168,16 +168,21 @@ universum_size: 412
 score_threshold: 4
 cap_per_dimension: 50
 dimensions:
-  management_quality:
+  growth:
     qualifying_count: 23
     tickers: [AAPL, MSFT, NVDA, ...]
-  margin_profile:
+  profitability:
     qualifying_count: 47
     tickers: [...]
-  rd_efficiency:
+  management:
     qualifying_count: 18
     tickers: [...]
-  # ... fünf insgesamt
+  innovation:
+    qualifying_count: 31
+    tickers: [...]
+  resilience:
+    qualifying_count: 29
+    tickers: [...]
 crosshits:
   - ticker: AAPL
     dimensions: [management_quality, margin_profile, rd_efficiency]
@@ -243,11 +248,11 @@ Markdown-Generator. Vorschlag: `app/screener/dimensions.py`:
 from typing import Final
 
 DIMENSIONS: Final[tuple[str, ...]] = (
-    "management_quality",
-    "margin_profile",
-    "rd_efficiency",
-    "growth_runway",
-    "competitive_position",
+    "growth",
+    "profitability",
+    "management",
+    "innovation",
+    "resilience",
 )
 ```
 
@@ -255,11 +260,11 @@ Begründung: Umbenennen, Ergänzen oder Streichen einer Dimension darf nicht
 ein Refactoring quer durch den Markdown-Generator erfordern. Die Frontmatter-Keys
 in `Dimensions.md` ziehen sich aus dieser Konstante.
 
-> **Hinweis:** Die konkreten Dimensionsnamen oben sind ein **Platzhalter-Vorschlag**
-> auf Basis der V3-Architektur. Die finalen Namen sind noch nicht fixiert und werden
-> in der writing-plans-Session der Phase 1.4 (oder ggf. in einer separaten kleinen
-> Brainstorm-Session) festgelegt. Bis dahin: Der Markdown-Generator referenziert
-> stets `DIMENSIONS` aus der Konstante.
+> **Hinweis:** Diese Dimensionsnamen sind die kanonische Quelle und entsprechen
+> der Phase-1.3-Implementierung in `app/services/gemini_client.py`. Sie weichen
+> bewusst von V3-Architektur Section 4.2 (L1-L5 Quant-Listen) ab — das
+> Gemini-Assessment der fünf Bereiche ist qualitativ-Fisher-näher als die
+> quant-basierten Sorts. V3-Quants bleiben als Phase-2/3-Kandidat im Backlog.
 
 ### Drei Generatoren statt einem
 
@@ -318,6 +323,13 @@ Aus diesem Brainstorm folgt:
    bleibt als historische Ursprungsannahme, aber bekommt eine Notiz am Anfang:
    *„Phase-1.4-Scope wurde am 2026-05-15 präzisiert. Siehe
    `2026-05-15-phase-1-4-output-structure.md`."*
+
+4. **V3-Architektur-Doc** (`D:\programme\stef-vault\Wissen\Finanzen\FisherScreen\FisherScreen_Architektur_v3.md`):
+   Section 4.2 beschreibt L1-L5 quant-basierte Listen (Margin-Champions,
+   Margin-Trend, Anti-Verwässerer, F&E-Effektivität, Wachstum). Implementiert
+   wurden in Phase 1.3 stattdessen Gemini-Assessment-Dimensionen (growth,
+   profitability, management, innovation, resilience). Doku-Drift in V3 vermerken.
+   V3-Quant-Listen als Phase-2/3-Backlog-Kandidat erfassen.
 
 ---
 
