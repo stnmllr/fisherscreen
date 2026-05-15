@@ -34,4 +34,5 @@ jobs:
             --platform managed \
             --no-allow-unauthenticated \
             --set-secrets "FISHERSCREEN_GEMINI_API_KEY=fisherscreen-gemini-api-key:latest,FISHERSCREEN_GITHUB_TOKEN=fisherscreen-github-token:latest" \
+            --service-account=fisherscreen-runtime@fisherscreen-prod.iam.gserviceaccount.com \
             --set-env-vars "FISHERSCREEN_GCP_PROJECT_ID=fisherscreen-prod,FISHERSCREEN_GITHUB_REPO=stnmllr/fisherscreen,FISHERSCREEN_EDGAR_USER_AGENT=FisherScreen/1.0 stn.mueller@gmail.com"
