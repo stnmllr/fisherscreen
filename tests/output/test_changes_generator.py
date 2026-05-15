@@ -19,8 +19,7 @@ def _run_record(run_id: str = "2026-05-13T08:00:00+00:00") -> RunRecord:
     return RunRecord(run_id=run_id)
 
 
-def _write_prior_dimensions(output_dir: Path, month: str, tickers_per_dim: dict) -> Path:
-    """Write a prior Dimensions.md with the given tickers per dimension."""
+def _write_prior_dimensions(output_dir: Path, month: str, tickers_per_dim: dict[str, list[str]]) -> Path:
     universum = output_dir / "Universum"
     universum.mkdir(parents=True, exist_ok=True)
     prior = universum / f"{month}-Dimensions.md"

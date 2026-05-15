@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import frontmatter
 
@@ -57,7 +57,7 @@ def _compute_current_dim_tickers(
     return result
 
 
-def _load_prior_frontmatter(universum_dir: Path, current_month: str) -> dict | None:
+def _load_prior_frontmatter(universum_dir: Path, current_month: str) -> dict[str, Any] | None:
     candidates = sorted(universum_dir.glob("????-??-Dimensions.md"))
     candidates = [p for p in candidates if p.stem[:7] < current_month]
     if not candidates:
@@ -77,19 +77,19 @@ def _load_prior_frontmatter(universum_dir: Path, current_month: str) -> dict | N
 def _build_body(
     run_month: str,
     current: dict[str, set[str]],
-    prior_result: dict | None,
+    prior_result: dict[str, Any] | None,
 ) -> str:
     lines = [f"# Universum {run_month} — Changes", ""]
 
     if prior_result is None:
         lines += [
             "> Erster verfügbarer Run. Keine Vergleichsbasis vorhanden.",
-            f"> Alle Ticker in diesem Run sind neu im Universum.",
+            "> Alle Ticker in diesem Run sind neu im Universum.",
         ]
         return "\n".join(lines) + "\n"
 
     prior_path: Path = prior_result["path"]
-    prior_dims: dict = prior_result["dimensions"]
+    prior_dims: dict[str, Any] = prior_result["dimensions"]
     prior_month = prior_path.stem[:7]
 
     lines.append(f"*Vergleichsbasis: {prior_path.name} | Aktuell: {run_month}*")
