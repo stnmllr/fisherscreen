@@ -1585,9 +1585,8 @@ def run_monthly() -> dict:
     )
 
     for path in paths:
-        relative = path.relative_to(Path("."))
         github.push_file(
-            str(relative).replace("\\", "/"),
+            path.as_posix(),
             path.read_text(encoding="utf-8"),
             f"chore: monthly screener output {run_record.run_id[:7]}",
         )
