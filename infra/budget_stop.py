@@ -5,7 +5,7 @@ Deployment and setup: see docs/infra/budget-alerts.md
 
 Environment variables:
   GCP_PROJECT_ID       — required, e.g. 'fisherscreen-prod'
-  SCHEDULER_JOB_NAME  — set in Phase 2 after Cloud Scheduler job exists
+  SCHEDULER_JOB_NAME  — set via: gcloud functions deploy ... --update-env-vars SCHEDULER_JOB_NAME=fisherscreen-monthly
   SCHEDULER_LOCATION  — defaults to 'europe-west3'
 """
 import base64

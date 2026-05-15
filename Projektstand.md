@@ -25,6 +25,7 @@
 - 2026-05-13: **Phase 1.3** Gemini Scoring — `main`
 - 2026-05-15: **Phase-1.4-Output-Struktur-Brainstorm** — `docs/superpowers/brainstorm/2026-05-15-phase-1-4-output-structure.md`
 - 2026-05-15: **Phase-1.4-Implementierungsplan** — `docs/superpowers/plans/2026-05-15-phase-1-4-markdown-output.md`
+- 2026-05-15: **Phase 1.4** vollständig implementiert — Markdown-Output + GitHub-Push + Cloud Run Deploy
 
 ### Phase-1.2-Details (2026-05-13)
 
@@ -62,18 +63,16 @@
 
 ## Nächste Session
 
-**Ziel**: Phase 1.4 implementieren — Markdown-Output + GitHub-Push + Cloud Run Deploy
-**Plan**: `docs/superpowers/plans/2026-05-15-phase-1-4-markdown-output.md`
+**Ziel**: Phase 1.4 auf Cloud Run deployen (manuell nach GCP-Vorbereitung)
+**Plan**: `docs/infra/cloud-scheduler.md`
 
-**Pflicht-Lektüre vorab für Claude Code:**
-- `docs/superpowers/brainstorm/2026-05-15-phase-1-4-output-structure.md` (Langfassung der Entscheidungen)
-- `docs/superpowers/brainstorm/2026-05-11-phase-1-structure.md` (Phase-1-Master)
-- `CLAUDE.md`
-
-**Vorbereitung vorab:**
-- [ ] Firestore-API im Projekt `fisherscreen-prod` aktivieren (GCP Console → APIs)
-- [ ] `.env` mit `FISHERSCREEN_GCP_PROJECT_ID=fisherscreen-prod` und `FISHERSCREEN_GEMINI_API_KEY` befüllen
-- [ ] `CLAUDE.md` Zeile 388 (Output-Dateinamen-Tabelle) auf `output/Universum/` etc. korrigieren — eigener kleiner Commit vor 1.4-Implementierung
+**Vorbereitung vor erstem Deploy:**
+- [ ] Firestore-API im Projekt `fisherscreen-prod` aktivieren
+- [ ] Secret Manager: `fisherscreen-gemini-api-key` und `fisherscreen-github-token` befüllen
+- [ ] GitHub Repository unter `stnmllr/fisherscreen` anlegen (falls noch nicht)
+- [ ] Workload Identity Federation in GCP konfigurieren (Service Account + OIDC)
+- [ ] GitHub Secrets `GCP_WORKLOAD_IDENTITY_PROVIDER` und `GCP_SERVICE_ACCOUNT` setzen
+- [ ] `SCHEDULER_JOB_NAME` in budget_stop.py Cloud Function registrieren (nach erstem Scheduler-Job)
 
 **Phase-1.4-Scope (präzisiert 2026-05-15):**
 
