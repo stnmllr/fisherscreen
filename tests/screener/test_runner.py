@@ -1,7 +1,10 @@
+from pathlib import Path
 from unittest.mock import MagicMock
 
 from app.errors import DataSourceError
+from app.models.run_record import RunRecord
 from app.screener.runner import run_basis_filter
+from app.services.gemini_client import GeminiScoreResult
 
 
 def _make_yf_mock(info: dict) -> MagicMock:
@@ -202,3 +205,77 @@ def test_run_edgar_filter_continues_after_individual_error():
 def test_run_edgar_filter_returns_empty_for_empty_input():
     from app.screener.runner import run_edgar_filter
     assert run_edgar_filter([], MagicMock()) == []
+
+
+# --- run_screener ---
+
+
+def _scored_yfinance_mock(ticker: str) -> MagicMock:
+    mock = MagicMock()
+    mock.get_ticker_info.return_value = {
+        "shortName": f"{ticker} Corp",
+        "marketCap": 5_000_000_000,
+        "averageVolume": 1_000_000,
+        "currentPrice": 100.0,
+        "bid": 99.9,
+        "ask": 100.1,
+        "sector": "Technology",
+        "industry": "Software",
+        "currency": "USD",
+    }
+    return mock
+
+
+def _full_mock_suite(ticker: str = "AAPL"):
+    yfinance = _scored_yfinance_mock(ticker)
+    edgar = MagicMock()
+    edgar.has_restatement.return_value = False
+    edgar.has_going_concern.return_value = False
+    edgar.has_active_enforcement.return_value = False
+    gemini = MagicMock()
+    gemini.score_ticker.return_value = GeminiScoreResult(
+        dimensions={"growth": 4, "profitability": 4, "management": 4, "innovation": 4, "resilience": 4},
+        summary="Good",
+        tokens_in=500,
+        tokens_out=80,
+    )
+    tracker = MagicMock()
+    tracker.finish.return_value = RunRecord(run_id="2026-05-13T08:00:00+00:00")
+    return yfinance, edgar, gemini, tracker
+
+
+def test_run_screener_returns_records_run_record_and_paths(tmp_path):
+    from app.screener.runner import run_screener
+    yfinance, edgar, gemini, tracker = _full_mock_suite()
+
+    records, run_record, paths = run_screener(
+        tickers=["AAPL"],
+        yfinance=yfinance,
+        edgar=edgar,
+        gemini=gemini,
+        run_tracker=tracker,
+        output_dir=tmp_path,
+    )
+
+    assert isinstance(records, list)
+    assert isinstance(run_record, RunRecord)
+    assert len(paths) == 3
+
+
+def test_run_screener_creates_three_named_output_files(tmp_path):
+    from app.screener.runner import run_screener
+    yfinance, edgar, gemini, tracker = _full_mock_suite()
+
+    _, _, paths = run_screener(
+        tickers=["AAPL"],
+        yfinance=yfinance,
+        edgar=edgar,
+        gemini=gemini,
+        run_tracker=tracker,
+        output_dir=tmp_path,
+    )
+
+    names = {p.name for p in paths}
+    assert "2026-05-Dimensions.md" in names
+    assert "2026-05-Crosshits.md" in names
+    assert "2026-05-Changes.md" in names
