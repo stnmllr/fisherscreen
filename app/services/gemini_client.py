@@ -9,13 +9,12 @@ from google import genai as _genai
 from google.genai import types as _types
 
 from app.errors import GeminiError
+from app.screener.dimensions import DIMENSIONS
 
 if TYPE_CHECKING:
     from app.models.screener_record import ScreenerRecord
 
 logger = logging.getLogger(__name__)
-
-DIMENSIONS = ["growth", "profitability", "management", "innovation", "resilience"]
 _DEFAULT_MODEL = "gemini-2.0-flash-lite"
 
 

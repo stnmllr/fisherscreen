@@ -12,6 +12,12 @@ class FisherScreenSettings(BaseSettings):
     edgar_collection: str = "dev_edgar_cache"
     gemini_score_collection: str = "dev_gemini_scores"
     screener_runs_collection: str = "dev_screener_runs"
+    crosshits_score_threshold: float = 4.0
+    crosshits_min_dimensions: int = 2
+    crosshits_cap: int = 50
+    output_dir: str = "output"
+    github_repo: str = ""
+    github_branch: str = "main"
 
     model_config = {
         "env_prefix": "FISHERSCREEN_",

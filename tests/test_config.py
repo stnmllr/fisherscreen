@@ -112,3 +112,40 @@ def test_reads_screener_runs_collection(monkeypatch):
 def test_screener_runs_collection_defaults_to_dev():
     settings = FisherScreenSettings(_env_file=None)
     assert settings.screener_runs_collection == "dev_screener_runs"
+
+
+def test_crosshits_score_threshold_defaults_to_4():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.crosshits_score_threshold == 4.0
+
+
+def test_reads_crosshits_score_threshold(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_CROSSHITS_SCORE_THRESHOLD", "4.5")
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.crosshits_score_threshold == 4.5
+
+
+def test_crosshits_min_dimensions_defaults_to_2():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.crosshits_min_dimensions == 2
+
+
+def test_crosshits_cap_defaults_to_50():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.crosshits_cap == 50
+
+
+def test_output_dir_defaults_to_output():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.output_dir == "output"
+
+
+def test_reads_github_repo(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_GITHUB_REPO", "stnmllr/fisherscreen")
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.github_repo == "stnmllr/fisherscreen"
+
+
+def test_github_branch_defaults_to_main():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.github_branch == "main"
