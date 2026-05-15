@@ -6,6 +6,7 @@ from app.services.cached_yfinance_client import CachedYFinanceClient
 from app.services.edgar_client import EdgarClient, EdgarClientImpl
 from app.services.firestore_client import FirestoreClientImpl
 from app.services.gemini_client import GeminiClient, GeminiClientImpl
+from app.services.github_client import GitHubClient, GitHubClientImpl
 from app.services.yfinance_client import YFinanceClient, YFinanceClientImpl
 
 
@@ -44,4 +45,12 @@ def build_run_tracker() -> RunTracker:
     return RunTracker(
         firestore=firestore,
         collection=settings.screener_runs_collection,
+    )
+
+
+def build_github_client() -> GitHubClient:
+    return GitHubClientImpl(
+        token=settings.github_token,
+        repo=settings.github_repo,
+        branch=settings.github_branch,
     )

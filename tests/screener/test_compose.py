@@ -88,3 +88,18 @@ def test_build_run_tracker_wires_components():
             collection="dev_screener_runs",
         )
         assert result == mock_tracker_cls.return_value
+
+
+def test_build_github_client_wires_components():
+    with (
+        patch("app.screener.compose.GitHubClientImpl") as mock_cls,
+        patch("app.screener.compose.settings") as mock_settings,
+    ):
+        mock_settings.github_token = "tok"
+        mock_settings.github_repo = "org/repo"
+        mock_settings.github_branch = "main"
+
+        result = compose_module.build_github_client()
+
+        mock_cls.assert_called_once_with(token="tok", repo="org/repo", branch="main")
+        assert result == mock_cls.return_value
