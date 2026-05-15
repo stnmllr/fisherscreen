@@ -385,9 +385,18 @@ Markdown-Outputs folgen festen Mustern (Cloud Run schreibt, Obsidian liest):
 
 | Output | Pfad im Repo | Beispiel |
 |---|---|---|
-| Dimensions-Listen | `Universum/YYYY-MM-Dimensions.md` | `Universum/2026-06-Dimensions.md` |
-| Hold-Check | `Portfolio/YYYY-MM-HoldCheck.md` | `Portfolio/2026-06-HoldCheck.md` |
-| Deep-Dive-Dossier | `Watchlist/<TICKER>_YYYY-MM-DD.md` | `Watchlist/ASML.AS_2026-06-12.md` |
+| Dimensions-Listen | `output/Universum/YYYY-MM-Dimensions.md` | `output/Universum/2026-06-Dimensions.md` |
+| Crosshits | `output/Universum/YYYY-MM-Crosshits.md` | `output/Universum/2026-06-Crosshits.md` |
+| Changes (Diff zum Vormonat) | `output/Universum/YYYY-MM-Changes.md` | `output/Universum/2026-06-Changes.md` |
+| Hold-Check | `output/Portfolio/YYYY-MM-HoldCheck.md` | `output/Portfolio/2026-06-HoldCheck.md` |
+| Deep-Dive-Dossier | `output/Watchlist/<TICKER>_YYYY-MM-DD.md` | `output/Watchlist/ASML.AS_2026-06-12.md` |
+
+**Output-Container:** Alle generierten Markdowns liegen unter `output/`. Damit bleibt das
+Repo-Root sauber (`app/`, `tests/`, `docs/` sind Geschwister von `output/`), und für
+Phase 2 (Cloud Run) mappt `output/` 1:1 auf einen GCS-Bucket-Prefix.
+
+**Drei Files pro Monatslauf** (Phase 1.4): Dimensions, Crosshits, Changes — bewusst statt
+File-pro-Ticker. Begründung in `docs/superpowers/brainstorm/2026-05-15-phase-1-4-output-structure.md`.
 
 ---
 
