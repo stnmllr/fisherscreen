@@ -25,21 +25,6 @@ def generate(
     score_threshold: float = 4.0,
     cap: int = 50,
 ) -> Path:
-    """Generate the monthly Dimensions markdown file for the Universum output.
-
-    Writes YAML frontmatter (structured data for tooling) plus a human-readable
-    markdown body with one section per Fisher dimension.
-
-    Args:
-        records: All ScreenerRecords for this run (scored and unscored).
-        run_record: Metadata for the current run (provides run_id for filename).
-        output_dir: Root output directory; file is written to output_dir/Universum/.
-        score_threshold: Minimum dimension score for a ticker to qualify (inclusive).
-        cap: Maximum number of tickers to include per dimension.
-
-    Returns:
-        Path to the written file.
-    """
     universum_dir = output_dir / "Universum"
     universum_dir.mkdir(parents=True, exist_ok=True)
 
@@ -79,7 +64,6 @@ def _compute_dimension_data(
     score_threshold: float,
     cap: int,
 ) -> dict:
-    """Build per-dimension qualifying ticker lists, sorted by score descending, capped."""
     result: dict = {}
     for dim in DIMENSIONS:
         all_qualifying = sorted(
@@ -99,7 +83,6 @@ def _compute_crosshits_for_frontmatter(
     score_threshold: float,
     cap: int,
 ) -> list[dict]:
-    """Find tickers that qualify in two or more dimensions (cross-dimension strength)."""
     crosshits: list[dict] = []
     for record in scored:
         dims = record.gemini_dimensions or {}
@@ -124,7 +107,6 @@ def _build_markdown_body(
     score_threshold: float,
     cap: int,
 ) -> str:
-    """Render the human-readable markdown body with one section per dimension."""
     ticker_lookup = {r.ticker: r for r in scored}
     lines: list[str] = [
         f"# Universum {run_month} — Dimensions",

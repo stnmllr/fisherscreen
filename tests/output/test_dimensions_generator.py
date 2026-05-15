@@ -118,6 +118,29 @@ def test_generate_overwrites_existing_file(tmp_path):
     assert "old content" not in existing.read_text(encoding="utf-8")
 
 
+def test_frontmatter_crosshits_includes_tickers_qualifying_in_two_dimensions(tmp_path):
+    records = [
+        _record("MULTI", growth=5, profitability=5),  # qualifies in 2 dims → crosshit
+        _record("SINGLE", growth=5),                   # only 1 dim → not a crosshit
+    ]
+    path = generate(records, _run_record(), tmp_path, score_threshold=4.0)
+    post = frontmatter.load(str(path))
+    crosshit_tickers = [entry["ticker"] for entry in post.metadata["crosshits"]]
+    assert "MULTI" in crosshit_tickers
+    assert "SINGLE" not in crosshit_tickers
+
+
+def test_frontmatter_dimension_tickers_sorted_by_score_descending(tmp_path):
+    records = [
+        _record("LOW", growth=4),
+        _record("HIGH", growth=5),
+    ]
+    path = generate(records, _run_record(), tmp_path, score_threshold=4.0)
+    post = frontmatter.load(str(path))
+    tickers = post.metadata["dimensions"]["growth"]["tickers"]
+    assert tickers.index("HIGH") < tickers.index("LOW")
+
+
 def test_frontmatter_qualifying_count_is_pre_cap(tmp_path):
     records = [_record(f"T{i}", growth=5) for i in range(60)]
     path = generate(records, _run_record(), tmp_path, score_threshold=4.0, cap=50)
