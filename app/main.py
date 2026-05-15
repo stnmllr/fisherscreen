@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI
 
@@ -34,7 +35,7 @@ def health() -> dict[str, str]:
 
 
 @app.post("/run/monthly")
-def run_monthly() -> dict:
+def run_monthly() -> dict[str, Any]:
     tickers = _load_universe()
     yfinance = build_screener_pipeline()
     edgar = build_edgar_pipeline()
