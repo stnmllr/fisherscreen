@@ -1,0 +1,37 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push image
+        run: |
+          gcloud builds submit --tag europe-west3-docker.pkg.dev/fisherscreen-prod/fisherscreen/app:${{ github.sha }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy fisherscreen-service \
+            --image europe-west3-docker.pkg.dev/fisherscreen-prod/fisherscreen/app:${{ github.sha }} \
+            --region europe-west3 \
+            --platform managed \
+            --no-allow-unauthenticated \
+            --set-secrets "FISHERSCREEN_GEMINI_API_KEY=fisherscreen-gemini-api-key:latest,FISHERSCREEN_GITHUB_TOKEN=fisherscreen-github-token:latest" \
+            --set-env-vars "FISHERSCREEN_GCP_PROJECT_ID=fisherscreen-prod,FISHERSCREEN_GITHUB_REPO=stnmllr/fisherscreen,FISHERSCREEN_EDGAR_USER_AGENT=FisherScreen/1.0 stn.mueller@gmail.com"
