@@ -132,8 +132,8 @@ dimensions:
     - ASML
     - SAP
     - NOVO-B.CO
-generated_at: '2026-05-16T13:16:27.094910+00:00'
-run_id: '2026-05-16T13:16:25.645439+00:00'
+generated_at: '2026-05-16T13:26:06.664794+00:00'
+run_id: '2026-05-16T13:26:05.236097+00:00'
 score_threshold: 4.0
 universum_size: 9
 ---
