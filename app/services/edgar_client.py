@@ -42,7 +42,7 @@ class EdgarClientImpl:
 
     def _load_ticker_map(self) -> dict[str, str]:
         """Fetch SEC company_tickers.json and return a TICKER -> CIK string map."""
-        url = f"{self._SEC_BASE}/files/company_tickers.json"
+        url = "https://www.sec.gov/files/company_tickers.json"
         data = self._get(url)
         return {entry["ticker"].upper(): str(entry["cik_str"]) for entry in data.values()}
 
