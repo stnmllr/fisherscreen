@@ -160,3 +160,13 @@ Firestore-Lock (`runs/monthly/{YYYY-MM}` mit Status `running|completed`):
 **Zusätzliche Maßnahme (unabhängig vom Lock):**
 
 Cloud-Scheduler `--attempt-deadline 1800s` setzen — verhindert, dass Scheduler-Timeout den Request abbricht, bevor ein langer Run abgeschlossen ist. Das ist eine separate Konfigurationsänderung und kein Code-Problem.
+
+---
+
+## Verifikation (Post-Merge, 2026-05-16 17:36 Uhr)
+
+- Squash-Merge `9b64007` triggerte keinen Workflow (vermutet GitHub-Quirk, dokumentiert als Phase-2-TODO)
+- Manueller Deploy via Workstation: Revision `fisherscreen-service-00030-jnv`, Image-Tag `b8427f6`
+- Test-Run via `gcloud scheduler jobs run fisherscreen-monthly`
+- Alle Akzeptanzkriterien erfüllt (siehe PROJEKTSTAND.md, Abschnitt Mai 2026)
+- Frage 5 (Scheduler-Retry-Hypothese): **bestätigt** — `gcloud scheduler jobs describe` zeigte unlimited retries, 5s minBackoff. Retry-Policy gehärtet: `--max-retry-attempts=2 --min-backoff=60s --max-backoff=300s --max-retry-duration=1800s`

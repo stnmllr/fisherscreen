@@ -10,17 +10,22 @@
 
 ## Letztes Update: 2026-05-16
 
+## Top of mind
+
+FisherScreen Phase 1 ist produktiv. Erster Lauf am 2026-05-16 erfolgreich durchgeführt nach Fix eines kritischen Feedback-Loop-Bugs. Monatlicher Scheduler-Job läuft, drei Markdown-Outputs (Dimensions, Crosshits, Changes) werden via GitHub Sync ins Obsidian-Repo gepusht. Nächster regulärer Lauf: 2026-06-01 03:00 UTC.
+
 ## Status
 
-**Aktueller Phase**: Phase 3 vollständig abgeschlossen — FisherScreen ist produktionsbereit. ✅
-**Branch**: `main` — 233 Tests, 95.35% Coverage.
-**Cloud Run**: `fisherscreen-service` läuft in europe-west3 (Projekt `fisherscreen-prod`, Projektnummer 896012696952).
+**Aktueller Phase**: Phase 1 produktiv ✅ — Erster Lauf 2026-05-16, Feedback-Loop-Bug behoben.
+**Branch**: `main` — 234 Tests, 95.35% Coverage.
+**Cloud Run**: `fisherscreen-service` Revision `00030-jnv` in europe-west3 (Projekt `fisherscreen-prod`, Projektnummer 896012696952).
 **Gemini-Modell**: `gemini-2.5-flash-lite` (konfigurierbar via `FISHERSCREEN_GEMINI_MODEL`)
-**Cloud Scheduler**: `fisherscreen-monthly` aktiv — läuft automatisch am 1. jeden Monats um 05:00 Europe/Berlin.
+**Cloud Scheduler**: `fisherscreen-monthly` aktiv — läuft automatisch am 1. jeden Monats um 05:00 Europe/Berlin. Retry-Policy gehärtet: max 2 Retries, 60s minBackoff.
 **Hard-Stop**: Cloud Function + $10-Budget mit Pub/Sub-Hook — verifiziert.
-**EDGAR CIK-Lookup**: Funktioniert in Production ✅ — AAPL/MSFT/NVDA/GOOGL/AMZN/META/ASML/SAP haben CIKs, EDGAR-Checks laufen.
+**EDGAR CIK-Lookup**: Funktioniert in Production ✅ — CIKs für US-Ticker aus `company_tickers.json`.
 **Universe**: 1.389 Ticker (S&P 500 + S&P 400 + STOXX Europe 600) in `data/universe.json` ✅
-**Nächste Mini-Task**: Erster voller Monatslauf — entweder manuell via `/run/monthly` oder automatisch am 1. Juni.
+**Erster Output**: Top-Crosshit NOVO-B.CO (Score 4.6, alle 5 Dimensionen), 50 Crosshit-Kandidaten aus 160 Vorfilter-Tickern.
+**Nächster Lauf**: 2026-06-01 03:00 UTC (automatisch via Cloud Scheduler)
 
 ## Erledigt
 
@@ -39,6 +44,43 @@
 - 2026-05-16: **Phase 3 vollständig abgeschlossen** ✅ — Cloud Function, Hard-Stop Budget, reduzierter Run, Cloud Scheduler
 - 2026-05-16: **EDGAR CIK-Lookup** gefixt — `get_cik()` via `www.sec.gov/files/company_tickers.json`, URL-Bug (`data.sec.gov` → `www.sec.gov`) behoben, Production verifiziert
 - 2026-05-16: **GitHub-Token `.strip()`** — defense-in-depth gegen PAT-Newline-Bug deployed
+- 2026-05-16: **Universe-Erweiterung** auf 1.389 Ticker — `scripts/build_universe.py`, S&P 500 + S&P 400 + STOXX 600
+- 2026-05-16: **Cloud Run Timeout** auf 3600s erhöht — `--timeout=3600` in `deploy.yml`
+- 2026-05-16: **Deployment-Feedback-Loop** gefixt — `paths-ignore: output/**` + `[skip ci]`, PR #2, Commit `9b64007`
+- 2026-05-16: **Scheduler Retry-Policy** gehärtet — `--max-retry-attempts=2 --min-backoff=60s --max-backoff=300s --max-retry-duration=1800s`
+- 2026-05-16: **Erster produktiver Lauf** ✅ — Verifikations-Run 15:36 UTC, kein Retry, drei Output-Commits mit `[skip ci]`, kein Deploy getriggert
+
+### Mai 2026 — Produktivgang und Feedback-Loop-Fix
+
+Erster Scheduler-Run produzierte Output, aber löste eine Feedback-Schleife aus: jeder der drei Output-Commits (Dimensions, Crosshits, Changes) auf `main` triggerte den `Deploy to Cloud Run` Workflow, der eine neue Cloud-Run-Revision deployte und den laufenden Container mit `SIGTERM` killte. Cloud Scheduler mit aggressiver Retry-Policy retriede den Request → zweiter `POST /run/monthly` 4 Sekunden nach dem ersten. Sechs GitHub-Actions-Workflow-Runs in 15 Minuten, zwei davon HTTP 409 wegen paralleler `gcloud run deploy`-Calls auf denselben Service.
+
+**Fix (PR #2, Commit `9b64007`):**
+- `.github/workflows/deploy.yml`: `paths-ignore: ['output/**']`
+- `app/main.py:63`: Commit-Message ergänzt um `[skip ci]`-Suffix
+- Tests erweitert (`test_monthly_run_commit_message_includes_skip_ci`)
+- Defense-in-Depth: beide Maßnahmen aktiv, jede für sich allein würde reichen
+
+**Cloud Scheduler Retry-Policy gehärtet:**
+- Vorher: unlimited retries, 5s minBackoff, kein maxRetryDuration
+- Nachher: `--max-retry-attempts=2 --min-backoff=60s --max-backoff=300s --max-retry-duration=1800s`
+
+**Deployment-Quirk:** Squash-Merge-Commit `9b64007` und nachfolgender Empty-Commit `b8427f6` haben den `Deploy to Cloud Run` Workflow nicht getriggert (Ursache unklar — möglicher GitHub-Actions-Trigger-Bug bei zeitlich engem Aufeinanderfolgen). Workaround: manueller Deploy via `gcloud builds submit` + `gcloud run deploy` von der Workstation. Resultierende Revision: `fisherscreen-service-00030-jnv`, Image-Tag `b8427f6`.
+
+**Verifikations-Lauf (15:36 UTC):**
+- ✅ Genau ein `POST /run/monthly` 200 OK (kein Retry)
+- ✅ Keine doppelten EDGAR-Calls (jeder CIK genau einmal)
+- ✅ Drei Output-Commits mit `[skip ci]` Suffix gepusht
+- ✅ Kein neuer GitHub-Actions-Workflow trotz Output-Commits
+- ✅ Cloud Run Revision blieb stabil bis zum Lauf-Ende (kein Mid-Run-Shutdown)
+
+**Erster echter Phil-Fisher-Output:**
+- Universum-Größe nach Vorfilter: 160 Tickers (aus ~1.389 S&P 500 + S&P 400 + STOXX 600)
+- Top-Crosshit: **Novo Nordisk (NOVO-B.CO)** mit Score 4.6 und allen 5 Dimensionen positiv — einziges Unternehmen mit Full-House-Hit
+- Weitere Top-Kandidaten: DB1.DE, ITX.MC, MONC.MI, SAP.DE (alle 4 Dimensionen)
+- Insgesamt 50 Crosshit-Kandidaten in der Top-50-Liste
+- Changes-Datei korrekt leer (erster Lauf, kein Vormonat-Vergleich möglich)
+
+---
 
 ### Phase-3-Details (2026-05-16)
 
@@ -105,51 +147,46 @@
 - `budget_stop.py`: `os.environ.get()` statt `[]` (kein KeyError beim Cold Start), `GoogleAPICallError`-Catch
 - `DimensionsGenerator`: `qualifying_count` ist pre-cap (nicht post-cap) — durch Review-Loop gefunden
 
-## Nächste Session
+## Nächste Session — Phase 2 TODOs
 
-**Ziel**: Phase 4 — Bugs beheben + Universe auf ~2.100 Ticker erweitern, dann erster echter Monatslauf.
+Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00 UTC. Die folgenden Phase-2-Punkte sind nach Priorität geordnet — kein Blocking-Item für den Juni-Lauf.
 
-**Infrastruktur-Phasen-Status:**
+**Infra-Phasen-Status (vollständig):**
 
 | Phase | Status |
 |---|---|
-| Phase 1 (Bootstrap): `docs/infra/setup-gcp-project.md` | ✅ ausgeführt |
-| Phase 2 (Deploy): `deploy.yml` + Cloud Run Service | ✅ läuft, `/health` grün |
-| Phase 3a (Budget Warning $5): GCP Console | ✅ aktiv für `fisherscreen-prod` |
-| Phase 3b (Hard Stop $10): Cloud Function + $10 Budget | ✅ deployed + verifiziert |
-| Phase 3c (Cloud Scheduler monthly) | ✅ aktiv, 1. des Monats 05:00 Europe/Berlin |
-| **Phase 4 (Universe-Erweiterung + Bugfixes)** | ❌ noch offen |
+| Phase 1 (Bootstrap) | ✅ |
+| Phase 2 (Deploy) | ✅ |
+| Phase 3a ($5 Warning) | ✅ |
+| Phase 3b ($10 Hard Stop) | ✅ |
+| Phase 3c (Cloud Scheduler) | ✅ |
+| Phase 4 (Universe + Bugfixes + Produktivgang) | ✅ |
 
-**Schritt 1 — EDGAR-CIK-Lookup-Bug fixen (BLOCKIEREND):**
-- Bei reduziertem Run hatten alle 9 Ticker "no CIK" — inkl. US-Ticker wie AAPL, MSFT, NVDA
-- CIK-Lookup-Codepfad in `app/services/edgar_client.py` analysieren und fixen
-- Ohne CIK läuft EDGAR-Filter nie → alle Ticker werden ohne EDGAR-Check durchgereicht
+**Phase-2-Backlog:**
 
-**Schritt 2 — Defense-in-depth: `.strip()` in `github_client.py`:**
-- `GitHubClientImpl.__init__()`: `token = token.strip()` ergänzen
-- Verhindert httpx `LocalProtocolError` bei Secret-Newline-Bugs
+1. **Cloud Run Jobs statt Cloud Run Service für Tool A** — entkoppelt den Monatslauf von Deployments, eliminiert Deployment-Race-Risiko bei zukünftigen Architekturänderungen, höheres Timeout (24h statt 60min). Setzt voraus: Cloud Run Jobs Migration, Scheduler-Trigger auf Job-Execution statt HTTP.
 
-**Schritt 3 — Universe-Erweiterung:**
-- `data/universe.json` mit echten ~2.100 Tickern (S&P 500 + Russell 1000 + STOXX 600) befüllen
-- TSMC-Ticker-Format klären (TSM statt TSMC? yfinance-Bug?)
-- Crosshits-Schwelle ≥4 nach erstem Lauf empirisch validieren — ggf. auf ≥4.5 erhöhen
+2. **Gemini 503-Retry mit tenacity** — beim ersten Lauf wurde ALV.DE aus dem Scoring rausgeworfen wegen "503 UNAVAILABLE - high demand". Retry mit exponentiellem Backoff (3 Versuche: 1s, 4s, 16s) für 503/429.
 
-**Schritt 4 — Erster voller Monatslauf:**
-- Erst nach Bugfix und Universe-Erweiterung
-- Alternativ: nächsten automatischen Scheduler-Lauf am 1. Juni abwarten
+3. **`has_active_enforcement` ausimplementieren** — derzeit Phase-1-Platzhalter, gibt für alle CIKs `False` zurück. Bei US-Tickern via SEC EDGAR, bei EU-Tickern via BaFin/FCA/AMF/CNMV.
+
+4. **Idempotenz-Lock auf `/run/monthly`** — Firestore-Dokument `runs/monthly/{YYYY-MM}` mit Status `running|completed`. Verhindert Doppelaufrufe falls Scheduler-Retry trotz neuer Policy noch zuschlägt.
+
+5. **Output-Repo-Trennung** — `stnmllr/fisherscreen-output` als separates Repo, wenn Output-Frequenz steigt (Deep-Dives, Hold-Checks). Aktuell nicht nötig.
+
+6. **GitHub-Actions-Trigger-Quirk** — Untersuchen, warum Squash-Merge-Commit `9b64007` keinen Workflow ausgelöst hat. Mögliche Ursache: zeitliches Aufeinanderfolgen von Commits.
+
+7. **Vorfilter-Dokumentation** — Universum reduziert sich von ~1.389 auf 160 Tickers in der Basis-Filter-Phase. Filter-Logik in `app/screener/filters.py` lokalisieren und in `docs/` dokumentieren (Threshold-Werte, Ausschluss-Gründe).
+
+8. **Name-Cleanup im Output** — yfinance liefert Listing-Suffixe ("N", "I", "V") und kaputte Encodings ("DISE...O" statt "DISEÑO"). In `dimensions_generator.py` und `crosshits_generator.py` rstrip/encoding-Cleanup.
 
 ## Offene Punkte (nicht-blockierend)
 
-### Phase 4 — Bugfixes (ERLEDIGT)
-- [x] **EDGAR-CIK-Lookup-Bug** — gefixt via `company_tickers.json`, Production verifiziert
-- [x] **`.strip()` für Token-Loading** — deployed
+### Erster Lauf — Offene Punkte
 - [ ] **TSMC market_cap missing** — yfinance-Bug oder Ticker-Format-Issue (TSM vs TSMC)? Klären.
 - [ ] **Cache-TTL bei Monatswechsel** — greift Mai-Cache am 1. Juni? TTL-Logik im Firestore-Client prüfen
-
-### Phase 4 — Universe-Erweiterung
-- [x] **`data/universe.json`** — 1.389 Ticker (S&P 500: 503, S&P 400: 400, STOXX Europe 600: 534, dedupliziert) via `scripts/build_universe.py`
 - [ ] **`dev_` Collection-Prefix** evaluieren — für Production auf `prod_` umstellen?
-- [ ] Crosshits-Schwelle ≥4 nach erstem echten Lauf validieren — ggf. auf ≥4.5 wenn Liste >50
+- [ ] Crosshits-Schwelle ≥4 nach erstem echten Lauf validieren — ggf. auf ≥4.5 wenn >50 Kandidaten
 
 ### Infra / Sicherheit
 - [ ] **GitHub Token Rotation** — `fisherscreen-github-token` läuft am **2027-05-15** ab. Kalender-Reminder setzen.
@@ -274,7 +311,7 @@ Verwirrungsquelle wenn man Befehle zwischen interaktiver Session und `.bat`-Date
 |---|---|
 | Projekt | `fisherscreen-prod` (896012696952) |
 | Region | `europe-west3` |
-| Cloud Run Service | `fisherscreen-service` (Revision 00006+) |
+| Cloud Run Service | `fisherscreen-service` (aktuell: Revision `00030-jnv`, Image `b8427f6`) |
 | Runtime SA | `fisherscreen-runtime@fisherscreen-prod.iam.gserviceaccount.com` |
 | Deploy SA | `github-deploy@fisherscreen-prod.iam.gserviceaccount.com` |
 | Scheduler SA | `fisherscreen-scheduler@fisherscreen-prod.iam.gserviceaccount.com` |
@@ -286,7 +323,7 @@ Verwirrungsquelle wenn man Befehle zwischen interaktiver Session und `.bat`-Date
 | Budget Warning | $5/Monat actual spend → E-Mail stn.mueller@gmail.com (aktiv) |
 | Budget Hard Stop | ✅ $10/Monat + Pub/Sub `fisherscreen-budget-alerts` → Cloud Function (verifiziert) |
 | Cloud Function | `fisherscreen-budget-stop` (Gen 2, europe-west3, `infra/main.py`) |
-| Cloud Scheduler | `fisherscreen-monthly` — `0 5 1 * *` Europe/Berlin → POST `/run/monthly` |
+| Cloud Scheduler | `fisherscreen-monthly` — `0 5 1 * *` Europe/Berlin → POST `/run/monthly` (max 2 Retries, 60s–300s Backoff) |
 | Konsolidiertes Budget | €10/Monat alle Projekte — grobes Sicherheitsnetz |
 
 ## Decisions Log
@@ -304,6 +341,7 @@ Verwirrungsquelle wenn man Befehle zwischen interaktiver Session und `.bat`-Date
 | 2026-05-15 | YAML-Frontmatter in `Dimensions.md` als maschinen-lesbare Sicht | Eine Datei für Mensch + Maschine; Obsidian rendert Frontmatter sauber | Format-Drift muss durch Schema-Test gesichert werden |
 | 2026-05-16 | `gemini-2.5-flash-lite` statt `gemini-2.0-flash-lite` | 2.0 Flash-Lite deprecated ab 1. Juni 2026; 2.5 ist GA und kostengleich | Preview-Modelle (3.1) wegen Account-Quota-Beschränkung übersprungen |
 | 2026-05-16 | `FISHERSCREEN_GEMINI_MODEL` als Env-Var statt Hardcode | Modell-Updates ohne Code-Deploy; ermöglicht A/B-Testing per Cloud Run Revision | Default `gemini-2.5-flash-lite` im Code — Env-Var nur wenn Abweichung nötig |
+| 2026-05-16 | `paths-ignore: output/**` + `[skip ci]` als Defense-in-Depth gegen Feedback-Loop | Output-Commits dürfen keinen Deploy triggern; `paths-ignore` ist primärer Schutz, `[skip ci]` Backstop falls Output-Pfad je außerhalb `output/` landet | Beide Maßnahmen sind unabhängig voneinander wirksam — keine Doppelarbeit, aber leicht mehr Konfigurations-Surface |
 
 ## Parallele Projekte
 
