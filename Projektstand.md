@@ -75,24 +75,39 @@ Tool A ist in seiner Kernfunktion live und produziert valide Output-Files. Ein A
 
 - **Portfolio Hold-Check** (V3 Abschnitt 4.3) — erfordert `portfolio_normalized.json` aus Portfolio-Analyzer v5.3, `buy_snapshots` Firestore-Collection, Delta-Check-Logik (CEO/CFO-Wechsel, Margin-Drop, Insider-Verkäufe, Auditor-Wechsel, Going-Concern neu). Wert nur sichtbar, sobald echtes Portfolio mit Kauf-Snapshots existiert.
 - **Cost-Caps im Code** (V3 Architekturprinzip #3) — Hard-Limits für Gemini-Tokens pro Lauf mit Logging bei 80%-Erreichung. Aktuell nicht implementiert. Niedriges Risiko bei Flash Lite, aber Spec-Lücke.
+- **CLAUDE.md Vollständigkeitsprüfung** (V3 Phase-4-Punkt) — CLAUDE.md ist vorhanden und wird von Claude Code genutzt, aber ein Abgleich gegen die V3-Anforderungen (cmd.exe-Konventionen, WatchGuard-EPDR-Workaround, Test-Befehle) ist ausstehend.
 
 #### Bewertung
 
-Tool A ist **inhaltlich für seine Hauptaufgabe vollständig** (Fisher-konforme Kandidatensuche aus großem Universum). Was fehlt, ist Tool A in seiner *kompletten V3-Vision* — Hold-Check und Filter-Vollständigkeit. Dies ist eine bewusste Priorisierung: erst die Kern-Pipeline produktiv und stabil, dann nachschärfen.
+Tool A erfüllt seine Hauptaufgabe (Fisher-konforme Kandidatensuche aus großem Universum) **vollständig**. Was fehlt, sind ergänzende V3-Features — allen voran der Portfolio Hold-Check. Diese können parallel oder nach Tool B nachgezogen werden, da sie für den V3-Kernworkflow (Tool A → Stufe-3-Diskussion → Tool B) nicht blockierend sind.
 
 **Phase-1-Exit-Kriterium aus V3:** „Stef sieht die Listen + Querliste und sagt 'da ist mindestens einer interessant' oder 'Filter müssen anders'." → **Erfüllt am 2026-05-16.** Novo Nordisk als einziger 5-of-5-Crosshit-Hit ist ein methodisch plausibles Ergebnis.
 
-### Tool-A-Vervollständigung — Reihenfolge
+### Reihenfolge bis V3-Workflow vollständig nutzbar
 
-Zwischen heute (2026-05-16) und dem Tool-B-Start liegen folgende Schritte in dieser Reihenfolge:
+V3 Abschnitt 1.1 definiert den Kernworkflow als:
 
-1. **Vor 2026-06-01:** Gemini 503-Retry einbauen (TODO #11). Verhindert Datenverlust beim nächsten Lauf.
-2. **Diese Woche:** Negativ-Filter-Audit dokumentieren (TODO #10). Klarheit über reale Score-Basis.
-3. **2026-06-01:** Zweiter produktiver Monatslauf. Verifikation, dass Changes-Datei sich befüllt und die Pipeline stabil ist.
-4. **Anfang Juli (nach Juni-Lauf):** Portfolio-Hold-Check implementieren (TODO #12). Voraussetzung: erster Comdirect-Export → `portfolio_normalized.json` durchgeführt.
-5. **Erst dann:** Tool B (Deep-Dive CLI) starten gemäß V3 Abschnitt 5.
+```
+Tool A → Stufe-3-Diskussion mit Claude → Tool B (Deep-Dive) → Kaufentscheidung
+```
 
-Grund für diese Reihenfolge: Tool B teilt Infrastruktur (EDGAR-Pipeline, Gemini-Layer) mit Tool A. Eine vollständige Tool-A-Basis macht die Tool-B-Implementierung sauberer.
+Tool A ist heute (2026-05-16) live. Die Stufe-3-Diskussion ist immer manuell (V3-Intent, keine Automatisierung). Tool B fehlt noch als ausführender Output-Schritt. Folgende Reihenfolge ist sinnvoll:
+
+1. **Diese Woche — Quick Wins (beide Tools profitieren):**
+   - Gemini 503-Retry (TODO #11) — vor dem 2026-06-01 Lauf
+   - Negativ-Filter-Audit-Doku (TODO #10) — Klarheit über reale Score-Basis und Vorarbeit für Tool-B-EDGAR-Pipeline
+
+2. **Nächste 1–2 Wochen:** Tool B implementieren gemäß V3 Abschnitt 5 (HTTP-Endpoint `/run/deepdive`, Hard/Soft-Scuttlebutt-Pipeline, Sprach-Analyse, Subagent-Isolation, Dossier-Generator, CLI-Wrapper)
+
+3. **Nach Tool-B-Fertigstellung:** Erste echte Stufe-3-Diskussion über den Mai-Output, dann 1–3 echte Deep-Dives produzieren, V3-Workflow End-to-End durchlaufen
+
+4. **2026-06-01:** Zweiter automatischer Monatslauf. Verifikation, dass Changes-Datei sich befüllt und Pipeline stabil ist.
+
+5. **Im Juli (nach erstem realen Kauf-Workflow):** Portfolio Hold-Check nachziehen (TODO #12), sobald echte Kauf-Snapshots vorliegen.
+
+6. **Laufend:** Cost-Caps (TODO #13), CLAUDE.md-Review (TODO #14) als Hygiene-Items.
+
+Wichtig: Portfolio Hold-Check (V3 Abschnitt 4.3) ist konzeptionell Tool A, aber für den V3-Hauptworkflow nicht blockierend. Er ergänzt die Universum-Suche um die Portfolio-Beobachtung — beide Schichten arbeiten unabhängig. Daher pragmatische Verschiebung nach Tool B.
 
 ## Status
 
