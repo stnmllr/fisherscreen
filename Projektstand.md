@@ -14,6 +14,40 @@
 
 FisherScreen Phase 1 ist produktiv. Erster Lauf am 2026-05-16 erfolgreich durchgeführt nach Fix eines kritischen Feedback-Loop-Bugs. Monatlicher Scheduler-Job läuft, drei Markdown-Outputs (Dimensions, Crosshits, Changes) werden via GitHub Sync ins Obsidian-Repo gepusht. Nächster regulärer Lauf: 2026-06-01 03:00 UTC.
 
+### Scoring-Methodik (Phase 1)
+
+FisherScreen bewertet jeden Ticker auf einer 1–5-Skala in fünf Dimensionen, die Phil Fishers 15 Punkte aus *Common Stocks and Uncommon Profits* clustern:
+
+| Dimension | Fisher-Punkte | Kern-Frage |
+|---|---|---|
+| **Growth** | #1, #2 | Marktpotenzial und Wachstumsfähigkeit |
+| **Profitability** | #5, #6, #11 | Margen und Margen-Stabilität |
+| **Management** | #7–#10 | Executive-Qualität, Tiefe, Disziplin |
+| **Innovation** | #3, #4 | F&E-Effektivität und Vertriebsstärke |
+| **Resilience** | #12–#15 | Langfristige Robustheit, Bilanz, Integrität |
+
+Score entsteht aus Kombination von quantitativen yfinance-Metriken (Margins, ROIC, Revenue-CAGR, Verschuldung, Cashflow-Stabilität) und Gemini-Bewertung pro Dimension. Qualifikationsschwelle: Score ≥ 4.0 (`score_threshold` in `config.py`).
+
+**Crosshits-Logik:** Ticker zählt als Crosshit wenn er in mehreren Dimensionen gleichzeitig die Schwelle überschreitet. Ranking: primär nach Anzahl Crosshits (mehr = besser), sekundär nach Ø Score der qualifizierenden Dimensionen. Phil-Fisher-Grundgedanke: mehrdimensionale Stärke ist robuster als eindimensional hoher Score.
+
+**Beispiel (Mai 2026):** Novo Nordisk (NOVO-B.CO) = 5 Crosshits (alle Dimensionen), Ø Score 4.6 → Position 1. Allianz = 3 Crosshits (Profitability, Management, Resilience), Ø Score 4.33.
+
+**Universum:** Vorfilter reduziert ~1.389 Tickers auf ~160 vor der Dimensions-Bewertung. Detaillierte Vorfilter-Logik: Phase-2-TODO #7 und #9.
+
+### Vault-Anbindung (lokal)
+
+Der Cloud-Run-Service pusht die monatlichen Markdown-Outputs nach `stnmllr/fisherscreen` in `output/Universum/`. Lokal auf der Workstation sind diese Files via Windows-Junction im Obsidian-Vault sichtbar:
+
+```
+D:\programme\stef-vault\Wissen\Finanzen\FisherScreen\Universum
+  → Junction nach →
+D:\programme\fisherscreen\output\Universum
+```
+
+Angelegt 2026-05-16 via `mklink /J`. Voraussetzung für Sichtbarkeit in Obsidian: regelmäßiges `git pull origin main` in `D:\programme\fisherscreen`. Der Junction-Ordner ist in `stef-vault/.gitignore` eingetragen, damit `stnmllr/stef-vault` die Files nicht doppelt versioniert.
+
+**Single-Machine-Setup:** Aktuell nur auf der Workstation. Falls Vault auf einem zweiten Gerät genutzt werden soll, müsste der Service zusätzlich nach `stnmllr/stef-vault` pushen (Phase-2-TODO #5-Variante).
+
 ## Status
 
 **Aktueller Phase**: Phase 1 produktiv ✅ — Erster Lauf 2026-05-16, Feedback-Loop-Bug behoben.
@@ -179,6 +213,8 @@ Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00
 7. **Vorfilter-Dokumentation** — Universum reduziert sich von ~1.389 auf 160 Tickers in der Basis-Filter-Phase. Filter-Logik in `app/screener/filters.py` lokalisieren und in `docs/` dokumentieren (Threshold-Werte, Ausschluss-Gründe).
 
 8. **Name-Cleanup im Output** — yfinance liefert Listing-Suffixe ("N", "I", "V") und kaputte Encodings ("DISE...O" statt "DISEÑO"). In `dimensions_generator.py` und `crosshits_generator.py` rstrip/encoding-Cleanup.
+
+9. **`docs/scoring-methodology.md`** — Detaillierte Dokumentation der Score-Berechnung pro Dimension: yfinance-Feldmapping, Heuristiken, Gemini-Prompt-Templates, Score-Aggregation, Vorfilter-Logik. Wichtig für: Reproduzierbarkeit, künftige Methodenänderungen, Debugging schwacher Score-Plausibilität.
 
 ## Offene Punkte (nicht-blockierend)
 
