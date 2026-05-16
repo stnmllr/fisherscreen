@@ -60,7 +60,7 @@ def run_monthly() -> dict[str, Any]:
         github.push_file(
             path.as_posix(),
             path.read_text(encoding="utf-8"),
-            f"chore: monthly screener output {run_record.run_id[:7]}",
+            f"chore: monthly screener output {run_record.run_id[:7]} [skip ci]",
         )
 
     logger.info("monthly run complete: run_id=%s paths=%d", run_record.run_id, len(paths))
