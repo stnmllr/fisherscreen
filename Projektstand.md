@@ -12,11 +12,13 @@
 
 ## Status
 
-**Aktueller Phase**: Phase 1 vollständig implementiert, deployed und smoke-getestet. ✅
+**Aktueller Phase**: Phase 3 vollständig abgeschlossen — FisherScreen ist produktionsbereit. ✅
 **Branch**: `main` — 226 Tests, 95.51% Coverage.
 **Cloud Run**: `fisherscreen-service` läuft in europe-west3 (Projekt `fisherscreen-prod`, Projektnummer 896012696952).
-**`/health`**: `{"status":"ok"}` — Service ist operational.
-**Nächste Mini-Task**: Phase 3b (Cloud Function deployen für $10 Hard-Stop), dann Cloud Scheduler.
+**Gemini-Modell**: `gemini-2.5-flash-lite` (konfigurierbar via `FISHERSCREEN_GEMINI_MODEL`)
+**Cloud Scheduler**: `fisherscreen-monthly` aktiv — läuft automatisch am 1. jeden Monats um 05:00 Europe/Berlin.
+**Hard-Stop**: Cloud Function + $10-Budget mit Pub/Sub-Hook — verifiziert (Scheduler wurde korrekt pausiert + manuell resumed).
+**Nächste Mini-Task**: Phase 4 — Universe-Erweiterung auf ~2.100 Ticker, EDGAR-CIK-Lookup-Bug fixen.
 
 ## Erledigt
 
@@ -32,6 +34,19 @@
 - 2026-05-15: **Cloud Run Deploy** erfolgreich — `fisherscreen-service` läuft
 - 2026-05-16: **$5 Warning-Budget** angelegt in GCP Console (Scope: `fisherscreen-prod`, Threshold: $5 actual spend, Alert: E-Mail an stn.mueller@gmail.com)
 - 2026-05-16: **Smoke-Test `/health`** ✅ — `{"status":"ok"}`, OIDC-Auth via `gcloud auth print-identity-token`, Cloud Run operational
+- 2026-05-16: **Phase 3 vollständig abgeschlossen** ✅ — Cloud Function, Hard-Stop Budget, reduzierter Run, Cloud Scheduler
+
+### Phase-3-Details (2026-05-16)
+
+| Schritt | Was |
+|---|---|
+| Phase 3b — Cloud Function | `fisherscreen-budget-stop` deployed (Gen 2, europe-west3), Trigger: Pub/Sub `fisherscreen-budget-alerts` |
+| Phase 3b — $10 Budget | Hard-Stop-Budget mit Pub/Sub-Hook aktiv für `fisherscreen-prod` |
+| Phase 3c — /run/monthly Test | Revision 00006, 9 Ticker processed (1 filtered), Markdown-Files in `stnmllr/fisherscreen/output/Universum/` committed |
+| Phase 3c — Cloud Scheduler | `fisherscreen-monthly` aktiv, Schedule `0 5 1 * *` Europe/Berlin, OIDC-Auth mit `fisherscreen-scheduler` SA |
+| Phase 3c — Hard-Stop-Verifikation | Pub/Sub-Test pausierte Scheduler korrekt; manuell resumed — End-to-End bestätigt |
+| Gemini-Migration | `gemini-2.0-flash-lite` → `gemini-2.5-flash-lite`; `FISHERSCREEN_GEMINI_MODEL` Env-Var eingebaut |
+| Cloud Function Rename | `infra/budget_stop.py` → `infra/main.py` (Cloud Functions Python-Konvention) |
 
 ### Phase-1.2-Details (2026-05-13)
 
@@ -88,7 +103,7 @@
 
 ## Nächste Session
 
-**Ziel**: Phase 3b (Hard-Stop Cloud Function), dann Cloud Scheduler, dann reduzierter /run/monthly-Test.
+**Ziel**: Phase 4 — Bugs beheben + Universe auf ~2.100 Ticker erweitern, dann erster echter Monatslauf.
 
 **Infrastruktur-Phasen-Status:**
 
@@ -97,51 +112,53 @@
 | Phase 1 (Bootstrap): `docs/infra/setup-gcp-project.md` | ✅ ausgeführt |
 | Phase 2 (Deploy): `deploy.yml` + Cloud Run Service | ✅ läuft, `/health` grün |
 | Phase 3a (Budget Warning $5): GCP Console | ✅ aktiv für `fisherscreen-prod` |
-| Phase 3b (Hard Stop $10): Cloud Function + Pub/Sub | ❌ noch offen |
-| Phase 3c (Cloud Scheduler monthly) | ❌ noch offen |
+| Phase 3b (Hard Stop $10): Cloud Function + $10 Budget | ✅ deployed + verifiziert |
+| Phase 3c (Cloud Scheduler monthly) | ✅ aktiv, 1. des Monats 05:00 Europe/Berlin |
+| **Phase 4 (Universe-Erweiterung + Bugfixes)** | ❌ noch offen |
 
-**Schritt 1 — Phase 3b: Cloud Function deployen** (`infra/budget_stop.py` ist vorhanden):
-- `gcloud functions deploy fisherscreen-budget-stop ...` mit Trigger auf Pub/Sub-Topic `fisherscreen-budget-alerts`
-- Anleitung: `docs/infra/budget-alerts.md` Step 4
-- Test via Pub/Sub Manual-Publish (Step 5 in `docs/infra/budget-alerts.md`)
+**Schritt 1 — EDGAR-CIK-Lookup-Bug fixen (BLOCKIEREND):**
+- Bei reduziertem Run hatten alle 9 Ticker "no CIK" — inkl. US-Ticker wie AAPL, MSFT, NVDA
+- CIK-Lookup-Codepfad in `app/services/edgar_client.py` analysieren und fixen
+- Ohne CIK läuft EDGAR-Filter nie → alle Ticker werden ohne EDGAR-Check durchgereicht
 
-**Schritt 2 — $10 Hard-Stop-Budget anlegen** in GCP Console (jetzt wo Cloud Function vorhanden):
-- Scope: `fisherscreen-prod`, Threshold: $10 actual spend
-- Pub/Sub-Topic: `fisherscreen-budget-alerts` als Notification-Channel
-- ⚠️ Reaktivierung des Cloud Schedulers nach Hard-Stop: ausschließlich manuell in GCP Console nach Ursachenanalyse
+**Schritt 2 — Defense-in-depth: `.strip()` in `github_client.py`:**
+- `GitHubClientImpl.__init__()`: `token = token.strip()` ergänzen
+- Verhindert httpx `LocalProtocolError` bei Secret-Newline-Bugs
 
-**Schritt 3 — Reduzierter Smoke-Test `/run/monthly`** (5–10 Ticker):
-- **Nicht** vor aktivem Hard-Stop (Schritt 2) — Bug im Gemini-Loop könnte Budget reißen
-- Möglicher Ansatz: temporäres `data/universe.json` mit 5 Tickern committen, Run starten, revertieren
-- Beim Test beobachten: kompletter Pipeline-Run (Basis → EDGAR → Gemini → Output → GitHub-Push)
-- Falls Markdown-Files generiert werden: landen im `fisherscreen`-Output-Repo — ist OK, echte Daten
-
-**Schritt 4 — Phase 3c: Cloud Scheduler anlegen** (siehe `docs/infra/cloud-scheduler.md`):
-- Erst nach grünem `/run/monthly`-Test (Schritt 3)
-- Danach ist der automatische monatliche Lauf scharfgeschaltet
-
-**Schritt 5 — Voller Monatslauf** (~2.100 Ticker):
-- Erst NACH Cloud Scheduler Setup und mit aktivem Hard-Stop (Schritt 2)
+**Schritt 3 — Universe-Erweiterung:**
 - `data/universe.json` mit echten ~2.100 Tickern (S&P 500 + Russell 1000 + STOXX 600) befüllen
+- TSMC-Ticker-Format klären (TSM statt TSMC? yfinance-Bug?)
 - Crosshits-Schwelle ≥4 nach erstem Lauf empirisch validieren — ggf. auf ≥4.5 erhöhen
+
+**Schritt 4 — Erster voller Monatslauf:**
+- Erst nach Bugfix und Universe-Erweiterung
+- Alternativ: nächsten automatischen Scheduler-Lauf am 1. Juni abwarten
 
 ## Offene Punkte (nicht-blockierend)
 
-- [ ] **Phase 3b Hard-Stop** Cloud Function deployen — BLOCKIEREND vor erstem echten Monatslauf
-- [ ] **$10 Hard-Stop-Budget** in GCP Console anlegen (nach Phase 3b) — BLOCKIEREND vor erstem echten Monatslauf
-- [ ] **Smoke-Test `/run/monthly`** mit 5–10 Tickern — BLOCKIEREND vor Cloud Scheduler
+### Phase 4 — Bugfixes (BLOCKIEREND vor erstem echten Monatslauf)
+- [ ] **EDGAR-CIK-Lookup-Bug** — alle 9 Ticker hatten "no CIK" inkl. AAPL/MSFT/NVDA; EDGAR-Filter läuft de facto nie
+- [ ] **`.strip()` für Token-Loading** — `GitHubClientImpl.__init__()`: `token.strip()` ergänzen (defense-in-depth gegen Newline-Bugs)
+- [ ] **TSMC market_cap missing** — yfinance-Bug oder Ticker-Format-Issue (TSM vs TSMC)? Klären.
+- [ ] **Cache-TTL bei Monatswechsel** — greift Mai-Cache am 1. Juni? TTL-Logik im Firestore-Client prüfen
+
+### Phase 4 — Universe-Erweiterung
+- [ ] **`data/universe.json`** mit echten ~2.100 Tickern (S&P 500 + Russell 1000 + STOXX 600) befüllen
+- [ ] **`dev_` Collection-Prefix** evaluieren — für Production auf `prod_` umstellen?
+- [ ] Crosshits-Schwelle ≥4 nach erstem echten Lauf validieren — ggf. auf ≥4.5 wenn Liste >50
+
+### Infra / Sicherheit
 - [ ] **GitHub Token Rotation** — `fisherscreen-github-token` läuft am **2027-05-15** ab. Kalender-Reminder setzen.
-- [ ] **`scripts/smoke-test.cmd`** schreiben — kapselt gcloud-Token + curl /health, für wiederholbare manuelle Tests
-- [ ] **Default Compute SA prüfen** — `896012696952-compute@developer.gserviceaccount.com` hat GCP-default `roles/editor`; nicht genutzt (Cloud Run läuft mit `fisherscreen-runtime`). Evaluieren ob `roles/editor` sicher entfernt werden kann.
-- [ ] **`data/universe.json`** mit echten ~2.100 Tickern (S&P 500 + Russell 1000 + STOXX 600) befüllen — vor erstem Monatslauf
+- [ ] **Default Compute SA prüfen** — `896012696952-compute@developer.gserviceaccount.com` hat GCP-default `roles/editor`; evaluieren ob sicher entfernbar
+- [ ] **`scripts/smoke-test.cmd`** schreiben — kapselt gcloud-Token + curl /health, für wiederholbare Tests
+
+### Backlog (nicht-blockierend)
 - [ ] IT-Ticket WatchGuard EPDR (strukturelle Lösung statt Workaround)
-- [ ] **Kalender-Reminder ~10. Mai 2027** — GitHub Token Rotation fällig (`fisherscreen-github-token` läuft 2027-05-15 ab)
-- [ ] mypy strict / `@runtime_checkable` auf Protocols erwägen — vor Phase 2
+- [ ] mypy strict / `@runtime_checkable` auf Protocols erwägen
 - [ ] GICS-50 (Communication Services) zu F&E-Branchen hinzufügen? — nach erstem Lauf bewerten
-- [ ] `has_active_enforcement` ist Stub mit Logger-Warnung — SEC EDGAR hat keine direkte Enforcement-API; Lösung vor Phase 2 evaluieren
-- [ ] Schwelle ≥4 für Crosshits nach erstem Lauf evaluieren — ggf. auf ≥4.5 erhöhen wenn Liste >50 wird
-- [ ] Status Telefon-Agent-Migration prüfen (Memory sagt Deadline 1.6.2026)
-- [ ] **V3-Architektur-Doc aktualisieren** (`D:\programme\stef-vault\Wissen\Finanzen\FisherScreen\FisherScreen_Architektur_v3.md`): Section 4.2 beschreibt L1-L5 quant-basierte Listen. Implementiert wurden Gemini-Assessment-Dimensionen — Doku-Drift vermerken; V3-Quant-Listen als Phase-2/3-Backlog-Kandidat.
+- [ ] `has_active_enforcement` ist Stub — SEC EDGAR hat keine direkte Enforcement-API; Lösung evaluieren
+- [ ] Status Telefon-Agent-Migration prüfen (Deadline 1.6.2026)
+- [ ] **V3-Architektur-Doc aktualisieren** (`D:\programme\stef-vault\...\FisherScreen_Architektur_v3.md`): Section 4.2 beschreibt L1-L5 quant-basierte Listen. Implementiert wurden Gemini-Assessment-Dimensionen — Doku-Drift vermerken.
 
 ## Lessons Learned — GCP Bootstrap
 
@@ -214,13 +231,46 @@ Bei einem Bug im Gemini-Calling-Loop (~2.100 Ticker × mehrere API-Calls) kann d
 3. Reduzierter Test mit 5–10 Tickern
 4. Voller Lauf erst danach
 
-## GCP-Infrastruktur (Stand 2026-05-15)
+## Lessons Learned — Phase 3 (Cloud Function, Run, Scheduler)
+
+Aufgezeichnet 2026-05-16. Ergänzung zu GCP-Bootstrap-Lessons a–l.
+
+### m) GitHub-PAT-Newline-Bug: `echo` hängt `\n` an → httpx-Crash
+
+`echo "token" | gcloud secrets versions add` speichert das Secret mit abschließendem Newline. httpx wirft dann beim ersten Request `LocalProtocolError` (invalider HTTP-Header). **Fix:** Secret mit Binary-Write ohne Newline speichern:
+- PowerShell: `[System.IO.File]::WriteAllText("token.txt", "ghp_...", [System.Text.Encoding]::ASCII)`
+- Alternativ: VS Code → neue Datei, LF-Encoding, **kein** trailing newline → `gcloud secrets versions add ... --data-file=token.txt`
+- Code-seitig als Defense-in-depth: `token = token.strip()` beim Laden des Secrets.
+
+### n) Token-Leak in Cloud Logging via httpx-Exceptions
+
+Wenn httpx eine Exception wirft (z.B. nach Newline-Bug), schreibt es den vollständigen Request-Header in die Exception-Message — inkl. `Authorization: Bearer ghp_...`. Landet ungefiltert in Cloud Logging, ist öffentlich lesbar wenn Logs-Viewer falsch konfiguriert. **Mitigation:** `.strip()` verhindert den Crash; bei echter Token-Exposition sofort revoken + neues Secret anlegen.
+
+### o) Gemini 2.0 Flash-Lite deprecated ab 1. Juni 2026
+
+`gemini-2.0-flash-lite` wird June 1, 2026 eingestellt. Migration auf `gemini-2.5-flash-lite` (GA seit Feb 2026). `3.1-preview` übersprungen wegen Account-Zugriff (gleiches Muster wie bei anderen Projekten — Preview-Modelle oft quota-restricted). **Pattern für die Zukunft:** Gemini-Modell nie hardcoden — immer `FISHERSCREEN_GEMINI_MODEL` als Env-Var in Cloud Run setzen, Fallback im Code.
+
+### p) Cloud Run Secret-Caching: Update wirkt erst nach Container-Restart
+
+Wenn ein Secret in Secret Manager aktualisiert wird, cached der laufende Container die alte Version bis zum nächsten Kaltstart. `gcloud run services update --update-secrets=KEY=secret:latest` erzwingt einen Restart — auch wenn der Secret-Name identisch bleibt. Ohne diesen Schritt testet man gegen das alte Secret.
+
+### q) Cloud Functions Python: Entrypoint muss `main.py` heißen
+
+Cloud Functions (Python Runtime) erwartet den Source-Code in einer Datei namens `main.py`. Eine Datei `budget_stop.py` als `--source=infra` wird nicht gefunden — Cloud Function startet, findet aber den Entrypoint nicht. Fix: Datei in `main.py` umbenennen.
+
+### r) cmd.exe interaktiv vs. Batch: `%{variable}` vs. `%%{variable}`
+
+In interaktiver cmd.exe-Session: `%{http_code}` (einfaches Prozentzeichen).  
+In `.bat`-Skripten: `%%{http_code}` (doppeltes Prozentzeichen, weil Batch-Parser ein `%` konsumiert).  
+Verwirrungsquelle wenn man Befehle zwischen interaktiver Session und `.bat`-Datei kopiert.
+
+## GCP-Infrastruktur (Stand 2026-05-16)
 
 | Ressource | Wert |
 |---|---|
 | Projekt | `fisherscreen-prod` (896012696952) |
 | Region | `europe-west3` |
-| Cloud Run Service | `fisherscreen-service` |
+| Cloud Run Service | `fisherscreen-service` (Revision 00006+) |
 | Runtime SA | `fisherscreen-runtime@fisherscreen-prod.iam.gserviceaccount.com` |
 | Deploy SA | `github-deploy@fisherscreen-prod.iam.gserviceaccount.com` |
 | Scheduler SA | `fisherscreen-scheduler@fisherscreen-prod.iam.gserviceaccount.com` |
@@ -228,9 +278,12 @@ Bei einem Bug im Gemini-Calling-Loop (~2.100 Ticker × mehrere API-Calls) kann d
 | Artifact Registry | `europe-west3-docker.pkg.dev/fisherscreen-prod/fisherscreen` |
 | Secrets | `fisherscreen-gemini-api-key`, `fisherscreen-github-token` (läuft ab: 2027-05-15) |
 | Gemini SDK | `google-genai` mit API-Key (nicht Vertex AI) |
-| Budget Warning | $5/Monat actual spend → E-Mail stn.mueller@gmail.com (Scope: `fisherscreen-prod`, aktiv seit 2026-05-16) |
-| Budget Hard Stop | ❌ noch offen — $10/Monat + Cloud Function `fisherscreen-budget-stop` (Phase 3b) |
-| Konsolidiertes Budget | €10/Monat alle Projekte — grobes Sicherheitsnetz, kein projekt-spezifischer Stop |
+| Gemini Modell | `gemini-2.5-flash-lite` (via `FISHERSCREEN_GEMINI_MODEL` Env-Var) |
+| Budget Warning | $5/Monat actual spend → E-Mail stn.mueller@gmail.com (aktiv) |
+| Budget Hard Stop | ✅ $10/Monat + Pub/Sub `fisherscreen-budget-alerts` → Cloud Function (verifiziert) |
+| Cloud Function | `fisherscreen-budget-stop` (Gen 2, europe-west3, `infra/main.py`) |
+| Cloud Scheduler | `fisherscreen-monthly` — `0 5 1 * *` Europe/Berlin → POST `/run/monthly` |
+| Konsolidiertes Budget | €10/Monat alle Projekte — grobes Sicherheitsnetz |
 
 ## Decisions Log
 
@@ -245,6 +298,8 @@ Bei einem Bug im Gemini-Calling-Loop (~2.100 Ticker × mehrere API-Calls) kann d
 | 2026-05-15 | Crosshits-Logik (≥2 Dimensionen mit Score ≥4) statt Composite-Score | Bleibt V3-konform (kein Composite); Schnittmenge ist Fisher-konformeres Signal als gemittelter Score | Schwelle muss nach erstem Lauf empirisch validiert werden |
 | 2026-05-15 | Markdown ist Snapshot, kein Firestore-Snapshot pro Run | Vermeidet Schreibkosten + Redundanz; Git versioniert die Markdowns ohnehin | Changes-Diff muss aus Markdown-Frontmatter lesen statt aus Firestore — leichte Mehrarbeit im Generator |
 | 2026-05-15 | YAML-Frontmatter in `Dimensions.md` als maschinen-lesbare Sicht | Eine Datei für Mensch + Maschine; Obsidian rendert Frontmatter sauber | Format-Drift muss durch Schema-Test gesichert werden |
+| 2026-05-16 | `gemini-2.5-flash-lite` statt `gemini-2.0-flash-lite` | 2.0 Flash-Lite deprecated ab 1. Juni 2026; 2.5 ist GA und kostengleich | Preview-Modelle (3.1) wegen Account-Quota-Beschränkung übersprungen |
+| 2026-05-16 | `FISHERSCREEN_GEMINI_MODEL` als Env-Var statt Hardcode | Modell-Updates ohne Code-Deploy; ermöglicht A/B-Testing per Cloud Run Revision | Default `gemini-2.5-flash-lite` im Code — Env-Var nur wenn Abweichung nötig |
 
 ## Parallele Projekte
 

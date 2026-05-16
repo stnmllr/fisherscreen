@@ -19,6 +19,9 @@ dist/
 service-account-*.json
 *-sa-key.json
 
+# Claude Code
+.claude/
+
 # Editor
 .vscode/settings.json
 *.swp
