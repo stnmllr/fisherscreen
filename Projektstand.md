@@ -13,12 +13,14 @@
 ## Status
 
 **Aktueller Phase**: Phase 3 vollständig abgeschlossen — FisherScreen ist produktionsbereit. ✅
-**Branch**: `main` — 226 Tests, 95.51% Coverage.
+**Branch**: `main` — 233 Tests, 95.35% Coverage.
 **Cloud Run**: `fisherscreen-service` läuft in europe-west3 (Projekt `fisherscreen-prod`, Projektnummer 896012696952).
 **Gemini-Modell**: `gemini-2.5-flash-lite` (konfigurierbar via `FISHERSCREEN_GEMINI_MODEL`)
 **Cloud Scheduler**: `fisherscreen-monthly` aktiv — läuft automatisch am 1. jeden Monats um 05:00 Europe/Berlin.
-**Hard-Stop**: Cloud Function + $10-Budget mit Pub/Sub-Hook — verifiziert (Scheduler wurde korrekt pausiert + manuell resumed).
-**Nächste Mini-Task**: Phase 4 — Universe-Erweiterung auf ~2.100 Ticker, EDGAR-CIK-Lookup-Bug fixen.
+**Hard-Stop**: Cloud Function + $10-Budget mit Pub/Sub-Hook — verifiziert.
+**EDGAR CIK-Lookup**: Funktioniert in Production ✅ — AAPL/MSFT/NVDA/GOOGL/AMZN/META/ASML/SAP haben CIKs, EDGAR-Checks laufen.
+**Universe**: 1.389 Ticker (S&P 500 + S&P 400 + STOXX Europe 600) in `data/universe.json` ✅
+**Nächste Mini-Task**: Erster voller Monatslauf — entweder manuell via `/run/monthly` oder automatisch am 1. Juni.
 
 ## Erledigt
 
@@ -35,6 +37,8 @@
 - 2026-05-16: **$5 Warning-Budget** angelegt in GCP Console (Scope: `fisherscreen-prod`, Threshold: $5 actual spend, Alert: E-Mail an stn.mueller@gmail.com)
 - 2026-05-16: **Smoke-Test `/health`** ✅ — `{"status":"ok"}`, OIDC-Auth via `gcloud auth print-identity-token`, Cloud Run operational
 - 2026-05-16: **Phase 3 vollständig abgeschlossen** ✅ — Cloud Function, Hard-Stop Budget, reduzierter Run, Cloud Scheduler
+- 2026-05-16: **EDGAR CIK-Lookup** gefixt — `get_cik()` via `www.sec.gov/files/company_tickers.json`, URL-Bug (`data.sec.gov` → `www.sec.gov`) behoben, Production verifiziert
+- 2026-05-16: **GitHub-Token `.strip()`** — defense-in-depth gegen PAT-Newline-Bug deployed
 
 ### Phase-3-Details (2026-05-16)
 
@@ -136,14 +140,14 @@
 
 ## Offene Punkte (nicht-blockierend)
 
-### Phase 4 — Bugfixes (BLOCKIEREND vor erstem echten Monatslauf)
-- [ ] **EDGAR-CIK-Lookup-Bug** — alle 9 Ticker hatten "no CIK" inkl. AAPL/MSFT/NVDA; EDGAR-Filter läuft de facto nie
-- [ ] **`.strip()` für Token-Loading** — `GitHubClientImpl.__init__()`: `token.strip()` ergänzen (defense-in-depth gegen Newline-Bugs)
+### Phase 4 — Bugfixes (ERLEDIGT)
+- [x] **EDGAR-CIK-Lookup-Bug** — gefixt via `company_tickers.json`, Production verifiziert
+- [x] **`.strip()` für Token-Loading** — deployed
 - [ ] **TSMC market_cap missing** — yfinance-Bug oder Ticker-Format-Issue (TSM vs TSMC)? Klären.
 - [ ] **Cache-TTL bei Monatswechsel** — greift Mai-Cache am 1. Juni? TTL-Logik im Firestore-Client prüfen
 
 ### Phase 4 — Universe-Erweiterung
-- [ ] **`data/universe.json`** mit echten ~2.100 Tickern (S&P 500 + Russell 1000 + STOXX 600) befüllen
+- [x] **`data/universe.json`** — 1.389 Ticker (S&P 500: 503, S&P 400: 400, STOXX Europe 600: 534, dedupliziert) via `scripts/build_universe.py`
 - [ ] **`dev_` Collection-Prefix** evaluieren — für Production auf `prod_` umstellen?
 - [ ] Crosshits-Schwelle ≥4 nach erstem echten Lauf validieren — ggf. auf ≥4.5 wenn Liste >50
 
