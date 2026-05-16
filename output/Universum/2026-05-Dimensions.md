@@ -9,14 +9,6 @@ crosshits:
   - innovation
   - resilience
   ticker: NOVO-B.CO
-- avg_score: 4.2
-  dimensions:
-  - growth
-  - profitability
-  - management
-  - innovation
-  - resilience
-  ticker: DB1.DE
 - avg_score: 4.25
   dimensions:
   - profitability
@@ -36,8 +28,27 @@ crosshits:
   - growth
   - profitability
   - management
+  - resilience
+  ticker: HLMA.L
+- avg_score: 4.0
+  dimensions:
+  - profitability
+  - management
   - innovation
-  ticker: ABBN.SW
+  - resilience
+  ticker: NEM.DE
+- avg_score: 4.33
+  dimensions:
+  - profitability
+  - management
+  - resilience
+  ticker: ALV.DE
+- avg_score: 4.33
+  dimensions:
+  - profitability
+  - management
+  - resilience
+  ticker: BEZ.L
 - avg_score: 4.33
   dimensions:
   - profitability
@@ -54,20 +65,32 @@ crosshits:
   dimensions:
   - profitability
   - management
-  - resilience
-  ticker: REC.MI
-- avg_score: 4.33
-  dimensions:
-  - growth
-  - profitability
   - innovation
   ticker: RR.L
 - avg_score: 4.0
   dimensions:
   - growth
   - profitability
+  - innovation
+  ticker: ABBN.SW
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
   - resilience
-  ticker: BOL.ST
+  ticker: AENA.MC
+- avg_score: 4.0
+  dimensions:
+  - profitability
+  - management
+  - resilience
+  ticker: ASSA-B.ST
+- avg_score: 4.0
+  dimensions:
+  - profitability
+  - management
+  - innovation
+  ticker: DB1.DE
 - avg_score: 4.0
   dimensions:
   - profitability
@@ -79,19 +102,13 @@ crosshits:
   - profitability
   - management
   - resilience
-  ticker: EBS.VI
-- avg_score: 4.0
-  dimensions:
-  - growth
-  - profitability
-  - management
-  ticker: HLMA.L
+  ticker: DTE.DE
 - avg_score: 4.0
   dimensions:
   - profitability
   - management
-  - resilience
-  ticker: INDT.ST
+  - innovation
+  ticker: EPI-A.ST
 - avg_score: 4.0
   dimensions:
   - profitability
@@ -101,9 +118,15 @@ crosshits:
 - avg_score: 4.0
   dimensions:
   - profitability
+  - innovation
+  - resilience
+  ticker: METSO.HE
+- avg_score: 4.0
+  dimensions:
+  - profitability
   - management
   - innovation
-  ticker: METSO.HE
+  ticker: MTX.DE
 - avg_score: 4.0
   dimensions:
   - profitability
@@ -112,10 +135,10 @@ crosshits:
   ticker: MUV2.DE
 - avg_score: 4.0
   dimensions:
-  - profitability
   - management
   - innovation
-  ticker: NEM.DE
+  - resilience
+  ticker: RHM.DE
 - avg_score: 4.5
   dimensions:
   - profitability
@@ -128,24 +151,9 @@ crosshits:
   ticker: MB.MI
 - avg_score: 4.5
   dimensions:
-  - profitability
-  - resilience
-  ticker: MRL.MC
-- avg_score: 4.5
-  dimensions:
-  - profitability
-  - resilience
-  ticker: NDA-FI.HE
-- avg_score: 4.0
-  dimensions:
-  - profitability
+  - management
   - innovation
-  ticker: ADS.DE
-- avg_score: 4.0
-  dimensions:
-  - profitability
-  - resilience
-  ticker: AENA.MC
+  ticker: P911.DE
 - avg_score: 4.0
   dimensions:
   - profitability
@@ -154,18 +162,8 @@ crosshits:
 - avg_score: 4.0
   dimensions:
   - profitability
-  - management
-  ticker: ASSA-B.ST
-- avg_score: 4.0
-  dimensions:
-  - profitability
   - resilience
-  ticker: BBVA.MC
-- avg_score: 4.0
-  dimensions:
-  - profitability
-  - resilience
-  ticker: BEZ.L
+  ticker: CABK.MC
 - avg_score: 4.0
   dimensions:
   - profitability
@@ -174,23 +172,23 @@ crosshits:
 - avg_score: 4.0
   dimensions:
   - profitability
-  - management
+  - resilience
   ticker: DGE.L
 - avg_score: 4.0
   dimensions:
-  - profitability
+  - management
   - resilience
-  ticker: DTE.DE
-- avg_score: 4.0
-  dimensions:
-  - profitability
-  - innovation
-  ticker: EPI-A.ST
+  ticker: ENG.MC
 - avg_score: 4.0
   dimensions:
   - growth
   - innovation
   ticker: FNTN.DE
+- avg_score: 4.0
+  dimensions:
+  - profitability
+  - resilience
+  ticker: HWDN.L
 - avg_score: 4.0
   dimensions:
   - profitability
@@ -203,9 +201,19 @@ crosshits:
   ticker: IFX.DE
 - avg_score: 4.0
   dimensions:
+  - profitability
+  - resilience
+  ticker: INDT.ST
+- avg_score: 4.0
+  dimensions:
+  - profitability
+  - resilience
+  ticker: NDA-FI.HE
+- avg_score: 4.0
+  dimensions:
   - management
   - innovation
-  ticker: MTX.DE
+  ticker: NIBE-B.ST
 - avg_score: 4.0
   dimensions:
   - profitability
@@ -216,11 +224,6 @@ crosshits:
   - growth
   - innovation
   ticker: ORSTED.CO
-- avg_score: 4.0
-  dimensions:
-  - management
-  - innovation
-  ticker: P911.DE
 - avg_score: 4.0
   dimensions:
   - profitability
@@ -236,49 +239,42 @@ crosshits:
   - profitability
   - resilience
   ticker: RED.MC
-- avg_score: 4.0
-  dimensions:
-  - management
-  - resilience
-  ticker: RHM.DE
 dimensions:
   growth:
-    qualifying_count: 14
+    qualifying_count: 11
     tickers:
     - NOVO-B.CO
     - ABBN.SW
+    - AENA.MC
     - BOL.ST
-    - DB1.DE
     - DLN.L
     - FNTN.DE
     - FORTUM.HE
     - G24.DE
-    - GLEN.L
     - HLMA.L
     - ORSTED.CO
-    - PNN.L
     - PRY.MI
-    - RR.L
   innovation:
     qualifying_count: 38
     tickers:
     - NOVO-B.CO
+    - P911.DE
     - ABBN.SW
     - ADS.DE
     - AFX.DE
     - AIXA.DE
     - ALC.SW
     - ALFA.ST
-    - AMBU-B.CO
     - ANE.MC
     - BAS.DE
     - BAYN.DE
     - BEI.DE
     - BMW.DE
     - CDR.WA
+    - CON.DE
     - DB1.DE
     - DEMANT.CO
-    - DHL.DE
+    - DTG.DE
     - EPI-A.ST
     - FNTN.DE
     - GRF.MC
@@ -293,66 +289,61 @@ dimensions:
     - MONC.MI
     - MTX.DE
     - NEM.DE
-    - NHY.OL
     - NIBE-B.ST
     - ORSTED.CO
-    - P911.DE
     - PAH3.DE
     - PIRC.MI
+    - RHM.DE
     - RR.L
   management:
-    qualifying_count: 20
+    qualifying_count: 21
     tickers:
-    - ABBN.SW
+    - ALV.DE
     - ASSA-B.ST
+    - BEZ.L
     - BKT.MC
     - DB1.DE
     - DEMANT.CO
-    - DGE.L
-    - EBS.VI
+    - DTE.DE
+    - ENG.MC
+    - EPI-A.ST
     - HLMA.L
-    - INDT.ST
     - ITX.MC
     - KNEBV.HE
-    - METSO.HE
     - MONC.MI
     - MTX.DE
     - MUV2.DE
     - NEM.DE
+    - NIBE-B.ST
     - NOVO-B.CO
     - P911.DE
-    - REC.MI
     - RHM.DE
+    - RR.L
   profitability:
-    qualifying_count: 51
+    qualifying_count: 50
     tickers:
+    - BEZ.L
     - BKT.MC
-    - DB1.DE
     - G24.DE
     - ISP.MI
     - ITX.MC
     - MB.MI
     - MONC.MI
     - MRL.MC
-    - NDA-FI.HE
     - NOVO-B.CO
-    - PST.MI
     - REC.MI
     - RR.L
     - ABBN.SW
-    - ADS.DE
     - AENA.MC
     - ALFA.ST
+    - ALV.DE
     - ASSA-B.ST
     - BALD-B.ST
     - BBVA.MC
-    - BEZ.L
-    - BOL.ST
     - BYG.L
     - CABK.MC
-    - CAST.ST
     - CDR.WA
-    - CPR.MI
+    - DB1.DE
     - DEMANT.CO
     - DGE.L
     - DTE.DE
@@ -362,6 +353,7 @@ dimensions:
     - EPI-A.ST
     - G1A.DE
     - HLMA.L
+    - HSBA.L
     - HWDN.L
     - IBE.MC
     - IFX.DE
@@ -369,44 +361,55 @@ dimensions:
     - KNEBV.HE
     - LEG.DE
     - METSO.HE
+    - MTX.DE
     - MUV2.DE
+    - NDA-FI.HE
     - NEM.DE
+    - NHY.OL
     - NTGY.MC
     - NWG.L
     - PIRC.MI
-    - RBI.VI
+    - PST.MI
     - RED.MC
+    - SAB.MC
   resilience:
-    qualifying_count: 26
+    qualifying_count: 33
     tickers:
+    - ALV.DE
     - AENA.MC
-    - BBVA.MC
+    - AMBU-B.CO
+    - ASSA-B.ST
     - BEZ.L
     - BKT.MC
-    - BOL.ST
-    - DB1.DE
+    - CABK.MC
+    - CPR.MI
+    - DGE.L
+    - DHL.DE
     - DTE.DE
-    - EBS.VI
+    - ENEL.MI
     - ENG.MC
+    - FME.DE
     - G24.DE
+    - HLMA.L
+    - HWDN.L
     - IBE.MC
     - INDT.ST
     - ISP.MI
     - ITX.MC
     - MB.MI
+    - METSO.HE
     - MONC.MI
-    - MRL.MC
     - MUV2.DE
     - NDA-FI.HE
+    - NEM.DE
     - NOVO-B.CO
     - NWG.L
     - ORK.OL
     - PRY.MI
-    - REC.MI
     - RED.MC
     - RHM.DE
-generated_at: '2026-05-16T14:35:23.443500+00:00'
-run_id: '2026-05-16T14:18:42.003859+00:00'
+generated_at: '2026-05-16T14:35:27.456345+00:00'
+run_id: '2026-05-16T14:14:22.622257+00:00'
 score_threshold: 4.0
 universum_size: 114
 ---
@@ -417,175 +420,180 @@ universum_size: 114
 
 ---
 
-## Growth (n=14)
+## Growth (n=11)
 
 | # | Ticker | Name | Sektor | Score |
 |---|---|---|---|---|
 | 1 | NOVO-B.CO | Novo Nordisk B A/S | Healthcare | 5 |
 | 2 | ABBN.SW | ABB LTD N | Industrials | 4 |
-| 3 | BOL.ST | Boliden AB | Basic Materials | 4 |
-| 4 | DB1.DE | DEUTSCHE BOERSE AG            N | Financial Services | 4 |
+| 3 | AENA.MC | AENA, S.M.E., S.A. | Industrials | 4 |
+| 4 | BOL.ST | Boliden AB | Basic Materials | 4 |
 | 5 | DLN.L | DERWENT LONDON PLC ORD 5P | Real Estate | 4 |
 | 6 | FNTN.DE | freenet AG                    N | Communication Services | 4 |
 | 7 | FORTUM.HE | Fortum Corporation | Utilities | 4 |
 | 8 | G24.DE | Scout24 SE                    N | Communication Services | 4 |
-| 9 | GLEN.L | GLENCORE PLC ORD USD0.01 | Basic Materials | 4 |
-| 10 | HLMA.L | HALMA PLC ORD 10P | Industrials | 4 |
-| 11 | ORSTED.CO | ORSTED A/S | Utilities | 4 |
-| 12 | PNN.L | PENNON GROUP PLC ORD 61 1/20P | Utilities | 4 |
-| 13 | PRY.MI | PRYSMIAN | Industrials | 4 |
-| 14 | RR.L | ROLLS-ROYCE HOLDINGS PLC ORD SH | Industrials | 4 |
+| 9 | HLMA.L | HALMA PLC ORD 10P | Industrials | 4 |
+| 10 | ORSTED.CO | ORSTED A/S | Utilities | 4 |
+| 11 | PRY.MI | PRYSMIAN | Industrials | 4 |
 
-## Profitability (n=51)
+## Profitability (n=50)
 
 | # | Ticker | Name | Sektor | Score |
 |---|---|---|---|---|
-| 1 | BKT.MC | BANKINTER, S.A. | Financial Services | 5 |
-| 2 | DB1.DE | DEUTSCHE BOERSE AG            N | Financial Services | 5 |
+| 1 | BEZ.L | BEAZLEY PLC ORD 5P | Financial Services | 5 |
+| 2 | BKT.MC | BANKINTER, S.A. | Financial Services | 5 |
 | 3 | G24.DE | Scout24 SE                    N | Communication Services | 5 |
 | 4 | ISP.MI | INTESA SANPAOLO | Financial Services | 5 |
 | 5 | ITX.MC | INDUSTRIA DE DISE...O TEXTIL S. | Consumer Cyclical | 5 |
 | 6 | MB.MI | MEDIOBANCA | Financial Services | 5 |
 | 7 | MONC.MI | MONCLER | Consumer Cyclical | 5 |
 | 8 | MRL.MC | MERLIN PROPERTIES SOCIMI, S.A. | Real Estate | 5 |
-| 9 | NDA-FI.HE | Nordea Bank Abp | Financial Services | 5 |
-| 10 | NOVO-B.CO | Novo Nordisk B A/S | Healthcare | 5 |
-| 11 | PST.MI | POSTE ITALIANE | Industrials | 5 |
-| 12 | REC.MI | RECORDATI ORD | Healthcare | 5 |
-| 13 | RR.L | ROLLS-ROYCE HOLDINGS PLC ORD SH | Industrials | 5 |
-| 14 | ABBN.SW | ABB LTD N | Industrials | 4 |
-| 15 | ADS.DE | adidas AG                     N | Consumer Cyclical | 4 |
-| 16 | AENA.MC | AENA, S.M.E., S.A. | Industrials | 4 |
-| 17 | ALFA.ST | Alfa Laval AB | Industrials | 4 |
-| 18 | ASSA-B.ST | ASSA ABLOY AB ser. B | Industrials | 4 |
-| 19 | BALD-B.ST | Fastighets AB Balder ser. B | Real Estate | 4 |
-| 20 | BBVA.MC | BANCO BILBAO VIZCAYA ARGENTARIA | Financial Services | 4 |
-| 21 | BEZ.L | BEAZLEY PLC ORD 5P | Financial Services | 4 |
-| 22 | BOL.ST | Boliden AB | Basic Materials | 4 |
-| 23 | BYG.L | BIG YELLOW GROUP PLC ORD 10P | Real Estate | 4 |
-| 24 | CABK.MC | CAIXABANK, S.A. | Financial Services | 4 |
-| 25 | CAST.ST | Castellum AB | Real Estate | 4 |
-| 26 | CDR.WA | CDPROJEKT | Communication Services | 4 |
-| 27 | CPR.MI | CAMPARI | Consumer Defensive | 4 |
-| 28 | DEMANT.CO | Demant A/S | Healthcare | 4 |
-| 29 | DGE.L | DIAGEO PLC ORD 28 101/108P | Consumer Defensive | 4 |
-| 30 | DTE.DE | DEUTSCHE TELEKOM AG           N | Communication Services | 4 |
-| 31 | EBS.VI | Erste Group Bank AG | Financial Services | 4 |
-| 32 | ELISA.HE | Elisa Corporation | Communication Services | 4 |
-| 33 | EOAN.DE | E.ON SE                       N | Utilities | 4 |
-| 34 | EPI-A.ST | Epiroc AB ser. A | Industrials | 4 |
-| 35 | G1A.DE | GEA Group AG                  I | Industrials | 4 |
-| 36 | HLMA.L | HALMA PLC ORD 10P | Industrials | 4 |
-| 37 | HWDN.L | HOWDEN JOINERY GROUP PLC ORD 10 | Consumer Cyclical | 4 |
-| 38 | IBE.MC | ACCIONES IBERDROLA | Utilities | 4 |
-| 39 | IFX.DE | INFINEON TECHNOLOGIES AG      N | Technology | 4 |
-| 40 | INDT.ST | Indutrade AB | Industrials | 4 |
-| 41 | KNEBV.HE | KONE Corporation | Industrials | 4 |
-| 42 | LEG.DE | LEG Immobilien SE             N | Real Estate | 4 |
-| 43 | METSO.HE | Metso Oyj | Industrials | 4 |
-| 44 | MUV2.DE | MUENCHENER RUECKVERS.-GES. AG N | Financial Services | 4 |
-| 45 | NEM.DE | Nemetschek SE                 I | Technology | 4 |
-| 46 | NTGY.MC | NATURGY ENERGY GROUP, S.A. | Utilities | 4 |
-| 47 | NWG.L | NATWEST GROUP PLC ORD 107.69P | Financial Services | 4 |
-| 48 | PIRC.MI | PIRELLI & C | Consumer Cyclical | 4 |
-| 49 | RBI.VI | Raiffeisen Bank Internat. AG | Financial Services | 4 |
-| 50 | RED.MC | REDEIA CORPORACION, S.A. | Utilities | 4 |
+| 9 | NOVO-B.CO | Novo Nordisk B A/S | Healthcare | 5 |
+| 10 | REC.MI | RECORDATI ORD | Healthcare | 5 |
+| 11 | RR.L | ROLLS-ROYCE HOLDINGS PLC ORD SH | Industrials | 5 |
+| 12 | ABBN.SW | ABB LTD N | Industrials | 4 |
+| 13 | AENA.MC | AENA, S.M.E., S.A. | Industrials | 4 |
+| 14 | ALFA.ST | Alfa Laval AB | Industrials | 4 |
+| 15 | ALV.DE | Allianz SE                    v | Financial Services | 4 |
+| 16 | ASSA-B.ST | ASSA ABLOY AB ser. B | Industrials | 4 |
+| 17 | BALD-B.ST | Fastighets AB Balder ser. B | Real Estate | 4 |
+| 18 | BBVA.MC | BANCO BILBAO VIZCAYA ARGENTARIA | Financial Services | 4 |
+| 19 | BYG.L | BIG YELLOW GROUP PLC ORD 10P | Real Estate | 4 |
+| 20 | CABK.MC | CAIXABANK, S.A. | Financial Services | 4 |
+| 21 | CDR.WA | CDPROJEKT | Communication Services | 4 |
+| 22 | DB1.DE | DEUTSCHE BOERSE AG            N | Financial Services | 4 |
+| 23 | DEMANT.CO | Demant A/S | Healthcare | 4 |
+| 24 | DGE.L | DIAGEO PLC ORD 28 101/108P | Consumer Defensive | 4 |
+| 25 | DTE.DE | DEUTSCHE TELEKOM AG           N | Communication Services | 4 |
+| 26 | EBS.VI | Erste Group Bank AG | Financial Services | 4 |
+| 27 | ELISA.HE | Elisa Corporation | Communication Services | 4 |
+| 28 | EOAN.DE | E.ON SE                       N | Utilities | 4 |
+| 29 | EPI-A.ST | Epiroc AB ser. A | Industrials | 4 |
+| 30 | G1A.DE | GEA Group AG                  I | Industrials | 4 |
+| 31 | HLMA.L | HALMA PLC ORD 10P | Industrials | 4 |
+| 32 | HSBA.L | HSBC HOLDINGS PLC ORD $0.50 (UK | Financial Services | 4 |
+| 33 | HWDN.L | HOWDEN JOINERY GROUP PLC ORD 10 | Consumer Cyclical | 4 |
+| 34 | IBE.MC | ACCIONES IBERDROLA | Utilities | 4 |
+| 35 | IFX.DE | INFINEON TECHNOLOGIES AG      N | Technology | 4 |
+| 36 | INDT.ST | Indutrade AB | Industrials | 4 |
+| 37 | KNEBV.HE | KONE Corporation | Industrials | 4 |
+| 38 | LEG.DE | LEG Immobilien SE             N | Real Estate | 4 |
+| 39 | METSO.HE | Metso Oyj | Industrials | 4 |
+| 40 | MTX.DE | MTU Aero Engines AG           N | Industrials | 4 |
+| 41 | MUV2.DE | MUENCHENER RUECKVERS.-GES. AG N | Financial Services | 4 |
+| 42 | NDA-FI.HE | Nordea Bank Abp | Financial Services | 4 |
+| 43 | NEM.DE | Nemetschek SE                 I | Technology | 4 |
+| 44 | NHY.OL | NORSK HYDRO | Basic Materials | 4 |
+| 45 | NTGY.MC | NATURGY ENERGY GROUP, S.A. | Utilities | 4 |
+| 46 | NWG.L | NATWEST GROUP PLC ORD 107.69P | Financial Services | 4 |
+| 47 | PIRC.MI | PIRELLI & C | Consumer Cyclical | 4 |
+| 48 | PST.MI | POSTE ITALIANE | Industrials | 4 |
+| 49 | RED.MC | REDEIA CORPORACION, S.A. | Utilities | 4 |
+| 50 | SAB.MC | BANCO DE SABADELL | Financial Services | 4 |
 
-## Management (n=20)
+## Management (n=21)
 
 | # | Ticker | Name | Sektor | Score |
 |---|---|---|---|---|
-| 1 | ABBN.SW | ABB LTD N | Industrials | 4 |
+| 1 | ALV.DE | Allianz SE                    v | Financial Services | 4 |
 | 2 | ASSA-B.ST | ASSA ABLOY AB ser. B | Industrials | 4 |
-| 3 | BKT.MC | BANKINTER, S.A. | Financial Services | 4 |
-| 4 | DB1.DE | DEUTSCHE BOERSE AG            N | Financial Services | 4 |
-| 5 | DEMANT.CO | Demant A/S | Healthcare | 4 |
-| 6 | DGE.L | DIAGEO PLC ORD 28 101/108P | Consumer Defensive | 4 |
-| 7 | EBS.VI | Erste Group Bank AG | Financial Services | 4 |
-| 8 | HLMA.L | HALMA PLC ORD 10P | Industrials | 4 |
-| 9 | INDT.ST | Indutrade AB | Industrials | 4 |
-| 10 | ITX.MC | INDUSTRIA DE DISE...O TEXTIL S. | Consumer Cyclical | 4 |
-| 11 | KNEBV.HE | KONE Corporation | Industrials | 4 |
-| 12 | METSO.HE | Metso Oyj | Industrials | 4 |
+| 3 | BEZ.L | BEAZLEY PLC ORD 5P | Financial Services | 4 |
+| 4 | BKT.MC | BANKINTER, S.A. | Financial Services | 4 |
+| 5 | DB1.DE | DEUTSCHE BOERSE AG            N | Financial Services | 4 |
+| 6 | DEMANT.CO | Demant A/S | Healthcare | 4 |
+| 7 | DTE.DE | DEUTSCHE TELEKOM AG           N | Communication Services | 4 |
+| 8 | ENG.MC | ENAGAS,S.A. | Utilities | 4 |
+| 9 | EPI-A.ST | Epiroc AB ser. A | Industrials | 4 |
+| 10 | HLMA.L | HALMA PLC ORD 10P | Industrials | 4 |
+| 11 | ITX.MC | INDUSTRIA DE DISE...O TEXTIL S. | Consumer Cyclical | 4 |
+| 12 | KNEBV.HE | KONE Corporation | Industrials | 4 |
 | 13 | MONC.MI | MONCLER | Consumer Cyclical | 4 |
 | 14 | MTX.DE | MTU Aero Engines AG           N | Industrials | 4 |
 | 15 | MUV2.DE | MUENCHENER RUECKVERS.-GES. AG N | Financial Services | 4 |
 | 16 | NEM.DE | Nemetschek SE                 I | Technology | 4 |
-| 17 | NOVO-B.CO | Novo Nordisk B A/S | Healthcare | 4 |
-| 18 | P911.DE | Dr. Ing. h.c. F. Porsche AG   I | Consumer Cyclical | 4 |
-| 19 | REC.MI | RECORDATI ORD | Healthcare | 4 |
+| 17 | NIBE-B.ST | NIBE Industrier AB ser. B | Industrials | 4 |
+| 18 | NOVO-B.CO | Novo Nordisk B A/S | Healthcare | 4 |
+| 19 | P911.DE | Dr. Ing. h.c. F. Porsche AG   I | Consumer Cyclical | 4 |
 | 20 | RHM.DE | RHEINMETALL AG                I | Industrials | 4 |
+| 21 | RR.L | ROLLS-ROYCE HOLDINGS PLC ORD SH | Industrials | 4 |
 
 ## Innovation (n=38)
 
 | # | Ticker | Name | Sektor | Score |
 |---|---|---|---|---|
 | 1 | NOVO-B.CO | Novo Nordisk B A/S | Healthcare | 5 |
-| 2 | ABBN.SW | ABB LTD N | Industrials | 4 |
-| 3 | ADS.DE | adidas AG                     N | Consumer Cyclical | 4 |
-| 4 | AFX.DE | Carl Zeiss Meditec AG         I | Healthcare | 4 |
-| 5 | AIXA.DE | AIXTRON SE                    N | Technology | 4 |
-| 6 | ALC.SW | ALCON N | Healthcare | 4 |
-| 7 | ALFA.ST | Alfa Laval AB | Industrials | 4 |
-| 8 | AMBU-B.CO | Ambu A/S | Healthcare | 4 |
+| 2 | P911.DE | Dr. Ing. h.c. F. Porsche AG   I | Consumer Cyclical | 5 |
+| 3 | ABBN.SW | ABB LTD N | Industrials | 4 |
+| 4 | ADS.DE | adidas AG                     N | Consumer Cyclical | 4 |
+| 5 | AFX.DE | Carl Zeiss Meditec AG         I | Healthcare | 4 |
+| 6 | AIXA.DE | AIXTRON SE                    N | Technology | 4 |
+| 7 | ALC.SW | ALCON N | Healthcare | 4 |
+| 8 | ALFA.ST | Alfa Laval AB | Industrials | 4 |
 | 9 | ANE.MC | CORPORACI...N ACCIONA ENERG...A | Utilities | 4 |
 | 10 | BAS.DE | BASF SE                       N | Basic Materials | 4 |
 | 11 | BAYN.DE | Bayer AG                      N | Healthcare | 4 |
 | 12 | BEI.DE | BEIERSDORF AG                 I | Consumer Defensive | 4 |
 | 13 | BMW.DE | BAYERISCHE MOTOREN WERKE AG   S | Consumer Cyclical | 4 |
 | 14 | CDR.WA | CDPROJEKT | Communication Services | 4 |
-| 15 | DB1.DE | DEUTSCHE BOERSE AG            N | Financial Services | 4 |
-| 16 | DEMANT.CO | Demant A/S | Healthcare | 4 |
-| 17 | DHL.DE | DEUTSCHE POST AG              N | Industrials | 4 |
-| 18 | EPI-A.ST | Epiroc AB ser. A | Industrials | 4 |
-| 19 | FNTN.DE | freenet AG                    N | Communication Services | 4 |
-| 20 | GRF.MC | GRIFOLS S.A. | Healthcare | 4 |
-| 21 | HEN3.DE | Henkel AG & Co. KGaA          I | Consumer Defensive | 4 |
-| 22 | HUSQ-B.ST | Husqvarna AB ser. B | Industrials | 4 |
-| 23 | IFX.DE | INFINEON TECHNOLOGIES AG      N | Technology | 4 |
-| 24 | ITX.MC | INDUSTRIA DE DISE...O TEXTIL S. | Consumer Cyclical | 4 |
-| 25 | KNEBV.HE | KONE Corporation | Industrials | 4 |
-| 26 | LDO.MI | LEONARDO | Industrials | 4 |
-| 27 | MBG.DE | Mercedes-Benz Group AG        N | Consumer Cyclical | 4 |
-| 28 | METSO.HE | Metso Oyj | Industrials | 4 |
-| 29 | MONC.MI | MONCLER | Consumer Cyclical | 4 |
-| 30 | MTX.DE | MTU Aero Engines AG           N | Industrials | 4 |
-| 31 | NEM.DE | Nemetschek SE                 I | Technology | 4 |
-| 32 | NHY.OL | NORSK HYDRO | Basic Materials | 4 |
+| 15 | CON.DE | CONTINENTAL AG                I | Consumer Cyclical | 4 |
+| 16 | DB1.DE | DEUTSCHE BOERSE AG            N | Financial Services | 4 |
+| 17 | DEMANT.CO | Demant A/S | Healthcare | 4 |
+| 18 | DTG.DE | Daimler Truck Holding AG      N | Industrials | 4 |
+| 19 | EPI-A.ST | Epiroc AB ser. A | Industrials | 4 |
+| 20 | FNTN.DE | freenet AG                    N | Communication Services | 4 |
+| 21 | GRF.MC | GRIFOLS S.A. | Healthcare | 4 |
+| 22 | HEN3.DE | Henkel AG & Co. KGaA          I | Consumer Defensive | 4 |
+| 23 | HUSQ-B.ST | Husqvarna AB ser. B | Industrials | 4 |
+| 24 | IFX.DE | INFINEON TECHNOLOGIES AG      N | Technology | 4 |
+| 25 | ITX.MC | INDUSTRIA DE DISE...O TEXTIL S. | Consumer Cyclical | 4 |
+| 26 | KNEBV.HE | KONE Corporation | Industrials | 4 |
+| 27 | LDO.MI | LEONARDO | Industrials | 4 |
+| 28 | MBG.DE | Mercedes-Benz Group AG        N | Consumer Cyclical | 4 |
+| 29 | METSO.HE | Metso Oyj | Industrials | 4 |
+| 30 | MONC.MI | MONCLER | Consumer Cyclical | 4 |
+| 31 | MTX.DE | MTU Aero Engines AG           N | Industrials | 4 |
+| 32 | NEM.DE | Nemetschek SE                 I | Technology | 4 |
 | 33 | NIBE-B.ST | NIBE Industrier AB ser. B | Industrials | 4 |
 | 34 | ORSTED.CO | ORSTED A/S | Utilities | 4 |
-| 35 | P911.DE | Dr. Ing. h.c. F. Porsche AG   I | Consumer Cyclical | 4 |
-| 36 | PAH3.DE | Porsche Automobil Holding SE  I | Consumer Cyclical | 4 |
-| 37 | PIRC.MI | PIRELLI & C | Consumer Cyclical | 4 |
+| 35 | PAH3.DE | Porsche Automobil Holding SE  I | Consumer Cyclical | 4 |
+| 36 | PIRC.MI | PIRELLI & C | Consumer Cyclical | 4 |
+| 37 | RHM.DE | RHEINMETALL AG                I | Industrials | 4 |
 | 38 | RR.L | ROLLS-ROYCE HOLDINGS PLC ORD SH | Industrials | 4 |
 
-## Resilience (n=26)
+## Resilience (n=33)
 
 | # | Ticker | Name | Sektor | Score |
 |---|---|---|---|---|
-| 1 | AENA.MC | AENA, S.M.E., S.A. | Industrials | 4 |
-| 2 | BBVA.MC | BANCO BILBAO VIZCAYA ARGENTARIA | Financial Services | 4 |
-| 3 | BEZ.L | BEAZLEY PLC ORD 5P | Financial Services | 4 |
-| 4 | BKT.MC | BANKINTER, S.A. | Financial Services | 4 |
-| 5 | BOL.ST | Boliden AB | Basic Materials | 4 |
-| 6 | DB1.DE | DEUTSCHE BOERSE AG            N | Financial Services | 4 |
-| 7 | DTE.DE | DEUTSCHE TELEKOM AG           N | Communication Services | 4 |
-| 8 | EBS.VI | Erste Group Bank AG | Financial Services | 4 |
-| 9 | ENG.MC | ENAGAS,S.A. | Utilities | 4 |
-| 10 | G24.DE | Scout24 SE                    N | Communication Services | 4 |
-| 11 | IBE.MC | ACCIONES IBERDROLA | Utilities | 4 |
-| 12 | INDT.ST | Indutrade AB | Industrials | 4 |
-| 13 | ISP.MI | INTESA SANPAOLO | Financial Services | 4 |
-| 14 | ITX.MC | INDUSTRIA DE DISE...O TEXTIL S. | Consumer Cyclical | 4 |
-| 15 | MB.MI | MEDIOBANCA | Financial Services | 4 |
-| 16 | MONC.MI | MONCLER | Consumer Cyclical | 4 |
-| 17 | MRL.MC | MERLIN PROPERTIES SOCIMI, S.A. | Real Estate | 4 |
-| 18 | MUV2.DE | MUENCHENER RUECKVERS.-GES. AG N | Financial Services | 4 |
-| 19 | NDA-FI.HE | Nordea Bank Abp | Financial Services | 4 |
-| 20 | NOVO-B.CO | Novo Nordisk B A/S | Healthcare | 4 |
-| 21 | NWG.L | NATWEST GROUP PLC ORD 107.69P | Financial Services | 4 |
-| 22 | ORK.OL | ORKLA | Consumer Defensive | 4 |
-| 23 | PRY.MI | PRYSMIAN | Industrials | 4 |
-| 24 | REC.MI | RECORDATI ORD | Healthcare | 4 |
-| 25 | RED.MC | REDEIA CORPORACION, S.A. | Utilities | 4 |
-| 26 | RHM.DE | RHEINMETALL AG                I | Industrials | 4 |
+| 1 | ALV.DE | Allianz SE                    v | Financial Services | 5 |
+| 2 | AENA.MC | AENA, S.M.E., S.A. | Industrials | 4 |
+| 3 | AMBU-B.CO | Ambu A/S | Healthcare | 4 |
+| 4 | ASSA-B.ST | ASSA ABLOY AB ser. B | Industrials | 4 |
+| 5 | BEZ.L | BEAZLEY PLC ORD 5P | Financial Services | 4 |
+| 6 | BKT.MC | BANKINTER, S.A. | Financial Services | 4 |
+| 7 | CABK.MC | CAIXABANK, S.A. | Financial Services | 4 |
+| 8 | CPR.MI | CAMPARI | Consumer Defensive | 4 |
+| 9 | DGE.L | DIAGEO PLC ORD 28 101/108P | Consumer Defensive | 4 |
+| 10 | DHL.DE | DEUTSCHE POST AG              N | Industrials | 4 |
+| 11 | DTE.DE | DEUTSCHE TELEKOM AG           N | Communication Services | 4 |
+| 12 | ENEL.MI | ENEL | Utilities | 4 |
+| 13 | ENG.MC | ENAGAS,S.A. | Utilities | 4 |
+| 14 | FME.DE | Fresenius Medical Care AG     I | Healthcare | 4 |
+| 15 | G24.DE | Scout24 SE                    N | Communication Services | 4 |
+| 16 | HLMA.L | HALMA PLC ORD 10P | Industrials | 4 |
+| 17 | HWDN.L | HOWDEN JOINERY GROUP PLC ORD 10 | Consumer Cyclical | 4 |
+| 18 | IBE.MC | ACCIONES IBERDROLA | Utilities | 4 |
+| 19 | INDT.ST | Indutrade AB | Industrials | 4 |
+| 20 | ISP.MI | INTESA SANPAOLO | Financial Services | 4 |
+| 21 | ITX.MC | INDUSTRIA DE DISE...O TEXTIL S. | Consumer Cyclical | 4 |
+| 22 | MB.MI | MEDIOBANCA | Financial Services | 4 |
+| 23 | METSO.HE | Metso Oyj | Industrials | 4 |
+| 24 | MONC.MI | MONCLER | Consumer Cyclical | 4 |
+| 25 | MUV2.DE | MUENCHENER RUECKVERS.-GES. AG N | Financial Services | 4 |
+| 26 | NDA-FI.HE | Nordea Bank Abp | Financial Services | 4 |
+| 27 | NEM.DE | Nemetschek SE                 I | Technology | 4 |
+| 28 | NOVO-B.CO | Novo Nordisk B A/S | Healthcare | 4 |
+| 29 | NWG.L | NATWEST GROUP PLC ORD 107.69P | Financial Services | 4 |
+| 30 | ORK.OL | ORKLA | Consumer Defensive | 4 |
+| 31 | PRY.MI | PRYSMIAN | Industrials | 4 |
+| 32 | RED.MC | REDEIA CORPORACION, S.A. | Utilities | 4 |
+| 33 | RHM.DE | RHEINMETALL AG                I | Industrials | 4 |
