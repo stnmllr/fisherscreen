@@ -8,14 +8,15 @@
 
 ---
 
-## Letztes Update: 2026-05-15
+## Letztes Update: 2026-05-16
 
 ## Status
 
-**Aktueller Phase**: Phase 1 vollständig implementiert und deployed.
+**Aktueller Phase**: Phase 1 vollständig implementiert, deployed und smoke-getestet. ✅
 **Branch**: `main` — 226 Tests, 95.51% Coverage.
 **Cloud Run**: `fisherscreen-service` läuft in europe-west3 (Projekt `fisherscreen-prod`, Projektnummer 896012696952).
-**Nächste Mini-Task**: Smoke-Test `/health` Endpoint, dann Phase 2 (Budget-Stop Cloud Function + Cloud Scheduler).
+**`/health`**: `{"status":"ok"}` — Service ist operational.
+**Nächste Mini-Task**: Phase 3b (Cloud Function deployen für $10 Hard-Stop), dann Cloud Scheduler.
 
 ## Erledigt
 
@@ -29,6 +30,8 @@
 - 2026-05-15: **Phase 1.4** implementiert — PR #1, Squash-Merge, Commit `c5d8019`
 - 2026-05-15: **GCP Bootstrap** abgeschlossen — `docs/infra/setup-gcp-project.md`
 - 2026-05-15: **Cloud Run Deploy** erfolgreich — `fisherscreen-service` läuft
+- 2026-05-16: **$5 Warning-Budget** angelegt in GCP Console (Scope: `fisherscreen-prod`, Threshold: $5 actual spend, Alert: E-Mail an stn.mueller@gmail.com)
+- 2026-05-16: **Smoke-Test `/health`** ✅ — `{"status":"ok"}`, OIDC-Auth via `gcloud auth print-identity-token`, Cloud Run operational
 
 ### Phase-1.2-Details (2026-05-13)
 
@@ -85,31 +88,54 @@
 
 ## Nächste Session
 
-**Ziel**: Smoke-Test `/health`, dann Phase 2 (Budget-Stop Cloud Function + Cloud Scheduler)
+**Ziel**: Phase 3b (Hard-Stop Cloud Function), dann Cloud Scheduler, dann reduzierter /run/monthly-Test.
 
-**Smoke-Test (sofort):**
-- [ ] `gcloud run services describe fisherscreen-service --region europe-west3 --format "value(status.url)"` → URL notieren
-- [ ] `curl https://<URL>/health` mit OIDC-Token oder direkt via Browser (Service ist `--no-allow-unauthenticated` → braucht Auth-Header). Alternativ: Cloud Run Console → Service URL → Test-Tab.
+**Infrastruktur-Phasen-Status:**
 
-**Phase 2 (Budget-Stop + Scheduler) — nach grünem Smoke-Test:**
-1. Budget-Alerts $5/$10 in GCP Console anlegen (siehe `docs/infra/budget-alerts.md`)
-2. Cloud Function `fisherscreen-budget-stop` deployen (siehe `docs/infra/budget-alerts.md` Step 4)
-3. Cloud Scheduler Job `fisherscreen-monthly` anlegen (siehe `docs/infra/cloud-scheduler.md`)
-4. `SCHEDULER_JOB_NAME=fisherscreen-monthly` in Cloud Function eintragen
-5. Erster manueller Test-Run mit echten Daten (klein, ≤10 Ticker) vor dem echten Monatslauf
+| Phase | Status |
+|---|---|
+| Phase 1 (Bootstrap): `docs/infra/setup-gcp-project.md` | ✅ ausgeführt |
+| Phase 2 (Deploy): `deploy.yml` + Cloud Run Service | ✅ läuft, `/health` grün |
+| Phase 3a (Budget Warning $5): GCP Console | ✅ aktiv für `fisherscreen-prod` |
+| Phase 3b (Hard Stop $10): Cloud Function + Pub/Sub | ❌ noch offen |
+| Phase 3c (Cloud Scheduler monthly) | ❌ noch offen |
 
-**Vor erstem echten Monatslauf (~2.100 Ticker):**
-- [ ] Budget-Alerts MÜSSEN aktiv sein — $10 Hard Stop verhindert Kostenkollaps
-- [ ] Crosshits-Schwelle ≥4 empirisch validieren — ggf. auf ≥4.5 erhöhen
-- [ ] `data/universe.json` mit echten ~2.100 Tickern befüllen
+**Schritt 1 — Phase 3b: Cloud Function deployen** (`infra/budget_stop.py` ist vorhanden):
+- `gcloud functions deploy fisherscreen-budget-stop ...` mit Trigger auf Pub/Sub-Topic `fisherscreen-budget-alerts`
+- Anleitung: `docs/infra/budget-alerts.md` Step 4
+- Test via Pub/Sub Manual-Publish (Step 5 in `docs/infra/budget-alerts.md`)
+
+**Schritt 2 — $10 Hard-Stop-Budget anlegen** in GCP Console (jetzt wo Cloud Function vorhanden):
+- Scope: `fisherscreen-prod`, Threshold: $10 actual spend
+- Pub/Sub-Topic: `fisherscreen-budget-alerts` als Notification-Channel
+- ⚠️ Reaktivierung des Cloud Schedulers nach Hard-Stop: ausschließlich manuell in GCP Console nach Ursachenanalyse
+
+**Schritt 3 — Reduzierter Smoke-Test `/run/monthly`** (5–10 Ticker):
+- **Nicht** vor aktivem Hard-Stop (Schritt 2) — Bug im Gemini-Loop könnte Budget reißen
+- Möglicher Ansatz: temporäres `data/universe.json` mit 5 Tickern committen, Run starten, revertieren
+- Beim Test beobachten: kompletter Pipeline-Run (Basis → EDGAR → Gemini → Output → GitHub-Push)
+- Falls Markdown-Files generiert werden: landen im `fisherscreen`-Output-Repo — ist OK, echte Daten
+
+**Schritt 4 — Phase 3c: Cloud Scheduler anlegen** (siehe `docs/infra/cloud-scheduler.md`):
+- Erst nach grünem `/run/monthly`-Test (Schritt 3)
+- Danach ist der automatische monatliche Lauf scharfgeschaltet
+
+**Schritt 5 — Voller Monatslauf** (~2.100 Ticker):
+- Erst NACH Cloud Scheduler Setup und mit aktivem Hard-Stop (Schritt 2)
+- `data/universe.json` mit echten ~2.100 Tickern (S&P 500 + Russell 1000 + STOXX 600) befüllen
+- Crosshits-Schwelle ≥4 nach erstem Lauf empirisch validieren — ggf. auf ≥4.5 erhöhen
 
 ## Offene Punkte (nicht-blockierend)
 
-- [ ] **Smoke-Test** `/health` Endpoint — URL via `gcloud run services describe` abfragen
-- [ ] **Budget-Alerts** $5/$10 in GCP Console anlegen (vor erstem Monatslauf, BLOCKIEREND)
+- [ ] **Phase 3b Hard-Stop** Cloud Function deployen — BLOCKIEREND vor erstem echten Monatslauf
+- [ ] **$10 Hard-Stop-Budget** in GCP Console anlegen (nach Phase 3b) — BLOCKIEREND vor erstem echten Monatslauf
+- [ ] **Smoke-Test `/run/monthly`** mit 5–10 Tickern — BLOCKIEREND vor Cloud Scheduler
 - [ ] **GitHub Token Rotation** — `fisherscreen-github-token` läuft am **2027-05-15** ab. Kalender-Reminder setzen.
+- [ ] **`scripts/smoke-test.cmd`** schreiben — kapselt gcloud-Token + curl /health, für wiederholbare manuelle Tests
+- [ ] **Default Compute SA prüfen** — `896012696952-compute@developer.gserviceaccount.com` hat GCP-default `roles/editor`; nicht genutzt (Cloud Run läuft mit `fisherscreen-runtime`). Evaluieren ob `roles/editor` sicher entfernt werden kann.
 - [ ] **`data/universe.json`** mit echten ~2.100 Tickern (S&P 500 + Russell 1000 + STOXX 600) befüllen — vor erstem Monatslauf
 - [ ] IT-Ticket WatchGuard EPDR (strukturelle Lösung statt Workaround)
+- [ ] **Kalender-Reminder ~10. Mai 2027** — GitHub Token Rotation fällig (`fisherscreen-github-token` läuft 2027-05-15 ab)
 - [ ] mypy strict / `@runtime_checkable` auf Protocols erwägen — vor Phase 2
 - [ ] GICS-50 (Communication Services) zu F&E-Branchen hinzufügen? — nach erstem Lauf bewerten
 - [ ] `has_active_enforcement` ist Stub mit Logger-Warnung — SEC EDGAR hat keine direkte Enforcement-API; Lösung vor Phase 2 evaluieren
@@ -164,6 +190,30 @@ Ohne diesen Schritt entstehen divergierende Histories (Squash-Commit hat andere 
 
 Kaputte Verzeichnisse (z.B. `D:programmefisherscreendata`) entstehen, wenn ein Tool in einer Bash-Umgebung Windows-Pfade mit `\` als Escape-Zeichen interpretiert. Vor Commit prüfen und ggf. löschen.
 
+### j) Konsolidiertes Budget ≠ projektspezifischer Hard-Stop
+
+Ein konsolidiertes GCP-Budget (Scope: "Alle Projekte") ist ein brauchbares Sicherheitsnetz, aber für project-spezifisches Hard-Stop-Verhalten ungeeignet: Die Pub/Sub-Notification enthält keine Projekt-ID mit der man zuverlässig unterscheiden kann, welches Projekt das Budget gerissen hat — Fehlauslösung durch andere Projekte ist möglich. Immer ein zweites, projektspezifisches Budget anlegen (`Scope: fisherscreen-prod`), auch wenn ein konsolidiertes bereits existiert. Beide koexistieren problemlos.
+
+### k) OIDC-Token auf Windows/cmd.exe: robuster Ansatz via Zwischenspeicher
+
+`gcloud auth print-identity-token | curl` ist auf Windows/cmd.exe fragil (Pipe-Timing, Quote-Escaping). Robuster ist:
+
+```
+gcloud auth print-identity-token > %TEMP%\token.txt
+set /p TOKEN=<%TEMP%\token.txt
+curl -H "Authorization: Bearer %TOKEN%" https://<SERVICE_URL>/health
+```
+
+Für wiederholbare Tests lohnt sich ein kleines `scripts\smoke-test.cmd`, das diesen Boilerplate kapselt.
+
+### l) Kein /run/monthly-Test mit vollem Universum vor aktivem Hard-Stop
+
+Bei einem Bug im Gemini-Calling-Loop (~2.100 Ticker × mehrere API-Calls) kann das $5-Budget binnen Stunden gerissen werden. Der E-Mail-Alert trifft mit ~24 h Verzögerung ein. Reihenfolge nicht verhandelbar:
+1. Hard-Stop Cloud Function deployen (Phase 3b)
+2. $10 Hard-Stop-Budget anlegen (GCP Console)
+3. Reduzierter Test mit 5–10 Tickern
+4. Voller Lauf erst danach
+
 ## GCP-Infrastruktur (Stand 2026-05-15)
 
 | Ressource | Wert |
@@ -178,6 +228,9 @@ Kaputte Verzeichnisse (z.B. `D:programmefisherscreendata`) entstehen, wenn ein T
 | Artifact Registry | `europe-west3-docker.pkg.dev/fisherscreen-prod/fisherscreen` |
 | Secrets | `fisherscreen-gemini-api-key`, `fisherscreen-github-token` (läuft ab: 2027-05-15) |
 | Gemini SDK | `google-genai` mit API-Key (nicht Vertex AI) |
+| Budget Warning | $5/Monat actual spend → E-Mail stn.mueller@gmail.com (Scope: `fisherscreen-prod`, aktiv seit 2026-05-16) |
+| Budget Hard Stop | ❌ noch offen — $10/Monat + Cloud Function `fisherscreen-budget-stop` (Phase 3b) |
+| Konsolidiertes Budget | €10/Monat alle Projekte — grobes Sicherheitsnetz, kein projekt-spezifischer Stop |
 
 ## Decisions Log
 
