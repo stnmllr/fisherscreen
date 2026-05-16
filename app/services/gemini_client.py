@@ -15,8 +15,7 @@ if TYPE_CHECKING:
     from app.models.screener_record import ScreenerRecord
 
 logger = logging.getLogger(__name__)
-_DEFAULT_MODEL = "gemini-2.0-flash-lite"
-
+_DEFAULT_MODEL = "gemini-2.5-flash-lite"
 
 @dataclass
 class GeminiScoreResult:

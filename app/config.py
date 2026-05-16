@@ -18,6 +18,7 @@ class FisherScreenSettings(BaseSettings):
     output_dir: str = "output"
     github_repo: str = ""
     github_branch: str = "main"
+    gemini_model: str = "gemini-2.5-flash-lite"
 
     model_config = {
         "env_prefix": "FISHERSCREEN_",
