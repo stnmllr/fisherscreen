@@ -30,8 +30,8 @@ dimensions:
     qualifying_count: 1
     tickers:
     - NOVO-B.CO
-generated_at: '2026-05-16T13:29:53.754925+00:00'
-run_id: '2026-05-16T13:29:38.397472+00:00'
+generated_at: '2026-05-16T13:33:11.973944+00:00'
+run_id: '2026-05-16T13:33:10.341183+00:00'
 score_threshold: 4.0
 universum_size: 1
 ---
