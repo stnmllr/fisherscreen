@@ -155,3 +155,81 @@ def test_has_active_enforcement_returns_false_and_logs_warning(caplog):
         result = client.has_active_enforcement("320193")
     assert result is False
     assert "not implemented" in caplog.text
+
+
+# --- get_cik ---
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_get_cik_returns_cik_for_known_ticker(mock_httpx, mock_time):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."},
+        "1": {"cik_str": 789019, "ticker": "MSFT", "title": "Microsoft Corp"},
+    }
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.get_cik("AAPL") == "320193"
+    assert client.get_cik("MSFT") == "789019"
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_get_cik_is_case_insensitive(mock_httpx, mock_time):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."},
+    }
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.get_cik("aapl") == "320193"
+    assert client.get_cik("Aapl") == "320193"
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_get_cik_returns_none_for_unknown_ticker(mock_httpx, mock_time):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."},
+    }
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.get_cik("UNKN") is None
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_get_cik_loads_ticker_map_only_once(mock_httpx, mock_time):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."},
+    }
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    client.get_cik("AAPL")
+    client.get_cik("AAPL")
+    client.get_cik("MSFT")
+
+    # _get is called for each has_restatement etc., but company_tickers.json
+    # should only be fetched once regardless of how many get_cik calls happen.
+    assert mock_httpx.get.call_count == 1
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_get_cik_returns_none_gracefully_on_http_failure(mock_httpx, mock_time):
+    mock_httpx.get.side_effect = Exception("connection refused")
+
+    client = _make_client()
+    result = client.get_cik("AAPL")
+
+    assert result is None  # no exception raised; graceful degradation

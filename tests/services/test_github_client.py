@@ -66,3 +66,21 @@ def test_push_file_wraps_http_error_in_data_source_error():
 def test_raises_on_empty_token():
     with pytest.raises(DataSourceError, match="GitHub token"):
         GitHubClientImpl(token="", repo="org/repo")
+
+
+def test_push_file_strips_token_whitespace():
+    """Token with trailing newline must not cause LocalProtocolError."""
+    from unittest.mock import patch
+
+    with patch("app.services.github_client.httpx.Client") as mock_client_cls:
+        mock_http = MagicMock()
+        mock_client_cls.return_value = mock_http
+
+        client = GitHubClientImpl(
+            token="ghp_validtoken\n",  # newline as would come from echo | gcloud
+            repo="owner/repo",
+        )
+
+        auth_header = client._headers["Authorization"]
+        assert auth_header == "Bearer ghp_validtoken"
+        assert "\n" not in auth_header

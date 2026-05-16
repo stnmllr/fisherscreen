@@ -44,6 +44,10 @@ class CachedEdgarClient:
         self._firestore.set(self._collection, cik, data)
         return data
 
+    def get_cik(self, ticker: str) -> str | None:
+        """Delegate directly to the underlying EDGAR client — not cached."""
+        return self._edgar.get_cik(ticker)
+
     def has_restatement(self, cik: str, years: int = 3) -> bool:
         return self._fetch_and_cache(cik)["has_restatement"]
 

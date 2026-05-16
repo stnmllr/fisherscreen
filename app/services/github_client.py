@@ -28,7 +28,7 @@ class GitHubClientImpl:
         if not token:
             raise DataSourceError("GitHub token not set — configure FISHERSCREEN_GITHUB_TOKEN")
         self._headers = {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {token.strip()}",
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
         }

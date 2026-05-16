@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class EdgarClient(Protocol):
+    def get_cik(self, ticker: str) -> str | None: ...
     def has_restatement(self, cik: str, years: int = 3) -> bool: ...
     def has_going_concern(self, cik: str, months: int = 24) -> bool: ...
     def has_active_enforcement(self, cik: str) -> bool: ...
@@ -27,6 +28,7 @@ class EdgarClientImpl:
                 "EDGAR user agent not set — configure FISHERSCREEN_EDGAR_USER_AGENT"
             )
         self._headers = {"User-Agent": user_agent}
+        self._ticker_map: dict[str, str] | None = None
 
     def _get(self, url: str) -> dict[str, Any]:
         time.sleep(self._RATE_LIMIT_SECONDS)
@@ -37,6 +39,26 @@ class EdgarClientImpl:
         if resp.status_code != 200:
             raise DataSourceError(f"EDGAR returned {resp.status_code} for {url}")
         return resp.json()
+
+    def _load_ticker_map(self) -> dict[str, str]:
+        """Fetch SEC company_tickers.json and return a TICKER -> CIK string map."""
+        url = f"{self._SEC_BASE}/files/company_tickers.json"
+        data = self._get(url)
+        return {entry["ticker"].upper(): str(entry["cik_str"]) for entry in data.values()}
+
+    def get_cik(self, ticker: str) -> str | None:
+        """Return the SEC CIK for ticker, or None if not found or on fetch failure.
+
+        The ticker map is loaded lazily on first call and cached for the lifetime
+        of this client instance to avoid repeated HTTP requests.
+        """
+        if self._ticker_map is None:
+            try:
+                self._ticker_map = self._load_ticker_map()
+            except DataSourceError as exc:
+                logger.warning("edgar: failed to load ticker map: %s — CIK lookup disabled", exc)
+                self._ticker_map = {}  # empty dict prevents repeated retries
+        return self._ticker_map.get(ticker.upper())
 
     def has_restatement(self, cik: str, years: int = 3) -> bool:
         padded = cik.zfill(10)

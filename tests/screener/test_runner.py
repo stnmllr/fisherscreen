@@ -112,6 +112,7 @@ def _passing_basis_record(ticker="TEST", cik="0000320193") -> "ScreenerRecord":
 
 def _clean_edgar_mock() -> MagicMock:
     mock = MagicMock()
+    mock.get_cik.return_value = None
     mock.has_restatement.return_value = False
     mock.has_going_concern.return_value = False
     mock.has_active_enforcement.return_value = False
@@ -129,6 +130,7 @@ def test_run_edgar_filter_passes_clean_records():
 def test_run_edgar_filter_skips_records_without_cik():
     from app.screener.runner import run_edgar_filter
     mock_edgar = MagicMock()
+    mock_edgar.get_cik.return_value = None  # lookup also finds nothing
     record = _passing_basis_record(cik=None)
     record.cik = None
 
@@ -138,6 +140,23 @@ def test_run_edgar_filter_skips_records_without_cik():
     assert len(result) == 1
     assert result[0].edgar_skipped is True
     assert result[0].filter_passed_edgar is None
+
+
+def test_run_edgar_filter_populates_cik_via_lookup():
+    from app.screener.runner import run_edgar_filter
+    mock_edgar = _clean_edgar_mock()
+    mock_edgar.get_cik.return_value = "0000320193"
+
+    record = _passing_basis_record(cik=None)
+    record.cik = None
+
+    result = run_edgar_filter([record], mock_edgar)
+
+    mock_edgar.get_cik.assert_called_once_with(record.ticker)
+    assert record.cik == "0000320193"
+    mock_edgar.has_restatement.assert_called_once()
+    assert len(result) == 1
+    assert result[0].filter_passed_edgar is True
 
 
 def test_run_edgar_filter_skips_on_data_source_error():

@@ -41,6 +41,8 @@ def run_edgar_filter(
 ) -> list[ScreenerRecord]:
     for record in records:
         if record.cik is None:
+            record.cik = edgar.get_cik(record.ticker)
+        if record.cik is None:
             logger.warning("ticker=%s has no CIK — skipping EDGAR check", record.ticker)
             record.edgar_skipped = True
             continue
