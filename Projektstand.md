@@ -48,6 +48,52 @@ Angelegt 2026-05-16 via `mklink /J`. Voraussetzung für Sichtbarkeit in Obsidian
 
 **Single-Machine-Setup:** Aktuell nur auf der Workstation. Falls Vault auf einem zweiten Gerät genutzt werden soll, müsste der Service zusätzlich nach `stnmllr/stef-vault` pushen (Phase-2-TODO #5-Variante).
 
+### Phase-1-Status nach erstem Produktivlauf (2026-05-16)
+
+Tool A ist in seiner Kernfunktion live und produziert valide Output-Files. Ein Abgleich gegen die V3-Architektur-Spec zeigt, dass einige in V3 spezifizierte Komponenten noch nicht oder nur als Stub implementiert sind.
+
+#### ✅ Produktiv vorhanden
+
+- Universum-Builder (S&P 500 + S&P 400 + STOXX Europe 600, 1.389 Tickers)
+- yfinance-Pipeline mit Firestore-Caching
+- Negativ-Filter-Kaskade (reduziert auf ~160 Tickers; effektive Filter-Logik noch nicht auditiert, siehe unten)
+- Fünf Dimensions-Listen-Generator (Growth, Profitability, Management, Innovation, Resilience)
+- Crosshits-Generator mit Mehrfachnennungs-Ranking
+- Changes-Generator (beim Erstlauf konzeptionell korrekt leer)
+- Markdown-Output mit YAML-Frontmatter
+- FastAPI auf Cloud Run europe-west3, Firestore-Backend
+- Cloud Scheduler monatlich (1. um 03:00 UTC = 05:00 CEST)
+- EDGAR-Client (Basis-Implementierung: Restatement, Going Concern)
+- GitHub Actions Deploy mit Feedback-Loop-Schutz (`paths-ignore` + `[skip ci]`)
+- Obsidian-Vault-Sync via Windows-Junction
+
+#### ⚠️ Unklar / Audit notwendig
+
+- **Negativ-Filter-Status:** V3 spezifiziert 8 konkrete Knock-out-Kriterien (Marktkap < 2 Mrd EUR, Bruttomarge < 30%, Umsatz-CAGR < 0%, Aktien-Outstanding > 5% p.a., Verluste in 5/10 Jahren, Aktive SEC-Enforcement, Restatement letzte 3J, Going Concern). Die effektiv aktiven Filter im Code sind nicht dokumentiert. Logs zeigen, dass `has_active_enforcement` ein Stub ist. Vermutlich ist auch der Restatement-Filter faktisch inaktiv (EDGAR-CIK fehlt für EU-Ticker). **Phase-2-TODO #10.**
+
+#### ❌ Laut V3 zu Tool A gehörend, aber noch nicht implementiert
+
+- **Portfolio Hold-Check** (V3 Abschnitt 4.3) — erfordert `portfolio_normalized.json` aus Portfolio-Analyzer v5.3, `buy_snapshots` Firestore-Collection, Delta-Check-Logik (CEO/CFO-Wechsel, Margin-Drop, Insider-Verkäufe, Auditor-Wechsel, Going-Concern neu). Wert nur sichtbar, sobald echtes Portfolio mit Kauf-Snapshots existiert.
+- **Cost-Caps im Code** (V3 Architekturprinzip #3) — Hard-Limits für Gemini-Tokens pro Lauf mit Logging bei 80%-Erreichung. Aktuell nicht implementiert. Niedriges Risiko bei Flash Lite, aber Spec-Lücke.
+
+#### Bewertung
+
+Tool A ist **inhaltlich für seine Hauptaufgabe vollständig** (Fisher-konforme Kandidatensuche aus großem Universum). Was fehlt, ist Tool A in seiner *kompletten V3-Vision* — Hold-Check und Filter-Vollständigkeit. Dies ist eine bewusste Priorisierung: erst die Kern-Pipeline produktiv und stabil, dann nachschärfen.
+
+**Phase-1-Exit-Kriterium aus V3:** „Stef sieht die Listen + Querliste und sagt 'da ist mindestens einer interessant' oder 'Filter müssen anders'." → **Erfüllt am 2026-05-16.** Novo Nordisk als einziger 5-of-5-Crosshit-Hit ist ein methodisch plausibles Ergebnis.
+
+### Tool-A-Vervollständigung — Reihenfolge
+
+Zwischen heute (2026-05-16) und dem Tool-B-Start liegen folgende Schritte in dieser Reihenfolge:
+
+1. **Vor 2026-06-01:** Gemini 503-Retry einbauen (TODO #11). Verhindert Datenverlust beim nächsten Lauf.
+2. **Diese Woche:** Negativ-Filter-Audit dokumentieren (TODO #10). Klarheit über reale Score-Basis.
+3. **2026-06-01:** Zweiter produktiver Monatslauf. Verifikation, dass Changes-Datei sich befüllt und die Pipeline stabil ist.
+4. **Anfang Juli (nach Juni-Lauf):** Portfolio-Hold-Check implementieren (TODO #12). Voraussetzung: erster Comdirect-Export → `portfolio_normalized.json` durchgeführt.
+5. **Erst dann:** Tool B (Deep-Dive CLI) starten gemäß V3 Abschnitt 5.
+
+Grund für diese Reihenfolge: Tool B teilt Infrastruktur (EDGAR-Pipeline, Gemini-Layer) mit Tool A. Eine vollständige Tool-A-Basis macht die Tool-B-Implementierung sauberer.
+
 ## Status
 
 **Aktueller Phase**: Phase 1 produktiv ✅ — Erster Lauf 2026-05-16, Feedback-Loop-Bug behoben.
@@ -215,6 +261,16 @@ Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00
 8. **Name-Cleanup im Output** — yfinance liefert Listing-Suffixe ("N", "I", "V") und kaputte Encodings ("DISE...O" statt "DISEÑO"). In `dimensions_generator.py` und `crosshits_generator.py` rstrip/encoding-Cleanup.
 
 9. **`docs/scoring-methodology.md`** — Detaillierte Dokumentation der Score-Berechnung pro Dimension: yfinance-Feldmapping, Heuristiken, Gemini-Prompt-Templates, Score-Aggregation, Vorfilter-Logik. Wichtig für: Reproduzierbarkeit, künftige Methodenänderungen, Debugging schwacher Score-Plausibilität.
+
+10. **Negativ-Filter-Audit (`docs/negative-filters-status.md`)** — Tabelle aller 8 V3-Filter mit Status (aktiv/Stub/nicht implementiert), Datenquelle, Aufwand für Aktivierung. Voraussetzung für ehrliche Score-Interpretation und Basis für Tool-B-EDGAR-Pipeline.
+
+11. **Gemini 503-Retry mit tenacity** *(Quick Win vor 2026-06-01)* — Verhindert, dass künftig Top-Kandidaten (wie ALV.DE im Mai-Lauf) wegen transienter Gemini-Spitzenlast aus dem Scoring fallen. Retry mit exponentiellem Backoff (3 Versuche: 1s, 4s, 16s) für 503/429. Aufwand: ~1h.
+
+12. **Portfolio Hold-Check** — Vollständige Implementierung gemäß V3 Abschnitt 4.3. Sinnvoll zeitlich nach erstem Comdirect-CSV-Export → Portfolio-Analyzer → `portfolio_normalized.json` Workflow. Realistischer Zeithorizont: nach Juni-Lauf, vor Tool B.
+
+13. **Cost-Caps im Code** — Hard-Limits für Gemini-Tokens pro Lauf, Logging-Schwelle bei 80%-Erreichung. V3-Architekturprinzip #3.
+
+14. **CLAUDE.md gegen V3-Spec prüfen** — Vollständigkeit: cmd.exe-Konventionen, `uv run python -m pytest`-Workaround, Test-Konventionen, Deploy-Workflow lokal vs. CI.
 
 ## Offene Punkte (nicht-blockierend)
 
