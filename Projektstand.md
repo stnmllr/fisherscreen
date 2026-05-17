@@ -2,7 +2,7 @@
 
 > **Single Source of Truth für den aktuellen Stand.**
 > Wird am Ende jeder Arbeitssession aktualisiert.
-> Verwandte Dokumente: `D:\programme\stef-vault\10_Projekte\FisherScreen\FisherScreen_Architektur_v3.md` (Architektur, extern),
+> Verwandte Dokumente: `D:\programme\stef-vault\Wissen\Finanzen\FisherScreen\FisherScreen_Architektur_v3.md` (Architektur, extern),
 > `docs/superpowers/brainstorm/` (Architektur-Entscheidungen),
 > `docs/superpowers/plans/` (ausgeführte Implementations-Pläne).
 

@@ -44,7 +44,7 @@ FisherScreen ist ein persönliches Werkzeug, das Phil Fishers 15 Prinzipien aus
 - **Tool B — Deep Dive:** Manuell via `fisherscreen deepdive <ticker>`. Hard + Soft Scuttlebutt,
   Sprach-/Tonalitäts-Analyse CEO-Briefe + Earnings Calls, Gemini-Synthesis gegen Fishers 15 Punkte.
 
-**Referenzdokument:** `D:\programme\stef-vault\10_Projekte\FisherScreen\FisherScreen_Architektur_v3.md`
+**Referenzdokument:** `D:\programme\stef-vault\Wissen\Finanzen\FisherScreen\FisherScreen_Architektur_v3.md`
 
 ---
 
