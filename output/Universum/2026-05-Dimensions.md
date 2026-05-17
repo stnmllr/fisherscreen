@@ -482,8 +482,8 @@ dimensions:
     - TRYG.CO
     - ULVR.L
     - YAR.OL
-generated_at: '2026-05-16T15:44:34.464272+00:00'
-run_id: '2026-05-16T15:36:49.858788+00:00'
+generated_at: '2026-05-17T06:42:30.884198+00:00'
+run_id: '2026-05-17T06:41:58.028756+00:00'
 score_threshold: 4.0
 universum_size: 160
 ---
