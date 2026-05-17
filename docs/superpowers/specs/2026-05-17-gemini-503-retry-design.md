@@ -144,11 +144,11 @@ Typen nötig). Sleep neutralisiert via
 
 ## Akzeptanzkriterien
 
-- [ ] `uv run python -m pytest` grün (alle Tests)
-- [ ] Coverage ≥ 95%
-- [ ] `tenacity` als direkte Dependency in `pyproject.toml`
-- [ ] Retry deckt `_count_tokens` UND `_generate` ab
-- [ ] Nur 503 + 429 lösen Retry aus (500/502/504/4xx≠429 nicht)
-- [ ] Persistenter Fehler → `GeminiError` (bisheriges Skip-Verhalten erhalten)
-- [ ] Backoff-Schedule 1s/4s/16s, max 4 Calls (Lesart A)
-- [ ] Integrationstest gegen `CachedGeminiClient` grün
+- [x] `uv run python -m pytest` grün (alle Tests)
+- [x] `--cov-fail-under=90` erfüllt; Coverage-Zahl unverändert ~95,39 % (gemini_client.py ist via `omit = ["app/services/*"]` nicht gemessen — Tests dienen Korrektheit, nicht der Zahl)
+- [x] `tenacity` als direkte Dependency in `pyproject.toml`
+- [x] Retry deckt `_count_tokens` UND `_generate` ab
+- [x] Nur 503 + 429 lösen Retry aus (500/502/504/4xx≠429 nicht)
+- [x] Persistenter Fehler → `GeminiError` (bisheriges Skip-Verhalten erhalten)
+- [x] Backoff-Schedule 1s/4s/16s, max 4 Calls (Lesart A)
+- [x] Integrationstest gegen `CachedGeminiClient` grün

@@ -286,7 +286,7 @@ Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00
 
 10. **Negativ-Filter-Audit (`docs/negative-filters-status.md`)** — Tabelle aller 8 V3-Filter mit Status (aktiv/Stub/nicht implementiert), Datenquelle, Aufwand für Aktivierung. Voraussetzung für ehrliche Score-Interpretation und Basis für Tool-B-EDGAR-Pipeline.
 
-11. **Gemini 503-Retry mit tenacity** *(Quick Win vor 2026-06-01)* — Verhindert, dass künftig Top-Kandidaten (wie ALV.DE im Mai-Lauf) wegen transienter Gemini-Spitzenlast aus dem Scoring fallen. Retry mit exponentiellem Backoff (3 Versuche: 1s, 4s, 16s) für 503/429. Aufwand: ~1h.
+11. ~~**Gemini 503-Retry mit tenacity**~~ ✅ (2026-05-17) — tenacity-Retry für transiente 503 UNAVAILABLE + 429 RESOURCE_EXHAUSTED auf beide Gemini-Calls (count_tokens + generate_content), exponentieller Backoff 1s/4s/16s, max 4 Versuche, reraise → bisheriges Skip-Verhalten bei Dauerfehler erhalten. Branch `feature/gemini-503-retry`, 247 Tests grün. Spec/Plan: `docs/superpowers/specs/2026-05-17-gemini-503-retry-design.md`.
 
 12. **Portfolio Hold-Check** — Vollständige Implementierung gemäß V3 Abschnitt 4.3. Sinnvoll zeitlich nach erstem Comdirect-CSV-Export → Portfolio-Analyzer → `portfolio_normalized.json` Workflow. Realistischer Zeithorizont: nach Juni-Lauf, vor Tool B.
 
