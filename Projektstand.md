@@ -16,6 +16,8 @@ FisherScreen Phase 1 ist produktiv. Erster Lauf am 2026-05-16 erfolgreich durchg
 
 **V3-Filter-Fix ist LIVE auf Cloud Run.** `fix/basis-filter-v3` in `main` gemergt (Commit `d30f581`). Lokaler Akzeptanztest bestätigt: 11/15 US Large-Caps passieren V3-Filter, FX-Konversion sauber. Deploy verifiziert 2026-05-17: GHA-Workflow für Commit `2741634` lief erfolgreich (Run `25984321514`, 07:11 UTC) → Revision `fisherscreen-service-00035-htn`, Image `app:2741634...`. Der 2026-06-01-Lauf läuft gegen die gefixte Pipeline. **Production-Akzeptanz (≥15 US-Titel in Top-50-Crosshits) wird am 2026-06-01 verifiziert.**
 
+**Quick Wins vor 2026-06-01 erledigt (2026-05-17).** TODO #11 Gemini-503-Retry (tenacity, 503/429, Backoff 1s/4s/16s, max 4 Versuche — PR #3, `1d66c47`) und TODO #10 Negativ-Filter-Audit (`docs/negative-filters-status.md` — PR #4, `b78817d`) gemergt; V3-Doc-Pfad-Drift in `CLAUDE.md` + `Projektstand.md` korrigiert (PR #5, `5aa20f4`). Suite 247 grün, 95.39% Coverage. **Sofia/Telefon-Agent-Refactor bleibt zurückgestellt bis nach Tool B.** Nächster inhaltlicher Schritt: **Tool B** (V3 §5 — Deep-Dive-Pipeline).
+
 ### Scoring-Methodik (Phase 1)
 
 FisherScreen bewertet jeden Ticker auf einer 1–5-Skala in fünf Dimensionen, die Phil Fishers 15 Punkte aus *Common Stocks and Uncommon Profits* clustern:
@@ -71,7 +73,7 @@ Tool A ist in seiner Kernfunktion live und produziert valide Output-Files. Ein A
 
 #### ⚠️ Unklar / Audit notwendig
 
-- **Negativ-Filter-Status:** V3 spezifiziert 8 konkrete Knock-out-Kriterien (Marktkap < 2 Mrd EUR, Bruttomarge < 30%, Umsatz-CAGR < 0%, Aktien-Outstanding > 5% p.a., Verluste in 5/10 Jahren, Aktive SEC-Enforcement, Restatement letzte 3J, Going Concern). Die effektiv aktiven Filter im Code sind nicht dokumentiert. Logs zeigen, dass `has_active_enforcement` ein Stub ist. Vermutlich ist auch der Restatement-Filter faktisch inaktiv (EDGAR-CIK fehlt für EU-Ticker). **Phase-2-TODO #10.**
+- **Negativ-Filter-Status:** ✅ **Auditiert (2026-05-17, TODO #10, PR #4)** — vollständig dokumentiert in `docs/negative-filters-status.md`. Befund: 4 Basis-Filter aktiv (Volume/MarketCap/GrossMargin/RevenueGrowth); Bruttomarge/Umsatz nur Single-Value statt V3-Mehrjahres; 3 V3-Kriterien (Dilution/Verluste/neg. Marge) nicht implementiert; `has_active_enforcement` ist Stub; EDGAR-Filter (Restatement/Going-Concern/Enforcement) nur für US-Ticker mit CIK wirksam → ~485 EU-Ticker ungeprüft (**EU-CIK-Blindfleck**). Die früher hier vermutete EU-Restatement-Inaktivität ist damit bestätigt und dokumentiert.
 
 #### ❌ Laut V3 zu Tool A gehörend, aber noch nicht implementiert
 
@@ -151,6 +153,9 @@ Wichtig: Portfolio Hold-Check (V3 Abschnitt 4.3) ist konzeptionell Tool A, aber 
 - 2026-05-17: **V3-Basis-Filter implementiert + gemergt** — `fix/basis-filter-v3` → `main` (Merge `d30f581`). Entfernt: `passes_liquidity_filter`, `passes_penny_stock_filter`. Neu: Market Cap ≥ €2B (mit FX-Normalisierung), Gross Margin ≥ 30%, Revenue Growth ≥ 0%. `YFinanceClient.get_fx_rate()` + `CachedYFinanceClient.get_fx_rate()` hinzugefügt. Region-Logging (US/EU-Counts) in Runner. 240/240 Tests, 95.39% Coverage.
 - 2026-05-17: **Lokaler Akzeptanztest** ✅ — `scripts/acceptance_basis_filter.py` gegen echtes yfinance: 11/15 US Large-Caps (AAPL, MSFT, GOOGL, AMZN, META, JNJ, V, PG, KO, NVDA, MA) + 5/10 EU-Ticker passieren V3-Filter. FX-Konversion sauber (USD/DKK/GBP/CHF → EUR). Keine Exceptions. (4 US-Ausfälle plausibel: JPM/UNH Finanz/Versicherungs-Margins, XOM Energy-Margin, HD Retail-Wachstum.)
 - 2026-05-17: **V3-Filter-Fix auf Cloud Run deployed** ✅ — GHA-Deploy-Trigger funktionierte wieder (Run `25984321514` für Commit `2741634`, erfolgreich 07:11 UTC). Verifiziert via `gcloud run services describe`: Revision `fisherscreen-service-00035-htn`, Image-Tag `app:27416345130f29dd9838b164522f54b15ac7eb4f` (= voller SHA von `2741634`, enthält V3-Fix `d2bff68` als Ancestor). Damit ist der einzige für den 2026-06-01-Lauf blockierende Punkt erledigt.
+- 2026-05-17: **TODO #11 Gemini 503-Retry** ✅ — tenacity-Retry für transiente 503 UNAVAILABLE + 429 RESOURCE_EXHAUSTED auf beide Gemini-Calls (`count_tokens` + `generate_content`), exponentieller Backoff 1s/4s/16s, max 4 Versuche, `reraise=True` → bisheriges Skip-Verhalten bei Dauerfehler erhalten. 6 Unit- + 1 Integrationstest, 247 Tests grün. Brainstorm→Spec→Plan→subagent-driven TDD, zweistufiges Review. PR #3 (Squash, `1d66c47`). Production-Verifikation (ALV.DE überlebt transientes 503) steht beim 2026-06-01-Lauf aus.
+- 2026-05-17: **TODO #10 Negativ-Filter-Audit** ✅ — `docs/negative-filters-status.md` erstellt: code-verifiziertes Audit aller effektiven Filter (Status/Datenquelle/Aktivierungsaufwand-Grobskala) + Querschnitts-Befunde (EU-CIK-Blindfleck prominent, 8-vs-9-Diskrepanz aufgelöst, Cache-Verhalten). Jede Statuszeile zweistufig + final Zeile-für-Zeile gegen realen Code reviewt. 0 Code-/Test-Änderungen. PR #4 (Squash, `b78817d`).
+- 2026-05-17: **V3-Doc-Pfad-Fix** ✅ — falscher Referenzpfad `…\10_Projekte\FisherScreen\…` → korrekt `…\Wissen\Finanzen\FisherScreen\…` in `CLAUDE.md` + `Projektstand.md` (Zeile 5). PR #5 (Squash, `5aa20f4`).
 
 ### Mai 2026 — Produktivgang und Feedback-Loop-Fix
 
@@ -460,7 +465,7 @@ Verwirrungsquelle wenn man Befehle zwischen interaktiver Session und `.bat`-Date
 
 ## Parallele Projekte
 
-- **Telefon-Agent**: Gemini-Migration. Memory sagt "anstehend, Deadline 1.6.2026". **Beim nächsten Login prüfen.**
+- **Telefon-Agent / Sofia-Refactor**: **Zurückgestellt bis nach FisherScreen Tool B** (bewusste Reihenfolge-Entscheidung 2026-05-17 — FisherScreen-Quick-Wins + Tool B haben Vorrang). Sofia-Refactor wird NICHT vor Tool B gestartet. Memory-Deadline 1.6.2026 für die Gemini-Migration ist bekannt; beim nächsten Login Status prüfen.
 - **RechPro**: Stabil, keine Aktivität geplant.
 
 ## Geänderte Annahmen / Pivots
