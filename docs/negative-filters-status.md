@@ -60,8 +60,10 @@ Die drei EDGAR-Filter (`has_restatement`, `has_going_concern`,
 auflöst. `runner.py:run_edgar_filter` setzt für jeden Ticker ohne CIK
 `record.edgar_skipped = True`; `filters.py:apply_edgar_filters` reicht
 solche Records ungeprüft durch (`filter_passed_edgar = None`). Im
-1.389-Ticker-Universum sind ~485 EU-Ticker (Ticker mit „."): für dieses
-~⅓ des Universums sind alle drei EDGAR-Filter still inaktiv. Ein EU-Titel
+1.389-Ticker-Universum (Stand `data/universe.json`) sind ~485 EU-Ticker
+(Ticker mit „." — Regions-Heuristik `"." in ticker`, vgl.
+`filters.py:apply_basis_filters` / `runner.py:run_basis_filter`): für
+dieses ~⅓ des Universums sind alle drei EDGAR-Filter still inaktiv. Ein EU-Titel
 ohne Restatement-/Going-Concern-Flag wurde **nicht geprüft**, nicht
 freigesprochen.
 
