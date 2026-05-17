@@ -89,12 +89,14 @@ def test_edgar_defaults():
 
 def test_from_yfinance_info_populates_financial_ratios():
     info = {
+        "grossMargins": 0.45,
         "revenueGrowth": 0.12,
         "operatingMargins": 0.25,
         "returnOnEquity": 0.18,
         "debtToEquity": 45.0,
     }
     record = ScreenerRecord.from_yfinance_info("TEST", info)
+    assert record.gross_margin == 0.45
     assert record.revenue_growth_yoy == 0.12
     assert record.operating_margin == 0.25
     assert record.return_on_equity == 0.18
@@ -103,6 +105,7 @@ def test_from_yfinance_info_populates_financial_ratios():
 
 def test_financial_ratios_default_to_none_when_missing():
     record = ScreenerRecord.from_yfinance_info("TEST", {})
+    assert record.gross_margin is None
     assert record.revenue_growth_yoy is None
     assert record.operating_margin is None
     assert record.return_on_equity is None

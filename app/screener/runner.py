@@ -20,18 +20,48 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _resolve_market_cap_eur(
+    record: ScreenerRecord,
+    yfinance: YFinanceClient,
+    fx_cache: dict[str, float],
+) -> float | None:
+    if record.market_cap is None or record.currency is None:
+        return None
+    currency = record.currency
+    if currency not in fx_cache:
+        try:
+            fx_cache[currency] = yfinance.get_fx_rate(currency)
+        except DataSourceError:
+            logger.warning("ticker=%s FX rate unavailable for currency=%s", record.ticker, currency)
+            fx_cache[currency] = None  # type: ignore[assignment]
+    rate = fx_cache[currency]
+    if rate is None:
+        return None
+    return record.market_cap * rate
+
+
 def run_basis_filter(
     tickers: list[str],
     yfinance: YFinanceClient,
 ) -> list[ScreenerRecord]:
+    us_input = sum(1 for t in tickers if "." not in t)
+    eu_input = len(tickers) - us_input
+    logger.info("runner: universe input US=%d EU=%d total=%d", us_input, eu_input, len(tickers))
+
     records: list[ScreenerRecord] = []
+    fx_cache: dict[str, float] = {}
     for ticker in tickers:
         try:
             info = yfinance.get_ticker_info(ticker)
-            records.append(ScreenerRecord.from_yfinance_info(ticker, info))
+            record = ScreenerRecord.from_yfinance_info(ticker, info)
+            record.market_cap_eur = _resolve_market_cap_eur(record, yfinance, fx_cache)
+            records.append(record)
         except (DataSourceError, ValidationError) as exc:
             logger.warning("ticker=%s data fetch failed: %s", ticker, exc)
-    logger.info("runner: fetched %d/%d records", len(records), len(tickers))
+
+    us_fetched = sum(1 for r in records if "." not in r.ticker)
+    eu_fetched = len(records) - us_fetched
+    logger.info("runner: fetched US=%d EU=%d total=%d/%d", us_fetched, eu_fetched, len(records), len(tickers))
     return apply_basis_filters(records)
 
 

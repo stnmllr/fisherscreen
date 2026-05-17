@@ -9,6 +9,7 @@ class YFinanceClient(Protocol):
     def get_ticker_info(self, ticker: str) -> dict[str, Any]: ...
     def get_historical(self, ticker: str, period: str) -> Any: ...
     def get_financials(self, ticker: str) -> Any: ...
+    def get_fx_rate(self, currency: str) -> float: ...
 
 
 class YFinanceClientImpl:
@@ -35,3 +36,19 @@ class YFinanceClientImpl:
             return yf.Ticker(ticker).financials
         except Exception as exc:
             raise DataSourceError(f"yfinance financials failed for {ticker}: {exc}") from exc
+
+    def get_fx_rate(self, currency: str) -> float:
+        """Return conversion rate from `currency` to EUR (e.g. USD → 0.92)."""
+        if currency == "EUR":
+            return 1.0
+        fx_ticker = f"{currency}EUR=X"
+        try:
+            data = yf.Ticker(fx_ticker).info
+            rate = data.get("regularMarketPrice") or data.get("price")
+            if not rate:
+                raise DataSourceError(f"No FX rate found for {fx_ticker}")
+            return float(rate)
+        except DataSourceError:
+            raise
+        except Exception as exc:
+            raise DataSourceError(f"yfinance FX rate failed for {currency}: {exc}") from exc

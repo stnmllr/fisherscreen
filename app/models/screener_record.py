@@ -22,10 +22,14 @@ class ScreenerRecord(BaseModel):
     gics_industry: str | None = None
 
     # Financial ratios (from yfinance info — populated in run_basis_filter)
-    revenue_growth_yoy: float | None = None   # info['revenueGrowth']
+    gross_margin: float | None = None          # info['grossMargins'] — decimal (0.45 = 45%)
+    revenue_growth_yoy: float | None = None   # info['revenueGrowth'] — decimal YoY
     operating_margin: float | None = None      # info['operatingMargins']
     return_on_equity: float | None = None      # info['returnOnEquity']
     debt_to_equity: float | None = None        # info['debtToEquity']
+
+    # FX-normalized market cap — computed in run_basis_filter, not from yfinance directly
+    market_cap_eur: float | None = None
 
     # EDGAR fields (populated in Phase 1.2)
     cik: str | None = None
@@ -63,6 +67,7 @@ class ScreenerRecord(BaseModel):
             gics_sector=info.get("sector"),
             gics_industry=info.get("industry"),
             cik=info.get("cik"),
+            gross_margin=info.get("grossMargins"),
             revenue_growth_yoy=info.get("revenueGrowth"),
             operating_margin=info.get("operatingMargins"),
             return_on_equity=info.get("returnOnEquity"),

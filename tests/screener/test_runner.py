@@ -6,21 +6,24 @@ from app.models.run_record import RunRecord
 from app.screener.runner import run_basis_filter
 from app.services.gemini_client import GeminiScoreResult
 
+_FX_USD_EUR = 0.92  # approximate USD → EUR rate for tests
+
 
 def _make_yf_mock(info: dict) -> MagicMock:
     mock = MagicMock()
     mock.get_ticker_info.return_value = info
+    mock.get_fx_rate.return_value = _FX_USD_EUR
     return mock
 
 
 _PASSING_INFO = {
     "shortName": "Big Corp",
     "currency": "USD",
-    "marketCap": 500_000_000,
+    "marketCap": 3_000_000_000,  # 3B USD × 0.92 = 2.76B EUR — above €2B threshold
     "averageVolume": 200_000,
     "currentPrice": 50.0,
-    "bid": 49.8,
-    "ask": 50.2,
+    "grossMargins": 0.45,        # 45% — above 30% threshold (decimal)
+    "revenueGrowth": 0.08,       # 8% YoY — above 0%
 }
 
 
@@ -44,14 +47,15 @@ def test_run_skips_tickers_with_data_source_errors():
 
 def test_run_processes_multiple_tickers():
     mock_yf = MagicMock()
+    mock_yf.get_fx_rate.return_value = _FX_USD_EUR
 
     def side_effect(ticker):
         if ticker == "GOOD":
             return _PASSING_INFO
-        return {**_PASSING_INFO, "currentPrice": 0.50}  # penny stock
+        return {**_PASSING_INFO, "revenueGrowth": -0.10}  # declining revenue fails V3
 
     mock_yf.get_ticker_info.side_effect = side_effect
-    result = run_basis_filter(["GOOD", "PENY"], mock_yf)
+    result = run_basis_filter(["GOOD", "SHRK"], mock_yf)
 
     assert len(result) == 1
     assert result[0].ticker == "GOOD"
@@ -65,6 +69,7 @@ def test_run_returns_empty_for_empty_ticker_list():
 
 def test_run_continues_after_individual_data_source_error():
     mock_yf = MagicMock()
+    mock_yf.get_fx_rate.return_value = _FX_USD_EUR
 
     def side_effect(ticker):
         if ticker == "FAIL":
@@ -82,6 +87,7 @@ def test_run_skips_ticker_with_malformed_yfinance_data():
     # yfinance can return strings where floats are expected — Pydantic raises ValidationError
     # The runner should treat this as a per-ticker failure, not crash the whole run
     mock_yf = MagicMock()
+    mock_yf.get_fx_rate.return_value = _FX_USD_EUR
 
     def side_effect(ticker):
         if ticker == "MALFORMED":
@@ -95,6 +101,28 @@ def test_run_skips_ticker_with_malformed_yfinance_data():
     assert result[0].ticker == "GOOD"
 
 
+def test_run_sets_market_cap_eur_on_record():
+    # Verifies FX conversion is applied in runner (not in filter layer)
+    mock_yf = _make_yf_mock(_PASSING_INFO)
+    result = run_basis_filter(["BIGC"], mock_yf)
+
+    assert len(result) == 1
+    assert result[0].market_cap_eur is not None
+    expected_eur = _PASSING_INFO["marketCap"] * _FX_USD_EUR
+    assert abs(result[0].market_cap_eur - expected_eur) < 1.0
+
+
+def test_run_fails_ticker_when_fx_rate_unavailable():
+    # If FX lookup fails, market_cap_eur is None → fails market_cap filter
+    mock_yf = MagicMock()
+    mock_yf.get_ticker_info.return_value = _PASSING_INFO
+    mock_yf.get_fx_rate.side_effect = DataSourceError("FX unavailable")
+
+    result = run_basis_filter(["BIGC"], mock_yf)
+
+    assert result == []
+
+
 # --- run_edgar_filter ---
 
 
@@ -103,9 +131,10 @@ def _passing_basis_record(ticker="TEST", cik="0000320193") -> "ScreenerRecord":
     return ScreenerRecord(
         ticker=ticker,
         cik=cik,
-        market_cap=500_000_000,
+        market_cap_eur=5_000_000_000,
         avg_daily_volume=200_000,
-        price=50.0,
+        gross_margin=0.45,
+        revenue_growth_yoy=0.08,
         filter_passed_basis=True,
     )
 
@@ -236,12 +265,13 @@ def _scored_yfinance_mock(ticker: str) -> MagicMock:
         "marketCap": 5_000_000_000,
         "averageVolume": 1_000_000,
         "currentPrice": 100.0,
-        "bid": 99.9,
-        "ask": 100.1,
         "sector": "Technology",
         "industry": "Software",
         "currency": "USD",
+        "grossMargins": 0.60,
+        "revenueGrowth": 0.15,
     }
+    mock.get_fx_rate.return_value = _FX_USD_EUR
     return mock
 
 
