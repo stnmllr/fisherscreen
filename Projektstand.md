@@ -96,7 +96,7 @@ Tool A → Stufe-3-Diskussion mit Claude → Tool B (Deep-Dive) → Kaufentschei
 Tool A ist heute (2026-05-16) live. Die Stufe-3-Diskussion ist immer manuell (V3-Intent, keine Automatisierung). Tool B fehlt noch als ausführender Output-Schritt. Folgende Reihenfolge ist sinnvoll:
 
 1. **Diese Woche — Quick Wins (beide Tools profitieren):**
-   - Gemini 503-Retry (TODO #11) — vor dem 2026-06-01 Lauf
+   - ~~Gemini 503-Retry (TODO #11)~~ ✅ erledigt 2026-05-17 (PR #3) — Production-Verifikation steht beim 2026-06-01-Lauf aus
    - Negativ-Filter-Audit-Doku (TODO #10) — Klarheit über reale Score-Basis und Vorarbeit für Tool-B-EDGAR-Pipeline
 
 2. **Nächste 1–2 Wochen:** Tool B implementieren gemäß V3 Abschnitt 5 (HTTP-Endpoint `/run/deepdive`, Hard/Soft-Scuttlebutt-Pipeline, Sprach-Analyse, Subagent-Isolation, Dossier-Generator, CLI-Wrapper)
@@ -268,7 +268,7 @@ Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00
 
 1. **Cloud Run Jobs statt Cloud Run Service für Tool A** — entkoppelt den Monatslauf von Deployments, eliminiert Deployment-Race-Risiko bei zukünftigen Architekturänderungen, höheres Timeout (24h statt 60min). Setzt voraus: Cloud Run Jobs Migration, Scheduler-Trigger auf Job-Execution statt HTTP.
 
-2. **Gemini 503-Retry mit tenacity** — beim ersten Lauf wurde ALV.DE aus dem Scoring rausgeworfen wegen "503 UNAVAILABLE - high demand". Retry mit exponentiellem Backoff (3 Versuche: 1s, 4s, 16s) für 503/429.
+2. ~~**Gemini 503-Retry mit tenacity**~~ ✅ (2026-05-17) — erledigt, siehe TODO #11 (Branch `feature/gemini-503-retry`, PR #3). Ursprung: ALV.DE fiel im Mai-Lauf durch transientes "503 UNAVAILABLE - high demand".
 
 3. **`has_active_enforcement` ausimplementieren** — derzeit Phase-1-Platzhalter, gibt für alle CIKs `False` zurück. Bei US-Tickern via SEC EDGAR, bei EU-Tickern via BaFin/FCA/AMF/CNMV.
 
@@ -286,7 +286,7 @@ Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00
 
 10. **Negativ-Filter-Audit (`docs/negative-filters-status.md`)** — Tabelle aller 8 V3-Filter mit Status (aktiv/Stub/nicht implementiert), Datenquelle, Aufwand für Aktivierung. Voraussetzung für ehrliche Score-Interpretation und Basis für Tool-B-EDGAR-Pipeline.
 
-11. **Gemini 503-Retry mit tenacity** *(Quick Win vor 2026-06-01)* — Verhindert, dass künftig Top-Kandidaten (wie ALV.DE im Mai-Lauf) wegen transienter Gemini-Spitzenlast aus dem Scoring fallen. Retry mit exponentiellem Backoff (3 Versuche: 1s, 4s, 16s) für 503/429. Aufwand: ~1h.
+11. ~~**Gemini 503-Retry mit tenacity**~~ ✅ (2026-05-17) — tenacity-Retry für transiente 503 UNAVAILABLE + 429 RESOURCE_EXHAUSTED auf beide Gemini-Calls (count_tokens + generate_content), exponentieller Backoff 1s/4s/16s, max 4 Versuche, reraise → bisheriges Skip-Verhalten bei Dauerfehler erhalten. Branch `feature/gemini-503-retry`, 247 Tests grün. Spec/Plan: `docs/superpowers/specs/2026-05-17-gemini-503-retry-design.md`.
 
 12. **Portfolio Hold-Check** — Vollständige Implementierung gemäß V3 Abschnitt 4.3. Sinnvoll zeitlich nach erstem Comdirect-CSV-Export → Portfolio-Analyzer → `portfolio_normalized.json` Workflow. Realistischer Zeithorizont: nach Juni-Lauf, vor Tool B.
 

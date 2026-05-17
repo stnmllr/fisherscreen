@@ -3,6 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from google.genai.errors import ClientError, ServerError
+
 from app.errors import GeminiError
 from app.models.screener_record import ScreenerRecord
 from app.services.gemini_client import DIMENSIONS, GeminiClientImpl, GeminiScoreResult
@@ -44,6 +46,21 @@ def _mock_generate_resp(
 
 def _valid_dims() -> dict:
     return {"growth": 4, "profitability": 3, "management": 4, "innovation": 5, "resilience": 3}
+
+
+def _server_error(code: int) -> ServerError:
+    return ServerError(code, {"error": {"status": "UNAVAILABLE", "message": "high demand"}})
+
+
+def _client_error(code: int) -> ClientError:
+    return ClientError(code, {"error": {"status": "RESOURCE_EXHAUSTED", "message": "rate"}})
+
+
+@pytest.fixture
+def fast_retry(monkeypatch):
+    """Neutralisiert tenacity-Sleep, damit Retry-Tests nicht real warten."""
+    monkeypatch.setattr(GeminiClientImpl._count_tokens.retry, "sleep", lambda _: None)
+    monkeypatch.setattr(GeminiClientImpl._generate.retry, "sleep", lambda _: None)
 
 
 @patch("app.services.gemini_client._genai")
@@ -144,3 +161,94 @@ def test_score_ticker_handles_none_financial_ratios(mock_genai):
     record = _record(revenue_growth_yoy=None, operating_margin=None, market_cap=None)
     result = impl.score_ticker("TEST", record)
     assert result.dimensions == _valid_dims()
+
+
+@patch("app.services.gemini_client._genai")
+def test_retries_generate_on_503_then_succeeds(mock_genai, fast_retry):
+    mock_client = MagicMock()
+    mock_genai.Client.return_value = mock_client
+    mock_client.models.count_tokens.return_value = _mock_token_resp(500)
+    mock_client.models.generate_content.side_effect = [
+        _server_error(503),
+        _server_error(503),
+        _mock_generate_resp(_valid_dims()),
+    ]
+
+    impl = GeminiClientImpl(api_key="key")
+    result = impl.score_ticker("TEST", _record())
+
+    assert result.dimensions == _valid_dims()
+    assert mock_client.models.generate_content.call_count == 3
+
+
+@patch("app.services.gemini_client._genai")
+def test_retries_count_tokens_on_503_then_succeeds(mock_genai, fast_retry):
+    mock_client = MagicMock()
+    mock_genai.Client.return_value = mock_client
+    mock_client.models.count_tokens.side_effect = [
+        _server_error(503),
+        _mock_token_resp(500),
+    ]
+    mock_client.models.generate_content.return_value = _mock_generate_resp(_valid_dims())
+
+    impl = GeminiClientImpl(api_key="key")
+    result = impl.score_ticker("TEST", _record())
+
+    assert result.dimensions == _valid_dims()
+    assert mock_client.models.count_tokens.call_count == 2
+
+
+@patch("app.services.gemini_client._genai")
+def test_persistent_503_raises_gemini_error_after_4_calls(mock_genai, fast_retry):
+    mock_client = MagicMock()
+    mock_genai.Client.return_value = mock_client
+    mock_client.models.count_tokens.return_value = _mock_token_resp(500)
+    mock_client.models.generate_content.side_effect = [_server_error(503)] * 4
+
+    impl = GeminiClientImpl(api_key="key")
+    with pytest.raises(GeminiError, match="API call failed"):
+        impl.score_ticker("TEST", _record())
+    assert mock_client.models.generate_content.call_count == 4
+
+
+@patch("app.services.gemini_client._genai")
+def test_retries_on_429(mock_genai, fast_retry):
+    mock_client = MagicMock()
+    mock_genai.Client.return_value = mock_client
+    mock_client.models.count_tokens.return_value = _mock_token_resp(500)
+    mock_client.models.generate_content.side_effect = [
+        _client_error(429),
+        _mock_generate_resp(_valid_dims()),
+    ]
+
+    impl = GeminiClientImpl(api_key="key")
+    result = impl.score_ticker("TEST", _record())
+
+    assert result.dimensions == _valid_dims()
+    assert mock_client.models.generate_content.call_count == 2
+
+
+@patch("app.services.gemini_client._genai")
+def test_no_retry_on_client_error_400(mock_genai, fast_retry):
+    mock_client = MagicMock()
+    mock_genai.Client.return_value = mock_client
+    mock_client.models.count_tokens.return_value = _mock_token_resp(500)
+    mock_client.models.generate_content.side_effect = _client_error(400)
+
+    impl = GeminiClientImpl(api_key="key")
+    with pytest.raises(GeminiError, match="API call failed"):
+        impl.score_ticker("TEST", _record())
+    assert mock_client.models.generate_content.call_count == 1
+
+
+@patch("app.services.gemini_client._genai")
+def test_no_retry_on_server_error_500(mock_genai, fast_retry):
+    mock_client = MagicMock()
+    mock_genai.Client.return_value = mock_client
+    mock_client.models.count_tokens.return_value = _mock_token_resp(500)
+    mock_client.models.generate_content.side_effect = _server_error(500)
+
+    impl = GeminiClientImpl(api_key="key")
+    with pytest.raises(GeminiError, match="API call failed"):
+        impl.score_ticker("TEST", _record())
+    assert mock_client.models.generate_content.call_count == 1

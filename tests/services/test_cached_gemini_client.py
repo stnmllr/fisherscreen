@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
+from google.genai.errors import ServerError
 
 from app.models.screener_record import ScreenerRecord
 from app.services.cached_gemini_client import CachedGeminiClient
-from app.services.gemini_client import GeminiScoreResult
+from app.services.gemini_client import GeminiClientImpl, GeminiScoreResult
 
 
 def _record() -> ScreenerRecord:
@@ -118,3 +119,37 @@ def test_is_fresh_returns_false_when_cached_at_missing():
     client.score_ticker("AAPL", _record())
 
     mock_gemini.score_ticker.assert_called_once()
+
+
+@patch("app.services.gemini_client._genai")
+def test_retry_survives_cache_layer_on_503(mock_genai):
+    """503→Erfolg im echten GeminiClientImpl, durch CachedGeminiClient hindurch."""
+    GeminiClientImpl._generate.retry.sleep = lambda _: None  # kein reales Warten
+
+    mock_inner = MagicMock()
+    mock_genai.Client.return_value = mock_inner
+    token_resp = MagicMock()
+    token_resp.total_tokens = 500
+    mock_inner.models.count_tokens.return_value = token_resp
+    good = MagicMock()
+    good.text = (
+        '{"dimensions": {"growth": 4, "profitability": 3, "management": 4, '
+        '"innovation": 5, "resilience": 3}, "summary": "ok"}'
+    )
+    good.usage_metadata.prompt_token_count = 500
+    good.usage_metadata.candidates_token_count = 80
+    mock_inner.models.generate_content.side_effect = [
+        ServerError(503, {"error": {"message": "high demand"}}),
+        good,
+    ]
+
+    impl = GeminiClientImpl(api_key="key")
+    mock_fs = MagicMock()
+    mock_fs.get.return_value = None  # Cache-Miss
+
+    client = CachedGeminiClient(gemini=impl, firestore=mock_fs, collection="col")
+    result = client.score_ticker("AAPL", _record())
+
+    assert result.dimensions["growth"] == 4
+    assert mock_inner.models.generate_content.call_count == 2
+    mock_fs.set.assert_called_once()

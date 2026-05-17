@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from google import genai as _genai
 from google.genai import types as _types
+from google.genai.errors import ClientError, ServerError
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from app.errors import GeminiError
 from app.screener.dimensions import DIMENSIONS
@@ -16,6 +18,21 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 _DEFAULT_MODEL = "gemini-2.5-flash-lite"
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    return (isinstance(exc, ServerError) and exc.code == 503) or (
+        isinstance(exc, ClientError) and exc.code == 429
+    )
+
+
+_RETRY = dict(
+    retry=retry_if_exception(_is_retryable),
+    stop=stop_after_attempt(4),
+    wait=wait_exponential(multiplier=1, exp_base=4),
+    reraise=True,
+)
+
 
 @dataclass
 class GeminiScoreResult:
@@ -51,7 +68,7 @@ class GeminiClientImpl:
     ) -> GeminiScoreResult:
         prompt = _build_prompt(ticker, record)
         try:
-            token_resp = self._client.models.count_tokens(model=self._model, contents=prompt)
+            token_resp = self._count_tokens(prompt)
         except Exception as exc:
             logger.warning("ticker=%s token count failed: %s", ticker, exc)
             raise GeminiError(f"Token count failed for {ticker}: {exc}") from exc
@@ -64,18 +81,26 @@ class GeminiClientImpl:
                 f"ticker={ticker} prompt too large: {token_resp.total_tokens} > {max_input_tokens} tokens"
             )
         try:
-            response = self._client.models.generate_content(
-                model=self._model,
-                contents=prompt,
-                config=_types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    max_output_tokens=max_output_tokens,
-                ),
-            )
+            response = self._generate(prompt, max_output_tokens)
         except Exception as exc:
             logger.warning("ticker=%s Gemini API call failed: %s", ticker, exc)
             raise GeminiError(f"Gemini API call failed for {ticker}: {exc}") from exc
         return _parse_response(ticker, response)
+
+    @retry(**_RETRY)
+    def _count_tokens(self, prompt: str) -> Any:
+        return self._client.models.count_tokens(model=self._model, contents=prompt)
+
+    @retry(**_RETRY)
+    def _generate(self, prompt: str, max_output_tokens: int) -> Any:
+        return self._client.models.generate_content(
+            model=self._model,
+            contents=prompt,
+            config=_types.GenerateContentConfig(
+                response_mime_type="application/json",
+                max_output_tokens=max_output_tokens,
+            ),
+        )
 
 
 def _build_prompt(ticker: str, record: ScreenerRecord) -> str:
