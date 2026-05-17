@@ -14,7 +14,7 @@
 
 FisherScreen Phase 1 ist produktiv. Erster Lauf am 2026-05-16 erfolgreich durchgeführt nach Fix eines kritischen Feedback-Loop-Bugs. Monatlicher Scheduler-Job läuft, drei Markdown-Outputs (Dimensions, Crosshits, Changes) werden via GitHub Sync ins Obsidian-Repo gepusht. Nächster regulärer Lauf: 2026-06-01 03:00 UTC.
 
-**Deployed / Pending Cloud Run:** `fix/basis-filter-v3` in `main` gemergt (Commit `d30f581`). Lokaler Akzeptanztest bestätigt: 11/15 US Large-Caps passieren V3-Filter, FX-Konversion sauber. **Cloud Run Deploy vor dem 2026-06-01-Lauf erforderlich.**
+**V3-Filter-Fix ist LIVE auf Cloud Run.** `fix/basis-filter-v3` in `main` gemergt (Commit `d30f581`). Lokaler Akzeptanztest bestätigt: 11/15 US Large-Caps passieren V3-Filter, FX-Konversion sauber. Deploy verifiziert 2026-05-17: GHA-Workflow für Commit `2741634` lief erfolgreich (Run `25984321514`, 07:11 UTC) → Revision `fisherscreen-service-00035-htn`, Image `app:2741634...`. Der 2026-06-01-Lauf läuft gegen die gefixte Pipeline. **Production-Akzeptanz (≥15 US-Titel in Top-50-Crosshits) wird am 2026-06-01 verifiziert.**
 
 ### Scoring-Methodik (Phase 1)
 
@@ -115,8 +115,8 @@ Wichtig: Portfolio Hold-Check (V3 Abschnitt 4.3) ist konzeptionell Tool A, aber 
 
 **Aktueller Phase**: Phase 1 produktiv ✅ — Erster Lauf 2026-05-16, Feedback-Loop-Bug behoben.
 **Branch**: `main` — 240 Tests, 95.39% Coverage. Fix gemergt via `d30f581`.
-**Pending**: Cloud Run Deploy (aktuell läuft noch pre-fix Revision `00030-jnv`).
-**Cloud Run**: `fisherscreen-service` Revision `00030-jnv` in europe-west3 (Projekt `fisherscreen-prod`, Projektnummer 896012696952).
+**Deploy**: ✅ V3-Fix live — Revision `fisherscreen-service-00035-htn` (Image aus Commit `2741634`, deployed 2026-05-17 via GHA).
+**Cloud Run**: `fisherscreen-service` Revision `00035-htn` in europe-west3 (Projekt `fisherscreen-prod`, Projektnummer 896012696952).
 **Gemini-Modell**: `gemini-2.5-flash-lite` (konfigurierbar via `FISHERSCREEN_GEMINI_MODEL`)
 **Cloud Scheduler**: `fisherscreen-monthly` aktiv — läuft automatisch am 1. jeden Monats um 05:00 Europe/Berlin. Retry-Policy gehärtet: max 2 Retries, 60s minBackoff.
 **Hard-Stop**: Cloud Function + $10-Budget mit Pub/Sub-Hook — verifiziert.
@@ -150,6 +150,7 @@ Wichtig: Portfolio Hold-Check (V3 Abschnitt 4.3) ist konzeptionell Tool A, aber 
 - 2026-05-17: **US-Titel-Bug Root Cause** — `passes_liquidity_filter` eliminierte alle 904 US-Stocks (bid=0.0 yfinance außerhalb Marktzeiten; `not 0.0 == True`). Alle 485 EU-Ticker kamen durch, 0 US-Ticker.
 - 2026-05-17: **V3-Basis-Filter implementiert + gemergt** — `fix/basis-filter-v3` → `main` (Merge `d30f581`). Entfernt: `passes_liquidity_filter`, `passes_penny_stock_filter`. Neu: Market Cap ≥ €2B (mit FX-Normalisierung), Gross Margin ≥ 30%, Revenue Growth ≥ 0%. `YFinanceClient.get_fx_rate()` + `CachedYFinanceClient.get_fx_rate()` hinzugefügt. Region-Logging (US/EU-Counts) in Runner. 240/240 Tests, 95.39% Coverage.
 - 2026-05-17: **Lokaler Akzeptanztest** ✅ — `scripts/acceptance_basis_filter.py` gegen echtes yfinance: 11/15 US Large-Caps (AAPL, MSFT, GOOGL, AMZN, META, JNJ, V, PG, KO, NVDA, MA) + 5/10 EU-Ticker passieren V3-Filter. FX-Konversion sauber (USD/DKK/GBP/CHF → EUR). Keine Exceptions. (4 US-Ausfälle plausibel: JPM/UNH Finanz/Versicherungs-Margins, XOM Energy-Margin, HD Retail-Wachstum.)
+- 2026-05-17: **V3-Filter-Fix auf Cloud Run deployed** ✅ — GHA-Deploy-Trigger funktionierte wieder (Run `25984321514` für Commit `2741634`, erfolgreich 07:11 UTC). Verifiziert via `gcloud run services describe`: Revision `fisherscreen-service-00035-htn`, Image-Tag `app:27416345130f29dd9838b164522f54b15ac7eb4f` (= voller SHA von `2741634`, enthält V3-Fix `d2bff68` als Ancestor). Damit ist der einzige für den 2026-06-01-Lauf blockierende Punkt erledigt.
 
 ### Mai 2026 — Produktivgang und Feedback-Loop-Fix
 
@@ -275,7 +276,7 @@ Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00
 
 5. **Output-Repo-Trennung** — `stnmllr/fisherscreen-output` als separates Repo, wenn Output-Frequenz steigt (Deep-Dives, Hold-Checks). Aktuell nicht nötig.
 
-6. **GitHub-Actions-Trigger-Quirk** — Untersuchen, warum Squash-Merge-Commit `9b64007` keinen Workflow ausgelöst hat. Mögliche Ursache: zeitliches Aufeinanderfolgen von Commits.
+6. **GitHub-Actions-Trigger-Quirk** *(Priorität gesenkt — Trigger funktioniert wieder)* — Untersuchen, warum Squash-Merge-Commit `9b64007` keinen Workflow ausgelöst hat. Mögliche Ursache: zeitliches Aufeinanderfolgen von Commits. Update 2026-05-17: Trigger lief für Commits `2741634` und Folge-Commits wieder zuverlässig (mehrere erfolgreiche Runs in `gh run list`). Phänomen wirkt intermittierend, nicht reproduzierbar — bleibt Backlog ohne Dringlichkeit.
 
 7. ~~**Vorfilter-Dokumentation**~~ ✅ (2026-05-17) — V3-Filterlogik jetzt in `docs/superpowers/brainstorm/2026-05-17-us-titel-bugfix.md` und direkt im Code dokumentiert. Threshold-Werte: Market Cap ≥ €2B, Gross Margin ≥ 30%, Revenue Growth ≥ 0%. Restlicher Audit (EU-Ticker ohne CIK, EDGAR-Stub-Status) weiterhin offen.
 
@@ -424,7 +425,7 @@ Verwirrungsquelle wenn man Befehle zwischen interaktiver Session und `.bat`-Date
 |---|---|
 | Projekt | `fisherscreen-prod` (896012696952) |
 | Region | `europe-west3` |
-| Cloud Run Service | `fisherscreen-service` (aktuell: Revision `00030-jnv`, Image `b8427f6`) |
+| Cloud Run Service | `fisherscreen-service` (aktuell: Revision `00035-htn`, Image `2741634` — V3-Filter-Fix live seit 2026-05-17) |
 | Runtime SA | `fisherscreen-runtime@fisherscreen-prod.iam.gserviceaccount.com` |
 | Deploy SA | `github-deploy@fisherscreen-prod.iam.gserviceaccount.com` |
 | Scheduler SA | `fisherscreen-scheduler@fisherscreen-prod.iam.gserviceaccount.com` |
