@@ -102,4 +102,7 @@ Neue Filter (ersetzen die alten Pre-V3-Filter):
 
 ## Verifikation
 
-*(wird nach Implementierung ausgefüllt)*
+- TDD: Tests zuerst geschrieben (34 Filter-Tests + 8 Runner-Tests neu/erweitert)
+- `uv run python -m pytest`: 239/239 PASSED, 95.39% Coverage — ✅
+- Branch `fix/basis-filter-v3`, Commit `69641e5`
+- Produktionstest (≥15 US-Titel): steht aus bis zum nächsten Cloud-Run-Lauf

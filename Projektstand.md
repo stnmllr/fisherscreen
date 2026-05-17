@@ -8,11 +8,13 @@
 
 ---
 
-## Letztes Update: 2026-05-16
+## Letztes Update: 2026-05-17
 
 ## Top of mind
 
 FisherScreen Phase 1 ist produktiv. Erster Lauf am 2026-05-16 erfolgreich durchgeführt nach Fix eines kritischen Feedback-Loop-Bugs. Monatlicher Scheduler-Job läuft, drei Markdown-Outputs (Dimensions, Crosshits, Changes) werden via GitHub Sync ins Obsidian-Repo gepusht. Nächster regulärer Lauf: 2026-06-01 03:00 UTC.
+
+**Offen / In Review:** Branch `fix/basis-filter-v3` (Commit `69641e5`) behebt den US-Titel-Ausfall im Mai-Lauf. PR-Merge + Cloud-Deploy vor dem Juni-Lauf erforderlich.
 
 ### Scoring-Methodik (Phase 1)
 
@@ -32,7 +34,7 @@ Score entsteht aus Kombination von quantitativen yfinance-Metriken (Margins, ROI
 
 **Beispiel (Mai 2026):** Novo Nordisk (NOVO-B.CO) = 5 Crosshits (alle Dimensionen), Ø Score 4.6 → Position 1. Allianz = 3 Crosshits (Profitability, Management, Resilience), Ø Score 4.33.
 
-**Universum:** Vorfilter reduziert ~1.389 Tickers auf ~160 vor der Dimensions-Bewertung. Detaillierte Vorfilter-Logik: Phase-2-TODO #7 und #9.
+**Universum:** Vorfilter reduziert ~1.389 Tickers auf ~160 vor der Dimensions-Bewertung. Im Mai-Lauf: ausschließlich EU-Ticker (US-Titel durch Bid/Ask-Filter eliminiert — Root Cause identifiziert, Fix in Branch `fix/basis-filter-v3`). V3-Filterlogik nun dokumentiert in `docs/superpowers/brainstorm/2026-05-17-us-titel-bugfix.md`.
 
 ### Vault-Anbindung (lokal)
 
@@ -112,7 +114,7 @@ Wichtig: Portfolio Hold-Check (V3 Abschnitt 4.3) ist konzeptionell Tool A, aber 
 ## Status
 
 **Aktueller Phase**: Phase 1 produktiv ✅ — Erster Lauf 2026-05-16, Feedback-Loop-Bug behoben.
-**Branch**: `main` — 234 Tests, 95.35% Coverage.
+**Branch**: `fix/basis-filter-v3` (offener PR) — 239 Tests, 95.39% Coverage. `main` bleibt auf pre-fix Stand bis PR-Merge.
 **Cloud Run**: `fisherscreen-service` Revision `00030-jnv` in europe-west3 (Projekt `fisherscreen-prod`, Projektnummer 896012696952).
 **Gemini-Modell**: `gemini-2.5-flash-lite` (konfigurierbar via `FISHERSCREEN_GEMINI_MODEL`)
 **Cloud Scheduler**: `fisherscreen-monthly` aktiv — läuft automatisch am 1. jeden Monats um 05:00 Europe/Berlin. Retry-Policy gehärtet: max 2 Retries, 60s minBackoff.
@@ -144,6 +146,8 @@ Wichtig: Portfolio Hold-Check (V3 Abschnitt 4.3) ist konzeptionell Tool A, aber 
 - 2026-05-16: **Deployment-Feedback-Loop** gefixt — `paths-ignore: output/**` + `[skip ci]`, PR #2, Commit `9b64007`
 - 2026-05-16: **Scheduler Retry-Policy** gehärtet — `--max-retry-attempts=2 --min-backoff=60s --max-backoff=300s --max-retry-duration=1800s`
 - 2026-05-16: **Erster produktiver Lauf** ✅ — Verifikations-Run 15:36 UTC, kein Retry, drei Output-Commits mit `[skip ci]`, kein Deploy getriggert
+- 2026-05-17: **US-Titel-Bug Root Cause** — `passes_liquidity_filter` eliminierte alle 904 US-Stocks (bid=0.0 yfinance außerhalb Marktzeiten; `not 0.0 == True`). Alle 485 EU-Ticker kamen durch, 0 US-Ticker.
+- 2026-05-17: **V3-Basis-Filter implementiert** — Branch `fix/basis-filter-v3`, Commit `69641e5`. Entfernt: `passes_liquidity_filter`, `passes_penny_stock_filter`. Neu: Market Cap ≥ €2B (mit FX-Normalisierung), Gross Margin ≥ 30%, Revenue Growth ≥ 0%. `YFinanceClient.get_fx_rate()` hinzugefügt. Region-Logging (US/EU-Counts) in Runner. 239/239 Tests, 95.39% Coverage.
 
 ### Mai 2026 — Produktivgang und Feedback-Loop-Fix
 
@@ -271,7 +275,7 @@ Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00
 
 6. **GitHub-Actions-Trigger-Quirk** — Untersuchen, warum Squash-Merge-Commit `9b64007` keinen Workflow ausgelöst hat. Mögliche Ursache: zeitliches Aufeinanderfolgen von Commits.
 
-7. **Vorfilter-Dokumentation** — Universum reduziert sich von ~1.389 auf 160 Tickers in der Basis-Filter-Phase. Filter-Logik in `app/screener/filters.py` lokalisieren und in `docs/` dokumentieren (Threshold-Werte, Ausschluss-Gründe).
+7. ~~**Vorfilter-Dokumentation**~~ ✅ (2026-05-17) — V3-Filterlogik jetzt in `docs/superpowers/brainstorm/2026-05-17-us-titel-bugfix.md` und direkt im Code dokumentiert. Threshold-Werte: Market Cap ≥ €2B, Gross Margin ≥ 30%, Revenue Growth ≥ 0%. Restlicher Audit (EU-Ticker ohne CIK, EDGAR-Stub-Status) weiterhin offen.
 
 8. **Name-Cleanup im Output** — yfinance liefert Listing-Suffixe ("N", "I", "V") und kaputte Encodings ("DISE...O" statt "DISEÑO"). In `dimensions_generator.py` und `crosshits_generator.py` rstrip/encoding-Cleanup.
 
@@ -449,6 +453,7 @@ Verwirrungsquelle wenn man Befehle zwischen interaktiver Session und `.bat`-Date
 | 2026-05-16 | `gemini-2.5-flash-lite` statt `gemini-2.0-flash-lite` | 2.0 Flash-Lite deprecated ab 1. Juni 2026; 2.5 ist GA und kostengleich | Preview-Modelle (3.1) wegen Account-Quota-Beschränkung übersprungen |
 | 2026-05-16 | `FISHERSCREEN_GEMINI_MODEL` als Env-Var statt Hardcode | Modell-Updates ohne Code-Deploy; ermöglicht A/B-Testing per Cloud Run Revision | Default `gemini-2.5-flash-lite` im Code — Env-Var nur wenn Abweichung nötig |
 | 2026-05-16 | `paths-ignore: output/**` + `[skip ci]` als Defense-in-Depth gegen Feedback-Loop | Output-Commits dürfen keinen Deploy triggern; `paths-ignore` ist primärer Schutz, `[skip ci]` Backstop falls Output-Pfad je außerhalb `output/` landet | Beide Maßnahmen sind unabhängig voneinander wirksam — keine Doppelarbeit, aber leicht mehr Konfigurations-Surface |
+| 2026-05-17 | V3-Basis-Filter ersetzen Pre-V3-Filter vollständig | Bid/Ask-Filter ist timing-sensitiv (yfinance 03:00 UTC = US Pre-Market → bid=0.0) und kein Qualitätsmerkmal. V3 spezifiziert: Market Cap ≥ €2B, Gross Margin ≥ 30%, Revenue Growth ≥ 0%. FX-Normalisierung (USD/GBP/CHF/SEK → EUR) im Runner via `get_fx_rate()`. | Volume-Filter (100k Avg Daily) beibehalten als praktischer Liquiditäts-Safeguard, auch wenn nicht in V3-Spec. |
 
 ## Parallele Projekte
 
