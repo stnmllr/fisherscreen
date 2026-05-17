@@ -39,6 +39,9 @@ class CachedYFinanceClient:
     def get_financials(self, ticker: str) -> Any:
         return self._yfinance.get_financials(ticker)
 
+    def get_fx_rate(self, currency: str) -> float:
+        return self._yfinance.get_fx_rate(currency)
+
     def _is_fresh(self, cached: dict[str, Any]) -> bool:
         cached_at_str = cached.get("_cached_at")
         if not cached_at_str:

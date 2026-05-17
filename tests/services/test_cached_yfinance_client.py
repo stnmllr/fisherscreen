@@ -107,6 +107,19 @@ def test_yfinance_error_propagates_on_cache_miss():
     mock_fs.set.assert_not_called()
 
 
+def test_get_fx_rate_delegates_to_yfinance_without_cache():
+    mock_yf = MagicMock()
+    mock_fs = MagicMock()
+    mock_yf.get_fx_rate.return_value = 0.92
+
+    client = _make_client(mock_yf, mock_fs)
+    result = client.get_fx_rate("USD")
+
+    mock_yf.get_fx_rate.assert_called_once_with("USD")
+    mock_fs.get.assert_not_called()
+    assert result == 0.92
+
+
 def test_missing_cached_at_field_triggers_refetch():
     mock_yf = MagicMock()
     mock_fs = MagicMock()
