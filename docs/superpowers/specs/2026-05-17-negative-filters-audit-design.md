@@ -137,13 +137,13 @@ Audit-Versagen, kein kosmetischer Fehler.
 
 ## Akzeptanzkriterien
 
-- [ ] Datei `docs/negative-filters-status.md` existiert (Repo-Root-`docs/`)
-- [ ] Methodik-Absatz begründet Volume-Filter-Einschluss transparent
-- [ ] Statustabelle deckt alle 9 V3-§4.1-Kriterien + Volume ab
-- [ ] Jede Zeile hat `datei:funktion`-Codebeleg, Status aus fixiertem Vokabular
-- [ ] Aktivierungsaufwand nur Grobskala (Trivial/Klein/Mittel/Groß/Unklar), keine Stunden
-- [ ] EU-CIK-Blindfleck prominent in Abschnitt 3
-- [ ] 8-vs-9-Diskrepanz explizit aufgelöst, V3-Doc nicht geändert
-- [ ] Abschnitt 4 rein deskriptiv — keine Roadmap/Empfehlung/Priorisierung
-- [ ] Keine Code-/Teständerung im Diff (nur die eine .md-Datei)
-- [ ] Review verifiziert jede Statuszeile gegen den genannten Code
+- [x] Datei `docs/negative-filters-status.md` existiert (Repo-Root-`docs/`)
+- [x] Methodik-Absatz begründet Volume-Filter-Einschluss transparent
+- [x] Statustabelle deckt alle 9 V3-§4.1-Kriterien + Volume ab
+- [x] Jede Zeile hat `datei:funktion`-Codebeleg, Status aus fixiertem Vokabular
+- [x] Aktivierungsaufwand nur Grobskala (Trivial/Klein/Mittel/Groß/Unklar), keine Stunden
+- [x] EU-CIK-Blindfleck prominent in Abschnitt 3
+- [x] 8-vs-9-Diskrepanz explizit aufgelöst, V3-Doc nicht geändert
+- [x] Abschnitt 4 rein deskriptiv — keine Roadmap/Empfehlung/Priorisierung
+- [x] Keine Code-/Teständerung im Diff (nur die eine .md-Datei)
+- [x] Review verifiziert jede Statuszeile gegen den genannten Code

@@ -97,7 +97,7 @@ Tool A ist heute (2026-05-16) live. Die Stufe-3-Diskussion ist immer manuell (V3
 
 1. **Diese Woche — Quick Wins (beide Tools profitieren):**
    - ~~Gemini 503-Retry (TODO #11)~~ ✅ erledigt 2026-05-17 (PR #3) — Production-Verifikation steht beim 2026-06-01-Lauf aus
-   - Negativ-Filter-Audit-Doku (TODO #10) — Klarheit über reale Score-Basis und Vorarbeit für Tool-B-EDGAR-Pipeline
+   - ~~Negativ-Filter-Audit-Doku (TODO #10)~~ ✅ erledigt 2026-05-17 — Klarheit über reale Score-Basis und Vorarbeit für Tool-B-EDGAR-Pipeline
 
 2. **Nächste 1–2 Wochen:** Tool B implementieren gemäß V3 Abschnitt 5 (HTTP-Endpoint `/run/deepdive`, Hard/Soft-Scuttlebutt-Pipeline, Sprach-Analyse, Subagent-Isolation, Dossier-Generator, CLI-Wrapper)
 
@@ -284,7 +284,7 @@ Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00
 
 9. **`docs/scoring-methodology.md`** — Detaillierte Dokumentation der Score-Berechnung pro Dimension: yfinance-Feldmapping, Heuristiken, Gemini-Prompt-Templates, Score-Aggregation, Vorfilter-Logik. Wichtig für: Reproduzierbarkeit, künftige Methodenänderungen, Debugging schwacher Score-Plausibilität.
 
-10. **Negativ-Filter-Audit (`docs/negative-filters-status.md`)** — Tabelle aller 8 V3-Filter mit Status (aktiv/Stub/nicht implementiert), Datenquelle, Aufwand für Aktivierung. Voraussetzung für ehrliche Score-Interpretation und Basis für Tool-B-EDGAR-Pipeline.
+10. ~~**Negativ-Filter-Audit (`docs/negative-filters-status.md`)**~~ ✅ (2026-05-17) — Audit aller effektiven Filter erstellt: 4 Basis-Filter (Volume/MarketCap/GrossMargin/RevenueGrowth) aktiv, Bruttomarge/Umsatz nur Single-Value (vereinfacht ggü. V3-Mehrjahres), 3 V3-Kriterien (Dilution/Verluste/neg. Marge) nicht implementiert, `has_active_enforcement` Stub, EDGAR nur US-CIK (EU-Blindfleck). Branch `chore/negative-filters-audit`.
 
 11. ~~**Gemini 503-Retry mit tenacity**~~ ✅ (2026-05-17) — tenacity-Retry für transiente 503 UNAVAILABLE + 429 RESOURCE_EXHAUSTED auf beide Gemini-Calls (count_tokens + generate_content), exponentieller Backoff 1s/4s/16s, max 4 Versuche, reraise → bisheriges Skip-Verhalten bei Dauerfehler erhalten. Branch `feature/gemini-503-retry`, 247 Tests grün. Spec/Plan: `docs/superpowers/specs/2026-05-17-gemini-503-retry-design.md`.
 
