@@ -49,3 +49,56 @@ Volume → Market Cap → Gross Margin → Revenue Growth; danach EDGAR-Stufe
 (`filters.py:apply_edgar_filters`): Restatement → Going Concern →
 Enforcement. EDGAR läuft erst auf der Basis-Filter-Restmenge
 (`runner.py:run_screener` ruft `run_basis_filter` dann `run_edgar_filter`).
+
+## 3. Querschnitts-Befunde
+
+### 3.1 EU-CIK-Blindfleck (wichtigster Befund)
+
+Die drei EDGAR-Filter (`has_restatement`, `has_going_concern`,
+`has_active_enforcement`) greifen ausschließlich für Ticker, deren CIK
+`edgar_client.py:get_cik` über die SEC-`company_tickers.json` (US-zentriert)
+auflöst. `runner.py:run_edgar_filter` setzt für jeden Ticker ohne CIK
+`record.edgar_skipped = True`; `filters.py:apply_edgar_filters` reicht
+solche Records ungeprüft durch (`filter_passed_edgar = None`). Im
+1.389-Ticker-Universum sind ~485 EU-Ticker (Ticker mit „."): für dieses
+~⅓ des Universums sind alle drei EDGAR-Filter still inaktiv. Ein EU-Titel
+ohne Restatement-/Going-Concern-Flag wurde **nicht geprüft**, nicht
+freigesprochen.
+
+### 3.2 8-vs-9-Diskrepanz
+
+V3-Architektur §4.1 listet **9** Knock-out-Zeilen. PROJEKTSTAND
+konsolidiert sie als „8 V3-Filter", indem „Insolvenz / Chapter 11 / Going
+Concern" und der Going-Concern-Aspekt als ein Punkt gezählt werden. Dieses
+Audit führt alle 9 §4.1-Zeilen einzeln plus den Nicht-V3-Volume-Filter. Die
+Diskrepanz ist eine reine Zähl-/Konsolidierungsfrage, kein fehlender Filter
+— sie wird hier nur dokumentiert, die V3-Architektur-Doku wird **nicht**
+geändert (separater PROJEKTSTAND-Backlog-Punkt zur V3-Doc-Drift).
+
+### 3.3 Cache-Verhalten
+
+`cached_edgar_client.py` speichert `has_restatement` und
+`has_going_concern` gemeinsam in einem Firestore-Dokument pro CIK mit
+7-Tage-TTL (`_TTL_SECONDS = 7 * 24 * 3600`). `has_active_enforcement` wird
+nicht gecacht (Stub, delegiert direkt). Basis-Filter (yfinance) nutzen den
+separaten `universe_cache`/`dev_`-Mechanismus, nicht den EDGAR-Cache.
+
+## 4. Implikationen für die Score-Interpretation
+
+*Strikt deskriptiv — was ist, nicht was zu tun ist.*
+
+- Die Score-Basis eines Titels ist die Schnittmenge: Volume ≥ 100k **und**
+  Market Cap ≥ €2 Mrd **und** Gross Margin (Punktwert) ≥ 30 % **und**
+  Revenue Growth (YoY-Punktwert) ≥ 0 %. Die V3-Mehrjahres-Schärfen
+  (8/10-Jahre-Marge, 10J-CAGR, Verlust-/Verwässerungs-Historie) wirken
+  faktisch nicht; Titel mit schwacher Langzeit-, aber solider
+  Momentaufnahme passieren die Basis-Stufe.
+- Restatement/Going-Concern als Knock-out wirken nur für US-Titel mit CIK.
+  Für EU-Titel ist das Fehlen dieser Flags Ausdruck eines übersprungenen
+  Checks, nicht einer bestandenen Prüfung.
+- Aktive SEC-Enforcement fließt derzeit in keine Entscheidung ein (Stub
+  liefert konstant „kein Knock-out").
+- Für die Tool-B-EDGAR-Pipeline ist der Ist-Stand: `has_restatement` und
+  `has_going_concern` sind nutzbare, gecachte US-Signale; eine
+  EU-Abdeckung und ein Enforcement-Signal existieren nicht und sind dort
+  als Datenlücke vorzufinden.
