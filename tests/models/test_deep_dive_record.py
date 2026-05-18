@@ -50,6 +50,11 @@ def test_fisher_point_reasoning_word_cap_70():
         _valid_point(reasoning=" ".join(["w"] * 71))
 
 
+def test_fisher_point_reasoning_exactly_70_words_accepted():
+    p = _valid_point(reasoning=" ".join(["w"] * 70))
+    assert len(p.reasoning.split()) == 70
+
+
 def test_fisher_point_inference_only_caps_confidence_to_yellow():
     # sources == ['Inferenz'] must force confidence != 🟢 (ADR-5c / spec §5)
     p = _valid_point(sources=["Inferenz"], confidence="🟢")

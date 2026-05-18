@@ -6,6 +6,13 @@ from app.errors import DeepDiveError
 
 # Heuristic from negative-filters-status.md §3.1 / Master ADR-1: a "." in the
 # ticker marks a non-US listing (e.g. NOVO-B.CO, SAP.DE). US tickers have none.
+#
+# PRECONDITION: tickers are yfinance/Yahoo-suffix style (the convention used by
+# data/universe.json) — US class shares are "BRK-B", NOT "BRK.B". Under that
+# convention a "." reliably marks a non-US exchange suffix. Feeding a dotted US
+# class-share ticker (BRK.B) would raise DeepDiveError; that is acceptable for
+# B.1 (Novo Nordisk EU-ADR slice) and matches the ADR-1 heuristic. Dynamic
+# resolution that removes this heuristic is Phase B.2.
 _EU_MARKER = "."
 
 

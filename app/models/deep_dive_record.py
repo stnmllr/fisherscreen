@@ -29,7 +29,7 @@ class FisherPoint(BaseModel):
     def _inference_only_caps_confidence(self) -> FisherPoint:
         # ADR-5c / spec §5: sources == ['Inferenz'] => never 🟢 (cap at 🟡).
         if self.sources == ["Inferenz"] and self.confidence == "🟢":
-            object.__setattr__(self, "confidence", "🟡")
+            self.confidence = "🟡"
         return self
 
 
