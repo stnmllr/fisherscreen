@@ -23,6 +23,9 @@ dev = [
     "pytest-asyncio>=0.23.0",
 ]
 
+[project.scripts]
+fisherscreen = "app.deepdive.__main__:main"
+
 [tool.pytest.ini_options]
 addopts = "--cov=app --cov-report=term-missing --cov-fail-under=90"
 markers = [
