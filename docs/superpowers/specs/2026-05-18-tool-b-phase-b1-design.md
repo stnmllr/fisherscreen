@@ -301,10 +301,21 @@ Mini-Block, NICHT als Tabellenzeile:**
 ```
 
 Struktur: YAML-Frontmatter · `# Deep Dive: <Name> (<Ticker>)` · Executive Summary
-(**3 Sätze, hart**) · Bewertung (KGV/EV-EBIT/FCF-Yield aktuell vs. 5J) · Fishers
-15 Punkte (Mini-Blöcke) · **source_coverage-Sektion** (EDGAR: 20-F via ADR · Soft:
-folgt B.3 · Sprach: folgt B.4 · Insider: folgt B.2 · Quant-Herkunft/-Lücken) ·
-leere „Stef's Notizen". Pfad `output/Watchlist/<TICKER>_YYYY-MM-DD.md`.
+(**3 Sätze, hart** — B.1: gerenderter Platzhalter, Synthesis-Substanz tragen die
+15 Mini-Blöcke) · Bewertung · Fishers 15 Punkte (Mini-Blöcke) ·
+**source_coverage-Sektion** (EDGAR: 20-F via ADR · Soft: folgt B.3 · Sprach: folgt
+B.4 · Insider: folgt B.2 · Bewertungs-Kennzahlen: folgt B.2 · Quant-Herkunft/-Lücken)
+· leere „Stef's Notizen". Pfad `output/Watchlist/<TICKER>_YYYY-MM-DD.md`.
+
+> **Amendment 2026-05-18, Option A (I1):** Die V3-§5.3-„Pflicht"-Bewertungsratios
+> (KGV / EV-EBIT / FCF-Yield aktuell vs. 5J) sind in B.1 **bewusst nicht berechnet**,
+> sondern als ehrlicher, getrackter Gap markiert (`SourceCoverage.valuation =
+> "folgt B.2 …"`, sichtbar im Bewertungs-Block UND in der source_coverage-Sektion —
+> Grundsatz §2.7). B.1-Bewertung zeigt nur Market Cap + Gross/Op-Margin. Echte
+> Multiples + 5J-Vergleich = **B.2** (Daten-Breite, neue Quant-Felder). Begründung:
+> B.1-Akzeptanz ist Synthesis-Qualität (§1); valuation-Multiples sind B.2-Scope,
+> und der Gap ist über die projekteigene Lücken-Marker-Konvention sichtbar statt
+> still fallengelassen.
 
 ---
 
