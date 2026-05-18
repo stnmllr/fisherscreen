@@ -80,8 +80,8 @@ FisherScreen ist ein persönliches Werkzeug, das Phil Fishers 15 Prinzipien aus
 uv sync                              Abhängigkeiten aus uv.lock installieren
 uv add <paket>                       Paket hinzufügen (aktualisiert pyproject.toml + uv.lock)
 uv add --dev <paket>                 Dev-Abhängigkeit
-uv run pytest                        Tests ausführen
-uv run python -m fisherscreen ...    CLI ausführen
+uv run python -m pytest              Tests ausführen (siehe SOPRA-EPDR unten)
+uv run python -m app.deepdive ...    Tool B CLI (siehe SOPRA-EPDR unten)
 uv python pin 3.12                   Python-Version fixieren
 ```
 
@@ -360,18 +360,24 @@ uv run python -m pytest -m integration           Integration-Tests (echte APIs)
 Coverage-Threshold (90%) und Marker sind in `[tool.pytest.ini_options]` zentral konfiguriert —
 kein `-cov`-Flag nötig.
 
-### Pytest auf SOPRA-Maschine
+### SOPRA-EPDR: keine .exe-Shims — `python -m <modul>` als kanonische Aufrufform
 
-Der SOPRA-Endpoint-Schutz blockiert `pytest.exe` aus dem venv.
-Workaround: pytest immer als Python-Modul aufrufen:
+WatchGuard EPDR (SOPRA-Endpoint-Schutz) blockiert **alle** von uv generierten
+`.exe`-Shims aus `venv\Scripts\` — nicht nur `pytest.exe`, sondern auch
+`fisherscreen.exe` und jeden künftigen Console-Script-Shim. `python.exe` selbst
+ist freigegeben. Workaround ist **nicht** shim-spezifisch: immer das Modul direkt
+aufrufen.
 
-```
-✅ uv run python -m pytest
-❌ uv run pytest
-```
+| Zweck | ✅ kanonisch (lokal) | ❌ blockiert |
+|---|---|---|
+| Tests | `uv run python -m pytest` | `uv run pytest` |
+| Integration-Tests | `uv run python -m pytest -m integration` | — |
+| Tool B CLI | `uv run python -m app.deepdive deepdive <TICKER>` | `uv run fisherscreen ...` |
 
-Hintergrund: `python.exe` ist freigegeben, frisch installierte EXEs aus `venv\Scripts\`
-werden vom Endpoint-Schutz blockiert.
+Die `[project.scripts]`-Deklaration in `pyproject.toml`
+(`fisherscreen = "app.deepdive.__main__:main"`) **bleibt** bestehen — sie gilt für
+CI, Container und andere Maschinen ohne EPDR. Lokal auf der SOPRA-Maschine ist die
+Aufrufkonvention `python -m <modul>`.
 
 Zusätzlich blockiert der AV `coverage/tracer.cp312-win_amd64.pyd` (C-Extension für schnelles
 Tracing). Coverage.py fällt dann automatisch auf den reinen Python-Tracer zurück — Tests und
