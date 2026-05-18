@@ -12,3 +12,7 @@ class GeminiError(FisherScreenError):
 
 class FilterConfigError(FisherScreenError):
     """Raised when negative filter configuration is invalid or contradictory."""
+
+
+class DeepDiveError(FisherScreenError):
+    """Raised on Tool B deep-dive failures: unresolvable ticker, missing filing."""

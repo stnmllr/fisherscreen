@@ -30,3 +30,16 @@ def test_filter_config_catchable_as_base():
 def test_errors_carry_message():
     err = DataSourceError("connection refused")
     assert str(err) == "connection refused"
+
+
+def test_deepdive_subclass_base():
+    from app.errors import DeepDiveError
+
+    assert issubclass(DeepDiveError, FisherScreenError)
+
+
+def test_deepdive_catchable_as_base():
+    from app.errors import DeepDiveError
+
+    with pytest.raises(FisherScreenError):
+        raise DeepDiveError("ticker NOVO-B.CO not resolvable")
