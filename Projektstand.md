@@ -8,7 +8,7 @@
 
 ---
 
-## Letztes Update: 2026-05-17
+## Letztes Update: 2026-05-18
 
 ## Top of mind
 
@@ -156,6 +156,7 @@ Wichtig: Portfolio Hold-Check (V3 Abschnitt 4.3) ist konzeptionell Tool A, aber 
 - 2026-05-17: **TODO #11 Gemini 503-Retry** ✅ — tenacity-Retry für transiente 503 UNAVAILABLE + 429 RESOURCE_EXHAUSTED auf beide Gemini-Calls (`count_tokens` + `generate_content`), exponentieller Backoff 1s/4s/16s, max 4 Versuche, `reraise=True` → bisheriges Skip-Verhalten bei Dauerfehler erhalten. 6 Unit- + 1 Integrationstest, 247 Tests grün. Brainstorm→Spec→Plan→subagent-driven TDD, zweistufiges Review. PR #3 (Squash, `1d66c47`). Production-Verifikation (ALV.DE überlebt transientes 503) steht beim 2026-06-01-Lauf aus.
 - 2026-05-17: **TODO #10 Negativ-Filter-Audit** ✅ — `docs/negative-filters-status.md` erstellt: code-verifiziertes Audit aller effektiven Filter (Status/Datenquelle/Aktivierungsaufwand-Grobskala) + Querschnitts-Befunde (EU-CIK-Blindfleck prominent, 8-vs-9-Diskrepanz aufgelöst, Cache-Verhalten). Jede Statuszeile zweistufig + final Zeile-für-Zeile gegen realen Code reviewt. 0 Code-/Test-Änderungen. PR #4 (Squash, `b78817d`).
 - 2026-05-17: **V3-Doc-Pfad-Fix** ✅ — falscher Referenzpfad `…\10_Projekte\FisherScreen\…` → korrekt `…\Wissen\Finanzen\FisherScreen\…` in `CLAUDE.md` + `Projektstand.md` (Zeile 5). PR #5 (Squash, `5aa20f4`).
+- 2026-05-18: **Tool-B-Master-Brainstorm (rev2)** ✅ — `docs/superpowers/brainstorm/2026-05-18-tool-b-master.md` erstellt: Master-Plan über Tool B (Deep-Dive-CLI), strukturiert 6 Folge-Phasen B.0–B.5+ (je eigene Brainstorm→Plan→TDD-Session). Vier ADRs gesetzt: ADR-1 EU-Quelle via SEC 20-F/ADR-Pfad (Novo `NOVO-B.CO`→`NVO`→CIK), ADR-2 CLI-lokal in-process (kein Cloud Run für Tool B, V3 §6.1 bewusst aufgegeben), ADR-3 Sprach-/Tonalitätsanalyse auf Phase B.4, ADR-4 Filing-Cache Lokal-FS + TTL. B.1 als vertikaler Durchstich detailliert (9 TDD-Tasks, Akzeptanz: vollständiges Novo-Dossier aus einem CLI-Aufruf). Zwei rev-Runden + eigenständiger Konsistenz-Check (§-Refs, ADR-Zählung, cmd.exe-Syntax). Direkt auf `main` committet (`43b6d1c`, Solo-Repo, kein PR-Workflow). Nächster Schritt: Pre-Flight-Checks (§7a — Gemini-Pro-Verfügbarkeit, Filing-Cache-Pfad), dann `brainstorming`-Skill auf Phase B.1.
 
 ### Mai 2026 — Produktivgang und Feedback-Loop-Fix
 
