@@ -99,3 +99,27 @@ def test_points_14_15_confidence_code_enforced_red():
     assert by_num[14].confidence == "🔴"
     assert by_num[15].confidence == "🔴"
     assert by_num[1].confidence == "🟢"  # others untouched
+
+
+def test_model_violating_point_maps_to_geminierror():
+    syn = MagicMock()
+    data = _good_points()
+    data["points"][0]["reasoning"] = " ".join(["w"] * 71)  # exceeds 70-word cap
+    syn.synthesize.return_value = data
+    with pytest.raises(GeminiError, match="violates the contract"):
+        run_synthesis(
+            ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
+            quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+
+
+def test_misformatted_filing_cite_logs_warning(caplog):
+    import logging
+    syn = MagicMock()
+    data = _good_points()
+    data["points"][0]["sources"] = ["20-F Item 5"]  # no § — un-validatable
+    syn.synthesize.return_value = data
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
+        run_synthesis(
+            ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
+            quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+    assert "not validatable" in caplog.text

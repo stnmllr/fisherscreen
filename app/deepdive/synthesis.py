@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 import re
 
+from pydantic import ValidationError
+
 from app.deepdive.fisher_points import FISHER_POINTS
 from app.errors import GeminiError
 from app.services.gemini_deepdive_client import DeepDiveSynthesizer
@@ -79,7 +81,12 @@ def run_synthesis(
         # source_coverage section (Task 8).
         if rp.get("number") in (14, 15):
             rp = {**rp, "confidence": "🔴"}
-        points.append(FisherPoint(**rp))
+        try:
+            points.append(FisherPoint(**rp))
+        except ValidationError as exc:
+            raise GeminiError(
+                f"synthesis point {rp.get('number')} violates the contract: {exc}"
+            ) from exc
     return points
 
 
@@ -90,6 +97,12 @@ def _validate_sources(
     for s in sources:
         m = _SECTION_CITE_RE.search(s)
         if not m:
+            if "10-K" in s or "20-F" in s:
+                logger.warning(
+                    "source %r looks like a filing cite but is not in the "
+                    "'<form> §<item>' format — not validatable",
+                    s,
+                )
             continue
         item = m.group(2)
         key = f"{form_type}_item{item}"

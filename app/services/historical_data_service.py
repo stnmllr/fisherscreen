@@ -10,7 +10,11 @@ _MAX_YEARS = 5
 
 
 class HistoricalDataService(Protocol):
-    def get_annual_series(self, ticker: str) -> dict[str, Any]: ...
+    # Cache-aware implementors (CachedHistoricalData) accept use_cache; the raw
+    # HistoricalDataServiceImpl ignores it (no caching at that layer).
+    def get_annual_series(
+        self, ticker: str, use_cache: bool = True
+    ) -> dict[str, Any]: ...
 
 
 def _row(df: Any, label: str, ticker: str) -> dict[Any, float | None]:
@@ -33,7 +37,9 @@ class HistoricalDataServiceImpl:
     def __init__(self, yfinance: Any) -> None:
         self._yf = yfinance
 
-    def get_annual_series(self, ticker: str) -> dict[str, Any]:
+    def get_annual_series(
+        self, ticker: str, use_cache: bool = True
+    ) -> dict[str, Any]:  # use_cache ignored: raw impl has no cache layer
         income, cash, bal = self._yf.get_annual_statements(ticker)
         info = self._yf.get_ticker_info(ticker)
 
