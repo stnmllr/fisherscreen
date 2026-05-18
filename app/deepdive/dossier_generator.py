@@ -13,6 +13,14 @@ logger = logging.getLogger(__name__)
 _STARS = {1: "⭐", 2: "⭐⭐", 3: "⭐⭐⭐", 4: "⭐⭐⭐⭐", 5: "⭐⭐⭐⭐⭐"}
 
 
+def _fmt_money(v: float | None) -> str:
+    return f"{v:,.0f}" if v is not None else "n/a"
+
+
+def _fmt_pct(v: float | None) -> str:
+    return f"{v:.1%}" if v is not None else "n/a"
+
+
 def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
     watch_dir = Path(output_dir) / "Watchlist"
     watch_dir.mkdir(parents=True, exist_ok=True)
@@ -31,9 +39,9 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         "befüllt; B.1 Durchstich nutzt die 15 Mini-Blöcke als Substanz.]*",
         "",
         "## Bewertung",
-        f"*Market Cap: {pit.market_cap or 'n/a'} {pit.currency or ''} · "
-        f"Gross Margin: {pit.gross_margin or 'n/a'} · "
-        f"Op. Margin: {pit.operating_margin or 'n/a'}*",
+        f"*Market Cap: {_fmt_money(pit.market_cap)} {pit.currency or ''} · "
+        f"Gross Margin: {_fmt_pct(pit.gross_margin)} · "
+        f"Op. Margin: {_fmt_pct(pit.operating_margin)}*",
         "",
         "## Fishers 15 Punkte",
         "",

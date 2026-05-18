@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from pathlib import Path
 
 from app.deepdive.compose import (
     build_adr_resolver,
@@ -13,7 +14,6 @@ from app.deepdive.compose import (
 from app.deepdive.pipeline import run_deep_dive
 from app.config import settings
 from app.errors import DataSourceError, DeepDiveError, GeminiError
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 

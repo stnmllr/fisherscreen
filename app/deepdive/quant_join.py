@@ -45,6 +45,7 @@ def build_quant_snapshot(
     historical: Any,
     pit_collection: str,
     dims_collection: str,
+    use_cache: bool = True,
 ) -> tuple[QuantSnapshot, SourceCoverage]:
     cov = SourceCoverage()
 
@@ -61,7 +62,7 @@ def build_quant_snapshot(
     pit = _pit_from_info(ticker, info)
 
     # 4b — multi-year historical (sequential after 4a)
-    raw = historical.get_annual_series(ticker)
+    raw = historical.get_annual_series(ticker, use_cache=use_cache)
     hist = HistoricalSeries(
         financial_currency=raw.get("financial_currency"),
         years=raw.get("years", []),

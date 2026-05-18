@@ -56,3 +56,14 @@ def test_pipeline_propagates_resolver_error(tmp_path):
         run_deep_dive("SAP.DE", output_dir=tmp_path, resolver=resolver,
                        filing_fetcher=filings, build_quant=quant,
                        synthesizer=synth, token_cap=200000, use_cache=True)
+
+
+def test_pipeline_raises_actionable_error_on_empty_cik(tmp_path):
+    import pytest
+    from app.errors import DeepDiveError
+    resolver, filings, quant, synth = _deps()
+    resolver.resolve.return_value = ResolvedTicker("AAPL", None, "", "10-K")
+    with pytest.raises(DeepDiveError, match="US-passthrough CIK resolution is Phase B.2"):
+        run_deep_dive("AAPL", output_dir=tmp_path, resolver=resolver,
+                       filing_fetcher=filings, build_quant=quant,
+                       synthesizer=synth, token_cap=200000, use_cache=True)

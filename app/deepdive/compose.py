@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, Callable
 
 from app.config import settings
 from app.deepdive.adr_resolver import ADRResolver
@@ -45,7 +46,7 @@ def build_filing_fetcher() -> CachedFilingFetcher:
     )
 
 
-def build_quant_builder():
+def build_quant_builder() -> Callable[..., tuple[Any, Any]]:
     firestore = FirestoreClientImpl(project_id=settings.gcp_project_id)
     yfinance = YFinanceClientImpl()
     historical = CachedHistoricalData(
@@ -56,7 +57,7 @@ def build_quant_builder():
     pit_collection = settings.ticker_collection
     dims_collection = settings.gemini_score_collection
 
-    def _build(ticker: str):
+    def _build(ticker: str, *, use_cache: bool = True):
         return build_quant_snapshot(
             ticker,
             firestore=firestore,
@@ -64,6 +65,7 @@ def build_quant_builder():
             historical=historical,
             pit_collection=pit_collection,
             dims_collection=dims_collection,
+            use_cache=use_cache,
         )
 
     return _build

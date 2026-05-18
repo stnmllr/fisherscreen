@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from app.deepdive.dossier_generator import generate_dossier
+from app.errors import DeepDiveError
 from app.deepdive.filing_parser import parse_filing
 from app.deepdive.synthesis import run_synthesis
 from app.models.deep_dive_record import DeepDiveRecord
@@ -27,6 +28,12 @@ def run_deep_dive(
 
     # [1] ADR-Lookup
     resolved = resolver.resolve(ticker)
+    if not resolved.cik:
+        raise DeepDiveError(
+            f"No CIK for {ticker}: US-passthrough CIK resolution is Phase B.2. "
+            f"Add an entry to data/adr_table.json or pick a ticker with a "
+            f"known CIK."
+        )
 
     # [2] EDGAR-Pull (local-FS cache, ADR-4)
     raw = filing_fetcher.get(resolved.cik, resolved.form_type, use_cache=use_cache)
@@ -35,8 +42,12 @@ def run_deep_dive(
     parsed = parse_filing(raw.document_text, resolved.form_type)
 
     # [4] Quant-Join
-    quant, coverage = build_quant(ticker)
-    coverage.edgar = f"{resolved.form_type} via ADR"
+    quant, coverage = build_quant(ticker, use_cache=use_cache)
+    coverage.edgar = (
+        f"{resolved.form_type} via ADR"
+        if resolved.adr_ticker
+        else f"{resolved.form_type} (US direct)"
+    )
 
     # [5] Gemini-Synthesis
     synthesis = run_synthesis(

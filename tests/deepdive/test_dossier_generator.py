@@ -43,3 +43,16 @@ def test_each_point_renders_a_source_marker(tmp_path):
     p = generate_dossier(_record(), tmp_path)
     body = frontmatter.loads(p.read_text(encoding="utf-8")).content
     assert body.count("[20-F §5]") == 15
+
+
+def test_bewertung_formats_money_and_percent(tmp_path):
+    rec = _record()
+    rec.quant_snapshot.point_in_time.market_cap = 234567890000.0
+    rec.quant_snapshot.point_in_time.currency = "DKK"
+    rec.quant_snapshot.point_in_time.gross_margin = 0.836
+    rec.quant_snapshot.point_in_time.operating_margin = 0.41
+    body = frontmatter.loads(
+        generate_dossier(rec, tmp_path).read_text(encoding="utf-8")).content
+    assert "234,567,890,000 DKK" in body
+    assert "83.6%" in body
+    assert "41.0%" in body

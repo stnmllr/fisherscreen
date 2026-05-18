@@ -78,3 +78,12 @@ def test_partial_historical_flagged():
         "X", firestore=fs, yfinance=yf, historical=hist,
         pit_collection="dev_ticker_cache", dims_collection="dev_gemini_scores")
     assert cov.historical.startswith("partial")
+
+
+def test_use_cache_false_threads_to_historical():
+    fs, yf, hist = _deps(pit_cache={"marketCap": 1}, dims=None)
+    build_quant_snapshot(
+        "X", firestore=fs, yfinance=yf, historical=hist,
+        pit_collection="dev_ticker_cache", dims_collection="dev_gemini_scores",
+        use_cache=False)
+    hist.get_annual_series.assert_called_once_with("X", use_cache=False)
