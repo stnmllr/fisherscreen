@@ -128,6 +128,7 @@ Wichtig: Portfolio Hold-Check (V3 Abschnitt 4.3) ist konzeptionell Tool A, aber 
 **Universe**: 1.389 Ticker (S&P 500 + S&P 400 + STOXX Europe 600) in `data/universe.json` ✅
 **Erster Output**: Top-Crosshit NOVO-B.CO (Score 4.6, alle 5 Dimensionen), 50 Crosshit-Kandidaten aus 160 Vorfilter-Tickern.
 **Nächster Lauf**: 2026-06-01 03:00 UTC (automatisch via Cloud Scheduler)
+**Tool B (Deep Dive)**: B.0 + B.1 auf `main` (`36818af`, gepusht) — 351 Tests / 95.82%. CLI lokal `uv run python -m app.deepdive deepdive <TICKER>` (SOPRA-EPDR: kein `.exe`-Shim). Default-Synthesis `gemini-2.5-pro`. Offen: manuelles Akzeptanz-Gate (echter Novo-Lauf) → dann B.2.
 
 ## Erledigt
 
@@ -303,9 +304,15 @@ Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00
 
 12. **Portfolio Hold-Check** — Vollständige Implementierung gemäß V3 Abschnitt 4.3. Sinnvoll zeitlich nach erstem Comdirect-CSV-Export → Portfolio-Analyzer → `portfolio_normalized.json` Workflow. Realistischer Zeithorizont: nach Juni-Lauf, vor Tool B.
 
-13. **Cost-Caps im Code** — Hard-Limits für Gemini-Tokens pro Lauf, Logging-Schwelle bei 80%-Erreichung. V3-Architekturprinzip #3.
+13. **Cost-Caps im Code** — Hard-Limits für Gemini-Tokens pro Lauf, Logging-Schwelle bei 80%-Erreichung. V3-Architekturprinzip #3. *(Tool-B-Teil ✅ 2026-05-18: Per-Deepdive-Token-Cap + 80%-WARNING in `gemini_deepdive_client`; Tool-A-Run-Cap offen.)*
 
-14. **CLAUDE.md gegen V3-Spec prüfen** — Vollständigkeit: cmd.exe-Konventionen, `uv run python -m pytest`-Workaround, Test-Konventionen, Deploy-Workflow lokal vs. CI.
+14. **CLAUDE.md gegen V3-Spec prüfen** — Vollständigkeit: cmd.exe-Konventionen, `uv run python -m pytest`-Workaround, Test-Konventionen, Deploy-Workflow lokal vs. CI. *(2026-05-18: SOPRA-EPDR-Abschnitt generalisiert + dev-Default-Group; Rest offen.)*
+
+**Tool B — Active:**
+
+- [x] **B.0 + B.1 implementiert** ✅ (2026-05-18) — siehe Erledigt; auf `main` gepusht.
+- [ ] **B.1 Akzeptanz-Gate (Stephan)** — `uv run python -m scripts.acceptance_deepdive` (echter Novo-Lauf: EDGAR 20-F + Firestore + yfinance + Gemini Pro), Dossier beurteilen → „entscheidungs-nützlich" (B.2) oder „Synthesis/Struktur retunen". Exit-Kriterium-Analog zu Phase-1.
+- [ ] **B.2 Vor-Brainstorm** — erst nach B.1-Akzeptanz. Scope: Hard-Scuttlebutt-Breite + EU-Voll-Abdeckung, dynamische ADR-Resolution (OpenFIGI/SEC-Search), IR-PDF-Fallback, 10-Q + Insider (Form 4 / MAR Art. 19), **valuation-Multiples** (§6, aus B.1 verschoben), Gemini **`response_schema`** (aus E2 verschoben), DOM-aware Filing-Parser, historical-cache→GCS falls HTTP-Phase.
 
 ## Offene Punkte (nicht-blockierend)
 
@@ -446,6 +453,26 @@ CLAUDE.md-dokumentierte `uv run python -m pytest` ohne `--extra`/`--group`
 real funktioniert (vorher: `No module named pytest`). Generalisiert die
 frühere pytest.exe-only-Notiz. Entdeckt bei B.0-Akzeptanz (2026-05-18).
 
+### t) Plan-verbatim-Code kann mit seinen plan-verbatim-Tests inkonsistent sein → BLOCKED, nicht raten
+
+3× in der B.1-`subagent-driven`-Ausführung bestand der vom Plan vorgegebene
+Code seine eigenen vorgegebenen Tests nicht (Filing-Parser `<40`-TOC-Skip;
+`compute_dilution_pct`-Guard; weitere). Plan-Self-Review fängt Code↔Test-
+Inkonsistenz **nicht** zuverlässig — erst die TDD-Ausführung deckt sie auf.
+Regel: ausführender Subagent meldet bei Plan-Selbstwiderspruch **STOP/BLOCKED
++ Root-Cause**, rät keine Korrektur; der Controller (Plan-Autor) entscheidet
+den Fix (oft 1-Zeilen-Angleich an die Schwester-Funktion). Subagent-Briefing
+explizit: „verbatim; bei Selbstwiderspruch BLOCKED".
+
+### u) Final-Whole-Implementation-Review fängt emergente Seam-Bugs, die Per-Task-Reviews strukturell nicht sehen
+
+Per-Gruppen-Reviews testeten je nur valide Fixtures. Der Critical-Bug
+(uncaught `pydantic.ValidationError` aus `FisherPoint(**rp)` umgeht die
+`FisherScreenError`→Exit-Code-Mappung — Fail-Loud-Bruch beim ersten echten
+Gemini-Lauf) wurde erst vom abschließenden End-to-End-Review über den ganzen
+Branch gefunden. Bei mehrteiligen Plänen den finalen Whole-Diff-Review nie
+überspringen — einzige Stelle, die Seam-übergreifende Contract-Lücken sieht.
+
 ## GCP-Infrastruktur (Stand 2026-05-16)
 
 | Ressource | Wert |
@@ -484,6 +511,12 @@ frühere pytest.exe-only-Notiz. Entdeckt bei B.0-Akzeptanz (2026-05-18).
 | 2026-05-16 | `FISHERSCREEN_GEMINI_MODEL` als Env-Var statt Hardcode | Modell-Updates ohne Code-Deploy; ermöglicht A/B-Testing per Cloud Run Revision | Default `gemini-2.5-flash-lite` im Code — Env-Var nur wenn Abweichung nötig |
 | 2026-05-16 | `paths-ignore: output/**` + `[skip ci]` als Defense-in-Depth gegen Feedback-Loop | Output-Commits dürfen keinen Deploy triggern; `paths-ignore` ist primärer Schutz, `[skip ci]` Backstop falls Output-Pfad je außerhalb `output/` landet | Beide Maßnahmen sind unabhängig voneinander wirksam — keine Doppelarbeit, aber leicht mehr Konfigurations-Surface |
 | 2026-05-17 | V3-Basis-Filter ersetzen Pre-V3-Filter vollständig | Bid/Ask-Filter ist timing-sensitiv (yfinance 03:00 UTC = US Pre-Market → bid=0.0) und kein Qualitätsmerkmal. V3 spezifiziert: Market Cap ≥ €2B, Gross Margin ≥ 30%, Revenue Growth ≥ 0%. FX-Normalisierung (USD/GBP/CHF/SEK → EUR) im Runner via `get_fx_rate()`. | Volume-Filter (100k Avg Daily) beibehalten als praktischer Liquiditäts-Safeguard, auch wenn nicht in V3-Spec. |
+| 2026-05-18 | Tool B: ADR-1 (EU via SEC-20-F/ADR-Pfad) · ADR-2 (CLI-lokal in-process, kein Cloud Run) · ADR-3 (Sprach-Analyse→B.4) · ADR-4 (Filing-Cache Lokal-FS+TTL) — Detail in Master-Brainstorm/B.1-Spec | Pull-Workflow, schnelle Dev-Iteration, Cloud-Run-Timeout-Risiko, Firestore-1-MiB-Limit | Statische ADR-Tabelle = Wartungsschuld (~50 Einträge); HTTP-Endpoint frühestens B.5+ |
+| 2026-05-18 | ADR-5 (gebündelt 5a/5b/5c): Mehrjahres-Quant live aus yfinance (`historical_data_service` + lokaler 90d-Cache, `_cached_at`); strukturiertes `quant_snapshot`; Tool-A-Dimensions nur `[Inferenz]`-Kontext | Tool-A-Cache hat keine Mehrjahres-Reihen; ADR-3 verlangt Buyback/Verwässerungs-Proxies; Inferenz-auf-Inferenz vermeiden | +1 Task (5a); yfinance-Mehrjahres instabil → graceful (≥3J ok, sonst Flag) |
+| 2026-05-18 | E2-Amendment (Option A): Synthesis-Vertrag via Post-Parse-`FisherPoint`-Validierung + Post-Hoc-Quellen-Validator statt Gemini `response_schema` | `google-genai` bildet Emoji-`Literal`-Enums + pydantic-Validatoren nicht sauber ab; zwei Validierungs-Schichten erzwingen den Vertrag bereits strukturell | `response_schema` → B.2; Durchsetzung post-parse, nicht am Modell-Output |
+| 2026-05-18 | §6-Bewertungsratios (KGV/EV-EBIT/FCF-Yield vs. 5J) → B.2; in B.1 als ehrlicher source_coverage-Gap markiert | B.1-Akzeptanz = Synthesis-Qualität; echte Multiples = Daten-Breite/B.2-Scope; §2.7 statt stillem Drop | B.1-Dossier ohne Bewertungs-Multiples — bewusst, sichtbar getrackt |
+| 2026-05-18 | `pyproject.toml` `dev` → PEP-735 `[dependency-groups]` + `[tool.uv] default-groups=["dev"]` | CLAUDE.md-`uv run python -m pytest` lief sonst nicht (pytest nicht default-installiert: „No module named pytest") | Production-Build muss `--no-default-groups`, sonst pytest im Image |
+| 2026-05-18 | Filing-Parser: Line-Start-Anker + Dotted-Leader-TOC-Skip statt „last-anchor-wins" | „last-wins" wird von Mid-Sentence-Cross-Refs („see Item 5 above") besiegt → still falsche Sections (Fail-Loud-Verstoß) | Flatten-Fixtures brauchen Any-Position-Fallback; DOM-aware = B.2 |
 
 ## Parallele Projekte
 
