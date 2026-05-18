@@ -73,3 +73,29 @@ def test_gemini_error_propagates():
         run_synthesis(ticker="X", form_type="20-F",
                       sections={"20-F_item5": "x"}, quant=_qs(),
                       synthesizer=syn, max_input_tokens=10)
+
+
+def test_mixed_sources_with_one_hallucination_collapses_all():
+    syn = MagicMock()
+    data = _good_points()
+    data["points"][2]["sources"] = ["20-F §5", "20-F §99", "yfinance, 5J"]
+    data["points"][2]["confidence"] = "🟢"
+    syn.synthesize.return_value = data
+    pts = run_synthesis(
+        ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
+        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+    assert pts[2].sources == ["Inferenz"]
+    assert pts[2].confidence == "🟡"
+
+
+def test_points_14_15_confidence_code_enforced_red():
+    syn = MagicMock()
+    data = _good_points()  # all confidence "🟢", sources ["20-F §5"]
+    syn.synthesize.return_value = data
+    pts = run_synthesis(
+        ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
+        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+    by_num = {p.number: p for p in pts}
+    assert by_num[14].confidence == "🔴"
+    assert by_num[15].confidence == "🔴"
+    assert by_num[1].confidence == "🟢"  # others untouched

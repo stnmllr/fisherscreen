@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
 
 from app.deepdive.fisher_points import FISHER_POINTS
 from app.errors import GeminiError
+from app.services.gemini_deepdive_client import DeepDiveSynthesizer
 from app.models.deep_dive_record import FisherPoint, QuantSnapshot
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ def run_synthesis(
     form_type: str,
     sections: dict[str, str],
     quant: QuantSnapshot,
-    synthesizer: Any,
+    synthesizer: DeepDiveSynthesizer,
     max_input_tokens: int,
 ) -> list[FisherPoint]:
     system = _SYSTEM_PROMPT
@@ -73,6 +73,12 @@ def run_synthesis(
             rp = {**rp, "sources": validated}
             if rp.get("confidence") == "🟢":
                 rp["confidence"] = "🟡"
+        # Spec §5 / ADR-3: points 14/15 (Offenheit/Integrität) have no insider
+        # or language data in B.1 -> confidence is code-enforced to 🔴 (not left
+        # to the model). The B.2/B.4 deferral is surfaced in the dossier
+        # source_coverage section (Task 8).
+        if rp.get("number") in (14, 15):
+            rp = {**rp, "confidence": "🔴"}
         points.append(FisherPoint(**rp))
     return points
 

@@ -55,3 +55,17 @@ def test_safety_filtered_empty_text_raises():
     c._client.models.generate_content.return_value = resp
     with pytest.raises(GeminiError, match="empty response"):
         c.synthesize("sys", "user", max_input_tokens=100)
+
+
+def test_warns_at_80_percent_of_cap(caplog):
+    import logging
+    c, g = _client()
+    c._client.models.count_tokens.return_value = MagicMock(total_tokens=85)
+    resp = MagicMock()
+    resp.text = '{"ok": true}'
+    resp.usage_metadata = MagicMock(prompt_token_count=85, candidates_token_count=1)
+    c._client.models.generate_content.return_value = resp
+    with caplog.at_level(logging.WARNING,
+                         logger="app.services.gemini_deepdive_client"):
+        c.synthesize("sys", "user", max_input_tokens=100)
+    assert ">80%" in caplog.text or "80%" in caplog.text
