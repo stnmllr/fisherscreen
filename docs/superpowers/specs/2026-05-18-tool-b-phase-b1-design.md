@@ -75,9 +75,19 @@ nicht (Cluster brauchen denselben Section-Kontext) und addieren Komplexität.
 - **Prompt-Struktur:** System-Prompt (Fisher-15-Methodik + Quellen-Marker-Regeln +
   JSON-Schema-Erklärung) + User-Prompt (Filing-Sections als strukturiertes Dict +
   Quant-Snapshot als JSON).
-- **Strukturierte Ausgabe:** Gemini Structured Output via
-  `response_mime_type="application/json"` **+ `response_schema`** (Pydantic-Schema aus
-  Task B.1-1), **nicht** Prompt-Engineering „bitte gib JSON zurück".
+- **Strukturierte Ausgabe (Amendment 2026-05-18, Option A):** Gemini liefert JSON
+  via `response_mime_type="application/json"` + Schema-Erklärung im System-Prompt;
+  die Vertrags-**Durchsetzung** erfolgt **post-parse** durch zwei unabhängige
+  Schichten — (1) Task-B.1-1 `FisherPoint`-Pydantic-Validierung (`extra="forbid"`,
+  Rating-Range, Confidence-Literal, 70-Wörter-Cap, Inferenz→🟡-Cap, 15-Punkte-Count)
+  und (2) den Post-Hoc-Quellen-Validator. **Ursprünglich** verlangte E2 zusätzlich
+  Gemini `response_schema` (Pydantic aus B.1-1). Das wurde verworfen, weil
+  `google-genai` `response_schema` Emoji-`Literal`-Enums (`🟢/🟡/🔴`) und
+  `model_validator`/`field_validator` nicht sauber abbildet — ein eigenes flaches
+  Wire-Modell + Mapping wäre nötig, mit google-genai-Risiko auf dem
+  B.1-Akzeptanzpfad, ohne Mehrwert (die zwei Validierungs-Schichten erzwingen den
+  Vertrag bereits strukturell, nicht „nur per Prompt"). **`response_schema` ist
+  nach B.2 verschoben** (eigenes stabiles Wire-Modell, wenn das Schema fix ist).
 - **Token-Cap:** `count_tokens` vor dem Call (Tool-A-Pattern); Hard-Cap
   `FISHERSCREEN_DEEPDIVE_TOKEN_CAP` (Default `200000`; `gemini-2.5-pro` hat 1M-Kontext,
   200k ist großzügiger Sicherheits-Cap); `logging.warning` bei 80 % (160k);
@@ -219,8 +229,9 @@ ersten Nicht-Top-30-Ticker.
         │              4c Trend-Metriken (trend_metrics.py, transient)
         │              ── 4a → 4b SEQUENZIELL, 4c danach ──
         ▼
-[5] Gemini-Synthesis  Sections + Quant → 15-Punkte-JSON (E2: 1 Call, response_schema,
-        │              Token-Cap, Confidence-Regel, Post-Hoc-Quellen-Validator)
+[5] Gemini-Synthesis  Sections + Quant → 15-Punkte-JSON (E2: 1 Call, prompt-JSON
+        │              + post-parse FisherPoint-Validierung, Token-Cap,
+        │              Confidence-Regel, Post-Hoc-Quellen-Validator)
         ▼
 [6] Markdown-Output   15-Punkte-JSON + Quant → Dossier (Mini-Blöcke, §6)
                        output/Watchlist/<TICKER>_YYYY-MM-DD.md → Repo-Sync → Obsidian
@@ -260,7 +271,8 @@ None-Toleranz für optionale Quant-Felder.
 
 `FisherPoint` (pro Punkt 1–15): `{number: int, title: str, rating: int (1–5),
 confidence: Literal["🟢","🟡","🔴"], reasoning: str (≤70 Wörter), sources: list[str]
-(nicht leer)}`. Wird direkt als Gemini `response_schema` verwendet (E2).
+(nicht leer)}`. Erzwingt den Synthesis-Vertrag **post-parse** (E2-Amendment,
+Option A) — nicht als Gemini `response_schema` (nach B.2 verschoben).
 Fisher-Titel aus V3 §14 (deutsch).
 
 `SourceCoverage`: pro Quellklasse Herkunfts-/Vollständigkeits-Marker, u. a.
@@ -310,7 +322,7 @@ Fixtures/DI-Mocks; CLAUDE.md Multi-Agent). Tests via `uv run python -m pytest`.
 | **B.1-4** | Filing-Parser | E1: `html2text`→Anker-Regex→Section-Slice. Form-Type-Weiche. Längen-Cap mit Truncation-Marker. Fehlende Section → Flag | Fixture-10-K + Fixture-20-F → erwartete Keys; fehlende Section → geflaggt, kein Crash; Truncation-Marker bei Über-Cap; TOC-Fehltreffer-Fixture |
 | **B.1-5** | Quant-Join | 4a Punkt-in-Zeit (`dev_ticker_cache`; Miss → live + Marker) **+ 4b** Mehrjahres live via neuem `historical_data_service` + lokalem 90d-Cache (ADR-5a, `_cached_at`-Format) | Cache-vorhanden; Ticker-abwesend → Fallback; Firestore via DI; Mehrjahres leer/partiell (≥3J ok, sonst Flag); Währungs-Marker (Novo DKK vs. USD); Cache-TTL via `_cached_at` |
 | **B.1-5a** | Trend-Metriken (`trend_metrics.py`) | **Reine Funktionen, keine externen Calls:** `compute_cagr`, `compute_margin_slope` (lin. Regression), `compute_dilution_pct`, `compute_buyback_intensity` (vs. Marktkap.) | Pure-Function-Tests; bekannte Reihen → bekannte Ergebnisse; Edge: <3J, Nullen, negative Werte, leere Reihe; keine DI nötig |
-| **B.1-6** | Gemini-15-Punkte-Synthesis | E2: 1 Call, System+User-Prompt, `response_schema` (B.1-1), `count_tokens`, Token-Cap, Tool-A-Retry, Modell-Env. Post-Hoc-Quellen-Validator. ADR-5c im Prompt | Gemini gemockt; Cap überschritten → `GeminiError`; Schema-Validierung (15 Punkte, `extra='forbid'`, Reasoning ≤70 W., `sources` nicht leer); Inferenz-only → 🟡-Downgrade; halluzinierte Section (`Item 99`) → `['Inferenz']`-Downgrade + WARNING; safety-filtered (ValueError-Pfad wie Phase 1.4) |
+| **B.1-6** | Gemini-15-Punkte-Synthesis | E2: 1 Call, System+User-Prompt, prompt-JSON + post-parse `FisherPoint`-Validierung (E2-Amendment Option A; `response_schema` → B.2), `count_tokens`, Token-Cap, Tool-A-Retry, Modell-Env. Post-Hoc-Quellen-Validator. ADR-5c + 14/15→🔴 code-erzwungen | Gemini gemockt; Cap überschritten → `GeminiError`; Schema-Validierung (15 Punkte, `extra='forbid'`, Reasoning ≤70 W., `sources` nicht leer); Inferenz-only → 🟡-Downgrade; halluzinierte Section (`Item 99`) → `['Inferenz']`-Downgrade + WARNING; safety-filtered (ValueError-Pfad wie Phase 1.4) |
 | **B.1-7** | Dossier-Generator | §6: Mini-Blöcke (NICHT Tabelle), Exec ≤3 Sätze hart, source_coverage-Sektion, leere Notizen, YAML-Frontmatter, Pfad-Konvention | Golden-File mit 15 Mini-Blöcken; Längen-Budgets erzwungen (Test bricht bei Über-Cap); Frontmatter-Schema; jeder Punkt rendert ≥1 Quellen-Marker am Reasoning-Ende |
 | **B.1-8** | CLI-Entrypoint + Composition Root | E3: `argparse` + `add_subparsers()`, `app/deepdive/__main__.py`, `[project.scripts]` (lokale Aufrufform `python -m app.deepdive` — siehe E3), Args `TICKER/--model/--no-cache`, compose-Analog (Service-Verdrahtung) | Arg-Parsing; End-to-End mit allen Services gemockt → Dossier in tmp; Exit-Codes 0/1/2/3 |
 | **B.1-9** | Akzeptanz-Skript (manuell) | `scripts/acceptance_deepdive.py` — echter Lauf `uv run python -m app.deepdive deepdive NOVO-B.CO` gegen reales EDGAR + Firestore-Read + live yfinance + Gemini. Analog `scripts/acceptance_basis_filter.py` | **Kein** Unit-Test: dokumentiertes manuelles Gate. Stephan liest das Dossier und urteilt |
