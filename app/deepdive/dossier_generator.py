@@ -42,6 +42,7 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         f"*Market Cap: {_fmt_money(pit.market_cap)} {pit.currency or ''} · "
         f"Gross Margin: {_fmt_pct(pit.gross_margin)} · "
         f"Op. Margin: {_fmt_pct(pit.operating_margin)}*",
+        f"*KGV / EV-EBIT / FCF-Yield (aktuell vs. 5J): {cov.valuation}*",
         "",
         "## Fishers 15 Punkte",
         "",
@@ -68,6 +69,7 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         f"- Soft Scuttlebutt: {cov.soft}",
         f"- Sprach-/Tonalitätsanalyse: {cov.sprache}",
         f"- Insider-Transaktionen: {cov.insider}",
+        f"- Bewertungs-Kennzahlen: {cov.valuation}",
         "",
         "## Stef's Notizen",
         "",

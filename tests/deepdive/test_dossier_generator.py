@@ -56,3 +56,11 @@ def test_bewertung_formats_money_and_percent(tmp_path):
     assert "234,567,890,000 DKK" in body
     assert "83.6%" in body
     assert "41.0%" in body
+
+
+def test_valuation_gap_marked_honest(tmp_path):
+    body = frontmatter.loads(
+        generate_dossier(_record(), tmp_path).read_text(encoding="utf-8")).content
+    assert "folgt B.2" in body
+    assert "Bewertungs-Kennzahlen" in body
+    assert "KGV / EV-EBIT / FCF-Yield" in body

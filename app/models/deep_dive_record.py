@@ -92,6 +92,7 @@ class SourceCoverage(BaseModel):
     soft: str = "folgt B.3"
     sprache: str = "folgt B.4"
     insider: str = "folgt B.2"
+    valuation: str = "folgt B.2 (KGV/EV-EBIT/FCF-Yield vs. 5J)"
 
 
 class DeepDiveRecord(BaseModel):
