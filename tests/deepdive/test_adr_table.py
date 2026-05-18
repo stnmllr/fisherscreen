@@ -66,3 +66,22 @@ def test_entry_not_object_raises(tmp_path):
     )
     with pytest.raises(DeepDiveError, match="must be an object"):
         load_adr_table(bad)
+
+
+def test_entries_not_object_raises(tmp_path):
+    bad = tmp_path / "adr.json"
+    bad.write_text(json.dumps({"version": 1, "entries": []}), encoding="utf-8")
+    with pytest.raises(DeepDiveError, match="'entries' must be an object"):
+        load_adr_table(bad)
+
+
+def test_empty_adr_ticker_raises(tmp_path):
+    bad = tmp_path / "adr.json"
+    bad.write_text(
+        json.dumps(
+            {"version": 1, "entries": {"X.CO": {"adr_ticker": "", "cik": "0000000001", "form_type": "20-F"}}}
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(DeepDiveError, match="adr_ticker"):
+        load_adr_table(bad)
