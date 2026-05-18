@@ -233,3 +233,65 @@ def test_get_cik_returns_none_gracefully_on_http_failure(mock_httpx, mock_time):
     result = client.get_cik("AAPL")
 
     assert result is None  # no exception raised; graceful degradation
+
+
+# --- get_latest_annual_filing ---
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_get_latest_annual_filing_returns_text_for_20f(mock_httpx, mock_time):
+    submissions = MagicMock()
+    submissions.status_code = 200
+    submissions.json.return_value = {
+        "filings": {"recent": {
+            "form": ["6-K", "20-F", "20-F"],
+            "accessionNumber": ["0000-24-1", "0000353278-25-000020", "0000353278-24-000010"],
+            "primaryDocument": ["a.htm", "novo-20f.htm", "old.htm"],
+            "filingDate": ["2025-05-01", "2025-02-05", "2024-02-07"],
+        }}
+    }
+    doc = MagicMock()
+    doc.status_code = 200
+    doc.text = "<html><body>ITEM 5. OPERATING REVIEW ...</body></html>"
+    mock_httpx.get.side_effect = [submissions, doc]
+
+    client = _make_client()
+    result = client.get_latest_annual_filing("0000353278", "20-F")
+    assert result.accession_number == "0000353278-25-000020"
+    assert "OPERATING REVIEW" in result.document_text
+    # newest 20-F chosen (first matching form in recent[] which is newest-first)
+    doc_url = mock_httpx.get.call_args_list[1][0][0]
+    assert "000035327825000020" in doc_url
+    assert "novo-20f.htm" in doc_url
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_get_latest_annual_filing_missing_form_raises(mock_httpx, mock_time):
+    submissions = MagicMock()
+    submissions.status_code = 200
+    submissions.json.return_value = {
+        "filings": {"recent": {"form": ["6-K"], "accessionNumber": ["x"],
+                               "primaryDocument": ["a.htm"], "filingDate": ["2025-01-01"]}}
+    }
+    mock_httpx.get.return_value = submissions
+    client = _make_client()
+    with pytest.raises(DataSourceError, match="no 10-K filing found"):
+        client.get_latest_annual_filing("0000000001", "10-K")
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_get_latest_annual_filing_doc_fetch_failure_raises(mock_httpx, mock_time):
+    submissions = MagicMock()
+    submissions.status_code = 200
+    submissions.json.return_value = {
+        "filings": {"recent": {"form": ["10-K"], "accessionNumber": ["0001-25-1"],
+                               "primaryDocument": ["k.htm"], "filingDate": ["2025-01-01"]}}
+    }
+    bad = MagicMock()
+    bad.status_code = 404
+    mock_httpx.get.side_effect = [submissions, bad]
+    client = _make_client()
+    with pytest.raises(DataSourceError, match="404"):
+        client.get_latest_annual_filing("0000000001", "10-K")

@@ -10,11 +10,21 @@ from app.errors import DataSourceError
 logger = logging.getLogger(__name__)
 
 
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class RawFiling:
+    accession_number: str
+    document_text: str
+
+
 class EdgarClient(Protocol):
     def get_cik(self, ticker: str) -> str | None: ...
     def has_restatement(self, cik: str, years: int = 3) -> bool: ...
     def has_going_concern(self, cik: str, months: int = 24) -> bool: ...
     def has_active_enforcement(self, cik: str) -> bool: ...
+    def get_latest_annual_filing(self, cik: str, form_type: str) -> RawFiling: ...
 
 
 class EdgarClientImpl:
@@ -92,3 +102,34 @@ class EdgarClientImpl:
             "has_active_enforcement not implemented — returning False for cik=%s", cik
         )
         return False
+
+    def _get_text(self, url: str) -> str:
+        time.sleep(self._RATE_LIMIT_SECONDS)
+        try:
+            resp = httpx.get(url, headers=self._headers, timeout=60)
+        except Exception as exc:
+            raise DataSourceError(f"EDGAR HTTP request failed: {exc}") from exc
+        if resp.status_code != 200:
+            raise DataSourceError(f"EDGAR returned {resp.status_code} for {url}")
+        return resp.text
+
+    def get_latest_annual_filing(self, cik: str, form_type: str) -> RawFiling:
+        padded = cik.zfill(10)
+        data = self._get(f"{self._SEC_BASE}/submissions/CIK{padded}.json")
+        recent = data.get("filings", {}).get("recent", {})
+        forms = recent.get("form", [])
+        accessions = recent.get("accessionNumber", [])
+        primary_docs = recent.get("primaryDocument", [])
+        for form, accession, primary in zip(forms, accessions, primary_docs):
+            if form == form_type:
+                cik_int = str(int(cik))
+                acc_nodash = accession.replace("-", "")
+                url = (
+                    f"https://www.sec.gov/Archives/edgar/data/"
+                    f"{cik_int}/{acc_nodash}/{primary}"
+                )
+                text = self._get_text(url)
+                return RawFiling(accession_number=accession, document_text=text)
+        raise DataSourceError(
+            f"no {form_type} filing found for CIK {padded} in recent submissions"
+        )
