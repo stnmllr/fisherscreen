@@ -16,12 +16,18 @@ dependencies = [
     "tenacity>=9.1.4",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
     "pytest-asyncio>=0.23.0",
 ]
+
+[tool.uv]
+# dev is a default group so `uv sync` / `uv run python -m pytest` work
+# without --group/--extra flags (SOPRA-EPDR: see CLAUDE.md). For a
+# production build (Cloud Run, B.5+) pass --no-default-groups.
+default-groups = ["dev"]
 
 [project.scripts]
 fisherscreen = "app.deepdive.__main__:main"
