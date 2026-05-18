@@ -42,3 +42,11 @@ def test_no_cache_flag_bypasses_cache(tmp_path):
     fetcher.get("0000353278", "20-F")
     fetcher.get("0000353278", "20-F", use_cache=False)
     assert edgar.get_latest_annual_filing.call_count == 2
+
+
+def test_corrupt_meta_treated_as_cache_miss(tmp_path):
+    fetcher, edgar = _fetcher(tmp_path)
+    fetcher.get("0000353278", "20-F")
+    (tmp_path / "0000353278" / "_meta.json").write_text("{ corrupt", encoding="utf-8")
+    fetcher.get("0000353278", "20-F")
+    assert edgar.get_latest_annual_filing.call_count == 2

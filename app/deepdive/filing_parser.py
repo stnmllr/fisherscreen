@@ -35,10 +35,33 @@ def _to_text(raw: str) -> str:
     return h.handle(raw)
 
 
-def _anchor_re(item: str) -> re.Pattern[str]:
-    # Tolerant: "Item 5." / "ITEM 5" / "Item 5 —" / "Item 5:". The \b after the
-    # item stops "1" matching inside "1A" and "7" inside "7A".
+# Known limitation: table-formatted item headings in some older filings are not
+# matched (html2text renders them as table cells). DOM-aware parsing is a B.2
+# refactor (spec E1).
+def _linestart_re(item: str) -> re.Pattern[str]:
+    # A genuine item heading starts a line (filings put headings in their own
+    # block; html2text renders that as a line start). Mid-sentence cross-
+    # references ("as discussed in Item 5 above") are NOT line-start, so this
+    # filters them out. \b stops "1" matching inside "1A" and "7" inside "7A".
+    return re.compile(
+        rf"^[ \t]*ITEM\s+{re.escape(item)}\b\s*[.:\-—]?",
+        re.IGNORECASE | re.MULTILINE,
+    )
+
+
+def _anypos_re(item: str) -> re.Pattern[str]:
     return re.compile(rf"\bITEM\s+{re.escape(item)}\b\s*[.:\-—]?", re.IGNORECASE)
+
+
+def _toc_re(item: str) -> re.Pattern[str]:
+    # Table-of-contents entry: "Item 5 ........ 42" — anchor, a dotted leader
+    # (>=2 literal dots), then a 1-4 digit page number. Requiring real dots
+    # avoids misflagging a heading whose body starts with a number
+    # ("Item 7. 2023 was a strong year").
+    return re.compile(
+        rf"ITEM\s+{re.escape(item)}\b[ \t]*\.{{2,}}[ .\t]*\d{{1,4}}\b",
+        re.IGNORECASE,
+    )
 
 
 def parse_filing(raw_document: str, form_type: str) -> ParsedFiling:
@@ -47,34 +70,55 @@ def parse_filing(raw_document: str, form_type: str) -> ParsedFiling:
     cap_chars = _section_token_cap() * _CHARS_PER_TOKEN
     result = ParsedFiling()
 
-    # Collect every anchor occurrence for every target item, in document order.
-    hits: list[tuple[int, str]] = []
-    for item in items:
-        for m in _anchor_re(item).finditer(text):
-            hits.append((m.start(), item))
-    hits.sort(key=lambda t: t[0])
-    starts = [pos for pos, _ in hits]
-
-    # For each item take the LAST anchor: a table-of-contents entry for an item
-    # (e.g. "Item 5 ...... 42") appears near the top, before the real section,
-    # so the highest-position anchor is the real heading. The section body runs
-    # to the next target anchor of any item.
-    chosen: dict[str, tuple[int, int]] = {}
-    for idx, (pos, item) in enumerate(hits):
-        end = starts[idx + 1] if idx + 1 < len(starts) else len(text)
-        chosen[item] = (pos, end)  # later anchor overwrites the earlier (TOC) one
-
+    chosen: dict[str, int] = {}
     for item in items:
         key = f"{form_type}_item{item}"
-        if item not in chosen:
+        toc = _toc_re(item)
+
+        linestarts = [
+            m.start()
+            for m in _linestart_re(item).finditer(text)
+            if not toc.match(text[m.start() : m.start() + 80])
+        ]
+        if linestarts:
+            tier = linestarts
+        else:
+            tier = [
+                m.start()
+                for m in _anypos_re(item).finditer(text)
+                if not toc.match(text[m.start() : m.start() + 80])
+            ]
+
+        if not tier:
             result.section_flags[key] = "missing"
             logger.warning("filing parser: section %s missing", key)
             continue
-        pos, end = chosen[item]
+
+        if len(tier) > 1:
+            result.section_flags[key] = "ambiguous"
+            logger.warning(
+                "filing parser: section %s has %d candidate anchors — "
+                "chose the first; verify in dossier",
+                key,
+                len(tier),
+            )
+        chosen[item] = tier[0]
+
+    if not chosen:
+        return result
+
+    ordered = sorted(chosen.values())
+    for item in items:
+        key = f"{form_type}_item{item}"
+        if item not in chosen:
+            continue
+        pos = chosen[item]
+        later = [p for p in ordered if p > pos]
+        end = later[0] if later else len(text)
         body = text[pos:end].strip()
         if len(body) > cap_chars:
             body = body[:cap_chars] + "\n" + _TRUNCATION_MARKER
-            result.section_flags[key] = "truncated"
+            result.section_flags[key] = "truncated"  # truncated is the actionable flag
             logger.warning("filing parser: section %s truncated", key)
         result.sections[key] = body
     return result

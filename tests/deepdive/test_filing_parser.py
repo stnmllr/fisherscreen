@@ -57,3 +57,17 @@ def test_toc_false_positive_skipped():
             "Item 5. real five body Item 18. eighteen</body></html>")
     parsed = parse_filing(html, "20-F")
     assert "real five body" in parsed.sections["20-F_item5"]
+
+
+def test_cross_reference_does_not_override_real_heading():
+    html = ("<html><body>"
+            "<p>Item 4. business review alpha</p>"
+            "<p>Item 5. operating review beta</p>"
+            "<p>Item 18. financial statements gamma. "
+            "As discussed in Item 5 above, revenue grew strongly.</p>"
+            "</body></html>")
+    parsed = parse_filing(html, "20-F")
+    assert "operating review beta" in parsed.sections["20-F_item5"]
+    assert "revenue grew strongly" not in parsed.sections["20-F_item5"]
+    assert "revenue grew strongly" in parsed.sections["20-F_item18"]
+    assert "20-F_item5" not in parsed.section_flags

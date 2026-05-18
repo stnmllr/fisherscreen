@@ -1,5 +1,6 @@
 import logging
 import time
+from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any, Protocol
 
@@ -8,9 +9,6 @@ import httpx
 from app.errors import DataSourceError
 
 logger = logging.getLogger(__name__)
-
-
-from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
