@@ -14,6 +14,9 @@ dist/
 .env
 *.env.local
 
+# Filing-Cache (ADR-4, Tool B Deep Dive — never commit cached EDGAR filings)
+cache/
+
 # GCP service account keys only (not all JSON)
 *-credentials.json
 service-account-*.json

@@ -1,6 +1,6 @@
 # Tool B (Deep Dive) — Master-Brainstorm
 
-**Datum:** 2026-05-18 (rev3)
+**Datum:** 2026-05-18 (rev4)
 **Status:** Struktur-Brainstorm. Vier ADRs gesetzt. Strukturiert mehrere Folge-Sessions
 (eine Phase pro Session, jede mit eigenem Brainstorm + Plan + TDD).
 **Rev1:** Sechs Strukturkorrekturen — Insider-Transaktionen aus B.1 ADR-3 entfernt
@@ -15,6 +15,9 @@ Querverweis-Konsolidierung (§7-/§8-/ADR-Renumber).
 [Filing-Section]/[Quant-Snapshot]/[Inferenz]), Inferenz-Confidence-Cap auf 🟡,
 Post-Hoc-Quellen-Validator gegen Section-Halluzination, Dossier-Render-Format auf
 Mini-Blöcke umgestellt.
+**Rev4:** Pre-Flight-Checks §7a beide erledigt (2026-05-18): `gemini-2.5-pro` nutzbar
+→ B.1-Synthesis-Default; Filing-Cache `cache/filings/` angelegt + `.gitignore`-Regel.
+Spike-Skript `scripts/preflight_gemini_pro.py`.
 **Vorbild-Format:** `docs/superpowers/brainstorm/2026-05-11-phase-1-structure.md`
 **Referenz-Spec:** `D:\programme\stef-vault\Wissen\Finanzen\FisherScreen\FisherScreen_Architektur_v3.md`
 (insb. §1.1, §1.2, §5, §6.1, §6.3)
@@ -415,15 +418,22 @@ Bewusst **nicht** jetzt entschieden — je eine künftige Brainstorm-Runde:
 ## 7a. Pre-Flight-Checks vor B.1-Brainstorm
 
 Beide Punkte sind Implementierungs-Voraussetzungen, keine offenen
-Brainstorm-Themen. Vor dem Start der B.1-Brainstorm-Session zu klären:
+Brainstorm-Themen. **Status: beide ✅ erledigt 2026-05-18 — B.1-Brainstorm
+kann starten.**
 
 1. **Gemini-Modell-Verfügbarkeit.** 10-Min-Spike: `count_tokens` + ein
    500-Token-Test-Call gegen `gemini-2.5-pro` aus dem FisherScreen-GCP-
    Projekt. Bei 429/Quota → Modell-Default in B.1 ist
    `gemini-2.5-flash-lite`, mit Env-Var `FISHERSCREEN_DEEPDIVE_GEMINI_MODEL`
    als Override-Punkt. Lesson (o) aus PROJEKTSTAND.
+   **✅ Erledigt 2026-05-18** (`scripts/preflight_gemini_pro.py`):
+   `gemini-2.5-pro` nutzbar — `count_tokens` + `generate_content` OK,
+   kein 429/403. **B.1-Synthesis-Default = `gemini-2.5-pro`**;
+   `FISHERSCREEN_DEEPDIVE_GEMINI_MODEL` bleibt Override (modell-agnostisch).
 2. **Filing-Cache-Pfad.** Bestätigung, dass `D:\programme\fisherscreen\cache\filings\`
    schreibbar ist und in `.gitignore` eingetragen wird (siehe ADR-4 oben).
+   **✅ Erledigt 2026-05-18:** `cache/filings/` angelegt + schreibbar;
+   `.gitignore`-Regel `cache/` greift (per `git check-ignore` verifiziert).
 
 ---
 
@@ -480,10 +490,10 @@ Confidence-Marker) → Markdown-Dossier (V3 §5.3) → CLI-Entrypoint. Akzeptanz
 vollständiges Novo-Nordisk-Dossier aus einem CLI-Aufruf, von Stephan auf
 Entscheidungs-Nützlichkeit beurteilt.
 
-**Nächste Session beginnt mit dem `brainstorming`-Skill auf Phase B.1.** Vorab die
-beiden Pre-Flight-Checks aus §7a erledigen (Gemini-Modell-Verfügbarkeit,
-Filing-Cache-Pfad) — beide sind B.1-Implementierungs-Voraussetzungen, keine
-Master-Entscheidungen.
+**Nächste Session beginnt mit dem `brainstorming`-Skill auf Phase B.1.** Die beiden
+Pre-Flight-Checks aus §7a sind erledigt (2026-05-18: `gemini-2.5-pro` nutzbar →
+B.1-Synthesis-Default; Filing-Cache `cache/filings/` angelegt) — B.1-Brainstorm
+kann direkt starten.
 
 ---
 
