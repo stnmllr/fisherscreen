@@ -26,7 +26,7 @@ die erst B.3 einführt). Aufruf vollständig **lokal in-process** (ADR-2).
 
 **Akzeptanztest (Exit-Kriterium):**
 
-> Ein einziger `uv run fisherscreen deepdive NOVO-B.CO` erzeugt
+> Ein einziger `uv run python -m app.deepdive deepdive NOVO-B.CO` erzeugt
 > `output/Watchlist/NOVO-B.CO_2026-05-XX.md`. Stephan liest das Dossier und sagt
 > entweder *„das ist entscheidungs-nützlich"* oder *„Synthesis/Struktur muss anders"*.
 > Erst danach wird auf weitere Ticker skaliert (B.2).
@@ -106,6 +106,9 @@ trivial bei sauberem Service-Layer (Master §2.1).
 - **Exit-Codes:** `0` Erfolg · `1` `DeepDiveError` (Ticker nicht auflösbar) ·
   `2` `DataSourceError` (EDGAR/Firestore/yfinance) · `3` `GeminiError`
   (Token-Cap, Safety-Filter).
+- **Aufrufform lokal:** `uv run python -m app.deepdive deepdive <TICKER>` wegen
+  SOPRA-EPDR-Blocker für `.exe`-Shims (siehe CLAUDE.md). Die
+  `[project.scripts]`-Deklaration bleibt für CI/Container ohne EPDR.
 
 ### E4 — B.0 = separate kurze Plan-Session zuerst
 
@@ -309,8 +312,8 @@ Fixtures/DI-Mocks; CLAUDE.md Multi-Agent). Tests via `uv run python -m pytest`.
 | **B.1-5a** | Trend-Metriken (`trend_metrics.py`) | **Reine Funktionen, keine externen Calls:** `compute_cagr`, `compute_margin_slope` (lin. Regression), `compute_dilution_pct`, `compute_buyback_intensity` (vs. Marktkap.) | Pure-Function-Tests; bekannte Reihen → bekannte Ergebnisse; Edge: <3J, Nullen, negative Werte, leere Reihe; keine DI nötig |
 | **B.1-6** | Gemini-15-Punkte-Synthesis | E2: 1 Call, System+User-Prompt, `response_schema` (B.1-1), `count_tokens`, Token-Cap, Tool-A-Retry, Modell-Env. Post-Hoc-Quellen-Validator. ADR-5c im Prompt | Gemini gemockt; Cap überschritten → `GeminiError`; Schema-Validierung (15 Punkte, `extra='forbid'`, Reasoning ≤70 W., `sources` nicht leer); Inferenz-only → 🟡-Downgrade; halluzinierte Section (`Item 99`) → `['Inferenz']`-Downgrade + WARNING; safety-filtered (ValueError-Pfad wie Phase 1.4) |
 | **B.1-7** | Dossier-Generator | §6: Mini-Blöcke (NICHT Tabelle), Exec ≤3 Sätze hart, source_coverage-Sektion, leere Notizen, YAML-Frontmatter, Pfad-Konvention | Golden-File mit 15 Mini-Blöcken; Längen-Budgets erzwungen (Test bricht bei Über-Cap); Frontmatter-Schema; jeder Punkt rendert ≥1 Quellen-Marker am Reasoning-Ende |
-| **B.1-8** | CLI-Entrypoint + Composition Root | E3: `argparse` + `add_subparsers()`, `app/deepdive/__main__.py`, `[project.scripts]`, Args `TICKER/--model/--no-cache`, compose-Analog (Service-Verdrahtung) | Arg-Parsing; End-to-End mit allen Services gemockt → Dossier in tmp; Exit-Codes 0/1/2/3 |
-| **B.1-9** | Akzeptanz-Skript (manuell) | `scripts/acceptance_deepdive.py` — echter CLI-Lauf `NOVO-B.CO` gegen reales EDGAR + Firestore-Read + live yfinance + Gemini. Analog `scripts/acceptance_basis_filter.py` | **Kein** Unit-Test: dokumentiertes manuelles Gate. Stephan liest das Dossier und urteilt |
+| **B.1-8** | CLI-Entrypoint + Composition Root | E3: `argparse` + `add_subparsers()`, `app/deepdive/__main__.py`, `[project.scripts]` (lokale Aufrufform `python -m app.deepdive` — siehe E3), Args `TICKER/--model/--no-cache`, compose-Analog (Service-Verdrahtung) | Arg-Parsing; End-to-End mit allen Services gemockt → Dossier in tmp; Exit-Codes 0/1/2/3 |
+| **B.1-9** | Akzeptanz-Skript (manuell) | `scripts/acceptance_deepdive.py` — echter Lauf `uv run python -m app.deepdive deepdive NOVO-B.CO` gegen reales EDGAR + Firestore-Read + live yfinance + Gemini. Analog `scripts/acceptance_basis_filter.py` | **Kein** Unit-Test: dokumentiertes manuelles Gate. Stephan liest das Dossier und urteilt |
 
 ---
 
