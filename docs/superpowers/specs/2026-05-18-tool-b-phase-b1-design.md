@@ -53,10 +53,14 @@ einheitliches Schema über Filer hinweg. DOM-aware-Parsing wäre überspezifizie
   - **20-F:** Items 4, 5, 18
 - **Section-Slice:** Text zwischen Anker N und Anker N+1.
 - **Längen-Cap als Token-Hebel (Pre-Stage-5):** überschreitet eine extrahierte
-  Section ein konfigurierbares Token-Budget, wird sie mit Marker
-  `[... section truncated for token budget]` abgeschnitten. **Stage 3 darf nicht
-  annehmen, dass „extrahiert = klein genug" ist** — das ist der eigentliche
-  Kosten-Hebel gegen Premortem #1.
+  Section das Token-Budget `FISHERSCREEN_DEEPDIVE_SECTION_TOKEN_CAP` (Default
+  `50000` — eine 20-F-Item-5-Section liegt realistisch bei 10k–40k Tokens; 50k
+  gibt Puffer, ohne den 200k-Gesamt-Cap zu sprengen, selbst bei 3–4 Sections im
+  Prompt), wird sie mit Marker `[... section truncated for token budget]`
+  abgeschnitten. **Stage 3 darf nicht annehmen, dass „extrahiert = klein genug"
+  ist** — das ist der eigentliche Kosten-Hebel gegen Premortem #1. Geschwister-Cap
+  zu `FISHERSCREEN_DEEPDIVE_TOKEN_CAP` (E2, Gesamt-Call): der Section-Cap sorgt
+  dafür, dass der Gesamt-Cap verlässlich greift.
 - **Fail loud:** fehlender Anker → `section_missing`-Flag im `DeepDiveRecord`, **kein
   stilles Leerfeld, kein Crash** (Premortem #2).
 
