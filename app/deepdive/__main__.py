@@ -4,6 +4,17 @@ import argparse
 import logging
 import sys
 
+from app.deepdive.compose import (
+    build_adr_resolver,
+    build_filing_fetcher,
+    build_quant_builder,
+    build_synthesizer,
+)
+from app.deepdive.pipeline import run_deep_dive
+from app.config import settings
+from app.errors import DataSourceError, DeepDiveError, GeminiError
+from pathlib import Path
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,14 +38,30 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    logger.info(
-        "deepdive skeleton invoked for ticker=%s — pipeline lands in Phase B.1",
-        args.ticker,
-    )
-    print(
-        f"deepdive '{args.ticker}': Tool B skeleton (Phase B.0). "
-        "The deep-dive pipeline is implemented in Phase B.1."
-    )
+    try:
+        out = run_deep_dive(
+            args.ticker,
+            output_dir=Path(settings.output_dir),
+            resolver=build_adr_resolver(),
+            filing_fetcher=build_filing_fetcher(),
+            build_quant=build_quant_builder(),
+            synthesizer=build_synthesizer(args.model),
+            token_cap=settings.deepdive_token_cap,
+            use_cache=not args.no_cache,
+        )
+    except DeepDiveError as exc:
+        logger.error("deepdive failed (ticker): %s", exc)
+        print(f"ERROR: {exc}")
+        return 1
+    except DataSourceError as exc:
+        logger.error("deepdive failed (data source): %s", exc)
+        print(f"ERROR: {exc}")
+        return 2
+    except GeminiError as exc:
+        logger.error("deepdive failed (gemini): %s", exc)
+        print(f"ERROR: {exc}")
+        return 3
+    print(f"Dossier written to: {out}")
     return 0
 
 

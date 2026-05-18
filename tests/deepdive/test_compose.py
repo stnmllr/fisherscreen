@@ -11,3 +11,8 @@ def test_build_adr_table_returns_seed():
 def test_github_client_builder_is_reused_not_duplicated():
     # Tool B shares Tool A's GitHub push path — same builder, no copy.
     assert deepdive_compose.build_github_client is screener_compose.build_github_client
+
+
+def test_build_adr_resolver_resolves_seed():
+    from app.deepdive.compose import build_adr_resolver
+    assert build_adr_resolver().resolve("NOVO-B.CO").adr_ticker == "NVO"

@@ -19,6 +19,10 @@ class FisherScreenSettings(BaseSettings):
     github_repo: str = ""
     github_branch: str = "main"
     gemini_model: str = "gemini-2.5-flash-lite"
+    deepdive_gemini_model: str = "gemini-2.5-pro"
+    deepdive_token_cap: int = 200_000
+    filing_cache_ttl_days: int = 30
+    historical_cache_ttl_days: int = 90
 
     model_config = {
         "env_prefix": "FISHERSCREEN_",

@@ -149,3 +149,12 @@ def test_reads_github_repo(monkeypatch):
 def test_github_branch_defaults_to_main():
     settings = FisherScreenSettings(_env_file=None)
     assert settings.github_branch == "main"
+
+
+def test_deepdive_settings_defaults():
+    from app.config import FisherScreenSettings
+    s = FisherScreenSettings()
+    assert s.deepdive_gemini_model == "gemini-2.5-pro"
+    assert s.deepdive_token_cap == 200_000
+    assert s.filing_cache_ttl_days == 30
+    assert s.historical_cache_ttl_days == 90

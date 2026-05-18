@@ -1,14 +1,76 @@
 from __future__ import annotations
 
-from app.deepdive.adr_table import load_adr_table
-from app.screener.compose import build_github_client
+from pathlib import Path
 
-__all__ = ["build_adr_table", "build_github_client"]
+from app.config import settings
+from app.deepdive.adr_resolver import ADRResolver
+from app.deepdive.adr_table import load_adr_table
+from app.deepdive.filing_cache import CachedFilingFetcher
+from app.deepdive.historical_cache import CachedHistoricalData
+from app.deepdive.quant_join import build_quant_snapshot
+from app.screener.compose import build_github_client
+from app.services.edgar_client import EdgarClientImpl
+from app.services.firestore_client import FirestoreClientImpl
+from app.services.gemini_deepdive_client import GeminiDeepDiveClient
+from app.services.historical_data_service import HistoricalDataServiceImpl
+from app.services.yfinance_client import YFinanceClientImpl
+
+__all__ = [
+    "build_adr_table",
+    "build_github_client",
+    "build_adr_resolver",
+    "build_filing_fetcher",
+    "build_quant_builder",
+    "build_synthesizer",
+]
+
+_FILING_CACHE_DIR = Path("cache/filings")
+_HISTORICAL_CACHE_DIR = Path("cache/yfinance_historical")
 
 
 def build_adr_table() -> dict[str, dict[str, str]]:
-    """Composition entrypoint for the static ADR table.
-
-    B.1-2 builds the full resolve() service on top of this loader.
-    """
     return load_adr_table()
+
+
+def build_adr_resolver() -> ADRResolver:
+    return ADRResolver(table=load_adr_table())
+
+
+def build_filing_fetcher() -> CachedFilingFetcher:
+    edgar = EdgarClientImpl(user_agent=settings.edgar_user_agent)
+    return CachedFilingFetcher(
+        edgar=edgar,
+        cache_dir=_FILING_CACHE_DIR,
+        ttl_days=settings.filing_cache_ttl_days,
+    )
+
+
+def build_quant_builder():
+    firestore = FirestoreClientImpl(project_id=settings.gcp_project_id)
+    yfinance = YFinanceClientImpl()
+    historical = CachedHistoricalData(
+        service=HistoricalDataServiceImpl(yfinance=yfinance),
+        cache_dir=_HISTORICAL_CACHE_DIR,
+        ttl_days=settings.historical_cache_ttl_days,
+    )
+    pit_collection = settings.ticker_collection
+    dims_collection = settings.gemini_score_collection
+
+    def _build(ticker: str):
+        return build_quant_snapshot(
+            ticker,
+            firestore=firestore,
+            yfinance=yfinance,
+            historical=historical,
+            pit_collection=pit_collection,
+            dims_collection=dims_collection,
+        )
+
+    return _build
+
+
+def build_synthesizer(model_override: str | None = None) -> GeminiDeepDiveClient:
+    return GeminiDeepDiveClient(
+        api_key=settings.gemini_api_key,
+        model=model_override or settings.deepdive_gemini_model,
+    )
