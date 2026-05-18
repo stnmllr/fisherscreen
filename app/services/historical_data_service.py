@@ -13,8 +13,16 @@ class HistoricalDataService(Protocol):
     def get_annual_series(self, ticker: str) -> dict[str, Any]: ...
 
 
-def _row(df: Any, label: str) -> dict[Any, float | None]:
-    if df is None or getattr(df, "empty", True) or label not in df.index:
+def _row(df: Any, label: str, ticker: str) -> dict[Any, float | None]:
+    if df is None or getattr(df, "empty", True):
+        return {}
+    if label not in df.index:
+        logger.warning(
+            "historical: %s: row %r absent in non-empty statement — "
+            "column values will be None",
+            ticker,
+            label,
+        )
         return {}
     return df.loc[label].to_dict()
 
@@ -32,11 +40,11 @@ class HistoricalDataServiceImpl:
         cols = list(getattr(income, "columns", []))[:_MAX_YEARS]
         years = [c.year for c in cols]
 
-        rev = _row(income, "Total Revenue")
-        gp = _row(income, "Gross Profit")
-        oi = _row(income, "Operating Income")
-        bb = _row(cash, "Repurchase Of Capital Stock")
-        sh = _row(bal, "Share Issued")
+        rev = _row(income, "Total Revenue", ticker)
+        gp = _row(income, "Gross Profit", ticker)
+        oi = _row(income, "Operating Income", ticker)
+        bb = _row(cash, "Repurchase Of Capital Stock", ticker)
+        sh = _row(bal, "Share Issued", ticker)
 
         def col(d: dict[Any, float | None], c: Any) -> float | None:
             v = d.get(c)

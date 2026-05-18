@@ -86,7 +86,7 @@ class SourceCoverage(BaseModel):
 
     quant_pit_source: str = "unknown"          # "tool-a-cache" | "live-yfinance"
     gemini_dims: str = "absent"                # "present" | "absent (nicht im letzten Monatslauf)"
-    historical: str = "absent"                 # "complete" | "partial (<5J)" | "absent"
+    historical: str = "absent"                 # "complete" | "partial (<5J, NJ)" | "absent"
     currency_note: str | None = None           # financialCurrency != listing currency
     edgar: str = "unknown"                     # e.g. "20-F via ADR"
     soft: str = "folgt B.3"

@@ -51,3 +51,11 @@ def test_use_cache_false_bypasses(tmp_path):
     cd.get_annual_series("X")
     cd.get_annual_series("X", use_cache=False)
     assert svc.get_annual_series.call_count == 2
+
+
+def test_corrupt_cache_treated_as_miss(tmp_path):
+    cd, svc = _cd(tmp_path)
+    cd.get_annual_series("X")
+    (tmp_path / "X.json").write_text("{ corrupt", encoding="utf-8")
+    cd.get_annual_series("X")
+    assert svc.get_annual_series.call_count == 2

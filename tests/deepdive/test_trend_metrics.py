@@ -61,3 +61,7 @@ def test_buyback_intensity_sum_over_marketcap():
 def test_buyback_intensity_none_when_no_mcap():
     assert compute_buyback_intensity([-50], market_cap=None) is None
     assert compute_buyback_intensity([], market_cap=1000) is None
+
+
+def test_cagr_none_on_nan():
+    assert compute_cagr([float("nan"), 100.0]) is None

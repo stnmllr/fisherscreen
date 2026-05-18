@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 def _clean(series: list[float | None]) -> list[float] | None:
-    if not series or any(v is None for v in series):
+    if not series or any(v is None or v != v for v in series):  # v != v is True for NaN
         return None
     return [float(v) for v in series]  # type: ignore[arg-type]
 

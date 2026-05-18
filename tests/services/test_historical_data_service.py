@@ -60,3 +60,25 @@ def test_empty_frames_yield_empty_series_no_crash():
     s = svc.get_annual_series("X")
     assert s["years"] == []
     assert s["complete"] is False
+
+
+def test_missing_row_in_nonempty_frame_warns(caplog):
+    import logging
+    yf = MagicMock()
+    cols = [pd.Timestamp("2024-12-31"), pd.Timestamp("2023-12-31"),
+            pd.Timestamp("2022-12-31")]
+    income = pd.DataFrame({c: {"Total Revenue": 100, "Operating Income": 40}
+                           for c in cols})  # NO "Gross Profit" row
+    yf.get_annual_statements.return_value = (
+        income,
+        pd.DataFrame({c: {"Repurchase Of Capital Stock": 0} for c in cols}),
+        pd.DataFrame({c: {"Share Issued": 1} for c in cols}),
+    )
+    yf.get_ticker_info.return_value = {"financialCurrency": "USD"}
+    svc = HistoricalDataServiceImpl(yfinance=yf)
+    with caplog.at_level(logging.WARNING,
+                         logger="app.services.historical_data_service"):
+        s = svc.get_annual_series("X")
+    assert s["gross_margin"] == [None, None, None]
+    assert s["revenue"] == [100, 100, 100]
+    assert "Gross Profit" in caplog.text
