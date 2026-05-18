@@ -9,6 +9,7 @@ class YFinanceClient(Protocol):
     def get_ticker_info(self, ticker: str) -> dict[str, Any]: ...
     def get_historical(self, ticker: str, period: str) -> Any: ...
     def get_financials(self, ticker: str) -> Any: ...
+    def get_annual_statements(self, ticker: str) -> Any: ...
     def get_fx_rate(self, currency: str) -> float: ...
 
 
@@ -36,6 +37,16 @@ class YFinanceClientImpl:
             return yf.Ticker(ticker).financials
         except Exception as exc:
             raise DataSourceError(f"yfinance financials failed for {ticker}: {exc}") from exc
+
+    def get_annual_statements(self, ticker: str) -> Any:
+        # Returns (income_stmt, cashflow, balance_sheet) DataFrames.
+        try:
+            t = yf.Ticker(ticker)
+            return (t.income_stmt, t.cashflow, t.balance_sheet)
+        except Exception as exc:
+            raise DataSourceError(
+                f"yfinance statements failed for {ticker}: {exc}"
+            ) from exc
 
     def get_fx_rate(self, currency: str) -> float:
         """Return conversion rate from `currency` to EUR (e.g. USD → 0.92)."""
