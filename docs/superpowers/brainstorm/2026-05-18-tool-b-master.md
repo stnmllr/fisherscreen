@@ -1,10 +1,20 @@
 # Tool B (Deep Dive) — Master-Brainstorm
 
-**Datum:** 2026-05-18 (rev1)
+**Datum:** 2026-05-18 (rev3)
 **Status:** Struktur-Brainstorm. Vier ADRs gesetzt. Strukturiert mehrere Folge-Sessions
 (eine Phase pro Session, jede mit eigenem Brainstorm + Plan + TDD).
-**Rev1:** Insider-Transaktionen aus B.1 ADR-3 entfernt (Foreign-Private-Issuer-Asymmetrie),
-nach B.2 verschoben; Filing-Cache als ADR-4 hochgezogen; Pre-Flight-Checks separiert.
+**Rev1:** Sechs Strukturkorrekturen — Insider-Transaktionen aus B.1 ADR-3 entfernt
+(Foreign-Private-Issuer-Asymmetrie), nach B.2 verschoben (Form 4 + EU MAR Art. 19 /
+PDMR gemeinsam); Filing-Cache als ADR-4 hochgezogen (Lokal-FS mit TTL); Pre-Flight-Checks
+separiert (§7a); B.0 als eigener Setup-Vorlauf bestätigt; §8-Risiko #1↔#2 verknüpft;
+Querverweis-Konsolidierung (§7-/§8-/ADR-Renumber).
+**Rev2:** Wortlaut-Konsolidierung — §6-B.2-Stub an §4-Tabelle angeglichen
+(Insider-Transaktionen US/EU explizit gleichlautend); Commit-Message-Akkuratheits-Korrektur
+(nicht-vorhandener Doku-Inhalt entfernt).
+**Rev3:** Reasoning-Pflicht pro Fisher-Punkt eingeführt (2-3 Sätze Prosa + Quellen-Marker
+[Filing-Section]/[Quant-Snapshot]/[Inferenz]), Inferenz-Confidence-Cap auf 🟡,
+Post-Hoc-Quellen-Validator gegen Section-Halluzination, Dossier-Render-Format auf
+Mini-Blöcke umgestellt.
 **Vorbild-Format:** `docs/superpowers/brainstorm/2026-05-11-phase-1-structure.md`
 **Referenz-Spec:** `D:\programme\stef-vault\Wissen\Finanzen\FisherScreen\FisherScreen_Architektur_v3.md`
 (insb. §1.1, §1.2, §5, §6.1, §6.3)
@@ -79,11 +89,19 @@ Grundsätze. Die strukturellen Weichen sind in §3 als ADRs (ADR-1 bis ADR-4) au
    Pro-Tarif einliest. Daher: `FISHERSCREEN_DEEPDIVE_TOKEN_CAP`, `count_tokens` vor
    dem Call (Tool-A-Pattern), Abbruch mit `GeminiError` bei Überschreitung,
    `logging.warning` bei 80 %. Premortem-Risiko #1 (§8 #1).
-7. **Quellen-Transparenz im Dossier.** Eine fehlende Quelle wird **sichtbar** im
-   Dossier markiert, nicht hinter einem selbstsicher aussehenden Text versteckt
-   (z. B. „Soft Scuttlebutt: folgt Phase B.3", „Sprach-Analyse: folgt Phase B.4",
-   „EDGAR: 20-F via ADR-Pfad"). Lehre aus Tool-A-Pivot 2026-05-15 (Bibliothek vs.
-   Briefing) und negative-filters-status.md §4 (nicht-geprüft ≠ freigesprochen).
+7. **Quellen-Transparenz im Dossier — vorhanden UND fehlend.**
+   Eine fehlende Quelle wird sichtbar im Dossier markiert, nicht hinter
+   einem selbstsicher aussehenden Text versteckt (z. B. „Soft Scuttlebutt:
+   folgt Phase B.3", „Sprach-Analyse: folgt Phase B.4",
+   „Insider-Transaktionen: folgt Phase B.2"). **Zusätzlich** wird jede
+   vorhandene Quelle pro Fisher-Punkt attributiert: jede Bewertung trägt
+   eine Begründung (2-3 Sätze Prosa, max 70 Wörter) und am Ende einen
+   Quellen-Marker — eine von [Filing-Section] (z. B. `[20-F §5]`),
+   [Quant-Snapshot] (z. B. `[yfinance, 5J]`) oder [Inferenz] (Gemini
+   kombiniert mehrere Quellen ohne direkten Zitat-Pfad). Bei [Inferenz]
+   ist Confidence maximal 🟡, nie 🟢 — als Code-Regel erzwungen, nicht
+   als Soft-Konvention. Lehre aus Tool-A-Pivot 2026-05-15
+   (Bibliothek vs. Briefing) und negative-filters-status.md §4.
 8. **Trusted-Sources-only in B.1 → Subagent-Isolation aufgeschoben.** V3 §5.4
    (Reader/Scorer/Writer-Isolation) ist durch *untrusted* Inputs (Glassdoor, Reddit,
    Earnings-Q&A) motiviert. B.1 nutzt nur regulierte Emittenten-Filings (10-K/20-F).
@@ -312,15 +330,24 @@ Logik, `qa-engineer` für Fixtures/DI-Mocks; CLAUDE.md Multi-Agent). Tests via
 
 | # | Task | Kern | Testing-Strategie |
 |---|---|---|---|
-| **B.1-1** | `DeepDiveRecord`-Datenmodell (Pydantic) | Felder: ticker, adr_ticker, cik, form_type, filing_sections, quant_snapshot, synthesis (15 Punkte), source_coverage, generated_at. Analog `ScreenerRecord`. | Modell-Validierung, `extra="forbid"`, None-Toleranz für optionale Quant-Felder |
+| **B.1-1** | `DeepDiveRecord`-Datenmodell (Pydantic) | Felder: ticker, adr_ticker, cik, form_type, filing_sections, quant_snapshot, synthesis: 15× `{rating, confidence, reasoning, sources}` — Schema-Detail in B.1-6, source_coverage, generated_at. Analog `ScreenerRecord`. | Modell-Validierung, `extra="forbid"`, None-Toleranz für optionale Quant-Felder |
 | **B.1-2** | ADR-Resolver-Service (`adr_resolver.py`) | Lädt statische YAML/JSON-Tabelle (ADR-1). `resolve(ticker) → (adr,cik,form_type)`. US-Ticker = Passthrough (10-K). | NOVO-B.CO → NVO/0000353278/20-F; US-Passthrough; unbekannt → `DeepDiveError` mit handlungsleitender Message; DI-mockbar |
 | **B.1-3** | Filing-Fetcher (`edgar_client` erweitern) | Neue Methode `get_latest_annual_filing(cik, form_type)` — zieht **Volltext-Dokument** (nicht nur submissions.json-Flags). User-Agent + Rate-Limit aus Phase 1.2 wiederverwenden. | Gemockte EDGAR-Responses für 10-K **und** 20-F; fehlendes Filing → `DataSourceError`; Cache-Hit/Miss |
 | **B.1-4** | Filing-Parser | Section-Extraktion mit Form-Type-Weiche. 10-K: Items 1,1A,7,7A,8. 20-F: Items 4,5,18. Normalisiert zu `{section_key: text}`, Längen-Caps. | Fixture-10-K + Fixture-20-F → erwartete Section-Keys; fehlende Section → geflaggt, **kein** Crash |
 | **B.1-5** | Quant-Join | Liest yfinance-Cache + Gemini-Dimensions-Scores aus Tool-A-Firestore. Fallback Live-yfinance + `source_coverage`-Marker (§5.1 Notiz). | Cache-vorhanden-Pfad; Ticker-abwesend → Fallback-Pfad; Firestore via DI gemockt |
-| **B.1-6** | Gemini-15-Punkte-Synthesis | Prompt aus Filing-Sections + Quant. Strukturiertes JSON, Confidence-Marker 🟢/🟡/🔴 (V3 §1.2 Pkt 5). Hard-Token-Cap + `count_tokens` vor Call + 503/429-Retry (Tool-A-Wrapper). Modell via Env-Var. | Gemini gemockt; Cap überschritten → `GeminiError`; Schema-Validierung des 15-Punkte-Outputs; safety-filtered Response (ValueError-Pfad wie Phase 1.4) |
-| **B.1-7** | Dossier-Generator | Markdown nach V3 §5.3: Exec Summary (3 Sätze, hart), Bewertung, 15 Punkte (⭐ + Confidence), **source_coverage-Sektion** (EDGAR: 20-F via ADR · Soft: folgt B.3 · Sprach: folgt B.4), leere „Stef's Notizen". YAML-Frontmatter. Pfad `output/Watchlist/<TICKER>_YYYY-MM-DD.md`. | Golden-File-Render; Längen-Budgets erzwungen; Frontmatter-Schema-Test |
+| **B.1-6** | Gemini-15-Punkte-Synthesis | Prompt aus Filing-Sections + Quant. Strukturiertes JSON pro Fisher-Punkt mit Feldern `{rating, confidence, reasoning, sources}`: `reasoning` ist 2-3 Sätze Prosa (max 70 Wörter), `sources` ist Array von Quellen-Markern (z. B. `['20-F §5', 'yfinance, 5J']` oder `['Inferenz']`). Confidence-Regel im Code erzwungen: enthält `sources` nur `['Inferenz']` → max 🟡, kein 🟢. Hard-Token-Cap + `count_tokens` vor Call + 503/429-Retry (Tool-A-Wrapper). Modell via Env-Var. **Post-Hoc-Quellen-Validator:** jede im `reasoning` zitierte Filing-Section (Regex auf `20-F §X` / `10-K §X`) wird gegen die tatsächlich an Gemini gesendeten Section-Keys geprüft; Mismatch → Source-Marker auf `['Inferenz']` herabstufen und Confidence entsprechend kappen, WARNING loggen (nicht hart fehlschlagen — Gemini-Halluzination ist erwartbarer Modus, kein Bug). | Gemini gemockt; Cap überschritten → `GeminiError`; Schema-Validierung des 15-Punkte-Outputs (pydantic, `extra='forbid'`, reasoning-Längen-Cap, sources-Array nicht leer); Inferenz-only → Confidence-Downgrade-Test (`sources=['Inferenz']` + rating mit confidence=🟢 → Output muss 🟡 sein); Post-Hoc-Quellen-Validator: gemockte Response mit halluzinierter Section (`Item 99`) → Source-Marker auf `['Inferenz']` herabgestuft, WARNING geloggt; safety-filtered Response (ValueError-Pfad wie Phase 1.4) |
+| **B.1-7** | Dossier-Generator | Markdown nach V3 §5.3 (mit Reasoning-Erweiterung): Exec Summary (3 Sätze, hart), Bewertung, 15 Punkte je als eigener Mini-Block (NICHT als Tabellenzeile) — Format siehe Block direkt unter dieser Tabelle. Anschließend **source_coverage-Sektion** (EDGAR: 20-F via ADR · Soft: folgt B.3 · Sprach: folgt B.4 · Insider-Transaktionen: folgt B.2), leere „Stef's Notizen". YAML-Frontmatter. Pfad `output/Watchlist/<TICKER>_YYYY-MM-DD.md`. | Golden-File-Render mit allen 15 Punkten als Mini-Blöcke (nicht Tabelle); Längen-Budgets erzwungen (Exec ≤3 Sätze, Reasoning ≤70 Wörter pro Punkt — Test bricht bei Überschreitung); Frontmatter-Schema-Test; Quellen-Marker-Sichtbarkeit (jeder Punkt rendert mindestens einen Marker am Reasoning-Ende) |
 | **B.1-8** | CLI-Entrypoint + Composition Root | `fisherscreen deepdive <TICKER>` (typer/argparse), verdrahtet Services (compose.py-Analog), `python -m fisherscreen.deepdive`. | Arg-Parsing; End-to-End mit allen Services gemockt → Dossier in tmp; Exit-Codes (Erfolg / DeepDiveError / DataSourceError) |
 | **B.1-9** | Akzeptanz-Skript (manuell) | `scripts/acceptance_deepdive.py` — echter CLI-Lauf NOVO-B.CO gegen reales EDGAR + Firestore-Read + Gemini. Analog `scripts/acceptance_basis_filter.py`. | **Kein** Unit-Test: dokumentiertes manuelles Gate. Stephan liest das Dossier und urteilt (V3-Phase-1-Exit-Kriterium-Analog) |
+
+**Render-Format B.1-7 (pro Fisher-Punkt, Mini-Block statt Tabellenzeile):**
+
+```
+### Punkt N — <Titel>
+**Bewertung:** ⭐⭐⭐⭐ · **Confidence:** 🟢
+
+<Reasoning, 2-3 Sätze Prosa, max 70 Wörter> [Quellen-Marker]
+```
 
 **B.1-Akzeptanztest (Exit-Kriterium).** Analog zum Tool-A-Phase-1-Exit
 („Stef sieht die Listen und sagt: da ist mindestens einer interessant"):
@@ -406,6 +433,7 @@ Brainstorm-Themen. Vor dem Start der B.1-Brainstorm-Session zu klären:
 |---|---|---|---|---|---|
 | 1 | Gemini-Kosten explodieren bei 200+-Seiten-20-F (Pro-Tarif) | B.1 | Hoch | Hoch | Hard-Token-Cap im Code (§2.6); Section-Extraktion statt Volldokument (Stage 3); `count_tokens` vor Call; Flash Lite für Bulk, Pro nur Synthesis (V3 §5.4) |
 | 2 | Filing-Section-Drift: 10-K- vs. 20-F-Item-Struktur, Parser bricht still | B.1 | Hoch | Mittel | Form-Type-Weiche von Tag 1 (Task B.1-4); Response-Shape-Validierung (CLAUDE.md „kein blindes Vertrauen"); fehlende Section → geflaggt, fail loud, nicht still leer. Task B.1-4 mitigiert Risiko #1 und #2 gemeinsam: robuste Section-Extraktion ist zugleich Token-Cost-Hebel (nur relevante Items in den Prompt) und Halluzinations-Schutz (falsche Sections in den Prompt → Gemini halluziniert auf irrelevantem Text) |
+| 2a | Gemini halluziniert Filing-Section-Zitate im Reasoning („Item 99 sagt…" wenn es das nicht gibt) | B.1 | Hoch | Mittel | Post-Hoc-Quellen-Validator in Task B.1-6: Regex auf zitierte Sections, Abgleich gegen tatsächlich an Gemini gesendete Section-Keys, Mismatch → automatischer Downgrade auf `['Inferenz']` + 🟡-Cap; im Prompt explizit anweisen, nur tatsächlich vorhandene Sections zu zitieren |
 | 3 | Dossier unbrauchbar lang/dünn (Bibliothek-vs-Briefing-Lehre) | B.1 | Mittel | Hoch | Festes Template mit Längen-Budgets (Exec 3 Sätze hart); Stephan-Review-Gate (B.1-9) **vor** Skalierung |
 | 4 | Statische ADR-Tabelle veraltet (CIK-Drift, Delisting) | B.1/B.2 | Mittel | Mittel | Format-/Plausibilitäts-Test über Tabelle; B.2 dynamische Resolution; bei Lookup-Fehler `DeepDiveError` mit klarer Message statt falschem CIK |
 | 5 | Quant-Join-Miss: Ticker nicht im letzten Tool-A-Lauf | B.1 | Mittel | Niedrig | Graceful Fallback Live-yfinance + `source_coverage`-Marker (§5.1) |
