@@ -2,6 +2,8 @@ from app.deepdive.valuation_block import render_valuation_block
 from app.models.deep_dive_record import (
     ForwardEstimates,
     HistoricalSeries,
+    PeerComparison,
+    PeerQuant,
     PointInTimeQuant,
     QuantSnapshot,
     TrendMetrics,
@@ -185,6 +187,87 @@ def test_stage2a_lines_still_present_regression_guard():
     fwd_idx = next(i for i, l in enumerate(lines)
                    if l.startswith("Forward-Konsens:"))
     assert kap_idx < cons_idx < fwd_idx
+
+
+def _qs_with_peers(rationale="Big Pharma peers", peer_over=None):
+    qs = _qs(
+        trailing_pe=30.0, forward_pe=25.0, operating_margin=0.45,
+        gross_margin=0.84, revenue_growth_yoy=0.18, free_cashflow=1.5e9,
+        market_cap=3.0e10)
+    peers = peer_over or [
+        PeerQuant(ticker="LLY", trailing_pe=50.0, forward_pe=40.0,
+                  operating_margin=0.30, gross_margin=0.79,
+                  revenue_growth_yoy=0.20, free_cashflow=1e10,
+                  market_cap=7e11),
+        PeerQuant(ticker="PFE", trailing_pe=12.0, forward_pe=11.0,
+                  operating_margin=0.25, gross_margin=0.65,
+                  revenue_growth_yoy=0.03, free_cashflow=1.5e10,
+                  market_cap=1.6e11),
+        PeerQuant(ticker="MRK", trailing_pe=15.0, forward_pe=13.0,
+                  operating_margin=0.35, gross_margin=0.72,
+                  revenue_growth_yoy=0.05, free_cashflow=2e10,
+                  market_cap=3e11),
+    ]
+    qs.point_in_time.ticker = "NVO"
+    qs.peer_comparison = PeerComparison(peers=peers, rationale=rationale)
+    return qs
+
+
+def test_peer_table_rendered_with_main_plus_three_rows_and_headers():
+    out = render_valuation_block(_qs_with_peers())
+    assert "Peer-Vergleich (Nutzer-Auswahl):" in out
+    assert ("| Ticker | P/E tr. | P/E fwd | Op-Margin | Gross-M. | "
+            "Rev-Growth (yoy) | FCF-Yield |") in out
+    lines = out.splitlines()
+    data_rows = [l for l in lines
+                 if l.startswith("| ") and not l.startswith("| ---")]
+    # header + main + 3 peers = 5 data rows (separator excluded)
+    assert len(data_rows) == 5
+    assert "| NVO |" in out
+    assert "| LLY |" in out
+    assert "| PFE |" in out
+    assert "| MRK |" in out
+    # main FCF-Yield = 1.5e9/3.0e10 = 5.0%
+    main_row = next(l for l in lines if l.startswith("| NVO |"))
+    assert "30.0" in main_row and "25.0" in main_row
+    assert "5.0%" in main_row
+    assert 'Peer-Begründung (Nutzer): "Big Pharma peers"' in out
+
+
+def test_peer_table_na_cells_when_peer_fields_none():
+    thin = [PeerQuant(ticker="THIN"),
+            PeerQuant(ticker="LLY", trailing_pe=50.0),
+            PeerQuant(ticker="MRK")]
+    out = render_valuation_block(_qs_with_peers(peer_over=thin))
+    thin_row = next(l for l in out.splitlines()
+                    if l.startswith("| THIN |"))
+    assert thin_row.count("n/a") >= 5
+
+
+def test_peer_rationale_line_omitted_when_none():
+    out = render_valuation_block(_qs_with_peers(rationale=None))
+    assert "Peer-Vergleich (Nutzer-Auswahl):" in out
+    assert "Peer-Begründung" not in out
+
+
+def test_no_peer_table_when_peer_comparison_absent_regression():
+    out = render_valuation_block(_qs(trailing_pe=30.0))
+    assert "Peer-Vergleich" not in out
+    # 2a/2b lines byte-identical when no peers
+    assert out.startswith(
+        "## Bewertung & Kapitalstruktur (TTM-Stand, ohne historischen "
+        "5J-Vergleich)")
+    assert "Bewertung: P/E trail. 30.0" in out
+
+
+def test_peer_block_appended_after_forward_line():
+    out = render_valuation_block(_qs_with_peers())
+    lines = out.splitlines()
+    fwd_idx = next(i for i, l in enumerate(lines)
+                   if l.startswith("Forward-Konsens:"))
+    peer_idx = next(i for i, l in enumerate(lines)
+                    if l.startswith("Peer-Vergleich"))
+    assert fwd_idx < peer_idx
 
 
 def test_currency_blank_when_absent():

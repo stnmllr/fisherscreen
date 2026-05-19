@@ -23,6 +23,7 @@ class FisherScreenSettings(BaseSettings):
     deepdive_token_cap: int = 200_000
     filing_cache_ttl_days: int = 30
     historical_cache_ttl_days: int = 90
+    deepdive_peers_collection: str = "dev_deepdive_peers"
 
     model_config = {
         "env_prefix": "FISHERSCREEN_",

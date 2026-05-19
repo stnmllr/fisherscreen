@@ -218,3 +218,79 @@ def test_misformatted_filing_cite_logs_warning(caplog):
             ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
             quant=_qs(), synthesizer=syn, max_input_tokens=200000)
     assert "not validatable" in caplog.text
+
+
+# --- 1.5.x: no-space sub-item cite parsing (`20-F §4B`) -------------------
+# Root cause: _SECTION_CITE_RE captured (\w+) so the no-space sub-item form
+# "20-F §4B" yielded item "4B" -> key "20-F_item4B", never matching the
+# numeric sent keys -> every such point falsely collapsed to ["Inferenz"].
+# These assert the REAL _validate_sources behaviour directly.
+
+_SENT = {"20-F_item4", "20-F_item5", "20-F_item18"}
+
+
+def test_no_space_subitem_cite_not_collapsed_red_driver():
+    """RED-driver: '20-F §4B' (item 4 IS sent) must NOT collapse; the exact
+    cite string is preserved. FAILS on \\w+ (captures '4B'), PASSES on \\d+."""
+    from app.deepdive.synthesis import _validate_sources
+
+    out = _validate_sources(["20-F §4B"], "20-F", _SENT)
+    assert out == ["20-F §4B"]
+
+
+def test_multiple_no_space_subitems_not_collapsed():
+    from app.deepdive.synthesis import _validate_sources
+
+    out = _validate_sources(["20-F §5C", "20-F §4B"], "20-F", _SENT)
+    assert out == ["20-F §5C", "20-F §4B"]
+
+
+def test_space_subitem_cite_not_collapsed_regression_guard():
+    """Already worked with \\w+; must keep working with \\d+ ('§<num> <letter>')."""
+    from app.deepdive.synthesis import _validate_sources
+
+    out = _validate_sources(["20-F §5 D"], "20-F", _SENT)
+    assert out == ["20-F §5 D"]
+
+
+def test_plain_sent_cite_not_collapsed_regression_guard():
+    from app.deepdive.synthesis import _validate_sources
+
+    out = _validate_sources(["20-F §4"], "20-F", _SENT)
+    assert out == ["20-F §4"]
+
+
+def test_subitem_cite_of_unsent_item_still_collapses():
+    """The fix must not weaken real hallucination catching: item 6 NOT sent."""
+    from app.deepdive.synthesis import _validate_sources
+
+    out = _validate_sources(["20-F §6A"], "20-F", _SENT)
+    assert out == ["Inferenz"]
+
+
+def test_plain_unsent_cite_still_collapses():
+    from app.deepdive.synthesis import _validate_sources
+
+    out = _validate_sources(["20-F §15"], "20-F", _SENT)
+    assert out == ["Inferenz"]
+
+
+def test_mixed_sent_and_unsent_subitems_collapses():
+    """Item 4 sent, item 7 not -> any not-sent cite collapses (unchanged rule)."""
+    from app.deepdive.synthesis import _validate_sources
+
+    out = _validate_sources(["20-F §4B", "20-F §7B"], "20-F", _SENT)
+    assert out == ["Inferenz"]
+
+
+def test_non_section_filing_string_still_hits_not_validatable(caplog):
+    """A filing-ish string without § still has no regex match -> warning path
+    unchanged with \\d+ (returned sources unchanged, no collapse)."""
+    import logging
+
+    from app.deepdive.synthesis import _validate_sources
+
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
+        out = _validate_sources(["20-F item5"], "20-F", _SENT)
+    assert out == ["20-F item5"]
+    assert "not validatable" in caplog.text

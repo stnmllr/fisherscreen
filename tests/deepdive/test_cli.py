@@ -15,6 +15,16 @@ def test_deepdive_defaults():
     ns = build_parser().parse_args(["deepdive", "NOVO-B.CO"])
     assert ns.model is None
     assert ns.no_cache is False
+    assert ns.peers is None
+    assert ns.peer_rationale is None
+
+
+def test_deepdive_parses_peer_args():
+    ns = build_parser().parse_args([
+        "deepdive", "NVO", "--peers", "LLY,PFE,MRK",
+        "--peer-rationale", "Big Pharma"])
+    assert ns.peers == "LLY,PFE,MRK"
+    assert ns.peer_rationale == "Big Pharma"
 
 
 def test_help_exits_zero():
@@ -52,12 +62,17 @@ def test_deepdive_end_to_end_writes_dossier(tmp_path, monkeypatch):
     synth.synthesize.return_value = {"points": [
         {"number": n, "title": f"P{n}", "rating": 4, "confidence": "🟢",
          "reasoning": "r.", "sources": ["20-F §5"]} for n in range(1, 16)]}
+    from app.models.deep_dive_record import PeerComparison, PeerQuant
+    peer_resolver = MagicMock(return_value=PeerComparison(
+        peers=[PeerQuant(ticker="LLY"), PeerQuant(ticker="PFE"),
+               PeerQuant(ticker="MRK")], rationale=None))
     monkeypatch.setattr(cli, "build_adr_resolver", lambda: resolver)
     monkeypatch.setattr(cli, "build_filing_fetcher", lambda: fetcher)
     monkeypatch.setattr(cli, "build_quant_builder", lambda: qb)
     monkeypatch.setattr(cli, "build_synthesizer", lambda m: synth)
+    monkeypatch.setattr(cli, "build_peer_resolver", lambda: peer_resolver)
 
-    rc = cli.main(["deepdive", "NOVO-B.CO"])
+    rc = cli.main(["deepdive", "NOVO-B.CO", "--peers", "LLY,PFE,MRK"])
     assert rc == 0
     files = list((tmp_path / "Watchlist").glob("NOVO-B.CO_*.md"))
     assert len(files) == 1
@@ -74,4 +89,5 @@ def test_deepdive_maps_deepdive_error_to_exit_1(monkeypatch):
     monkeypatch.setattr(cli, "build_filing_fetcher", lambda: MagicMock())
     monkeypatch.setattr(cli, "build_quant_builder", lambda: MagicMock())
     monkeypatch.setattr(cli, "build_synthesizer", lambda m: MagicMock())
+    monkeypatch.setattr(cli, "build_peer_resolver", lambda: MagicMock())
     assert cli.main(["deepdive", "SAP.DE"]) == 1

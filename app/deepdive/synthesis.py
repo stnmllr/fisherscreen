@@ -13,7 +13,7 @@ from app.models.deep_dive_record import FisherPoint, QuantSnapshot
 
 logger = logging.getLogger(__name__)
 
-_SECTION_CITE_RE = re.compile(r"(10-K|20-F)\s*§\s*(\w+)", re.IGNORECASE)
+_SECTION_CITE_RE = re.compile(r"(10-K|20-F)\s*§\s*(\d+)", re.IGNORECASE)
 
 _SYSTEM_PROMPT = (
     "Du bewertest ein Unternehmen gegen Phil Fishers 15 Punkte als kritischer "

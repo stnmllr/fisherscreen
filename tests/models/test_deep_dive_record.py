@@ -5,6 +5,8 @@ from app.models.deep_dive_record import (
     DeepDiveRecord,
     FisherPoint,
     ForwardEstimates,
+    PeerComparison,
+    PeerQuant,
     PointInTimeQuant,
     QuantSnapshot,
     SourceCoverage,
@@ -128,6 +130,44 @@ def test_quant_snapshot_forward_estimates_default_none():
     qs2 = QuantSnapshot(
         point_in_time=PointInTimeQuant(ticker="X"), forward_estimates=fe)
     assert qs2.forward_estimates is fe
+
+
+def test_peer_quant_defaults_and_forbid_extra():
+    pq = PeerQuant(ticker="PFE")
+    assert pq.ticker == "PFE"
+    for f in ("name", "trailing_pe", "forward_pe", "operating_margin",
+              "gross_margin", "revenue_growth_yoy", "free_cashflow",
+              "market_cap"):
+        assert getattr(pq, f) is None
+    pq2 = PeerQuant(
+        ticker="MRK", name="Merck", trailing_pe=15.0, forward_pe=13.0,
+        operating_margin=0.3, gross_margin=0.7, revenue_growth_yoy=0.05,
+        free_cashflow=2e10, market_cap=3e11)
+    assert pq2.name == "Merck"
+    assert pq2.free_cashflow == 2e10
+    with pytest.raises(ValidationError):
+        PeerQuant(ticker="X", bogus=1)
+
+
+def test_peer_comparison_defaults_and_forbid_extra():
+    pc = PeerComparison(peers=[
+        PeerQuant(ticker="LLY"), PeerQuant(ticker="PFE"),
+        PeerQuant(ticker="MRK")])
+    assert len(pc.peers) == 3
+    assert pc.rationale is None
+    pc2 = PeerComparison(peers=[], rationale="Big Pharma peers")
+    assert pc2.rationale == "Big Pharma peers"
+    with pytest.raises(ValidationError):
+        PeerComparison(peers=[], bogus=1)
+
+
+def test_quant_snapshot_peer_comparison_default_none():
+    qs = QuantSnapshot(point_in_time=PointInTimeQuant(ticker="X"))
+    assert qs.peer_comparison is None
+    pc = PeerComparison(peers=[PeerQuant(ticker="LLY")])
+    qs2 = QuantSnapshot(
+        point_in_time=PointInTimeQuant(ticker="X"), peer_comparison=pc)
+    assert qs2.peer_comparison is pc
 
 
 def test_pit_quant_still_forbids_extra():
