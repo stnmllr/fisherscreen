@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -164,6 +164,22 @@ class DeepDiveRecord(BaseModel):
     quant_snapshot: QuantSnapshot
     synthesis: list[FisherPoint]
     source_coverage: SourceCoverage
+    filing_date: str | None = None
     generated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
+
+    @property
+    def days_since_filing(self) -> int | None:
+        """Days between the SEC filing_date and the quant snapshot.
+
+        None if filing_date is absent or not an ISO date (fail-soft —
+        legacy cache entries and malformed dates must not crash the dossier).
+        """
+        if self.filing_date is None:
+            return None
+        try:
+            parsed = date.fromisoformat(self.filing_date)
+        except ValueError:
+            return None
+        return (self.generated_at.date() - parsed).days

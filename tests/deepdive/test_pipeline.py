@@ -22,7 +22,8 @@ def _deps():
         "NOVO-B.CO", "NVO", "0000353278", "20-F")
     filings = MagicMock()
     filings.get.return_value = RawFiling("acc-1",
-        "<html>Item 4. four Item 5. five Item 18. eighteen</html>")
+        "<html>Item 4. four Item 5. five Item 18. eighteen</html>",
+        filing_date="2025-02-05")
     quant = MagicMock()
     quant.return_value = (
         QuantSnapshot(point_in_time=PointInTimeQuant(
@@ -87,6 +88,22 @@ def test_peer_resolver_invoked_between_quant_and_synthesis(tmp_path):
     assert post["peer_tickers"] == ["LLY", "PFE", "MRK"]
     assert post["peer_rationale"] == "peers"
     assert isinstance(pr.return_value, PeerComparison)
+
+
+def test_pipeline_threads_filing_date_into_record(tmp_path, monkeypatch):
+    resolver, filings, quant, synth = _deps()
+    captured = {}
+
+    import app.deepdive.pipeline as pipeline_mod
+    real = pipeline_mod.generate_dossier
+
+    def _capture(record, output_dir):
+        captured["record"] = record
+        return real(record, output_dir)
+
+    monkeypatch.setattr(pipeline_mod, "generate_dossier", _capture)
+    _run(tmp_path, resolver, filings, quant, synth)
+    assert captured["record"].filing_date == "2025-02-05"
 
 
 def test_pipeline_propagates_resolver_error(tmp_path):

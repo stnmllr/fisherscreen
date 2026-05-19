@@ -198,6 +198,43 @@ def test_deep_dive_record_roundtrip_and_forbid_extra():
         DeepDiveRecord(**{**rec.model_dump(), "nope": 1})
 
 
+def _record_with(**over):
+    base = dict(
+        ticker="NOVO-B.CO", adr_ticker="NVO", cik="0000353278",
+        form_type="20-F", filing_sections={"20-F_item5": "x"},
+        section_flags={},
+        quant_snapshot=QuantSnapshot(point_in_time=PointInTimeQuant(ticker="X")),
+        synthesis=[_valid_point(number=n) for n in range(1, 16)],
+        source_coverage=SourceCoverage())
+    base.update(over)
+    return DeepDiveRecord(**base)
+
+
+def test_filing_date_field_defaults_none():
+    rec = _record_with()
+    assert rec.filing_date is None
+    assert rec.days_since_filing is None
+
+
+def test_days_since_filing_correct_for_known_pair():
+    from datetime import datetime, timezone
+    rec = _record_with(
+        filing_date="2025-02-05",
+        generated_at=datetime(2025, 5, 19, 12, 0, tzinfo=timezone.utc))
+    # 2025-02-05 -> 2025-05-19 = 103 days
+    assert rec.days_since_filing == 103
+
+
+def test_days_since_filing_none_when_filing_date_none():
+    rec = _record_with(filing_date=None)
+    assert rec.days_since_filing is None
+
+
+def test_days_since_filing_none_when_unparseable():
+    rec = _record_with(filing_date="garbage")
+    assert rec.days_since_filing is None
+
+
 def test_deep_dive_record_form_type_literal():
     with pytest.raises(ValidationError):
         DeepDiveRecord(
