@@ -3,6 +3,32 @@ from typing import Any, Protocol
 import yfinance as yf
 
 from app.errors import DataSourceError
+from app.models.deep_dive_record import ForwardEstimates
+
+
+def _growth_at(frame: Any, period: str) -> float | None:
+    """Defensively pull the 'growth' value for a yfinance estimate
+    DataFrame index label (e.g. '0y', '+1y'). Tolerates None frame,
+    missing index, missing 'growth' column, NaN -> None."""
+    if frame is None:
+        return None
+    try:
+        if "growth" not in getattr(frame, "columns", []):
+            return None
+        if period not in frame.index:
+            return None
+        val = frame.loc[period, "growth"]
+    except Exception:
+        return None
+    try:
+        if val is None:
+            return None
+        f = float(val)
+    except (TypeError, ValueError):
+        return None
+    if f != f:  # NaN
+        return None
+    return f
 
 
 class YFinanceClient(Protocol):
@@ -11,6 +37,9 @@ class YFinanceClient(Protocol):
     def get_financials(self, ticker: str) -> Any: ...
     def get_annual_statements(self, ticker: str) -> Any: ...
     def get_fx_rate(self, currency: str) -> float: ...
+    def get_forward_estimates(
+        self, ticker: str
+    ) -> ForwardEstimates | None: ...
 
 
 class YFinanceClientImpl:
@@ -47,6 +76,24 @@ class YFinanceClientImpl:
             raise DataSourceError(
                 f"yfinance statements failed for {ticker}: {exc}"
             ) from exc
+
+    def get_forward_estimates(self, ticker: str) -> ForwardEstimates | None:
+        """Best-effort forward-consensus growth (fractions). Hard yfinance
+        failure -> DataSourceError; any missing piece -> that field None."""
+        try:
+            t = yf.Ticker(ticker)
+            eps = t.earnings_estimate
+            rev = t.revenue_estimate
+        except Exception as exc:
+            raise DataSourceError(
+                f"yfinance forward estimates failed for {ticker}: {exc}"
+            ) from exc
+        return ForwardEstimates(
+            eps_growth_cy=_growth_at(eps, "0y"),
+            eps_growth_ny=_growth_at(eps, "+1y"),
+            revenue_growth_cy=_growth_at(rev, "0y"),
+            revenue_growth_ny=_growth_at(rev, "+1y"),
+        )
 
     def get_fx_rate(self, currency: str) -> float:
         """Return conversion rate from `currency` to EUR (e.g. USD → 0.92)."""

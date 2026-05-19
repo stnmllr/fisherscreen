@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from app.models.deep_dive_record import (
     DeepDiveRecord,
     FisherPoint,
+    ForwardEstimates,
     PointInTimeQuant,
     QuantSnapshot,
     SourceCoverage,
@@ -86,6 +87,47 @@ def test_pit_quant_stage2a_valuation_fields_default_none():
         interest_expense=-2e8, dividend_yield=0.024, payout_ratio=0.3)
     assert pit2.trailing_pe == 25.0
     assert pit2.interest_expense == -2e8
+
+
+def test_pit_quant_stage2b_consensus_fields_default_none():
+    pit = PointInTimeQuant(ticker="X")
+    for f in ("recommendation_key", "recommendation_mean",
+              "target_mean_price", "target_median_price",
+              "target_low_price", "target_high_price",
+              "number_of_analyst_opinions"):
+        assert getattr(pit, f) is None
+    pit2 = PointInTimeQuant(
+        ticker="X", recommendation_key="buy", recommendation_mean=1.8,
+        target_mean_price=111.0, target_median_price=110.0,
+        target_low_price=90.0, target_high_price=140.0,
+        number_of_analyst_opinions=42)
+    assert pit2.recommendation_key == "buy"
+    assert pit2.recommendation_mean == 1.8
+    assert pit2.target_mean_price == 111.0
+    assert pit2.number_of_analyst_opinions == 42
+
+
+def test_forward_estimates_model_defaults_and_forbid_extra():
+    fe = ForwardEstimates()
+    for f in ("revenue_growth_cy", "revenue_growth_ny",
+              "eps_growth_cy", "eps_growth_ny"):
+        assert getattr(fe, f) is None
+    fe2 = ForwardEstimates(
+        revenue_growth_cy=0.1485, revenue_growth_ny=0.0809,
+        eps_growth_cy=0.1714, eps_growth_ny=0.1023)
+    assert fe2.revenue_growth_cy == 0.1485
+    assert fe2.eps_growth_ny == 0.1023
+    with pytest.raises(ValidationError):
+        ForwardEstimates(bogus=1)
+
+
+def test_quant_snapshot_forward_estimates_default_none():
+    qs = QuantSnapshot(point_in_time=PointInTimeQuant(ticker="X"))
+    assert qs.forward_estimates is None
+    fe = ForwardEstimates(eps_growth_cy=0.17)
+    qs2 = QuantSnapshot(
+        point_in_time=PointInTimeQuant(ticker="X"), forward_estimates=fe)
+    assert qs2.forward_estimates is fe
 
 
 def test_pit_quant_still_forbids_extra():

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from app.models.deep_dive_record import QuantSnapshot
 
 _HEADING = (
@@ -114,4 +116,51 @@ def render_valuation_block(quant: QuantSnapshot) -> str:
         f"Current Ratio {_fmt_ratio(pit.current_ratio)} · "
         f"Interest Coverage {interest_cov} · {tsy}"
     )
-    return f"{_HEADING}\n\n{bewertung}\n{kapital}"
+
+    consensus = _render_consensus(pit)
+    forward = _render_forward(quant.forward_estimates)
+    return f"{_HEADING}\n\n{bewertung}\n{kapital}\n{consensus}\n{forward}"
+
+
+def _render_consensus(pit: Any) -> str:
+    """Stage-2b analyst-consensus line. STRICT n/a: when target_mean_price
+    is missing the ENTIRE line is `Analyst Consensus: n/a` (no partial fill).
+    implied_upside is computed here, never persisted."""
+    target = pit.target_mean_price
+    if target is None:
+        return "Analyst Consensus: n/a"
+    price = pit.price
+    if price is None or price == 0:
+        upside = "n/a (Kurs fehlt)"
+    else:
+        upside = _fmt_pct((target - price) / price)
+    median = (
+        f"{pit.target_median_price}"
+        if pit.target_median_price is not None else "n/a"
+    )
+    opinions = (
+        f"{pit.number_of_analyst_opinions}"
+        if pit.number_of_analyst_opinions is not None else "n/a"
+    )
+    return (
+        f"Analyst Consensus: {pit.recommendation_key or 'n/a'} · "
+        f"Target: {target:.2f} (Median {median}) · "
+        f"{opinions} Analysten · Upside {upside}"
+    )
+
+
+def _render_forward(fe: Any) -> str:
+    """Stage-2b forward-consensus line. Generic period labels (`lfd. GJ` /
+    `Folge-GJ`) — yfinance gives no reliable calendar-year mapping, so no
+    fabricated `FY26e` (honest-label precedent from 2a's `Ø 4J Buyback`)."""
+    if fe is None or all(
+        v is None for v in (
+            fe.revenue_growth_cy, fe.revenue_growth_ny,
+            fe.eps_growth_cy, fe.eps_growth_ny)
+    ):
+        return "Forward-Konsens: n/a"
+    return (
+        f"Forward-Konsens: Revenue {_fmt_pct(fe.revenue_growth_cy)} "
+        f"(lfd. GJ), {_fmt_pct(fe.revenue_growth_ny)} (Folge-GJ) · "
+        f"EPS {_fmt_pct(fe.eps_growth_cy)} (lfd. GJ)"
+    )

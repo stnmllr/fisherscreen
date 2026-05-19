@@ -3,7 +3,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from app.errors import DataSourceError
 from app.models.deep_dive_record import (
+    ForwardEstimates,
     HistoricalSeries,
     PointInTimeQuant,
     QuantSnapshot,
@@ -59,6 +61,13 @@ def _pit_from_info(ticker: str, info: dict[str, Any]) -> PointInTimeQuant:
         current_ratio=info.get("currentRatio"),
         payout_ratio=info.get("payoutRatio"),
         dividend_yield=_norm_dividend_yield(info.get("dividendYield")),
+        recommendation_key=info.get("recommendationKey"),
+        recommendation_mean=info.get("recommendationMean"),
+        target_mean_price=info.get("targetMeanPrice"),
+        target_median_price=info.get("targetMedianPrice"),
+        target_low_price=info.get("targetLowPrice"),
+        target_high_price=info.get("targetHighPrice"),
+        number_of_analyst_opinions=info.get("numberOfAnalystOpinions"),
     )
 
 
@@ -127,10 +136,20 @@ def build_quant_snapshot(
         gemini_dimensions = None
         cov.gemini_dims = "absent (nicht im letzten Monatslauf)"
 
+    # Stage 2b — forward consensus (fail-soft, never aborts the deep dive)
+    forward_estimates: ForwardEstimates | None
+    try:
+        forward_estimates = yfinance.get_forward_estimates(ticker)
+    except DataSourceError as exc:
+        logger.warning(
+            "quant: %s forward estimates unavailable — %s", ticker, exc)
+        forward_estimates = None
+
     snapshot = QuantSnapshot(
         point_in_time=pit,
         historical_series=hist,
         trend_metrics=trends,
         gemini_dimensions=gemini_dimensions,
+        forward_estimates=forward_estimates,
     )
     return snapshot, cov

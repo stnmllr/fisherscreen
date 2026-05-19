@@ -1,5 +1,6 @@
 from app.deepdive.valuation_block import render_valuation_block
 from app.models.deep_dive_record import (
+    ForwardEstimates,
     HistoricalSeries,
     PointInTimeQuant,
     QuantSnapshot,
@@ -7,7 +8,7 @@ from app.models.deep_dive_record import (
 )
 
 
-def _qs(**pit_over):
+def _qs(forward=None, **pit_over):
     pit = PointInTimeQuant(ticker="X", currency="DKK", **pit_over)
     return QuantSnapshot(
         point_in_time=pit,
@@ -15,6 +16,7 @@ def _qs(**pit_over):
             years=[2024, 2023, 2022, 2021, 2020],
             revenue=[1.0e9, 9.0e8, 8.0e8, 7.0e8, 6.0e8]),
         trend_metrics=TrendMetrics(buyback_intensity_5y=0.10),
+        forward_estimates=forward,
     )
 
 
@@ -91,6 +93,98 @@ def test_tsy_marks_missing_component():
     out = render_valuation_block(qs)
     assert "Total Shareholder Yield" in out
     assert "Div n/a aktuell" in out
+
+
+def test_consensus_line_happy_path_with_implied_upside():
+    out = render_valuation_block(_qs(
+        price=100.0, recommendation_key="buy", target_mean_price=111.0,
+        target_median_price=110.0, number_of_analyst_opinions=42))
+    assert ("Analyst Consensus: buy · Target: 111.00 (Median 110.0) · "
+            "42 Analysten · Upside 11.0%") in out
+
+
+def test_consensus_strict_na_when_target_mean_missing():
+    # other consensus fields present, but no target_mean_price -> whole line n/a
+    out = render_valuation_block(_qs(
+        price=100.0, recommendation_key="buy",
+        number_of_analyst_opinions=42, target_median_price=110.0))
+    assert "Analyst Consensus: n/a" in out
+    assert "buy ·" not in out
+    assert "Upside" not in out
+
+
+def test_consensus_upside_na_when_price_missing():
+    out = render_valuation_block(_qs(
+        recommendation_key="hold", target_mean_price=111.0,
+        number_of_analyst_opinions=10))
+    assert "Upside n/a (Kurs fehlt)" in out
+    assert "Analyst Consensus: hold · Target: 111.00" in out
+
+
+def test_consensus_upside_na_when_price_zero():
+    out = render_valuation_block(_qs(
+        price=0.0, recommendation_key="hold", target_mean_price=111.0))
+    assert "Upside n/a (Kurs fehlt)" in out
+
+
+def test_consensus_fallbacks_for_missing_optional_subfields():
+    out = render_valuation_block(_qs(price=100.0, target_mean_price=120.0))
+    # recommendation_key/median/opinions missing -> n/a sub-tokens, line still built
+    assert ("Analyst Consensus: n/a · Target: 120.00 (Median n/a) · "
+            "n/a Analysten · Upside 20.0%") in out
+
+
+def test_forward_line_happy_path_generic_period_labels():
+    fe = ForwardEstimates(
+        revenue_growth_cy=0.1485, revenue_growth_ny=0.0809,
+        eps_growth_cy=0.1714, eps_growth_ny=0.1023)
+    out = render_valuation_block(_qs(forward=fe))
+    # _fmt_pct == f"{v:.1%}"; 0.1485 -> "14.8%" (float repr rounding)
+    assert ("Forward-Konsens: Revenue 14.8% (lfd. GJ), 8.1% (Folge-GJ) · "
+            "EPS 17.1% (lfd. GJ)") in out
+    # honest generic labels — no fabricated calendar years
+    assert "FY26e" not in out
+    assert "FY27e" not in out
+
+
+def test_forward_line_partial_fields_render_per_field_na():
+    fe = ForwardEstimates(revenue_growth_cy=0.10)
+    out = render_valuation_block(_qs(forward=fe))
+    assert ("Forward-Konsens: Revenue 10.0% (lfd. GJ), n/a (Folge-GJ) · "
+            "EPS n/a (lfd. GJ)") in out
+
+
+def test_forward_line_na_when_estimates_absent():
+    out = render_valuation_block(_qs(forward=None))
+    assert "Forward-Konsens: n/a" in out
+
+
+def test_forward_line_na_when_all_fields_none():
+    out = render_valuation_block(_qs(forward=ForwardEstimates()))
+    assert "Forward-Konsens: n/a" in out
+
+
+def test_stage2a_lines_still_present_regression_guard():
+    out = render_valuation_block(_qs(
+        trailing_pe=30.0, forward_pe=25.0, enterprise_value=2.1e10,
+        ebit=2.0e9, free_cashflow=1.5e9, market_cap=3.0e10,
+        price=100.0, target_mean_price=111.0,
+        forward=ForwardEstimates(eps_growth_cy=0.17)))
+    assert out.startswith(
+        "## Bewertung & Kapitalstruktur (TTM-Stand, ohne historischen "
+        "5J-Vergleich)")
+    assert "Bewertung: P/E trail. 30.0" in out
+    assert "Kapitalstruktur: Total Debt" in out
+    assert "Total Shareholder Yield" in out
+    # new lines appended AFTER Kapitalstruktur line
+    lines = out.splitlines()
+    kap_idx = next(i for i, l in enumerate(lines)
+                   if l.startswith("Kapitalstruktur:"))
+    cons_idx = next(i for i, l in enumerate(lines)
+                    if l.startswith("Analyst Consensus:"))
+    fwd_idx = next(i for i, l in enumerate(lines)
+                   if l.startswith("Forward-Konsens:"))
+    assert kap_idx < cons_idx < fwd_idx
 
 
 def test_currency_blank_when_absent():
