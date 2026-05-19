@@ -23,6 +23,10 @@ def run_deep_dive(
     synthesizer: Any,
     token_cap: int,
     use_cache: bool,
+    peers: str | None,
+    peer_rationale: str | None,
+    is_tty: bool,
+    peer_resolver: Callable[..., Any],
 ) -> Path:
     logger.info("deepdive: start ticker=%s", ticker)
 
@@ -47,6 +51,15 @@ def run_deep_dive(
         f"{resolved.form_type} via ADR"
         if resolved.adr_ticker
         else f"{resolved.form_type} (US direct)"
+    )
+
+    # [4b] Peer pre-flight — attach to the QuantSnapshot so it flows into
+    # both the synthesis prompt and the DeepDiveRecord (shared wiring).
+    quant.peer_comparison = peer_resolver(
+        ticker=ticker,
+        peers_arg=peers,
+        rationale_arg=peer_rationale,
+        is_tty=is_tty,
     )
 
     # [5] Gemini-Synthesis

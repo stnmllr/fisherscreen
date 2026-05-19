@@ -33,12 +33,29 @@ def _deps():
     return resolver, filings, quant, synthesizer
 
 
+def _peer_resolver():
+    from app.models.deep_dive_record import PeerComparison, PeerQuant
+    pr = MagicMock()
+    pr.return_value = PeerComparison(
+        peers=[PeerQuant(ticker="LLY"), PeerQuant(ticker="PFE"),
+               PeerQuant(ticker="MRK")],
+        rationale="peers")
+    return pr
+
+
+def _run(out_dir, resolver, filings, quant, synth, peer_resolver=None,
+         peers=None, peer_rationale=None, is_tty=False):
+    return run_deep_dive(
+        "NOVO-B.CO", output_dir=out_dir, resolver=resolver,
+        filing_fetcher=filings, build_quant=quant, synthesizer=synth,
+        token_cap=200000, use_cache=True,
+        peers=peers, peer_rationale=peer_rationale, is_tty=is_tty,
+        peer_resolver=peer_resolver or _peer_resolver())
+
+
 def test_pipeline_writes_dossier(tmp_path):
     resolver, filings, quant, synth = _deps()
-    out = run_deep_dive(
-        "NOVO-B.CO", output_dir=tmp_path, resolver=resolver,
-        filing_fetcher=filings, build_quant=quant, synthesizer=synth,
-        token_cap=200000, use_cache=True)
+    out = _run(tmp_path, resolver, filings, quant, synth)
     assert out.exists()
     post = frontmatter.loads(out.read_text(encoding="utf-8"))
     assert post["ticker"] == "NOVO-B.CO"
@@ -47,15 +64,38 @@ def test_pipeline_writes_dossier(tmp_path):
     filings.get.assert_called_once_with("0000353278", "20-F", use_cache=True)
 
 
+def test_peer_resolver_invoked_between_quant_and_synthesis(tmp_path):
+    from app.models.deep_dive_record import PeerComparison
+
+    resolver, filings, quant, synth = _deps()
+    pr = _peer_resolver()
+    captured = {}
+
+    def _synth_capture(**kwargs):
+        captured["peer_comparison"] = kwargs["quant"].peer_comparison
+        from app.deepdive.synthesis import run_synthesis
+        return run_synthesis(**kwargs)
+
+    out = _run(tmp_path, resolver, filings, quant, synth,
+               peer_resolver=pr, peers="LLY,PFE,MRK")
+    pr.assert_called_once()
+    kw = pr.call_args.kwargs
+    assert kw["ticker"] == "NOVO-B.CO"
+    assert kw["peers_arg"] == "LLY,PFE,MRK"
+    # attached to the quant snapshot -> flows into synthesis AND record
+    post = frontmatter.loads(out.read_text(encoding="utf-8"))
+    assert post["peer_tickers"] == ["LLY", "PFE", "MRK"]
+    assert post["peer_rationale"] == "peers"
+    assert isinstance(pr.return_value, PeerComparison)
+
+
 def test_pipeline_propagates_resolver_error(tmp_path):
     from app.errors import DeepDiveError
     resolver, filings, quant, synth = _deps()
     resolver.resolve.side_effect = DeepDiveError("not in ADR table")
     import pytest
     with pytest.raises(DeepDiveError, match="ADR table"):
-        run_deep_dive("SAP.DE", output_dir=tmp_path, resolver=resolver,
-                       filing_fetcher=filings, build_quant=quant,
-                       synthesizer=synth, token_cap=200000, use_cache=True)
+        _run(tmp_path, resolver, filings, quant, synth)
 
 
 def test_pipeline_raises_actionable_error_on_empty_cik(tmp_path):
@@ -64,6 +104,4 @@ def test_pipeline_raises_actionable_error_on_empty_cik(tmp_path):
     resolver, filings, quant, synth = _deps()
     resolver.resolve.return_value = ResolvedTicker("AAPL", None, "", "10-K")
     with pytest.raises(DeepDiveError, match="US-passthrough CIK resolution is Phase B.2"):
-        run_deep_dive("AAPL", output_dir=tmp_path, resolver=resolver,
-                       filing_fetcher=filings, build_quant=quant,
-                       synthesizer=synth, token_cap=200000, use_cache=True)
+        _run(tmp_path, resolver, filings, quant, synth)

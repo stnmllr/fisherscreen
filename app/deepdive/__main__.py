@@ -8,6 +8,7 @@ from pathlib import Path
 from app.deepdive.compose import (
     build_adr_resolver,
     build_filing_fetcher,
+    build_peer_resolver,
     build_quant_builder,
     build_synthesizer,
 )
@@ -33,6 +34,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Ignore the local filing/historical caches",
     )
+    deepdive.add_argument(
+        "--peers",
+        default=None,
+        help="Exactly 3 comma-separated peer tickers (non-interactive)",
+    )
+    deepdive.add_argument(
+        "--peer-rationale",
+        default=None,
+        help="Optional rationale for the peer selection (<=200 chars)",
+    )
     return parser
 
 
@@ -48,6 +59,10 @@ def main(argv: list[str] | None = None) -> int:
             synthesizer=build_synthesizer(args.model),
             token_cap=settings.deepdive_token_cap,
             use_cache=not args.no_cache,
+            peers=args.peers,
+            peer_rationale=args.peer_rationale,
+            is_tty=sys.stdin.isatty(),
+            peer_resolver=build_peer_resolver(),
         )
     except DeepDiveError as exc:
         logger.error("deepdive failed (ticker): %s", exc)

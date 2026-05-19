@@ -82,6 +82,27 @@ class ForwardEstimates(BaseModel):
     eps_growth_ny: float | None = None
 
 
+class PeerQuant(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ticker: str
+    name: str | None = None
+    trailing_pe: float | None = None
+    forward_pe: float | None = None
+    operating_margin: float | None = None
+    gross_margin: float | None = None
+    revenue_growth_yoy: float | None = None
+    free_cashflow: float | None = None
+    market_cap: float | None = None
+
+
+class PeerComparison(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    peers: list[PeerQuant]  # expected length 3
+    rationale: str | None = None
+
+
 class HistoricalSeries(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -111,6 +132,7 @@ class QuantSnapshot(BaseModel):
     trend_metrics: TrendMetrics | None = None
     gemini_dimensions: dict[str, Any] | None = None
     forward_estimates: ForwardEstimates | None = None
+    peer_comparison: PeerComparison | None = None
 
 
 class SourceCoverage(BaseModel):

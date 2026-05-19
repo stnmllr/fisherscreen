@@ -119,7 +119,66 @@ def render_valuation_block(quant: QuantSnapshot) -> str:
 
     consensus = _render_consensus(pit)
     forward = _render_forward(quant.forward_estimates)
-    return f"{_HEADING}\n\n{bewertung}\n{kapital}\n{consensus}\n{forward}"
+    block = f"{_HEADING}\n\n{bewertung}\n{kapital}\n{consensus}\n{forward}"
+    peers = _render_peer_table(quant)
+    if peers:
+        block = f"{block}\n{peers}"
+    return block
+
+
+def _fcf_yield(fcf: float | None, mcap: float | None) -> str:
+    if fcf is None or mcap is None or mcap == 0:
+        return "n/a"
+    return _fmt_pct(fcf / mcap)
+
+
+def _render_peer_table(quant: QuantSnapshot) -> str:
+    """Stage-2c user-selected peer comparison table. Appended after the
+    forward line; absent entirely when quant.peer_comparison is None.
+
+    Deliberate deviation: the column is `Rev-Growth (yoy)` from `.info`
+    revenueGrowth for ALL rows incl. the main ticker — peers only have
+    `.info` (yoy); honest-label precedent from 2a/2b; avoids extra
+    per-peer historical pulls.
+    """
+    pc = quant.peer_comparison
+    if pc is None:
+        return ""
+    pit = quant.point_in_time
+    header = (
+        "Peer-Vergleich (Nutzer-Auswahl):\n"
+        "| Ticker | P/E tr. | P/E fwd | Op-Margin | Gross-M. | "
+        "Rev-Growth (yoy) | FCF-Yield |\n"
+        "|--------|--------:|--------:|----------:|---------:|"
+        "-----------------:|----------:|"
+    )
+    rows = [
+        "| {t} | {pe} | {pef} | {om} | {gm} | {rg} | {fy} |".format(
+            t=pit.ticker,
+            pe=_fmt_ratio(pit.trailing_pe),
+            pef=_fmt_ratio(pit.forward_pe),
+            om=_fmt_pct(pit.operating_margin),
+            gm=_fmt_pct(pit.gross_margin),
+            rg=_fmt_pct(pit.revenue_growth_yoy),
+            fy=_fcf_yield(pit.free_cashflow, pit.market_cap),
+        )
+    ]
+    for p in pc.peers:
+        rows.append(
+            "| {t} | {pe} | {pef} | {om} | {gm} | {rg} | {fy} |".format(
+                t=p.ticker,
+                pe=_fmt_ratio(p.trailing_pe),
+                pef=_fmt_ratio(p.forward_pe),
+                om=_fmt_pct(p.operating_margin),
+                gm=_fmt_pct(p.gross_margin),
+                rg=_fmt_pct(p.revenue_growth_yoy),
+                fy=_fcf_yield(p.free_cashflow, p.market_cap),
+            )
+        )
+    table = header + "\n" + "\n".join(rows)
+    if pc.rationale is not None:
+        table += f'\nPeer-Begründung (Nutzer): "{pc.rationale}"'
+    return table
 
 
 def _render_consensus(pit: Any) -> str:

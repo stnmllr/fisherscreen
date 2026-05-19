@@ -79,6 +79,10 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         "",
     ]
 
+    pc = record.quant_snapshot.peer_comparison
+    peer_tickers = [p.ticker for p in pc.peers] if pc else []
+    peer_rationale = pc.rationale if pc else None
+
     post = frontmatter.Post("\n".join(lines))
     post.metadata.update({
         "ticker": record.ticker,
@@ -87,6 +91,8 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         "form_type": record.form_type,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "section_flags": record.section_flags,
+        "peer_tickers": peer_tickers,
+        "peer_rationale": peer_rationale,
     })
     out.write_text(frontmatter.dumps(post), encoding="utf-8")
     logger.info("dossier: wrote %s", out.name)
