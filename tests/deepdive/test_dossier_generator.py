@@ -61,6 +61,43 @@ def test_bewertung_formats_money_and_percent(tmp_path):
 def test_valuation_gap_marked_honest(tmp_path):
     body = frontmatter.loads(
         generate_dossier(_record(), tmp_path).read_text(encoding="utf-8")).content
-    assert "folgt B.2" in body
+    # Old roadmap valuation line + jargon must be gone entirely.
+    assert "*KGV / EV-EBIT / FCF-Yield (aktuell vs. 5J):" not in body
+    assert "folgt B.2 (KGV/EV-EBIT/FCF-Yield vs. 5J)" not in body
+    # The valuation-coverage line itself no longer says "folgt B.2".
+    bewertung_cov_line = next(
+        ln for ln in body.splitlines()
+        if ln.startswith("- Bewertungs-Kennzahlen:"))
+    assert "folgt B.2" not in bewertung_cov_line
+    # New SourceCoverage default text + new valuation block heading present.
+    assert ("TTM vorhanden (KGV/EV-EBIT/FCF-Yield) · 5J-Range zurückgestellt "
+            "(historische EPS-Rekonstruktion)") in body
     assert "Bewertungs-Kennzahlen" in body
-    assert "KGV / EV-EBIT / FCF-Yield" in body
+    assert ("## Bewertung & Kapitalstruktur "
+            "(TTM-Stand, ohne historischen 5J-Vergleich)") in body
+
+
+def test_valuation_block_derived_na_reason_in_dossier(tmp_path):
+    rec = _record()  # pit has no enterprise_value
+    body = frontmatter.loads(
+        generate_dossier(rec, tmp_path).read_text(encoding="utf-8")).content
+    assert "EV/EBIT n/a (EV fehlt)" in body
+
+
+def test_valuation_block_interest_coverage_fy_suffix(tmp_path):
+    rec = _record()
+    rec.quant_snapshot.point_in_time.ebit = 2.0e9
+    rec.quant_snapshot.point_in_time.interest_expense = -1.0e8
+    body = frontmatter.loads(
+        generate_dossier(rec, tmp_path).read_text(encoding="utf-8")).content
+    assert "Interest Coverage 20.0× (FY)" in body
+
+
+def test_valuation_block_tsy_formula_text(tmp_path):
+    rec = _record()
+    rec.quant_snapshot.point_in_time.dividend_yield = 0.024
+    body = frontmatter.loads(
+        generate_dossier(rec, tmp_path).read_text(encoding="utf-8")).content
+    assert "Total Shareholder Yield" in body
+    assert "(Div 2.4% aktuell + Ø" in body
+    assert "J Buyback" in body

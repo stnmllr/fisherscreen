@@ -49,6 +49,8 @@ class HistoricalDataServiceImpl:
         rev = _row(income, "Total Revenue", ticker)
         gp = _row(income, "Gross Profit", ticker)
         oi = _row(income, "Operating Income", ticker)
+        ebit = _row(income, "EBIT", ticker) or oi
+        ie = _row(income, "Interest Expense", ticker)
         bb = _row(cash, "Repurchase Of Capital Stock", ticker)
         sh = _row(bal, "Share Issued", ticker)
 
@@ -68,6 +70,8 @@ class HistoricalDataServiceImpl:
             "revenue": [col(rev, c) for c in cols],
             "gross_margin": [margin(gp, c) for c in cols],
             "operating_margin": [margin(oi, c) for c in cols],
+            "ebit": [col(ebit, c) for c in cols],
+            "interest_expense": [col(ie, c) for c in cols],
             "shares_outstanding": [col(sh, c) for c in cols],
             "buyback_cashflow": [col(bb, c) for c in cols],
             "complete": len(years) >= _MIN_COMPLETE_YEARS,

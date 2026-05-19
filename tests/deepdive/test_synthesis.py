@@ -30,6 +30,18 @@ def _points_with_ratings(ratings):
     return {"points": pts}
 
 
+def test_user_prompt_contains_valuation_block_before_filing_sections():
+    from app.deepdive.synthesis import _build_user_prompt
+
+    prompt = _build_user_prompt(
+        "X", "20-F", {"20-F_item5": "rev"}, _qs())
+    heading = ("## Bewertung & Kapitalstruktur "
+               "(TTM-Stand, ohne historischen 5J-Vergleich)")
+    assert heading in prompt
+    assert prompt.index(heading) > prompt.index("Quant-Snapshot (JSON)")
+    assert prompt.index(heading) < prompt.index("Filing-Sections:")
+
+
 def test_returns_15_fisher_points():
     syn = MagicMock()
     syn.synthesize.return_value = _good_points()
@@ -173,6 +185,26 @@ def test_system_prompt_contains_hardening_anchors():
         '"points":[{"number":int',
     ):
         assert anchor in _SYSTEM_PROMPT, f"missing anchor: {anchor!r}"
+
+
+def test_user_prompt_renders_citeable_section_headers():
+    import re
+
+    from app.deepdive.synthesis import _build_user_prompt
+
+    prompt = _build_user_prompt(
+        "X", "20-F", {"20-F_item5": "rev", "20-F_item4": "biz"}, _qs())
+    assert re.search(r"### 20-F §5", prompt)
+    assert re.search(r"### 20-F §4", prompt)
+    assert not re.search(r"### 20-F_item", prompt)
+
+
+def test_section_label_handles_10k():
+    from app.deepdive.synthesis import _section_label
+
+    assert _section_label("10-K_item7") == "10-K §7"
+    assert _section_label("no_item_marker") == "no §_marker"
+    assert _section_label("plainkey") == "plainkey"
 
 
 def test_misformatted_filing_cite_logs_warning(caplog):

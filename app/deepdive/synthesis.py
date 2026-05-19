@@ -6,6 +6,7 @@ import re
 from pydantic import ValidationError
 
 from app.deepdive.fisher_points import FISHER_POINTS
+from app.deepdive.valuation_block import render_valuation_block
 from app.errors import GeminiError
 from app.services.gemini_deepdive_client import DeepDiveSynthesizer
 from app.models.deep_dive_record import FisherPoint, QuantSnapshot
@@ -60,17 +61,24 @@ _SYSTEM_PROMPT = (
 )
 
 
+def _section_label(key: str) -> str:
+    """'20-F_item5' -> '20-F §5' so the header the model sees matches the
+    cite format the verification layer expects ('<form> §<item>')."""
+    return key.replace("_item", " §", 1)
+
+
 def _build_user_prompt(
     ticker: str, form_type: str, sections: dict[str, str], quant: QuantSnapshot
 ) -> str:
     titles = "\n".join(f"{n}. {t}" for n, t in FISHER_POINTS)
     sec_txt = "\n\n".join(
-        f"### {k}\n{v}" for k, v in sections.items()
+        f"### {_section_label(k)}\n{v}" for k, v in sections.items()
     ) or "(keine Filing-Sections extrahiert)"
     return (
         f"Ticker: {ticker} (Filing-Typ {form_type})\n\n"
         f"Fishers 15 Punkte:\n{titles}\n\n"
         f"Quant-Snapshot (JSON):\n{quant.model_dump_json()}\n\n"
+        f"{render_valuation_block(quant)}\n\n"
         f"Filing-Sections:\n{sec_txt}"
     )
 

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import frontmatter
 
+from app.deepdive.valuation_block import render_valuation_block
 from app.models.deep_dive_record import DeepDiveRecord
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,8 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         f"*Market Cap: {_fmt_money(pit.market_cap)} {pit.currency or ''} · "
         f"Gross Margin: {_fmt_pct(pit.gross_margin)} · "
         f"Op. Margin: {_fmt_pct(pit.operating_margin)}*",
-        f"*KGV / EV-EBIT / FCF-Yield (aktuell vs. 5J): {cov.valuation}*",
+        "",
+        render_valuation_block(record.quant_snapshot),
         "",
         "## Fishers 15 Punkte",
         "",
