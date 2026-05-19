@@ -82,6 +82,7 @@ def run_deep_dive(
         quant_snapshot=quant,
         synthesis=synthesis,
         source_coverage=coverage,
+        filing_date=raw.filing_date,
     )
 
     # [6] Markdown-Output

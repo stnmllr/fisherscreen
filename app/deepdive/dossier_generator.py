@@ -32,6 +32,19 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
     name = pit.name or record.ticker
     cov = record.source_coverage
 
+    quant_date = record.generated_at.date().isoformat()
+    if record.filing_date is not None:
+        vintage_line = (
+            f"*Filing-Stand: {record.filing_date} · "
+            f"Quant-Stand: {quant_date} · "
+            f"{record.days_since_filing} Tage Differenz — zwischenzeitliche "
+            f"Entwicklungen siehe Tool-B Scuttlebutt (B.3)*"
+        )
+    else:
+        vintage_line = (
+            f"*Filing-Stand: unbekannt · Quant-Stand: {quant_date}*"
+        )
+
     lines: list[str] = [
         f"# Deep Dive: {name} ({record.ticker})",
         "",
@@ -43,6 +56,8 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         f"*Market Cap: {_fmt_money(pit.market_cap)} {pit.currency or ''} · "
         f"Gross Margin: {_fmt_pct(pit.gross_margin)} · "
         f"Op. Margin: {_fmt_pct(pit.operating_margin)}*",
+        "",
+        vintage_line,
         "",
         render_valuation_block(record.quant_snapshot),
         "",
@@ -90,6 +105,9 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         "cik": record.cik,
         "form_type": record.form_type,
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "filing_date": record.filing_date,
+        "quant_date": record.generated_at.date().isoformat(),
+        "days_since_filing": record.days_since_filing,
         "section_flags": record.section_flags,
         "peer_tickers": peer_tickers,
         "peer_rationale": peer_rationale,

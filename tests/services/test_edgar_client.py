@@ -267,6 +267,76 @@ def test_get_latest_annual_filing_returns_text_for_20f(mock_httpx, mock_time):
 
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
+def test_get_latest_annual_filing_populates_filing_date(mock_httpx, mock_time):
+    submissions = MagicMock()
+    submissions.status_code = 200
+    submissions.json.return_value = {
+        "filings": {"recent": {
+            "form": ["6-K", "20-F", "20-F"],
+            "accessionNumber": ["0000-24-1", "0000353278-25-000020", "0000353278-24-000010"],
+            "primaryDocument": ["a.htm", "novo-20f.htm", "old.htm"],
+            "filingDate": ["2025-05-01", "2025-02-05", "2024-02-07"],
+        }}
+    }
+    doc = MagicMock()
+    doc.status_code = 200
+    doc.text = "<html>ITEM 5</html>"
+    mock_httpx.get.side_effect = [submissions, doc]
+
+    client = _make_client()
+    result = client.get_latest_annual_filing("0000353278", "20-F")
+    # aligned with the chosen (first matching) 20-F at index 1
+    assert result.filing_date == "2025-02-05"
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_get_latest_annual_filing_filing_date_none_when_array_absent(mock_httpx, mock_time):
+    submissions = MagicMock()
+    submissions.status_code = 200
+    submissions.json.return_value = {
+        "filings": {"recent": {
+            "form": ["10-K"],
+            "accessionNumber": ["0001-25-1"],
+            "primaryDocument": ["k.htm"],
+            # no filingDate key at all
+        }}
+    }
+    doc = MagicMock()
+    doc.status_code = 200
+    doc.text = "<html>k</html>"
+    mock_httpx.get.side_effect = [submissions, doc]
+
+    client = _make_client()
+    result = client.get_latest_annual_filing("0000000001", "10-K")
+    assert result.filing_date is None
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_get_latest_annual_filing_filing_date_none_when_array_short(mock_httpx, mock_time):
+    submissions = MagicMock()
+    submissions.status_code = 200
+    submissions.json.return_value = {
+        "filings": {"recent": {
+            "form": ["6-K", "10-K"],
+            "accessionNumber": ["0000-24-1", "0001-25-1"],
+            "primaryDocument": ["a.htm", "k.htm"],
+            "filingDate": ["2025-05-01"],  # shorter than form[] — index 1 missing
+        }}
+    }
+    doc = MagicMock()
+    doc.status_code = 200
+    doc.text = "<html>k</html>"
+    mock_httpx.get.side_effect = [submissions, doc]
+
+    client = _make_client()
+    result = client.get_latest_annual_filing("0000000001", "10-K")
+    assert result.filing_date is None
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
 def test_get_latest_annual_filing_missing_form_raises(mock_httpx, mock_time):
     submissions = MagicMock()
     submissions.status_code = 200

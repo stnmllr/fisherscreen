@@ -5,17 +5,19 @@ from app.models.deep_dive_record import (
     DeepDiveRecord, FisherPoint, PointInTimeQuant, QuantSnapshot, SourceCoverage)
 
 
-def _record():
+def _record(**over):
     pts = [FisherPoint(number=n, title=f"Punkt {n}", rating=4, confidence="🟢",
                        reasoning="Begründung.", sources=["20-F §5"])
            for n in range(1, 16)]
-    return DeepDiveRecord(
+    base = dict(
         ticker="NOVO-B.CO", adr_ticker="NVO", cik="0000353278",
         form_type="20-F", filing_sections={"20-F_item5": "x"},
         section_flags={}, synthesis=pts,
         quant_snapshot=QuantSnapshot(point_in_time=PointInTimeQuant(
             ticker="NOVO-B.CO", name="Novo Nordisk")),
         source_coverage=SourceCoverage(edgar="20-F via ADR"))
+    base.update(over)
+    return DeepDiveRecord(**base)
 
 
 def test_writes_file_with_date_name(tmp_path):
@@ -56,6 +58,54 @@ def test_bewertung_formats_money_and_percent(tmp_path):
     assert "234,567,890,000 DKK" in body
     assert "83.6%" in body
     assert "41.0%" in body
+
+
+def test_frontmatter_has_vintage_fields(tmp_path):
+    from datetime import datetime, timezone
+    rec = _record(filing_date="2025-02-05",
+                  generated_at=datetime(2025, 5, 19, 12, 0, tzinfo=timezone.utc))
+    post = frontmatter.loads(
+        generate_dossier(rec, tmp_path).read_text(encoding="utf-8"))
+    assert post["filing_date"] == "2025-02-05"
+    assert post["quant_date"] == "2025-05-19"
+    assert post["days_since_filing"] == 103
+
+
+def test_frontmatter_vintage_fields_none_when_no_filing_date(tmp_path):
+    post = frontmatter.loads(
+        generate_dossier(_record(), tmp_path).read_text(encoding="utf-8"))
+    assert post["filing_date"] is None
+    assert post["days_since_filing"] is None
+    assert post["quant_date"]  # quant_date always present
+
+
+def test_body_has_filing_stand_line(tmp_path):
+    from datetime import datetime, timezone
+    rec = _record(filing_date="2025-02-05",
+                  generated_at=datetime(2025, 5, 19, 12, 0, tzinfo=timezone.utc))
+    body = frontmatter.loads(
+        generate_dossier(rec, tmp_path).read_text(encoding="utf-8")).content
+    assert ("*Filing-Stand: 2025-02-05 · Quant-Stand: 2025-05-19 · "
+            "103 Tage Differenz — zwischenzeitliche Entwicklungen siehe "
+            "Tool-B Scuttlebutt (B.3)*") in body
+    # placed inside ## Bewertung, before the valuation block heading
+    lines = body.splitlines()
+    fs_idx = next(i for i, ln in enumerate(lines)
+                  if ln.startswith("*Filing-Stand:"))
+    mc_idx = next(i for i, ln in enumerate(lines)
+                  if ln.startswith("*Market Cap:"))
+    vb_idx = next(i for i, ln in enumerate(lines)
+                  if ln.startswith("## Bewertung & Kapitalstruktur"))
+    assert mc_idx < fs_idx < vb_idx
+
+
+def test_body_filing_stand_unknown_when_no_filing_date(tmp_path):
+    body = frontmatter.loads(
+        generate_dossier(_record(), tmp_path).read_text(encoding="utf-8")).content
+    quant_date = next(
+        ln for ln in body.splitlines() if ln.startswith("*Filing-Stand:"))
+    assert "Filing-Stand: unbekannt" in quant_date
+    assert "Quant-Stand:" in quant_date
 
 
 def test_valuation_gap_marked_honest(tmp_path):

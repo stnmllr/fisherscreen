@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 class RawFiling:
     accession_number: str
     document_text: str
+    filing_date: str | None = None
 
 
 class EdgarClient(Protocol):
@@ -118,8 +119,12 @@ class EdgarClientImpl:
         forms = recent.get("form", [])
         accessions = recent.get("accessionNumber", [])
         primary_docs = recent.get("primaryDocument", [])
-        for form, accession, primary in zip(forms, accessions, primary_docs):
+        dates = recent.get("filingDate", [])
+        for idx, (form, accession, primary) in enumerate(
+            zip(forms, accessions, primary_docs)
+        ):
             if form == form_type:
+                filing_date = dates[idx] if idx < len(dates) else None
                 cik_int = str(int(cik))
                 acc_nodash = accession.replace("-", "")
                 url = (
@@ -127,7 +132,11 @@ class EdgarClientImpl:
                     f"{cik_int}/{acc_nodash}/{primary}"
                 )
                 text = self._get_text(url)
-                return RawFiling(accession_number=accession, document_text=text)
+                return RawFiling(
+                    accession_number=accession,
+                    document_text=text,
+                    filing_date=filing_date,
+                )
         raise DataSourceError(
             f"no {form_type} filing found for CIK {padded} in recent submissions"
         )

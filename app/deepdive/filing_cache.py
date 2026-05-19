@@ -62,7 +62,9 @@ class CachedFilingFetcher:
                         "filing cache hit: cik=%s form=%s", cik, form_type
                     )
                     return RawFiling(
-                        entry["accession"], doc.read_text(encoding="utf-8")
+                        entry["accession"],
+                        doc.read_text(encoding="utf-8"),
+                        filing_date=entry.get("filing_date"),
                     )
 
         filing = self._edgar.get_latest_annual_filing(cik, form_type)
@@ -75,6 +77,7 @@ class CachedFilingFetcher:
             meta[form_type] = {
                 "_cached_at": datetime.now(timezone.utc).isoformat(),
                 "accession": filing.accession_number,
+                "filing_date": filing.filing_date,
             }
             _write_meta_atomic(meta_path, meta)
         return filing
