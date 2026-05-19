@@ -15,14 +15,46 @@ logger = logging.getLogger(__name__)
 _SECTION_CITE_RE = re.compile(r"(10-K|20-F)\s*§\s*(\w+)", re.IGNORECASE)
 
 _SYSTEM_PROMPT = (
-    "Du bewertest ein Unternehmen gegen Phil Fishers 15 Punkte. Für JEDEN der "
-    "15 Punkte: rating 1-5, confidence einer von 🟢/🟡/🔴, reasoning 2-3 Sätze "
-    "Prosa (max 70 Wörter), sources als Array von Markern. Marker sind genau: "
-    "eine Filing-Section wie '20-F §5' oder '10-K §7' (NUR Sections die im "
-    "Input wirklich vorkommen — erfinde KEINE), '[yfinance, 5J]' für Quant, "
-    "oder 'Inferenz' wenn du mehrere Quellen ohne direkten Zitat-Pfad "
-    "kombinierst. Bei reiner Inferenz ist confidence maximal 🟡. Punkte 14 und "
-    "15 (Offenheit/Integrität) ohne Sprach-/Insider-Daten: confidence 🔴. "
+    "Du bewertest ein Unternehmen gegen Phil Fishers 15 Punkte als kritischer "
+    "Analyst, nicht als Werbetexter. Für JEDEN der 15 Punkte: rating 1-5, "
+    "confidence 🟢/🟡/🔴, reasoning 2-3 Sätze Prosa (max 70 Wörter), sources-Array.\n"
+    "STERNE-RUBRIK (relativ, nicht absolut): 5 = belegbar ÜBERLEGEN gegenüber "
+    "den relevanten Konkurrenten der Branche; 4 = klar überdurchschnittlich; "
+    "3 = solide/marktüblich; 2 = unterdurchschnittlich; 1 = schwach. 'Gut in "
+    "absoluten Zahlen' ist NICHT 5, wenn ein direkter Wettbewerber stärker ist.\n"
+    "VERTEILUNG: typische Verteilung für ein gutes, aber nicht außergewöhnliches "
+    "Unternehmen liegt bei höchstens 4 von 15 Punkten mit 5 Sternen und "
+    "mindestens 3 Punkten mit ≤3 Sternen. Prüfe am Ende: wenn du keinen Punkt "
+    "unter 4 Sternen hast, ist deine Analyse vermutlich zu freundlich — gehe "
+    "die schwächsten Punkte erneut durch.\n"
+    "ABGRENZUNG (verwandte Punkte müssen UNTERSCHIEDLICH argumentieren, kein "
+    "Recycling): P2 = Wille, NEUE Felder zu erschließen ≠ P3 = Output pro F&E-"
+    "Dollar. P4 = Vertriebs-WIRKSAMKEIT (nicht bloße Reichweite/Länderzahl) ≠ "
+    "P11 = struktureller Wettbewerbsvorteil/Burggraben. P5 = Margenhöhe ≠ P6 = "
+    "Maßnahmen zur Margen-ERHALTUNG. P12 = langfristige Gewinnpriorisierung ≠ "
+    "P13 = Finanzierung ohne Verwässerung. Reichweite ('170 Länder') ist KEIN "
+    "Wirksamkeitsbeleg.\n"
+    "BEAR-CASE-PFLICHT: das reasoning muss explizit ein konkretes Gegenargument, "
+    "Risiko oder Schwächezeichen benennen — eingeleitet durch Wörter wie "
+    "'allerdings', 'jedoch', 'Risiko', 'unter Druck', 'Schwäche', oder "
+    "Vergleichbares. Ein reasoning ohne erkennbares Gegenargument ist "
+    "unvollständig; setze in diesem Fall confidence eine Stufe herab.\n"
+    "WETTBEWERB: bei den Punkten 4, 5, 6, 11, 12 musst du den/die relevanten "
+    "Hauptkonkurrenten benennen und einordnen. Nenne Konkurrenten nur "
+    "namentlich, wenn sie im Filing-Volltext oder in den Quants vorkommen. "
+    "Sonst formuliere generisch ('der dominante US-Wettbewerber', 'klinisch "
+    "überlegene Konkurrenzprodukte') und markiere [Marktkontext]. Erfinde "
+    "keine Konkurrenznamen. Hast du keine harte Quelle, halte confidence ≤ 🟡 "
+    "— erfinde dafür NIEMALS eine Filing-Section.\n"
+    "CONFIDENCE: 🟢 NUR wenn die Kernaussage direkt aus einer harten Quelle "
+    "(Filing-Section oder Quant) belegbar ist. Inferenz, Allgemeinwissen oder "
+    "Marktkontext ⇒ höchstens 🟡. Punkte 14 und 15 ohne Sprach-/Insider-Daten "
+    "⇒ 🔴.\n"
+    "SOURCES: Marker sind genau: eine Filing-Section wie '20-F §5'/'10-K §7' "
+    "(NUR Sections die im Input wirklich vorkommen — erfinde KEINE), "
+    "'[yfinance, 5J]' für Quant, '[Marktkontext]' für Wettbewerbs-/Branchen-"
+    "einordnung ohne Quelle, oder 'Inferenz' für kombinierte Quellen ohne "
+    "direkten Zitat-Pfad. Bei reiner Inferenz confidence ≤ 🟡.\n"
     'Antworte NUR als JSON: {"points":[{"number":int,"title":str,"rating":int,'
     '"confidence":str,"reasoning":str,"sources":[str]}, ... 15 Einträge]}'
 )
@@ -87,6 +119,19 @@ def run_synthesis(
             raise GeminiError(
                 f"synthesis point {rp.get('number')} violates the contract: {exc}"
             ) from exc
+
+    five_star_count = sum(1 for p in points if p.rating == 5)
+    low_rating_count = sum(1 for p in points if p.rating <= 3)
+    if five_star_count > 5:
+        logger.warning(
+            f"synthesis: sterne-inflation — {five_star_count}/15 punkte ⭐⭐⭐⭐⭐ "
+            f"(soll: ≤5). prüfe ob analyse zu freundlich."
+        )
+    if low_rating_count < 2:
+        logger.warning(
+            f"synthesis: keine schwachen punkte — nur {low_rating_count}/15 mit ≤⭐⭐⭐. "
+            f"prüfe ob bear-cases ernst genommen wurden."
+        )
     return points
 
 

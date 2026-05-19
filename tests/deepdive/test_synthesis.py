@@ -20,6 +20,16 @@ def _good_points():
     return {"points": pts}
 
 
+def _points_with_ratings(ratings):
+    """ratings: list of 15 ints. Build a valid 15-point synthesizer return."""
+    pts = []
+    for i, n in enumerate(range(1, 16)):
+        pts.append({"number": n, "title": f"P{n}", "rating": ratings[i],
+                    "confidence": "🟢", "reasoning": "Solide Begründung.",
+                    "sources": ["20-F §5"]})
+    return {"points": pts}
+
+
 def test_returns_15_fisher_points():
     syn = MagicMock()
     syn.synthesize.return_value = _good_points()
@@ -110,6 +120,59 @@ def test_model_violating_point_maps_to_geminierror():
         run_synthesis(
             ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
             quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+
+
+def test_star_inflation_logs_warning(caplog):
+    import logging
+    syn = MagicMock()
+    syn.synthesize.return_value = _points_with_ratings([5] * 6 + [4] * 9)
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
+        run_synthesis(
+            ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
+            quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+    assert "sterne-inflation" in caplog.text
+    assert "6/15" in caplog.text
+
+
+def test_no_weak_points_logs_warning(caplog):
+    import logging
+    syn = MagicMock()
+    syn.synthesize.return_value = _points_with_ratings([4] * 15)
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
+        run_synthesis(
+            ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
+            quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+    assert "keine schwachen punkte" in caplog.text
+
+
+def test_balanced_distribution_no_distribution_warning(caplog):
+    import logging
+    syn = MagicMock()
+    syn.synthesize.return_value = _points_with_ratings(
+        [5] * 4 + [2] * 3 + [4] * 8)
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
+        run_synthesis(
+            ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
+            quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+    assert "sterne-inflation" not in caplog.text
+    assert "keine schwachen punkte" not in caplog.text
+
+
+def test_system_prompt_contains_hardening_anchors():
+    from app.deepdive.synthesis import _SYSTEM_PROMPT
+
+    for anchor in (
+        "STERNE-RUBRIK",
+        "VERTEILUNG",
+        "ABGRENZUNG",
+        "BEAR-CASE-PFLICHT",
+        "WETTBEWERB",
+        "[Marktkontext]",
+        "Erfinde keine Konkurrenznamen",
+        "🟢 NUR",
+        '"points":[{"number":int',
+    ):
+        assert anchor in _SYSTEM_PROMPT, f"missing anchor: {anchor!r}"
 
 
 def test_misformatted_filing_cite_logs_warning(caplog):
