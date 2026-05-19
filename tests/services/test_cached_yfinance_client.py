@@ -107,6 +107,20 @@ def test_yfinance_error_propagates_on_cache_miss():
     mock_fs.set.assert_not_called()
 
 
+def test_get_forward_estimates_delegates_to_yfinance_without_cache():
+    mock_yf = MagicMock()
+    mock_fs = MagicMock()
+    sentinel = object()
+    mock_yf.get_forward_estimates.return_value = sentinel
+
+    client = _make_client(mock_yf, mock_fs)
+    result = client.get_forward_estimates("AAPL")
+
+    mock_yf.get_forward_estimates.assert_called_once_with("AAPL")
+    mock_fs.get.assert_not_called()
+    assert result is sentinel
+
+
 def test_get_fx_rate_delegates_to_yfinance_without_cache():
     mock_yf = MagicMock()
     mock_fs = MagicMock()

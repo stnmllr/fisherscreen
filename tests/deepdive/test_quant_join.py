@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import MagicMock
 
 from app.deepdive.quant_join import (
@@ -5,6 +6,8 @@ from app.deepdive.quant_join import (
     _norm_dividend_yield,
     build_quant_snapshot,
 )
+from app.errors import DataSourceError
+from app.models.deep_dive_record import ForwardEstimates
 
 
 def _deps(pit_cache=None, dims=None):
@@ -13,6 +16,7 @@ def _deps(pit_cache=None, dims=None):
         pit_cache if coll == "dev_ticker_cache" else dims
     )
     yfinance = MagicMock()
+    yfinance.get_forward_estimates.return_value = ForwardEstimates()
     yfinance.get_ticker_info.return_value = {
         "shortName": "Novo", "currency": "DKK", "marketCap": 3e11,
         "sector": "Healthcare", "grossMargins": 0.84}
@@ -144,6 +148,73 @@ def test_ebit_interest_expense_none_when_historical_lacks_them():
         pit_collection="dev_ticker_cache", dims_collection="dev_gemini_scores")
     assert qs.point_in_time.ebit is None
     assert qs.point_in_time.interest_expense is None
+
+
+def test_consensus_info_fields_mapped_onto_pit():
+    fs, yf, hist = _deps(pit_cache=None, dims=None)
+    yf.get_ticker_info.return_value = {
+        "shortName": "Novo", "currency": "DKK", "marketCap": 3e11,
+        "recommendationKey": "buy", "recommendationMean": 1.8,
+        "targetMeanPrice": 111.0, "targetMedianPrice": 110.0,
+        "targetLowPrice": 90.0, "targetHighPrice": 140.0,
+        "numberOfAnalystOpinions": 42}
+    qs, _ = build_quant_snapshot(
+        "X", firestore=fs, yfinance=yf, historical=hist,
+        pit_collection="dev_ticker_cache", dims_collection="dev_gemini_scores")
+    pit = qs.point_in_time
+    assert pit.recommendation_key == "buy"
+    assert pit.recommendation_mean == 1.8
+    assert pit.target_mean_price == 111.0
+    assert pit.target_median_price == 110.0
+    assert pit.target_low_price == 90.0
+    assert pit.target_high_price == 140.0
+    assert pit.number_of_analyst_opinions == 42
+
+
+def test_consensus_fields_default_none_when_absent_from_info():
+    fs, yf, hist = _deps(pit_cache=None, dims=None)
+    qs, _ = build_quant_snapshot(
+        "X", firestore=fs, yfinance=yf, historical=hist,
+        pit_collection="dev_ticker_cache", dims_collection="dev_gemini_scores")
+    pit = qs.point_in_time
+    assert pit.recommendation_key is None
+    assert pit.target_mean_price is None
+    assert pit.number_of_analyst_opinions is None
+
+
+def test_forward_estimates_wired_onto_snapshot():
+    fs, yf, hist = _deps(pit_cache={"marketCap": 1}, dims=None)
+    fe = ForwardEstimates(
+        revenue_growth_cy=0.1485, eps_growth_cy=0.1714)
+    yf.get_forward_estimates.return_value = fe
+    qs, _ = build_quant_snapshot(
+        "X", firestore=fs, yfinance=yf, historical=hist,
+        pit_collection="dev_ticker_cache", dims_collection="dev_gemini_scores")
+    yf.get_forward_estimates.assert_called_once_with("X")
+    assert qs.forward_estimates is fe
+
+
+def test_forward_estimates_failsoft_on_data_source_error(caplog):
+    fs, yf, hist = _deps(pit_cache={"marketCap": 1}, dims=None)
+    yf.get_forward_estimates.side_effect = DataSourceError("boom")
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.quant_join"):
+        qs, _ = build_quant_snapshot(
+            "X", firestore=fs, yfinance=yf, historical=hist,
+            pit_collection="dev_ticker_cache",
+            dims_collection="dev_gemini_scores")
+    assert qs.forward_estimates is None
+    assert "forward estimates" in caplog.text.lower()
+    # deep dive continues: snapshot still fully built
+    assert qs.point_in_time.ticker == "X"
+
+
+def test_forward_estimates_none_when_client_returns_none():
+    fs, yf, hist = _deps(pit_cache={"marketCap": 1}, dims=None)
+    yf.get_forward_estimates.return_value = None
+    qs, _ = build_quant_snapshot(
+        "X", firestore=fs, yfinance=yf, historical=hist,
+        pit_collection="dev_ticker_cache", dims_collection="dev_gemini_scores")
+    assert qs.forward_estimates is None
 
 
 def test_use_cache_false_threads_to_historical():

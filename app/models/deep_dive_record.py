@@ -61,6 +61,25 @@ class PointInTimeQuant(BaseModel):
     interest_expense: float | None = None
     dividend_yield: float | None = None
     payout_ratio: float | None = None
+    # Stage 2b — analyst consensus
+    recommendation_key: str | None = None
+    recommendation_mean: float | None = None
+    target_mean_price: float | None = None
+    target_median_price: float | None = None
+    target_low_price: float | None = None
+    target_high_price: float | None = None
+    number_of_analyst_opinions: int | None = None
+
+
+class ForwardEstimates(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # cy = current fiscal year (yfinance period '0y'); ny = next ('+1y').
+    # Growth values are fractions, e.g. 0.09.
+    revenue_growth_cy: float | None = None
+    revenue_growth_ny: float | None = None
+    eps_growth_cy: float | None = None
+    eps_growth_ny: float | None = None
 
 
 class HistoricalSeries(BaseModel):
@@ -91,6 +110,7 @@ class QuantSnapshot(BaseModel):
     historical_series: HistoricalSeries | None = None
     trend_metrics: TrendMetrics | None = None
     gemini_dimensions: dict[str, Any] | None = None
+    forward_estimates: ForwardEstimates | None = None
 
 
 class SourceCoverage(BaseModel):
