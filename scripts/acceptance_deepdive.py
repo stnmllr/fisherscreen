@@ -15,6 +15,9 @@ import logging
 import sys
 from pathlib import Path
 
+from google.auth import default as _google_auth_default
+from google.auth.exceptions import DefaultCredentialsError
+
 from app.config import settings
 from app.deepdive.compose import (
     build_adr_resolver,
@@ -29,7 +32,53 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(name)s  %(messa
 _TICKER = "NOVO-B.CO"
 
 
+def check_prerequisites() -> list[str]:
+    """Return a list of human-readable 'missing prerequisite' messages for a
+    local Tool B deep-dive run. Empty list = all prerequisites satisfied.
+    No network calls except google.auth.default() credential resolution
+    (local, no API request)."""
+    missing: list[str] = []
+
+    if not settings.edgar_user_agent:
+        missing.append(
+            "FISHERSCREEN_EDGAR_USER_AGENT not set (.env) — SEC EDGAR requires "
+            "a User-Agent. .env.example has a valid value."
+        )
+    if not settings.gemini_api_key:
+        missing.append(
+            "FISHERSCREEN_GEMINI_API_KEY not set (.env) — required for Gemini "
+            "Pro synthesis."
+        )
+    if not settings.gcp_project_id:
+        missing.append(
+            "FISHERSCREEN_GCP_PROJECT_ID not set (.env, e.g. fisherscreen-prod) "
+            "— required for the Firestore PIT-cache read."
+        )
+
+    try:
+        _google_auth_default()
+    except DefaultCredentialsError:
+        missing.append(
+            "GCP ADC not configured — run: gcloud auth application-default login"
+        )
+
+    return missing
+
+
 def main() -> int:
+    problems = check_prerequisites()
+    if problems:
+        print("PRE-FLIGHT FAILED — local prerequisites missing:")
+        for problem in problems:
+            print(f"  - {problem}")
+        print(
+            "\nFix (cmd.exe):\n"
+            "  copy .env.example .env   &  edit FISHERSCREEN_GEMINI_API_KEY\n"
+            "  gcloud auth application-default login\n"
+            "  uv run python -m scripts.acceptance_deepdive"
+        )
+        return 2
+
     print(f"\nRunning real deep dive for {_TICKER} "
           f"(model={settings.deepdive_gemini_model}, "
           f"token_cap={settings.deepdive_token_cap})\n")
