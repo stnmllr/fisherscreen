@@ -20,6 +20,22 @@ from app.deepdive.trend_metrics import (
 logger = logging.getLogger(__name__)
 
 
+def _norm_dividend_yield(raw: float | None) -> float | None:
+    """yfinance returns dividendYield sometimes as a fraction (0.024) and
+    sometimes as a percent (2.4). Normalize to a fraction so _fmt_pct works."""
+    if raw is None:
+        return None
+    return raw / 100 if raw > 1 else raw
+
+
+def _latest_non_none(seq: Any) -> float | None:
+    """Newest-first sequence -> first non-None value (= latest FY)."""
+    for v in seq or []:
+        if v is not None:
+            return v
+    return None
+
+
 def _pit_from_info(ticker: str, info: dict[str, Any]) -> PointInTimeQuant:
     return PointInTimeQuant(
         ticker=ticker,
@@ -34,6 +50,15 @@ def _pit_from_info(ticker: str, info: dict[str, Any]) -> PointInTimeQuant:
         operating_margin=info.get("operatingMargins"),
         return_on_equity=info.get("returnOnEquity"),
         debt_to_equity=info.get("debtToEquity"),
+        trailing_pe=info.get("trailingPE"),
+        forward_pe=info.get("forwardPE"),
+        enterprise_value=info.get("enterpriseValue"),
+        free_cashflow=info.get("freeCashflow"),
+        total_debt=info.get("totalDebt"),
+        total_cash=info.get("totalCash"),
+        current_ratio=info.get("currentRatio"),
+        payout_ratio=info.get("payoutRatio"),
+        dividend_yield=_norm_dividend_yield(info.get("dividendYield")),
     )
 
 
@@ -72,6 +97,11 @@ def build_quant_snapshot(
         shares_outstanding=raw.get("shares_outstanding", []),
         buyback_cashflow=raw.get("buyback_cashflow", []),
     )
+    # ebit / interest_expense come from the historical income statement
+    # (latest FY = first non-None, newest-first), not from .info.
+    pit.ebit = _latest_non_none(raw.get("ebit", []))
+    pit.interest_expense = _latest_non_none(raw.get("interest_expense", []))
+
     cov.historical = "complete" if raw.get("complete") else (
         f"partial (<5J, {len(hist.years)}J)")
     fc = raw.get("financial_currency")

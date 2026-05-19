@@ -30,6 +30,18 @@ def _points_with_ratings(ratings):
     return {"points": pts}
 
 
+def test_user_prompt_contains_valuation_block_before_filing_sections():
+    from app.deepdive.synthesis import _build_user_prompt
+
+    prompt = _build_user_prompt(
+        "X", "20-F", {"20-F_item5": "rev"}, _qs())
+    heading = ("## Bewertung & Kapitalstruktur "
+               "(TTM-Stand, ohne historischen 5J-Vergleich)")
+    assert heading in prompt
+    assert prompt.index(heading) > prompt.index("Quant-Snapshot (JSON)")
+    assert prompt.index(heading) < prompt.index("Filing-Sections:")
+
+
 def test_returns_15_fisher_points():
     syn = MagicMock()
     syn.synthesize.return_value = _good_points()

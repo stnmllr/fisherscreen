@@ -6,6 +6,7 @@ import re
 from pydantic import ValidationError
 
 from app.deepdive.fisher_points import FISHER_POINTS
+from app.deepdive.valuation_block import render_valuation_block
 from app.errors import GeminiError
 from app.services.gemini_deepdive_client import DeepDiveSynthesizer
 from app.models.deep_dive_record import FisherPoint, QuantSnapshot
@@ -71,6 +72,7 @@ def _build_user_prompt(
         f"Ticker: {ticker} (Filing-Typ {form_type})\n\n"
         f"Fishers 15 Punkte:\n{titles}\n\n"
         f"Quant-Snapshot (JSON):\n{quant.model_dump_json()}\n\n"
+        f"{render_valuation_block(quant)}\n\n"
         f"Filing-Sections:\n{sec_txt}"
     )
 

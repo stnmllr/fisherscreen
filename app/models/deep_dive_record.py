@@ -49,6 +49,18 @@ class PointInTimeQuant(BaseModel):
     operating_margin: float | None = None
     return_on_equity: float | None = None
     debt_to_equity: float | None = None
+    # Stage 2a — valuation / capital-structure / shareholder-return (TTM)
+    trailing_pe: float | None = None
+    forward_pe: float | None = None
+    enterprise_value: float | None = None
+    ebit: float | None = None
+    free_cashflow: float | None = None
+    total_debt: float | None = None
+    total_cash: float | None = None
+    current_ratio: float | None = None
+    interest_expense: float | None = None
+    dividend_yield: float | None = None
+    payout_ratio: float | None = None
 
 
 class HistoricalSeries(BaseModel):
@@ -92,7 +104,10 @@ class SourceCoverage(BaseModel):
     soft: str = "folgt B.3"
     sprache: str = "folgt B.4"
     insider: str = "folgt B.2"
-    valuation: str = "folgt B.2 (KGV/EV-EBIT/FCF-Yield vs. 5J)"
+    valuation: str = (
+        "TTM vorhanden (KGV/EV-EBIT/FCF-Yield) · 5J-Range zurückgestellt "
+        "(historische EPS-Rekonstruktion)"
+    )
 
 
 class DeepDiveRecord(BaseModel):

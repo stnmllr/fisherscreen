@@ -73,6 +73,34 @@ def test_quant_snapshot_defaults_allow_missing_optional():
     assert qs.gemini_dimensions is None
 
 
+def test_pit_quant_stage2a_valuation_fields_default_none():
+    pit = PointInTimeQuant(ticker="X")
+    for f in ("trailing_pe", "forward_pe", "enterprise_value", "ebit",
+              "free_cashflow", "total_debt", "total_cash", "current_ratio",
+              "interest_expense", "dividend_yield", "payout_ratio"):
+        assert getattr(pit, f) is None
+    pit2 = PointInTimeQuant(
+        ticker="X", trailing_pe=25.0, forward_pe=22.0,
+        enterprise_value=1e12, ebit=2e10, free_cashflow=1.5e10,
+        total_debt=3e9, total_cash=5e9, current_ratio=1.4,
+        interest_expense=-2e8, dividend_yield=0.024, payout_ratio=0.3)
+    assert pit2.trailing_pe == 25.0
+    assert pit2.interest_expense == -2e8
+
+
+def test_pit_quant_still_forbids_extra():
+    with pytest.raises(ValidationError):
+        PointInTimeQuant(ticker="X", bogus=1)
+
+
+def test_source_coverage_valuation_default_is_stage2a():
+    cov = SourceCoverage()
+    assert cov.valuation == (
+        "TTM vorhanden (KGV/EV-EBIT/FCF-Yield) · 5J-Range zurückgestellt "
+        "(historische EPS-Rekonstruktion)")
+    assert "folgt B.2" not in cov.valuation
+
+
 def test_deep_dive_record_roundtrip_and_forbid_extra():
     rec = DeepDiveRecord(
         ticker="NOVO-B.CO", adr_ticker="NVO", cik="0000353278",

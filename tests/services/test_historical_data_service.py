@@ -36,6 +36,48 @@ def test_extracts_five_year_series():
     assert s["buyback_cashflow"] == [-50, -50, -50, -50, -50]
 
 
+def test_extracts_ebit_and_interest_expense_rows():
+    yf = MagicMock()
+    cols = [pd.Timestamp("2024-12-31"), pd.Timestamp("2023-12-31"),
+            pd.Timestamp("2022-12-31")]
+    income = pd.DataFrame({c: {"Total Revenue": 1000, "Gross Profit": 800,
+                               "Operating Income": 400, "EBIT": 420,
+                               "Interest Expense": -30} for c in cols})
+    yf.get_annual_statements.return_value = (
+        income,
+        pd.DataFrame({c: {"Repurchase Of Capital Stock": 0} for c in cols}),
+        pd.DataFrame({c: {"Share Issued": 1} for c in cols}),
+    )
+    yf.get_ticker_info.return_value = {"financialCurrency": "USD"}
+    s = HistoricalDataServiceImpl(yfinance=yf).get_annual_series("X")
+    assert s["ebit"] == [420, 420, 420]
+    assert s["interest_expense"] == [-30, -30, -30]
+
+
+def test_ebit_falls_back_to_operating_income_when_absent():
+    yf = MagicMock()
+    cols = [pd.Timestamp("2024-12-31"), pd.Timestamp("2023-12-31")]
+    income = pd.DataFrame({c: {"Total Revenue": 100, "Gross Profit": 80,
+                               "Operating Income": 44} for c in cols})  # no EBIT
+    yf.get_annual_statements.return_value = (
+        income,
+        pd.DataFrame({c: {"Repurchase Of Capital Stock": 0} for c in cols}),
+        pd.DataFrame({c: {"Share Issued": 1} for c in cols}),
+    )
+    yf.get_ticker_info.return_value = {"financialCurrency": "USD"}
+    s = HistoricalDataServiceImpl(yfinance=yf).get_annual_series("X")
+    assert s["ebit"] == [44, 44]
+
+
+def test_ebit_and_interest_expense_none_filled_when_rows_absent():
+    yf = _yf_with_frames()  # frames have Operating Income but no EBIT/Interest
+    s = HistoricalDataServiceImpl(yfinance=yf).get_annual_series("X")
+    # EBIT falls back to Operating Income
+    assert s["ebit"] == [400, 350, 300, 250, 200]
+    # Interest Expense absent entirely -> None-filled, no crash
+    assert s["interest_expense"] == [None, None, None, None, None]
+
+
 def test_partial_series_when_fewer_years():
     yf = _yf_with_frames()
     cols = [pd.Timestamp("2024-12-31"), pd.Timestamp("2023-12-31")]
