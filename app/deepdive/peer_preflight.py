@@ -115,12 +115,20 @@ def _interactive(
             "Peer-Auswahl nach mehreren Versuchen ungültig — abgebrochen."
         )
 
+    # Reusing the stored default keeps its rationale verbatim — no second
+    # prompt. (Re-prompting here previously clobbered the stored rationale.)
+    if reused_default:
+        return tokens, _clean_rationale(default_rationale)
+
+    # New peers were entered — they deserve their own rationale.
+    if default_rationale is not None:
+        rat_raw = input_fn("Begründung (Enter behält alte Begründung): ")
+        if not rat_raw.strip():
+            return tokens, _clean_rationale(default_rationale)
+        return tokens, _clean_rationale(rat_raw)
+
     rat_raw = input_fn("Begründung (Enter zum Überspringen): ")
-    if not rat_raw.strip() and reused_default:
-        rationale = _clean_rationale(default_rationale)
-    else:
-        rationale = _clean_rationale(rat_raw)
-    return tokens, rationale
+    return tokens, _clean_rationale(rat_raw)
 
 
 def resolve_peers(

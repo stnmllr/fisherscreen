@@ -155,3 +155,65 @@ def test_interactive_new_list_overrides_stored_default():
         input_fn=lambda *_: next(inputs))
     assert [p.ticker for p in pc.peers] == ["JNJ", "ABBV", "PFE"]
     assert pc.rationale == "new reason"
+
+
+# ---- reuse-default must NOT re-prompt for rationale (bug fix) ------------
+
+def test_reuse_default_does_not_reprompt_rationale():
+    """Enter at peer prompt → reuse stored peers AND stored rationale,
+    with NO second prompt. A second input_fn call would StopIteration."""
+    stored = {"peers": ["LLY", "PFE", "MRK"],
+              "rationale": "GOOD",
+              "last_updated": "2026-05-01T00:00:00+00:00"}
+    fs, yf = _fs(stored), _yf()
+    calls = {"n": 0}
+    answers = iter([""])  # exactly one canned answer (peer prompt)
+
+    def _input(*_):
+        calls["n"] += 1
+        return next(answers)  # second call → StopIteration
+
+    pc = resolve_peers(
+        ticker="NVO", peers_arg=None, rationale_arg=None,
+        is_tty=True, firestore=fs, peers_collection=_COLL, yfinance=yf,
+        input_fn=_input)
+    assert [p.ticker for p in pc.peers] == ["LLY", "PFE", "MRK"]
+    assert pc.rationale == "GOOD"
+    assert calls["n"] == 1  # no rationale prompt at all
+
+
+def test_new_peers_prompts_rationale_enter_keeps_old():
+    stored = {"peers": ["LLY", "PFE", "MRK"], "rationale": "OLD",
+              "last_updated": "2026-05-01T00:00:00+00:00"}
+    fs, yf = _fs(stored), _yf(valid=("AAPL", "MSFT", "GOOG"))
+    inputs = iter(["AAPL,MSFT,GOOG", ""])
+    pc = resolve_peers(
+        ticker="NVO", peers_arg=None, rationale_arg=None,
+        is_tty=True, firestore=fs, peers_collection=_COLL, yfinance=yf,
+        input_fn=lambda *_: next(inputs))
+    assert [p.ticker for p in pc.peers] == ["AAPL", "MSFT", "GOOG"]
+    assert pc.rationale == "OLD"  # Enter kept old stored rationale
+
+
+def test_new_peers_prompts_rationale_text_overrides():
+    stored = {"peers": ["LLY", "PFE", "MRK"], "rationale": "OLD",
+              "last_updated": "2026-05-01T00:00:00+00:00"}
+    fs, yf = _fs(stored), _yf(valid=("AAPL", "MSFT", "GOOG"))
+    inputs = iter(["AAPL,MSFT,GOOG", "neue Begründung"])
+    pc = resolve_peers(
+        ticker="NVO", peers_arg=None, rationale_arg=None,
+        is_tty=True, firestore=fs, peers_collection=_COLL, yfinance=yf,
+        input_fn=lambda *_: next(inputs))
+    assert [p.ticker for p in pc.peers] == ["AAPL", "MSFT", "GOOG"]
+    assert pc.rationale == "neue Begründung"
+
+
+def test_new_peers_no_stored_rationale_enter_skips():
+    fs, yf = _fs(None), _yf(valid=("AAPL", "MSFT", "GOOG"))
+    inputs = iter(["AAPL,MSFT,GOOG", ""])
+    pc = resolve_peers(
+        ticker="NVO", peers_arg=None, rationale_arg=None,
+        is_tty=True, firestore=fs, peers_collection=_COLL, yfinance=yf,
+        input_fn=lambda *_: next(inputs))
+    assert [p.ticker for p in pc.peers] == ["AAPL", "MSFT", "GOOG"]
+    assert pc.rationale is None
