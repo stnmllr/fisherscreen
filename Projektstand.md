@@ -128,7 +128,17 @@ Wichtig: Portfolio Hold-Check (V3 Abschnitt 4.3) ist konzeptionell Tool A, aber 
 **Universe**: 1.389 Ticker (S&P 500 + S&P 400 + STOXX Europe 600) in `data/universe.json` ✅
 **Erster Output**: Top-Crosshit NOVO-B.CO (Score 4.6, alle 5 Dimensionen), 50 Crosshit-Kandidaten aus 160 Vorfilter-Tickern.
 **Nächster Lauf**: 2026-06-01 03:00 UTC (automatisch via Cloud Scheduler)
-**Tool B (Deep Dive)**: B.0 + B.1 auf `main` (`36818af`, gepusht). CLI lokal `uv run python -m app.deepdive deepdive <TICKER>` (SOPRA-EPDR: kein `.exe`-Shim). Default-Synthesis `gemini-2.5-pro`. **Synthesis-Härtung Stufe 1 implementiert** (Branch `feature/synthesis-prompt-hardening-stage1`, `0b47d66`): erster Novo-Lauf war technisch ok, aber inhaltlich nicht produktionsreif (Sterne-Inflation 67% ⭐⭐⭐⭐⭐, Wettbewerb/Lilly fehlt, P2≈P3, kein Bear-Case, Confidence-Inflation). Stufe 1 = reine Prompt-Härtung + warn-only-Verteilungs-Validator, kein neuer Datenkontext. Suite 362 grün / 95.84%. **NOVO-B.CO-Re-Run + Stephan-Gate 2026-05-19 bestanden** (alle 6 Erfolgskriterien erfüllt: 4/15 ⭐⭐⭐⭐⭐, 5/15 ≤⭐⭐⭐, Lilly namentlich in 6 Punkten, P2≠P3, Bear-Wort in 14/15, Cite-Downgrades stabil bei 6) → Branch nach `main` gemergt. **Stufe 2 läuft** (Diagnose+Plan freigegeben, Reihenfolge 2a→2b→2d→2c — gleiche Touch-Points clustern): **2a + Stufe 1.5 implementiert** auf Branch `feature/deepdive-stage2a-valuation` (`20bf2fc` 2a, `6bda5d1` 1.5, strikt TDD, 388 grün / 96.07%). 2a inhaltlich freigegeben (FCF-Yield -0,9%, Current Ratio 0,8, D/E 72,1 jetzt sichtbar). Zwischen-Re-Run deckte Cite-Format-Regression auf (Modell zitierte `[20-F_item5]` statt `[20-F §5]` → Anti-Halluzinations-Layer umgangen, 0 statt ~6 Downgrades, ~20 „not validatable"); behoben via **Stufe 1.5 / Option 2** (Wurzel-Fix: Filing-Header `### 20-F §5` statt `### 20-F_item5`, kein Layer-/Prompt-Eingriff). Re-Run bestätigt: 11 §-Cites, 0 Underscore, 0 „not validatable", 6 Downgrades zurück, Bewertungsblock unverändert. **2a+1.5 nach `main` gemergt** (Merge `935c378`, 5 Commits vor `origin/main`, Push durch Stephan ausstehend). **2b (Konsens + Forward-Estimates) implementiert** auf Branch `feature/deepdive-stage2b-consensus` (`b94afd0`, strikt TDD, 413 grün / 96.19%): liefert die zwei fehlenden Investment-Anker — `Analyst Consensus: hold · Target 307,99 (Median 295) · 23 Analysten · Upside +2,9%` und `Forward-Konsens: Revenue -5,8% (lfd. GJ), +2,6% (Folge-GJ) · EPS -8,6% (lfd. GJ)` (negatives Forward-Wachstum bestätigt die ursprüngliche P1-Kritik). Bewusste Abweichung: generische Periodenlabel `lfd. GJ`/`Folge-GJ` statt fabrizierter `FY26e` (yfinance ohne verlässliches Kalenderjahr-Mapping, Honest-Label-Präzedenz 2a). P13-Tracking: Catalent-Schulden-Bear-Case **zurück** (2b-Run: ⭐⭐⭐⭐ 🟡 [Inferenz], „Akquisitionen maßgeblich schuldenfinanziert, belastet die Bilanz") — aber harte Zahl (D/E 72,1) noch nicht im Text zitiert (Kriterium 6 offen, run-variabel, Folge-Nudge nach voller Stufe 2). **2b nach Dossier-Review freigegeben + nach `main` gemergt** (Merge nach `935c378`, `main` 3 Commits vor `origin/main`, Push durch Stephan ausstehend). Cite-Layer × neue Sub-Item-Form `§5 D` forensisch verifiziert: **harmlos** (`\w+` stoppt am Space → Item-Level-Key `20-F_item5` ∈ sent → korrekt validiert; `§6 A` weiter korrekt zu `[Inferenz]`). Latente Kante: No-Space-Form `§5D` → `\w+` greift `5D` → False-Collapse; nicht aktiv (Modell schreibt konsistent Space-Form), als optionale **1.5.1** (`\w+`→`\d+`) getrackt. **Reihenfolge angepasst: 2c vor 2d** (Stephan-Entscheidung — Peer-Vergleich komplettiert das Bewertungsbild, wichtigste Lieferung). **2c (Peer-Vergleich, interaktiver Pre-Flight) implementiert** auf Branch `feature/deepdive-stage2c-peers` (strikt TDD, 438 grün / 96.39%): Peer-Tabelle (NOVO P/E 10,9 vs. LLY 35,1/PFE 19,3/MRK 31,7) komplettiert die Bewertungs-Triangulation; P5 zitiert jetzt quantitativ LLY-Op-Margin 49,4% (Kriterium 7), P13 erstmals „D/E 72" (Kriterium 6). Cite-Format stabil (12 §, 0 „not validatable", 6 Downgrades). **1.5.2 abgeschlossen** (Reihenfolge 3→1→2→4): Debug-Instrumentierung restlos entfernt, Cite-Fix `\w+`→`\d+` (`52be897`), Peer-Pre-Flight-Dialog-Fix (`7fbe986`), 450 grün / 96.39%; Verifikations-Re-Run sauber (6/15 Downgrades, 0 „not validatable"). **Zwei neue getrackte Befunde:** EBIT-Stale-Cache (pre-2a `historical`-Cache ohne `ebit`/`interest_expense` → EV/EBIT + Interest-Coverage `n/a (EBIT fehlt)` bei Cache-Läufen) und 70-Wort-Reasoning-Hart-Abbruch (Gemini >70 Wörter → `FisherPoint`-`ValidationError`→`GeminiError`, Exit-3, ganzer Lauf tot). **2c+1.5.2 nach `main` gemergt + von Stephan gepusht** (Merge `f6f7512`, `origin/main` synchron). **2d (Vintage/filing_date) implementiert** auf Branch `feature/deepdive-stage2d-vintage` (`8b35431`, strikt TDD, 466 grün / 96.43%, reader-facing only): Frontmatter `filing_date/quant_date/days_since_filing` + Body-Vintage-Zeile. Verifikations-Re-Run (`--no-cache`) sauber: erstes **vollständiges Memo-Dossier** (filing_date 2026-02-04, 104 Tage, EV/EBIT 10,8 + Interest Coverage 32,0× via Cache-Umgehung, 7/15 Downgrades, 0 not-validatable, alle 2a/2b/2c-Blöcke + Vintage). **Stufe 2 inhaltlich komplett** (2a+2b+2c+2d, alle Erfolgskriterien). **Merge-Freigabe 2d ausstehend.**
+**Tool B (Deep Dive)** — CLI lokal `uv run python -m app.deepdive deepdive <TICKER>` (SOPRA-EPDR: `python -m`), Default-Synthesis `gemini-2.5-pro`.
+
+- **Stufe 1** (Prompt-Härtung + warn-only-Verteilungs-Validator) ✅ auf `main`.
+- **Stufe 2 abgeschlossen** ✅ auf `main` (Merge `9bc4e4c`, gepusht, 466 grün / 96.43%):
+  - **2a** TTM-Bewertung + Kapitalstruktur + Shareholder-Yield (P/E, EV/EBIT, FCF-Yield, D/E, Interest Coverage, TSY)
+  - **2b** Analystenkonsens + Forward-Estimates (hold-Konsens, Upside, Forward Rev/EPS)
+  - **2c** Interaktiver Peer-Pre-Flight + Peer-Vergleichstabelle (Triangulation)
+  - **2d** Filing-Vintage (Frontmatter + Body: filing_date/quant_date/days_since_filing)
+  - **1.5/1.5.2** Cite-Layer-Wurzel-Fixes (Header-Kongruenz `### 20-F §N` + `\d+`-Capture, byte-verifiziert)
+- Erstes **vollständiges Memo-Dossier** verifiziert (NOVO-B.CO, `--no-cache`): alle Blöcke + Vintage, 7/15 korrekte Downgrades, 0 not-validatable.
+- Detail-Historie je Teilstufe: `## Erledigt` (2026-05-19). Nächste Arbeit: Tool-B-Active-Backlog.
 
 ## Erledigt
 
@@ -322,9 +332,17 @@ Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00
 
 **Tool B — Active:**
 
-- [x] **B.0 + B.1 implementiert** ✅ (2026-05-18) — siehe Erledigt; auf `main` gepusht.
-- [ ] **B.1 Akzeptanz-Gate (Stephan)** — `uv run python -m scripts.acceptance_deepdive` (echter Novo-Lauf: EDGAR 20-F + Firestore + yfinance + Gemini Pro), Dossier beurteilen → „entscheidungs-nützlich" (B.2) oder „Synthesis/Struktur retunen". Exit-Kriterium-Analog zu Phase-1.
-- [ ] **B.2 Vor-Brainstorm** — erst nach B.1-Akzeptanz. Scope: Hard-Scuttlebutt-Breite + EU-Voll-Abdeckung, dynamische ADR-Resolution (OpenFIGI/SEC-Search), IR-PDF-Fallback, 10-Q + Insider (Form 4 / MAR Art. 19), **valuation-Multiples** (§6, aus B.1 verschoben), Gemini **`response_schema`** (aus E2 verschoben), DOM-aware Filing-Parser, historical-cache→GCS falls HTTP-Phase.
+- [x] B.0 + B.1 ✅ (2026-05-18) · B.1-Akzeptanz-Gate ✅ — Synthesis nicht-produktionsreif → Stufe 1 + Stufe 2
+- [x] **Stufe 1** (Prompt-Härtung) ✅ · **Stufe 2** (2a/2b/2c/2d + 1.5/1.5.2) ✅ — alle auf `main`
+
+Backlog (priorisiert, 2026-05-19):
+
+- [ ] **1. EBIT-Stale-Cache** — Schema-Versions-Key im `historical_cache`; invalidiert pre-2a-Caches (sonst still `EV/EBIT`/`Interest Coverage` = `n/a` bei Cache-Läufen, nur `--no-cache` korrekt)
+- [ ] **2. Stufe 1.6 Synthesis-Prompt** — P13/Vintage-Nudge (Gemini soll FCF-Yield/Filing-Alter explizit nutzen); 70-Wort-Reasoning **Fail-Soft statt Hart-Exit-3** (aktuell killt 1 zu langer Punkt den ganzen Lauf)
+- [ ] **3. Test-Isolation** — einige Tests schreiben echte Dossiers/Changes ins reale `output/` statt `tmp_path`
+- [ ] **4. Marker-Normalizer** — `[[Marktkontext]]`-Doppelklammer, `[historical_series]` (kosmetische Modell-Drift)
+- [ ] **5. Filing-Parser-Mehrfach-Anker** — Item 4/5/18 „N candidate anchors" (großes, lang ausgeklammertes Thema)
+- [ ] **B.2 Vor-Brainstorm** — nach 1.6/Hygiene-Runde. Scope: Hard-Scuttlebutt-Breite, EU-Voll-Abdeckung, dyn. ADR-Resolution (OpenFIGI/SEC), IR-PDF-Fallback, 10-Q+Insider, 5J-Bewertungs-Range (B.2.1), `response_schema` (E2), DOM-Filing-Parser, historical-cache→GCS
 
 ## Offene Punkte (nicht-blockierend)
 
@@ -485,6 +503,27 @@ Gemini-Lauf) wurde erst vom abschließenden End-to-End-Review über den ganzen
 Branch gefunden. Bei mehrteiligen Plänen den finalen Whole-Diff-Review nie
 überspringen — einzige Stelle, die Seam-übergreifende Contract-Lücken sieht.
 
+### v) Diagnose→Plan→Freigabe→Verifikation pro Teilstufe als Arbeitsmuster
+
+Stufe 1/2 durchgängig: jede Teilstufe einzeln (eigener Branch, isolierter
+Commit), Re-Run nach jeder. Zahlt sich messbar aus — der Cite-Format-15/15-
+Bug wäre in einem Big-Bang-Merge unauffindbar gewesen; durch identischen
+Code in zwei Zwischen-Läufen (6/15 vs. 15/15) war er sofort eingrenzbar.
+Regel: bei LLM-Output-Pipelines nie mehrere Datenkontext-Änderungen ohne
+Zwischen-Re-Run bündeln — sonst ist „besseres/schlechteres Dossier" nicht
+einer Ursache zuordenbar.
+
+### w) Cite-Layer-Pattern: Header-Kongruenz + `\d+`-Capture bei LLM-Filing-Cites
+
+Zwei orthogonale Wurzeln, beide nötig: (1) der **modell-sichtbare** Section-
+Header muss exakt das erwartete Cite-Format sein (`### 20-F §5`, nicht
+`### 20-F_item5`) — sonst spiegelt das Modell die Key-Form und die Regex
+matcht nicht (1.5). (2) Die Capture-Klasse extrahiert **nur** die numerische
+Item-Nr (`\d+`, nicht `\w+`) — sonst schluckt sie Sub-Buchstaben der
+nichtdeterministischen No-Space-Form `§4B` in den Key (1.5.2). „0 Downgrades"
+und „N/N Downgrades" sind beide Alarmsignale — zuerst prüfen, *ob die Regex
+überhaupt matcht* (Byte-Boundary-Probe gegen echte Code-Objekte).
+
 ## GCP-Infrastruktur (Stand 2026-05-16)
 
 | Ressource | Wert |
@@ -529,6 +568,9 @@ Branch gefunden. Bei mehrteiligen Plänen den finalen Whole-Diff-Review nie
 | 2026-05-18 | §6-Bewertungsratios (KGV/EV-EBIT/FCF-Yield vs. 5J) → B.2; in B.1 als ehrlicher source_coverage-Gap markiert | B.1-Akzeptanz = Synthesis-Qualität; echte Multiples = Daten-Breite/B.2-Scope; §2.7 statt stillem Drop | B.1-Dossier ohne Bewertungs-Multiples — bewusst, sichtbar getrackt |
 | 2026-05-18 | `pyproject.toml` `dev` → PEP-735 `[dependency-groups]` + `[tool.uv] default-groups=["dev"]` | CLAUDE.md-`uv run python -m pytest` lief sonst nicht (pytest nicht default-installiert: „No module named pytest") | Production-Build muss `--no-default-groups`, sonst pytest im Image |
 | 2026-05-18 | Filing-Parser: Line-Start-Anker + Dotted-Leader-TOC-Skip statt „last-anchor-wins" | „last-wins" wird von Mid-Sentence-Cross-Refs („see Item 5 above") besiegt → still falsche Sections (Fail-Loud-Verstoß) | Flatten-Fixtures brauchen Any-Position-Fallback; DOM-aware = B.2 |
+| 2026-05-19 | Cite-Layer: Wurzel-Fix (`\w+`→`\d+`, Header-Kongruenz `### 20-F §N`) statt Symptom-Patch (Normalizer vor dem Layer) | LLM-Output ist nichtdeterministisch; ein Normalizer backt Format-Drift als Dauerkrücke ein. Wurzel schließt den Drift-Vektor permanent, byte-verifiziert | Erfordert Forensik (instrumentierter Lauf) statt Schnellfix — teurer im Moment, billiger über Zeit |
+| 2026-05-19 | Stufe 2 in isolierten TDD-Teilstufen (2a–2d + Cite-Fixes), je eigener Branch/Commit-Cluster, Rhythmus Diagnose→Plan→Freigabe→Verifikation | Isolierter Effekt pro Zwischen-Re-Run sichtbar (Kalibrierung); Regression sofort einer Teilstufe zuordenbar; jede einzeln mergebar/rollbackbar | Mehr Merge-/Review-Overhead; Zwischen-Re-Runs kosten Gemini-Pro-Calls |
+| 2026-05-19 | Honest-Label-Abweichungen statt Mockup-treuem „Schlucken" (`lfd. GJ` statt `FY26e`; `Rev-Growth (yoy)` statt „5J"; `n/a (<Grund>)`; `Ø 4J Buyback`) | yfinance liefert kein verlässliches Kalenderjahr-/5J-Peer-Mapping; erfundene Genauigkeit ist in einer Investment-Memo gefährlicher als eine sichtbare Lücke | Dossier weicht vom freigegebenen Mockup ab — bewusst, dokumentiert, vom PO bestätigt |
 
 ## Parallele Projekte
 
