@@ -37,6 +37,7 @@ fisherscreen = "app.deepdive.__main__:main"
 addopts = "--cov=app --cov-report=term-missing --cov-fail-under=90"
 markers = [
     "integration: integration tests requiring real APIs",
+    "allow_output_write: opt-in marker for tests that intentionally write to the real output/ directory (rare, e.g. integration smoke tests). Caller is responsible for cleanup.",
 ]
 
 [tool.coverage.run]
