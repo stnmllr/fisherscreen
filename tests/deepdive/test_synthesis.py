@@ -200,7 +200,7 @@ def test_system_prompt_contains_hardening_anchors():
         "ABGRENZUNG",
         "BEAR-CASE-PFLICHT",
         "WETTBEWERB",
-        "[Marktkontext]",
+        "markiere Marktkontext",
         "Erfinde keine Konkurrenznamen",
         "🟢 NUR",
         '"points":[{"number":int',
@@ -315,3 +315,25 @@ def test_non_section_filing_string_still_hits_not_validatable(caplog):
         out = _validate_sources(["20-F item5"], "20-F", _SENT)
     assert out == ["20-F item5"]
     assert "not validatable" in caplog.text
+
+
+def test_system_prompt_documents_source_format_without_brackets():
+    """Source-Marker im Prompt-Beispiel dürfen keine eckigen Klammern enthalten.
+    Sonst landet ein bracketsiertes Source-Token in `sources`, das der
+    dossier-generator nochmal mit `[...]` wrappt -> `[[...]]`-Drift im Output.
+    Anti-Regression auf Punkt 4 (Marker-Drift)."""
+    from app.deepdive.synthesis import _SYSTEM_PROMPT
+
+    assert "'[yfinance" not in _SYSTEM_PROMPT
+    assert "'[Marktkontext" not in _SYSTEM_PROMPT
+
+
+def test_system_prompt_contains_p13_fcf_yield_nudge():
+    """P13 (Wachstum ohne Verwässerung) muss FCF-Yield und Shares-Outstanding
+    explizit als Schlüssel-Indikatoren nennen, und n/a-Werte verlangen eine
+    aktive Begründung statt einer Floskel."""
+    from app.deepdive.synthesis import _SYSTEM_PROMPT
+
+    assert "FCF-Yield" in _SYSTEM_PROMPT
+    assert "Shares-Outstanding" in _SYSTEM_PROMPT
+    assert "n/a" in _SYSTEM_PROMPT
