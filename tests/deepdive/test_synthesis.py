@@ -337,3 +337,22 @@ def test_system_prompt_contains_p13_fcf_yield_nudge():
     assert "FCF-Yield" in _SYSTEM_PROMPT
     assert "Shares-Outstanding" in _SYSTEM_PROMPT
     assert "n/a" in _SYSTEM_PROMPT
+
+
+def test_system_prompt_documents_hard_cap_five_stars():
+    """VERTEILUNG-Block muss einen nicht-verhandelbaren Hard-Cap auf
+    5 von 15 Punkten mit ⭐⭐⭐⭐⭐ benennen. Begründung: 2a.1-Verifikation
+    zeigte 6/15 in GOOGL und ASML trotz "höchstens 4"-Heuristik im Prompt."""
+    from app.deepdive.synthesis import _SYSTEM_PROMPT
+
+    assert "HARTER CAP" in _SYSTEM_PROMPT
+    assert "MAXIMAL 5" in _SYSTEM_PROMPT
+
+
+def test_system_prompt_top_note_requires_relative_superiority():
+    """Jeder ⭐⭐⭐⭐⭐-Punkt muss im reasoning konkret nennen, gegenüber
+    welchem Konkurrenten oder Branchen-Standard die Überlegenheit belegt
+    ist — Anti-Inflations-Reibung. Reichweite/absolute Zahl reicht nicht."""
+    from app.deepdive.synthesis import _SYSTEM_PROMPT
+
+    assert "gegenüber welchem Konkurrenten" in _SYSTEM_PROMPT
