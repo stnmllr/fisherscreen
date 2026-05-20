@@ -8,7 +8,9 @@ from app.deepdive.historical_cache import CachedHistoricalData
 def _series():
     return {"financial_currency": "DKK", "years": [2024, 2023, 2022],
             "revenue": [1, 2, 3], "gross_margin": [0.8, 0.8, 0.8],
-            "operating_margin": [0.4, 0.4, 0.4], "shares_outstanding": [9, 9, 9],
+            "operating_margin": [0.4, 0.4, 0.4],
+            "ebit": [0.4, 0.8, 1.2], "interest_expense": [0.05, 0.04, 0.03],
+            "shares_outstanding": [9, 9, 9],
             "buyback_cashflow": [-1, -1, -1], "complete": True}
 
 
@@ -59,3 +61,55 @@ def test_corrupt_cache_treated_as_miss(tmp_path):
     (tmp_path / "X.json").write_text("{ corrupt", encoding="utf-8")
     cd.get_annual_series("X")
     assert svc.get_annual_series.call_count == 2
+
+
+def test_v2_cache_hit_skips_service(tmp_path):
+    """Round-trip: first call writes a v2-tagged cache, second call hits.
+    Asserts (a) service called exactly once and (b) the persisted payload
+    declares a schema_version key — without the tag, a future code reload
+    would treat it as v1 and refetch, defeating the cache."""
+    cd, svc = _cd(tmp_path)
+    cd.get_annual_series("X")
+    cd.get_annual_series("X")
+
+    assert svc.get_annual_series.call_count == 1
+    persisted = json.loads((tmp_path / "X.json").read_text(encoding="utf-8"))
+    assert "schema_version" in persisted
+
+
+def test_write_includes_schema_version(tmp_path):
+    """Direct write-path inspection: persisted payload's schema_version
+    equals the integer 2 (current value). Pre-implementation rot via KeyError."""
+    cd, svc = _cd(tmp_path)
+    cd.get_annual_series("X")
+    persisted = json.loads((tmp_path / "X.json").read_text(encoding="utf-8"))
+    assert persisted["schema_version"] == 2
+
+
+def test_pre_v2_cache_treated_as_miss(tmp_path):
+    """Pre-v2 cache files (no schema_version, may miss ebit/interest_expense)
+    must be treated as cache miss and lazy-refreshed with current schema."""
+    from app.deepdive.historical_cache import CACHE_SCHEMA_VERSION
+
+    cd, svc = _cd(tmp_path)
+    pre_v2_payload = {
+        "_cached_at": datetime.now(timezone.utc).isoformat(),
+        "financial_currency": "DKK",
+        "series": {
+            "financial_currency": "DKK",
+            "years": [2024, 2023, 2022],
+            "revenue": [1, 2, 3],
+            "gross_margin": [0.8, 0.8, 0.8],
+            "operating_margin": [0.4, 0.4, 0.4],
+            "shares_outstanding": [9, 9, 9],
+            "buyback_cashflow": [-1, -1, -1],
+            "complete": True,
+        },
+    }
+    (tmp_path / "X.json").write_text(json.dumps(pre_v2_payload), encoding="utf-8")
+
+    cd.get_annual_series("X")
+
+    svc.get_annual_series.assert_called_once_with("X")
+    refreshed = json.loads((tmp_path / "X.json").read_text(encoding="utf-8"))
+    assert refreshed.get("schema_version") == CACHE_SCHEMA_VERSION

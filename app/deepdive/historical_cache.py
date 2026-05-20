@@ -9,6 +9,11 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# Bump bei jedem Schema-Change (Add/Remove/Rename eines im Read-Pfad
+# genutzten series-Feldes). Lese-Pfad behandelt jeden Mismatch (!=) als
+# Cache-Miss → lazy refetch + Re-Write mit aktueller Version.
+CACHE_SCHEMA_VERSION = 2
+
 
 def _load_payload(path: Path) -> dict:
     """Missing OR corrupt/schema-wrong cache file -> empty (cache miss, WARNING),
@@ -25,7 +30,18 @@ def _load_payload(path: Path) -> dict:
             exc,
         )
         return {}
-    return data if isinstance(data, dict) and "series" in data else {}
+    if not (isinstance(data, dict) and "series" in data):
+        return {}
+    cached_version = data.get("schema_version", 1)
+    if cached_version != CACHE_SCHEMA_VERSION:
+        logger.info(
+            "historical cache: schema v%s (need v%s) for %s — refetching",
+            cached_version,
+            CACHE_SCHEMA_VERSION,
+            path.name,
+        )
+        return {}
+    return data
 
 
 def _write_atomic(path: Path, payload: dict) -> None:
@@ -58,6 +74,7 @@ class CachedHistoricalData:
                 path,
                 {
                     "_cached_at": datetime.now(timezone.utc).isoformat(),
+                    "schema_version": CACHE_SCHEMA_VERSION,
                     "financial_currency": series.get("financial_currency"),
                     "series": series,
                 },
