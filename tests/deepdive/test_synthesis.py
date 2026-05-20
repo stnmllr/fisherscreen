@@ -126,12 +126,33 @@ def test_points_14_15_confidence_code_enforced_red():
 def test_model_violating_point_maps_to_geminierror():
     syn = MagicMock()
     data = _good_points()
-    data["points"][0]["reasoning"] = " ".join(["w"] * 71)  # exceeds 70-word cap
+    data["points"][0]["rating"] = 6  # out of range (1..5) -> hard contract violation
     syn.synthesize.return_value = data
     with pytest.raises(GeminiError, match="violates the contract"):
         run_synthesis(
             ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
             quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+
+
+def test_run_synthesis_no_exception_on_long_reasoning():
+    """Integration-level bug repro for Punkt 2b: when one of the 15 points has
+    a reasoning longer than 70 words, run_synthesis must NOT raise GeminiError
+    (previous behavior killed the whole dossier). Instead, the overshooting
+    reasoning is truncated by the FisherPoint validator and the run delivers
+    all 15 points."""
+    syn = MagicMock()
+    data = _good_points()
+    # One point with 100-word reasoning, no sentence boundary
+    data["points"][0]["reasoning"] = " ".join(["w"] * 100)
+    syn.synthesize.return_value = data
+
+    pts = run_synthesis(
+        ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
+        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+
+    assert len(pts) == 15
+    content = pts[0].reasoning.replace(" […]", "")
+    assert len(content.split()) <= 70
 
 
 def test_star_inflation_logs_warning(caplog):

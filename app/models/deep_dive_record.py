@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from datetime import date, datetime, timezone
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+logger = logging.getLogger(__name__)
 
 Confidence = Literal["🟢", "🟡", "🔴"]
 
@@ -18,12 +21,31 @@ class FisherPoint(BaseModel):
     reasoning: str
     sources: list[str] = Field(min_length=1)
 
+    # Transforms (not rejects) — prevents run-killing on minor word-count overshoot.
     @field_validator("reasoning")
     @classmethod
     def _reasoning_word_cap(cls, v: str) -> str:
-        if len(v.split()) > 70:
-            raise ValueError("reasoning exceeds 70-word cap")
-        return v
+        words = v.split()
+        if len(words) <= 70:
+            return v
+        truncated = " ".join(words[:70])
+        last_boundary = max(
+            truncated.rfind(". "),
+            truncated.rfind("! "),
+            truncated.rfind("? "),
+        )
+        if last_boundary > 0:
+            truncated = truncated[: last_boundary + 1]
+            boundary_mode = "sentence"
+        else:
+            truncated = truncated + " […]"
+            boundary_mode = "hard-cut+ellipsis"
+        logger.warning(
+            "FisherPoint.reasoning truncated from %d words (boundary: %s)",
+            len(words),
+            boundary_mode,
+        )
+        return truncated
 
     @model_validator(mode="after")
     def _inference_only_caps_confidence(self) -> FisherPoint:

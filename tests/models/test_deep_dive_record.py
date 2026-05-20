@@ -48,14 +48,55 @@ def test_fisher_point_sources_not_empty():
         _valid_point(sources=[])
 
 
-def test_fisher_point_reasoning_word_cap_70():
-    with pytest.raises(ValidationError):
-        _valid_point(reasoning=" ".join(["w"] * 71))
-
-
 def test_fisher_point_reasoning_exactly_70_words_accepted():
     p = _valid_point(reasoning=" ".join(["w"] * 70))
     assert len(p.reasoning.split()) == 70
+
+
+def test_fisher_point_reasoning_truncates_overshoot():
+    """71-word reasoning is truncated, NOT rejected. Fail-soft: prevents one
+    overshooting point from killing the whole synthesis run. The ellipsis
+    marker '[…]' is a signal, not a content word — strip before counting."""
+    p = _valid_point(reasoning=" ".join(["w"] * 71))
+    content = p.reasoning.replace(" […]", "")
+    assert len(content.split()) <= 70
+
+
+def test_fisher_point_reasoning_truncate_uses_sentence_boundary():
+    """When the first 70 words contain a sentence boundary (. ! ?), truncate
+    there for a clean cut. 70-word window has 'Foo. Bar.' at words 3-5 then
+    a long tail -> truncated output ends at 'Foo. Bar.'"""
+    # Build: "Foo. Bar. " then 200 filler words after — boundary lives in
+    # the first 70 words, must be honored.
+    head = "Foo. Bar. "
+    tail = " ".join(["w"] * 200)
+    p = _valid_point(reasoning=head + tail)
+    assert p.reasoning.endswith(".")
+    assert "[…]" not in p.reasoning
+    assert "Bar." in p.reasoning
+
+
+def test_fisher_point_reasoning_truncate_falls_back_to_ellipsis():
+    """When the first 70 words contain NO sentence boundary, fall back to
+    hard-cut plus ellipsis marker ' […]' so the dossier reader sees that
+    truncation happened."""
+    p = _valid_point(reasoning=" ".join(["w"] * 100))  # no '.', '!', '?'
+    assert p.reasoning.endswith(" […]")
+
+
+def test_fisher_point_reasoning_truncate_logs_warning(caplog):
+    """Truncation emits a WARNING from app.models.deep_dive_record with the
+    original word count and a substring identifying the event."""
+    import logging
+    with caplog.at_level(logging.WARNING, logger="app.models.deep_dive_record"):
+        _valid_point(reasoning=" ".join(["w"] * 95))
+    assert any(
+        r.levelname == "WARNING"
+        and r.name == "app.models.deep_dive_record"
+        and "truncated" in r.message.lower()
+        and "95" in r.message
+        for r in caplog.records
+    )
 
 
 def test_fisher_point_inference_only_caps_confidence_to_yellow():
