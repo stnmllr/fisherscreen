@@ -70,6 +70,7 @@ def run_deep_dive(
         quant=quant,
         synthesizer=synthesizer,
         max_input_tokens=token_cap,
+        filing_date=raw.filing_date,
     )
 
     record = DeepDiveRecord(

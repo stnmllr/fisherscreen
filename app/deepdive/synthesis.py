@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import date
 
 from pydantic import ValidationError
 
@@ -12,6 +13,12 @@ from app.services.gemini_deepdive_client import DeepDiveSynthesizer
 from app.models.deep_dive_record import FisherPoint, QuantSnapshot
 
 logger = logging.getLogger(__name__)
+
+
+def _today() -> date:
+    """Return today's date. Indirection makes synthesis-time date patchable in tests."""
+    return date.today()
+
 
 _SECTION_CITE_RE = re.compile(r"(10-K|20-F)\s*§\s*(\d+[A-Z]?)", re.IGNORECASE)
 
@@ -88,18 +95,43 @@ def _section_label(key: str) -> str:
     return key.replace("_item", " §", 1)
 
 
+def _format_vintage_line(filing_date: str | None) -> str:
+    """Render the compact filing-vintage anchor for the synthesis prompt.
+
+    Format (valid date): 'Filing-Stand: YYYY-MM-DD (vor N Tagen)'
+    Format (missing/unparseable): 'Filing-Stand: unbekannt'
+
+    Days are computed at call-time via _today() so the value is always
+    current and patchable in tests.
+    """
+    if filing_date is None:
+        return "Filing-Stand: unbekannt"
+    try:
+        parsed = date.fromisoformat(filing_date)
+    except ValueError:
+        return "Filing-Stand: unbekannt"
+    days = (_today() - parsed).days
+    return f"Filing-Stand: {filing_date} (vor {days} Tagen)"
+
+
 def _build_user_prompt(
-    ticker: str, form_type: str, sections: dict[str, str], quant: QuantSnapshot
+    ticker: str,
+    form_type: str,
+    sections: dict[str, str],
+    quant: QuantSnapshot,
+    filing_date: str | None = None,
 ) -> str:
     titles = "\n".join(f"{n}. {t}" for n, t in FISHER_POINTS)
     sec_txt = "\n\n".join(
         f"### {_section_label(k)}\n{v}" for k, v in sections.items()
     ) or "(keine Filing-Sections extrahiert)"
+    vintage = _format_vintage_line(filing_date)
     return (
         f"Ticker: {ticker} (Filing-Typ {form_type})\n\n"
         f"Fishers 15 Punkte:\n{titles}\n\n"
         f"Quant-Snapshot (JSON):\n{quant.model_dump_json()}\n\n"
         f"{render_valuation_block(quant)}\n\n"
+        f"{vintage}\n\n"
         f"Filing-Sections:\n{sec_txt}"
     )
 
@@ -112,9 +144,10 @@ def run_synthesis(
     quant: QuantSnapshot,
     synthesizer: DeepDiveSynthesizer,
     max_input_tokens: int,
+    filing_date: str | None = None,
 ) -> list[FisherPoint]:
     system = _SYSTEM_PROMPT
-    user = _build_user_prompt(ticker, form_type, sections, quant)
+    user = _build_user_prompt(ticker, form_type, sections, quant, filing_date)
     data = synthesizer.synthesize(system, user, max_input_tokens)
 
     raw_points = data.get("points", [])
