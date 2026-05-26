@@ -2,7 +2,7 @@
 title: Punkt 5 — Filing-Parser (Anchor-Tracing)
 status: Entwurf 4 (Plan-akzeptanz-reif)
 created: 2026-05-21
-last_updated: 2026-05-21
+last_updated: 2026-05-26
 diagnostic_base:
   - docs/superpowers/diagnostic-reports/ (Diagnose-Phase, drei Runden — Original + E1/E2/E3 + E1.1)
 plan_phase_discussion: in this conversation (Plan-Phase Punkt 5, Entwurf 0 → 1 → 2)
@@ -174,7 +174,12 @@ def resolve_anchors(raw_html: str) -> list[AnchorMatch]:
           m = _ITEM_RE.match(excerpt)
           if not m:
               continue
+          # Position-Lookup mirrors the symmetric Target-Lookup above
+          # (id OR name): the name fallback is required for the HTML4
+          # <a name="..."> convention (test_anchor_resolver_old_a_name_convention).
           pos = raw_html.find(f'id="{tid}"')
+          if pos < 0:
+              pos = raw_html.find(f'name="{tid}"')
           if pos < 0:
               continue
           matches.append(
@@ -272,6 +277,40 @@ def resolve_anchors(raw_html: str) -> list[AnchorMatch]:
       result = resolve_anchors(html)
       assert len(result) == 1
       assert result[0].item_label == "1"
+
+  def test_anchor_resolver_target_with_direct_text():
+      html = (
+          "<html><body>"
+          '<a href="#sec1">Item 1.</a>'
+          '<div id="sec1">ITEM 1. BUSINESS overview text</div>'
+          "</body></html>"
+      )
+      result = resolve_anchors(html)
+      assert len(result) == 1
+      assert result[0].item_label == "1"
+      assert "ITEM 1" in result[0].next_text_excerpt.upper()
+
+  def test_anchor_resolver_href_without_matching_target():
+      html = (
+          "<html><body>"
+          '<a href="#nonexistent">Item 1.</a>'
+          "<p>ITEM 1. some text without anchor target</p>"
+          "</body></html>"
+      )
+      assert resolve_anchors(html) == []
+
+  def test_anchor_resolver_single_quote_id_position_mismatch():
+      # BS4 finds the target (re-serialising attribute quotes as double-quote),
+      # but the raw_html keeps the original single-quotes. Both id="..." and
+      # name="..." position-lookups miss → match is discarded. Defensive guard
+      # against attribute-quote / entity edge cases in non-canonical HTML.
+      html = (
+          "<html><body>"
+          "<a href='#sec1'>Item 1.</a>"
+          "<div id='sec1'>ITEM 1. BUSINESS overview text</div>"
+          "</body></html>"
+      )
+      assert resolve_anchors(html) == []
   ```
 
   Run + Expected: PASS
@@ -286,7 +325,7 @@ def resolve_anchors(raw_html: str) -> list[AnchorMatch]:
 
 ### Verification Criterion
 
-`uv run python -m pytest tests/deepdive/test_anchor_resolver.py -v` shows 6/6 tests PASS. Coverage report shows 100% of `anchor_resolver.py`.
+`uv run python -m pytest tests/deepdive/test_anchor_resolver.py -v` shows 10/10 tests PASS. Coverage report shows 100% of `anchor_resolver.py`.
 
 ### Aufwand
 
