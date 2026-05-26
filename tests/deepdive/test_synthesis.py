@@ -241,80 +241,157 @@ def test_misformatted_filing_cite_logs_warning(caplog):
     assert "not validatable" in caplog.text
 
 
-# --- 1.5.x: no-space sub-item cite parsing (`20-F §4B`) -------------------
-# Root cause: _SECTION_CITE_RE captured (\w+) so the no-space sub-item form
-# "20-F §4B" yielded item "4B" -> key "20-F_item4B", never matching the
-# numeric sent keys -> every such point falsely collapsed to ["Inferenz"].
-# These assert the REAL _validate_sources behaviour directly.
+# --- Stage 3: 4-arg body-aware _validate_sources --------------------------
+# Root-cause history: _SECTION_CITE_RE once captured (\w+), so "20-F §4B"
+# keyed "20-F_item4B" and never matched the numeric sent keys -> every such
+# cite falsely collapsed to ["Inferenz"] (1.5.2 root-fix). Stage 3 captures
+# (\d+[A-Z]?) so 10-K §1A/§7A stay distinct, but adds a numeric-fallback: a
+# 20-F sub-paragraph cite (§4B/§5C) falls back to the parent item4/item5.
+# Stage 3 also adds a body-heading check, so accept-cases need a section body
+# that starts with the expected "ITEM N" heading. These assert the REAL
+# _validate_sources behaviour directly.
 
 _SENT = {"20-F_item4", "20-F_item5", "20-F_item18"}
+_SECTIONS = {
+    "20-F_item4": "ITEM 4 INFORMATION ON THE COMPANY\n\nA. History and development.",
+    "20-F_item5": "ITEM 5 OPERATING AND FINANCIAL REVIEW\n\nA. Operating results.",
+    "20-F_item18": "ITEM 18 FINANCIAL STATEMENTS\n\nConsolidated statements.",
+}
 
 
 def test_no_space_subitem_cite_not_collapsed_red_driver():
-    """RED-driver: '20-F §4B' (item 4 IS sent) must NOT collapse; the exact
-    cite string is preserved. FAILS on \\w+ (captures '4B'), PASSES on \\d+."""
+    """'20-F §4B' (item 4 IS sent) must NOT collapse; the exact cite string is
+    preserved. §4B keys item4B (not sent) -> numeric-fallback to item4 (sent),
+    whose body starts with 'ITEM 4'. No regress on the 1.5.2 root-fix."""
     from app.deepdive.synthesis import _validate_sources
 
-    out = _validate_sources(["20-F §4B"], "20-F", _SENT)
+    out = _validate_sources(["20-F §4B"], "20-F", _SENT, _SECTIONS)
     assert out == ["20-F §4B"]
 
 
 def test_multiple_no_space_subitems_not_collapsed():
     from app.deepdive.synthesis import _validate_sources
 
-    out = _validate_sources(["20-F §5C", "20-F §4B"], "20-F", _SENT)
+    out = _validate_sources(["20-F §5C", "20-F §4B"], "20-F", _SENT, _SECTIONS)
     assert out == ["20-F §5C", "20-F §4B"]
 
 
 def test_space_subitem_cite_not_collapsed_regression_guard():
-    """Already worked with \\w+; must keep working with \\d+ ('§<num> <letter>')."""
+    """'§<num> <letter>': the space ends the suffix, so (\\d+[A-Z]?) captures
+    just '5' -> item5 (sent)."""
     from app.deepdive.synthesis import _validate_sources
 
-    out = _validate_sources(["20-F §5 D"], "20-F", _SENT)
+    out = _validate_sources(["20-F §5 D"], "20-F", _SENT, _SECTIONS)
     assert out == ["20-F §5 D"]
 
 
 def test_plain_sent_cite_not_collapsed_regression_guard():
     from app.deepdive.synthesis import _validate_sources
 
-    out = _validate_sources(["20-F §4"], "20-F", _SENT)
+    out = _validate_sources(["20-F §4"], "20-F", _SENT, _SECTIONS)
     assert out == ["20-F §4"]
 
 
 def test_subitem_cite_of_unsent_item_still_collapses():
-    """The fix must not weaken real hallucination catching: item 6 NOT sent."""
+    """The fix must not weaken real hallucination catching: item 6 NOT sent
+    (neither item6A nor the numeric-fallback item6)."""
     from app.deepdive.synthesis import _validate_sources
 
-    out = _validate_sources(["20-F §6A"], "20-F", _SENT)
+    out = _validate_sources(["20-F §6A"], "20-F", _SENT, _SECTIONS)
     assert out == ["Inferenz"]
 
 
 def test_plain_unsent_cite_still_collapses():
     from app.deepdive.synthesis import _validate_sources
 
-    out = _validate_sources(["20-F §15"], "20-F", _SENT)
+    out = _validate_sources(["20-F §15"], "20-F", _SENT, _SECTIONS)
     assert out == ["Inferenz"]
 
 
 def test_mixed_sent_and_unsent_subitems_collapses():
-    """Item 4 sent, item 7 not -> any not-sent cite collapses (unchanged rule)."""
+    """Item 4 sent (passes body check), item 7 not -> any not-sent cite
+    collapses the whole list (unchanged rule)."""
     from app.deepdive.synthesis import _validate_sources
 
-    out = _validate_sources(["20-F §4B", "20-F §7B"], "20-F", _SENT)
+    out = _validate_sources(["20-F §4B", "20-F §7B"], "20-F", _SENT, _SECTIONS)
     assert out == ["Inferenz"]
 
 
 def test_non_section_filing_string_still_hits_not_validatable(caplog):
     """A filing-ish string without § still has no regex match -> warning path
-    unchanged with \\d+ (returned sources unchanged, no collapse)."""
+    unchanged (returned sources unchanged, no collapse)."""
     import logging
 
     from app.deepdive.synthesis import _validate_sources
 
     with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
-        out = _validate_sources(["20-F item5"], "20-F", _SENT)
+        out = _validate_sources(["20-F item5"], "20-F", _SENT, _SECTIONS)
     assert out == ["20-F item5"]
     assert "not validatable" in caplog.text
+
+
+# --- Stage 3: body-heading check (F4 defense-in-depth) --------------------
+# A cited section is only accepted if its body starts (within a 300-char
+# page-header tolerance) with the expected "ITEM N" heading.
+
+
+def test_validate_sources_rejects_cite_when_body_lacks_item_heading():
+    from app.deepdive.synthesis import _validate_sources
+
+    sources = ["[10-K §1]"]
+    sent_keys = {"10-K_item1"}
+    sections = {"10-K_item1": "some random text without item heading"}
+    result = _validate_sources(sources, "10-K", sent_keys, sections)
+    assert result == ["Inferenz"]
+
+
+def test_validate_sources_accepts_cite_when_body_has_item_heading():
+    from app.deepdive.synthesis import _validate_sources
+
+    sources = ["[10-K §1]"]
+    sent_keys = {"10-K_item1"}
+    sections = {"10-K_item1": "ITEM 1. BUSINESS\n\nWe build search engines..."}
+    result = _validate_sources(sources, "10-K", sent_keys, sections)
+    assert result == ["[10-K §1]"]
+
+
+def test_validate_sources_accepts_cite_with_page_header_prefix():
+    from app.deepdive.synthesis import _validate_sources
+
+    sources = ["[10-K §1A]"]
+    sent_keys = {"10-K_item1A"}
+    sections = {"10-K_item1A": (
+        "* * *\n\n| | | | |   \n---|---|---|---|---|---  \n"
+        "Table of Contents| Alphabet Inc.  \n  \n"
+        "ITEM 1A.RISK FACTORS\n\nOur operations..."
+    )}
+    result = _validate_sources(sources, "10-K", sent_keys, sections)
+    assert result == ["[10-K §1A]"]
+
+
+def test_validate_sources_accepts_novo_bare_number_style():
+    from app.deepdive.synthesis import _validate_sources
+
+    sources = ["[20-F §4]"]
+    sent_keys = {"20-F_item4"}
+    sections = {"20-F_item4": "ITEM 4 INFORMATION ON THE COMPANY\n\nA. History..."}
+    result = _validate_sources(sources, "20-F", sent_keys, sections)
+    assert result == ["[20-F §4]"]
+
+
+def test_validate_sources_letter_suffix_item_not_truncated():
+    # Anti-regress for the cite-regex fix: §7A must be captured as "7A", not
+    # truncated to "7" (which would key the wrong section). Guards the
+    # _SECTION_CITE_RE (\d+[A-Z]?) change. Same risk class for §1A.
+    from app.deepdive.synthesis import _validate_sources
+
+    sources = ["[10-K §7A]"]
+    sent_keys = {"10-K_item7A"}
+    sections = {"10-K_item7A": (
+        "ITEM 7A. QUANTITATIVE AND QUALITATIVE DISCLOSURES\n\nWe are exposed..."
+    )}
+    result = _validate_sources(sources, "10-K", sent_keys, sections)
+    assert result == ["[10-K §7A]"]
 
 
 def test_system_prompt_documents_source_format_without_brackets():
