@@ -6,12 +6,22 @@ from pathlib import Path
 
 import frontmatter
 
+from app.deepdive.filing_parser import SectionFlag
 from app.deepdive.valuation_block import render_valuation_block
 from app.models.deep_dive_record import DeepDiveRecord
 
 logger = logging.getLogger(__name__)
 
 _STARS = {1: "⭐", 2: "⭐⭐", 3: "⭐⭐⭐", 4: "⭐⭐⭐⭐", 5: "⭐⭐⭐⭐⭐"}
+
+
+def _flag_str(flag: SectionFlag) -> str:
+    parts = [flag.extraction]
+    if flag.missing:
+        parts.append("missing")
+    if flag.truncated:
+        parts.append("truncated")
+    return "+".join(parts)
 
 
 def _fmt_money(v: float | None) -> str:
@@ -108,7 +118,9 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         "filing_date": record.filing_date,
         "quant_date": record.generated_at.date().isoformat(),
         "days_since_filing": record.days_since_filing,
-        "section_flags": record.section_flags,
+        "section_flags": {
+            key: _flag_str(flag) for key, flag in record.section_flags.items()
+        },
         "peer_tickers": peer_tickers,
         "peer_rationale": peer_rationale,
     })
