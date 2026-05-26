@@ -979,6 +979,8 @@ WARNING filing parser: no SEC-item anchor-links found for <FORM> (CIK <cik>); fa
 
 So bleibt für den Operator sichtbar, welcher Pfad genommen wurde und für welche Items — ohne dass die Meldung wie ein Crash aussieht.
 
+**Implementierungs-Notiz (Stage 2):** Realisiert **ohne `(CIK <cik>)`** — `parse_filing(raw_document, form_type)` hat auf Parser-Ebene keine CIK; der Deep-Dive-Kontext (Ticker) wird von `pipeline`/Gemini-Client ohnehin vorher geloggt. CIK-Threading wäre eine Signatur-Ausweitung ohne substantiellen Mehrwert; falls später gewünscht, sauberer Weg ist ein Logging-Adapter mit Pipeline-Context, nicht die Parser-Signatur.
+
 ### Q3 — Synthesis-System-Prompt unverändert — bestätigt
 
 Unter Option (a) bleibt das Set stabil: 10-K {1, 1A, 7, 7A, 8}, 20-F {4, 5, 18}. System-Prompt-Anpassung nicht nötig.
