@@ -1,6 +1,7 @@
 import frontmatter
 
-from app.deepdive.dossier_generator import generate_dossier
+from app.deepdive.dossier_generator import _flag_str, generate_dossier
+from app.deepdive.filing_parser import SectionFlag
 from app.models.deep_dive_record import (
     DeepDiveRecord, FisherPoint, PointInTimeQuant, QuantSnapshot, SourceCoverage)
 
@@ -18,6 +19,36 @@ def _record(**over):
         source_coverage=SourceCoverage(edgar="20-F via ADR"))
     base.update(over)
     return DeepDiveRecord(**base)
+
+
+def test_dossier_frontmatter_renders_composite_flag_string():
+    flag = SectionFlag(extraction="ok", missing=False, truncated=True, anchor_id="x")
+    assert _flag_str(flag) == "ok+truncated"
+    flag2 = SectionFlag(
+        extraction="fallback_used", missing=False, truncated=False, anchor_id=None
+    )
+    assert _flag_str(flag2) == "fallback_used"
+    flag3 = SectionFlag(
+        extraction="fallback_used", missing=True, truncated=False, anchor_id=None
+    )
+    assert _flag_str(flag3) == "fallback_used+missing"
+
+
+def test_frontmatter_renders_section_flags_from_dataclass(tmp_path):
+    rec = _record(section_flags={
+        "20-F_item4": SectionFlag(
+            extraction="ok", missing=False, truncated=False, anchor_id="a4"
+        ),
+        "20-F_item18": SectionFlag(
+            extraction="fallback_used", missing=True, truncated=False, anchor_id=None
+        ),
+    })
+    post = frontmatter.loads(
+        generate_dossier(rec, tmp_path).read_text(encoding="utf-8"))
+    assert post["section_flags"] == {
+        "20-F_item4": "ok",
+        "20-F_item18": "fallback_used+missing",
+    }
 
 
 def test_writes_file_with_date_name(tmp_path):

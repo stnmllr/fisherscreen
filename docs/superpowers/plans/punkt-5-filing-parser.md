@@ -25,7 +25,7 @@ C1-Constraint (F4 vor/mit F2): in Stage 2 fallen F1+F2+F4 simultan durch Anchor-
 - BS4 (`beautifulsoup4>=4.14`) mit `lxml-xml`-Parser (iXBRL-Filings sind XML, nicht HTML)
 - html2text (bestehend, unverändert)
 - pytest mit Real-Filing-Cache-Fixtures + bestehende synthetische Spec-Tests
-- Cache-Schema-Versions-Key (bestehend aus Punkt 1; Versions-Bump erforderlich)
+- Filing-Cache (bestehend aus Punkt 1): cached **Rohtext**, nicht Parser-Output — kein Versions-Bump nötig (siehe Step 2.6)
 
 ---
 
@@ -299,7 +299,6 @@ def resolve_anchors(raw_html: str) -> list[AnchorMatch]:
 ### Files
 
 - **Modify:** `app/deepdive/filing_parser.py`
-- **Modify:** `app/deepdive/filing_cache.py` (Versions-Key — Sub-Schritt; falls noch nicht implementiert: 5-Zeilen-Erweiterung)
 - **Modify:** `app/deepdive/dossier_generator.py` (Frontmatter-Rendering für neues section_flags-Schema)
 - **Modify:** `app/models/deep_dive_record.py` (Type-Hint für section_flags)
 - **Modify:** `tests/deepdive/test_filing_parser.py` (Spec-Tests an neues Schema anpassen)
@@ -317,9 +316,17 @@ class ParsedFiling:
 # After:
 @dataclass
 class SectionFlag:
-    extraction: str  # "ok" | "fallback_used" | "missing"
+    extraction: str        # "ok" | "fallback_used"
+    missing: bool          # True wenn nicht im sections-dict (kein Body)
     truncated: bool
     anchor_id: str | None  # for "ok" only
+
+    def __post_init__(self) -> None:
+        # ok+missing ist semantisch widersprüchlich: ein via Anchor sauber
+        # extrahiertes Item kann nicht zugleich fehlen.
+        assert not (self.extraction == "ok" and self.missing), (
+            "SectionFlag: extraction='ok' schließt missing=True aus"
+        )
 
 @dataclass
 class ParsedFiling:
@@ -327,24 +334,9 @@ class ParsedFiling:
     section_flags: dict[str, SectionFlag]
 ```
 
-### Cache-Schema-Bump
+### Cache-Schema-Bump — entfällt
 
-In `filing_cache.py`: prüfen, ob der Versions-Key bereits konsumiert wird. Falls **nein**, im selben Stufe-2-Commit ergänzen:
-
-```python
-# in CachedFilingFetcher._fresh or similar:
-SCHEMA_VERSION = 2  # bumped: parser output now uses SectionFlag-dataclass
-
-def _fresh(self, cached_at: str, schema_version: int | None) -> bool:
-    if schema_version != SCHEMA_VERSION:
-        return False
-    ts = datetime.fromisoformat(cached_at)
-    if ts.tzinfo is None:
-        ts = ts.replace(tzinfo=timezone.utc)
-    return (datetime.now(timezone.utc) - ts).days < self._ttl_days
-```
-
-(Die genaue Form hängt vom heutigen Mechanismus aus Punkt 1 ab — falls komplexer als 5 Zeilen, Stop & Stephan melden.)
+`filing_cache.py` cached den **rohen Filing-Text** (`filing.document_text`) + `filing_date`-Metadaten, **nicht** den Parser-Output. `parse_filing` läuft bei jedem Deep-Dive frisch gegen den (ggf. gecachten) Rohtext. Kein Cache-Eintrag ist von der SectionFlag-Schema-Änderung betroffen → kein Versions-Bump nötig. (Befund C, Plan-Phase Stage 2 — bestätigt am realen `filing_cache.py`-Code.)
 
 ### Tasks
 
@@ -423,8 +415,13 @@ def _fresh(self, cached_at: str, schema_version: int | None) -> bool:
           key = f"{form_type}_item{item}"
           label = item.upper()
           if label not in hit_by_label:
+              # Anchor-Pfad-Partial-Coverage: dieses expected item hat keinen
+              # Anchor-Hit. Nur synthetic beobachtet (Partial-Coverage-Wildnis,
+              # siehe "Honest-Label"-Abschnitt). Schema-erzwungen: einzige
+              # non-ok-extraction ist "fallback_used" → "fallback_used+missing".
               result.section_flags[key] = SectionFlag(
-                  extraction="missing", truncated=False, anchor_id=None,
+                  extraction="fallback_used", missing=True,
+                  truncated=False, anchor_id=None,
               )
               continue
           anchor = hit_by_label[label]
@@ -447,7 +444,8 @@ def _fresh(self, cached_at: str, schema_version: int | None) -> bool:
               truncated = True
           result.sections[key] = body
           result.section_flags[key] = SectionFlag(
-              extraction="ok", truncated=truncated, anchor_id=anchor.anchor_id,
+              extraction="ok", missing=False,
+              truncated=truncated, anchor_id=anchor.anchor_id,
           )
       return result
 
@@ -474,8 +472,9 @@ def _fresh(self, cached_at: str, schema_version: int | None) -> bool:
   def _extract_via_pattern_fallback(
       raw: str, form_type: str, items: list[str],
   ) -> ParsedFiling:
-      """Today's logic, unchanged. Each section flag carries
-      extraction='fallback_used' for transparency."""
+      """Today's logic, unchanged (byte-identical bodies). Each flag carries
+      extraction='fallback_used'; found sections missing=False (+truncated if
+      capped), not-found sections missing=True ('fallback_used+missing')."""
       # ... move existing parse_filing body here, wrap flags in SectionFlag ...
   ```
 
@@ -491,6 +490,7 @@ def _fresh(self, cached_at: str, schema_version: int | None) -> bool:
       flags = parsed.section_flags
       for item in ("1", "1A", "7", "7A", "8"):
           assert flags[f"10-K_item{item}"].extraction == "ok"
+          assert flags[f"10-K_item{item}"].missing is False
       # GOOGL §8 is ~152K chars — NOT truncated
       assert flags["10-K_item8"].truncated is False
       # ... pattern checks ...
@@ -501,6 +501,7 @@ def _fresh(self, cached_at: str, schema_version: int | None) -> bool:
       flags = parsed.section_flags
       for item in ("4", "5", "18"):
           assert flags[f"20-F_item{item}"].extraction == "ok"
+          assert flags[f"20-F_item{item}"].missing is False
           assert flags[f"20-F_item{item}"].truncated is False
       # NOVO §18 in Stage 2 is ~12K chars (vs today's 184K F2-tail-absorbed)
 
@@ -509,14 +510,18 @@ def _fresh(self, cached_at: str, schema_version: int | None) -> bool:
       parsed_new = parse_filing(raw, "20-F")
       # Stage 2: ASML falls into fallback path (0 anchor coverage)
       for item in ("4", "5"):
-          assert parsed_new.section_flags[f"20-F_item{item}"].extraction == "fallback_used"
-          assert "20-F_item" + item not in parsed_new.sections  # missing
-      assert parsed_new.section_flags["20-F_item18"].extraction == "fallback_used"
-      assert parsed_new.section_flags["20-F_item18"].truncated is True
-      # Body content is byte-identical to today's parser output
-      # (Regress-Schutz: Stage 2 must not change ASML's behavior in the fallback path)
-      from copy import deepcopy
-      # Compare via legacy parser invocation — preserved in tests as reference
+          flag = parsed_new.section_flags[f"20-F_item{item}"]
+          assert flag.extraction == "fallback_used"
+          assert flag.missing is True               # → renders "fallback_used+missing"
+          assert f"20-F_item{item}" not in parsed_new.sections
+      f18 = parsed_new.section_flags["20-F_item18"]
+      assert f18.extraction == "fallback_used"
+      assert f18.missing is False
+      assert f18.truncated is True                  # → renders "fallback_used+truncated"
+      # Body content is byte-identical to today's parser output (Regress-Schutz:
+      # Stage 2 must not change ASML's behavior in the fallback path).
+      # _legacy_parse_filing = frozen copy of the pre-Stage-2 parse_filing body,
+      # preserved in the test file as reference.
       assert parsed_new.sections["20-F_item18"] == _legacy_parse_filing(raw, "20-F").sections["20-F_item18"]
   ```
 
@@ -530,8 +535,8 @@ def _fresh(self, cached_at: str, schema_version: int | None) -> bool:
   # OLD:
   assert parsed.section_flags == {}
 
-  # NEW:
-  assert all(f.extraction == "ok" for f in parsed.section_flags.values())
+  # NEW (Befund B): synthetic fixtures haben keine <a href="#…">-Anker → Fallback-Pfad.
+  assert all(f.extraction == "fallback_used" for f in parsed.section_flags.values())
   ```
 
   Run + Expected: existing tests PASS
@@ -541,10 +546,12 @@ def _fresh(self, cached_at: str, schema_version: int | None) -> bool:
   ```python
   # app/deepdive/dossier_generator.py
   def _flag_str(flag: SectionFlag) -> str:
-      base = flag.extraction
+      parts = [flag.extraction]
+      if flag.missing:
+          parts.append("missing")
       if flag.truncated:
-          return f"{base}+truncated"
-      return base
+          parts.append("truncated")
+      return "+".join(parts)
 
   # When rendering YAML frontmatter:
   yaml_data = {
@@ -559,41 +566,45 @@ def _fresh(self, cached_at: str, schema_version: int | None) -> bool:
   Add test:
   ```python
   def test_dossier_frontmatter_renders_composite_flag_string():
-      flag = SectionFlag(extraction="ok", truncated=True, anchor_id="x")
+      flag = SectionFlag(extraction="ok", missing=False, truncated=True, anchor_id="x")
       assert _flag_str(flag) == "ok+truncated"
-      flag2 = SectionFlag(extraction="fallback_used", truncated=False, anchor_id=None)
+      flag2 = SectionFlag(extraction="fallback_used", missing=False, truncated=False, anchor_id=None)
       assert _flag_str(flag2) == "fallback_used"
+      flag3 = SectionFlag(extraction="fallback_used", missing=True, truncated=False, anchor_id=None)
+      assert _flag_str(flag3) == "fallback_used+missing"
   ```
 
   Run + Expected: PASS
 
-- [ ] **Step 2.6: Bump filing_cache schema version**
+- [x] **Step 2.6: entfällt — kein Cache-Bump nötig**
 
-  Sub-step: prüfen, ob `filing_cache.py` einen Versions-Key konsumiert.
-  Falls **nein**: 5-Zeilen-Erweiterung im selben Commit.
-  Falls **ja**: nur Version bumpen.
-  Falls **komplexer als 5 Zeilen** (z.B. tieferes Refactoring nötig): **Stop & Stephan melden** — Stufung anpassen.
+  `filing_cache.py` cached raw filing text, nicht Parser-Output. Parser läuft bei
+  jedem Deep-Dive frisch gegen den (ggf. gecachten) Rohtext. Kein Cache-Eintrag ist
+  von der Schema-Änderung betroffen. (Befund C, Plan-Phase Stage 2 — bestätigt am
+  realen `filing_cache.py`-Code.)
 
 - [ ] **Step 2.7: Run full test suite**
 
   Run: `uv run python -m pytest -v`
   Expected: alle Tests PASS, Coverage ≥ 96%
 
-- [ ] **Step 2.8: Run diagnostic script for manual verification**
+- [ ] **Step 2.8: Diagnose-Script (supplementär)**
 
   ```cmd
   uv run python scripts/diagnose_filing_parser.py
   ```
 
-  Expected output:
-  - GOOGL/KO/NOVO: all expected items show `ok`-flag (or `ok+truncated` for KO §8 + GOOGL §8)
-  - ASML: all items show `fallback_used`-flag, behavior matches today
+  Das Script bleibt **unangetastet** und druckt Kandidaten-Zählungen pro Item
+  (keine SectionFlags) — supplementär für Operator-Intuition (ASMLs leere
+  Kandidaten vs. saubere KO/GOOGL/NOVO). **Autoritative Flag-Verifikation erfolgt
+  via `tests/deepdive/test_filing_parser_real.py` gegen die Verifikations-Tabelle**
+  (Befund D, Plan-Phase Stage 2).
 
 - [ ] **Step 2.9: Commit**
 
   ```cmd
   git checkout -b feature/punkt5-stage2-anchor-integration
-  git add app/deepdive/filing_parser.py app/deepdive/filing_cache.py app/deepdive/dossier_generator.py app/models/deep_dive_record.py tests/deepdive/
+  git add app/deepdive/filing_parser.py app/deepdive/dossier_generator.py app/models/deep_dive_record.py tests/deepdive/
   git commit -m "Integrate anchor-tracing parser with pattern-matching fallback"
   ```
 

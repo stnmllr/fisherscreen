@@ -6,6 +6,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.deepdive.filing_parser import SectionFlag
+
 logger = logging.getLogger(__name__)
 
 Confidence = Literal["🟢", "🟡", "🔴"]
@@ -182,7 +184,7 @@ class DeepDiveRecord(BaseModel):
     cik: str
     form_type: Literal["10-K", "20-F"]
     filing_sections: dict[str, str]
-    section_flags: dict[str, str]
+    section_flags: dict[str, SectionFlag]
     quant_snapshot: QuantSnapshot
     synthesis: list[FisherPoint]
     source_coverage: SourceCoverage
