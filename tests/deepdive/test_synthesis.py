@@ -114,8 +114,11 @@ def test_points_14_15_confidence_code_enforced_red():
     syn = MagicMock()
     data = _good_points()  # all confidence "🟢", sources ["20-F §5"]
     syn.synthesize.return_value = data
+    # Real ITEM-5 body so the §5 cites pass the Stage-3 body-heading check and
+    # point 1 keeps its model confidence (the focus is the 14/15 code-cap).
     pts = run_synthesis(
-        ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
+        ticker="X", form_type="20-F",
+        sections={"20-F_item5": "ITEM 5 OPERATING AND FINANCIAL REVIEW. We review results."},
         quant=_qs(), synthesizer=syn, max_input_tokens=200000)
     by_num = {p.number: p for p in pts}
     assert by_num[14].confidence == "🔴"

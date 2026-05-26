@@ -13,7 +13,12 @@ from app.models.deep_dive_record import FisherPoint, QuantSnapshot
 
 logger = logging.getLogger(__name__)
 
-_SECTION_CITE_RE = re.compile(r"(10-K|20-F)\s*§\s*(\d+)", re.IGNORECASE)
+_SECTION_CITE_RE = re.compile(r"(10-K|20-F)\s*§\s*(\d+[A-Z]?)", re.IGNORECASE)
+
+# Body-heading guard (F4 defense-in-depth): a cited section body must START
+# with the expected "ITEM N" heading, within a 300-char page-header tolerance.
+# {item} is filled via .format(); the {{...}} is a literal regex quantifier.
+_BODY_HEADING_PAT = r"^[\s\S]{{0,300}}?\bITEM\s+{item}\b"
 
 _SYSTEM_PROMPT = (
     "Du bewertest ein Unternehmen gegen Phil Fishers 15 Punkte als kritischer "
@@ -122,7 +127,7 @@ def run_synthesis(
     points: list[FisherPoint] = []
     for rp in raw_points:
         sources = list(rp.get("sources", []))
-        validated = _validate_sources(sources, form_type, sent_keys)
+        validated = _validate_sources(sources, form_type, sent_keys, sections)
         if validated != sources:
             logger.warning(
                 "point %s: hallucinated section cite -> downgraded to Inferenz",
@@ -160,9 +165,15 @@ def run_synthesis(
 
 
 def _validate_sources(
-    sources: list[str], form_type: str, sent_keys: set[str]
+    sources: list[str],
+    form_type: str,
+    sent_keys: set[str],
+    sections: dict[str, str],
 ) -> list[str]:
-    """Any cited filing section not actually sent -> collapse to ['Inferenz']."""
+    """Collapse a point's sources to ['Inferenz'] when a cited filing section
+    is either not actually sent or carries a mis-labeled body. F4 defense-in-
+    depth: a sent section is only accepted if its body starts (within a
+    300-char page-header tolerance) with the expected 'ITEM N' heading."""
     for s in sources:
         m = _SECTION_CITE_RE.search(s)
         if not m:
@@ -173,8 +184,30 @@ def _validate_sources(
                     s,
                 )
             continue
-        item = m.group(2)
-        key = f"{form_type}_item{item}"
-        if key not in sent_keys:
+        # .upper() so a lowercase "§1a" still keys "10-K_item1A".
+        item_full = m.group(2).upper()
+        numeric_part = re.match(r"\d+", item_full).group(0)
+        key_full = f"{form_type}_item{item_full}"
+        key_numeric = f"{form_type}_item{numeric_part}"
+        if key_full in sent_keys:
+            # 10-K §1A/§7A: distinct SEC item, suffix kept.
+            key, item_for_body_check = key_full, item_full
+        elif key_numeric in sent_keys:
+            # 20-F §4B/§5C: sub-paragraph -> falls back to the parent item.
+            key, item_for_body_check = key_numeric, numeric_part
+        else:
+            return ["Inferenz"]
+        body = sections.get(key, "")
+        pat = re.compile(
+            _BODY_HEADING_PAT.format(item=re.escape(item_for_body_check)),
+            re.IGNORECASE,
+        )
+        if not pat.match(body):
+            logger.warning(
+                "cite %s: body does not start with expected ITEM %s heading "
+                "within 300-char tolerance — downgraded to Inferenz",
+                s,
+                item_for_body_check,
+            )
             return ["Inferenz"]
     return sources
