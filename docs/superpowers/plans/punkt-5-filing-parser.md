@@ -674,15 +674,38 @@ Ja.
       sections = {"20-F_item4": "ITEM 4 INFORMATION ON THE COMPANY\n\nA. History..."}
       result = _validate_sources(sources, "20-F", sent_keys, sections)
       assert result == ["[20-F §4]"]
+
+  def test_validate_sources_letter_suffix_item_not_truncated():
+      # Anti-regress for the cite-regex fix: §7A must be captured as "7A",
+      # not truncated to "7" (which would key the wrong section). Guards the
+      # _SECTION_CITE_RE (\d+[A-Z]?) change below. Same risk class for §1A.
+      sources = ["[10-K §7A]"]
+      sent_keys = {"10-K_item7A"}
+      sections = {"10-K_item7A": (
+          "ITEM 7A. QUANTITATIVE AND QUALITATIVE DISCLOSURES\n\nWe are exposed..."
+      )}
+      result = _validate_sources(sources, "10-K", sent_keys, sections)
+      assert result == ["[10-K §7A]"]
   ```
 
   Run: `uv run python -m pytest tests/deepdive/test_synthesis.py -v -k "validate_sources"`
-  Expected: 4/4 FAIL (body-pattern check not implemented yet)
+  Expected: 5/5 FAIL (body-pattern check + cite-regex fix not implemented yet)
 
 - [ ] **Step 3.2: Implement body-pattern check**
 
+  **Erst den Cite-Regex fixen** (Befund Stage-2-Akzeptanz): `_SECTION_CITE_RE`
+  erfasst heute nur `(\d+)` und kürzt `§1A`/`§7A` still auf `"1"`/`"7"` → der
+  Body-Heading-Check unten würde Suffix-Items gegen die falsche Section prüfen
+  und die F4-Härtung für `1A`/`7A` aushebeln. Stage 2 extrahiert `§1A`/`§7A`
+  jetzt zuverlässig via Anchor, daher live-relevant. 20-F (§4/§5/§18) ist nicht
+  betroffen.
+
   ```python
   # app/deepdive/synthesis.py
+  # Befund Stage-2-Akzeptanz: (\d+) -> (\d+[A-Z]?), sonst werden 10-K §1A/§7A
+  # auf "1"/"7" gekürzt und gegen die falsche Section validiert.
+  _SECTION_CITE_RE = re.compile(r"(10-K|20-F)\s*§\s*(\d+[A-Z]?)", re.IGNORECASE)
+
   _BODY_HEADING_PAT = r"^[\s\S]{{0,300}}?\bITEM\s+{item}\b"
 
   def _validate_sources(
@@ -700,7 +723,9 @@ Ja.
                       "'<form> §<item>' format — not validatable", s,
                   )
               continue
-          item = m.group(2)
+          # .upper() so a lowercase "§1a" still keys "10-K_item1A" (keys use
+          # uppercase suffix, matching _FORM_ITEMS).
+          item = m.group(2).upper()
           key = f"{form_type}_item{item}"
           if key not in sent_keys:
               return ["Inferenz"]
@@ -723,7 +748,7 @@ Ja.
   Update `run_synthesis` call site to pass `sections=sections` to `_validate_sources`.
 
   Run: `uv run python -m pytest tests/deepdive/test_synthesis.py -v -k "validate_sources"`
-  Expected: 4/4 PASS
+  Expected: 5/5 PASS
 
 - [ ] **Step 3.3: Add real-filing test using Stage-2 parser output**
 
