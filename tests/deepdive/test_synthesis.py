@@ -436,3 +436,81 @@ def test_system_prompt_top_note_requires_relative_superiority():
     from app.deepdive.synthesis import _SYSTEM_PROMPT
 
     assert "gegenüber welchem Konkurrenten" in _SYSTEM_PROMPT
+
+
+# --- Task 2a.2: Filing-Vintage line in user prompt --------------------------
+
+
+def test_user_prompt_includes_filing_vintage_line():
+    """_build_user_prompt with a valid filing_date must include the date."""
+    from app.deepdive.synthesis import _build_user_prompt
+
+    prompt = _build_user_prompt(
+        "X", "20-F", {"20-F_item5": "rev"}, _qs(), filing_date="2026-02-04"
+    )
+    assert "Filing-Stand: 2026-02-04" in prompt
+
+
+def test_user_prompt_vintage_includes_days_since_filing():
+    """Days-since must be computed from today (patchable via _today)."""
+    from datetime import date
+    from unittest.mock import patch
+
+    from app.deepdive.synthesis import _build_user_prompt
+
+    fixed_today = date(2026, 5, 26)
+    filing_date = date(2026, 2, 4)
+    expected_days = (fixed_today - filing_date).days
+
+    with patch("app.deepdive.synthesis._today", return_value=fixed_today):
+        prompt = _build_user_prompt(
+            "X", "20-F", {"20-F_item5": "rev"}, _qs(), filing_date="2026-02-04"
+        )
+    assert f"vor {expected_days} Tagen" in prompt
+
+
+def test_user_prompt_vintage_omits_when_filing_date_missing():
+    """filing_date=None must render 'Filing-Stand: unbekannt', not 'vor ... Tagen'."""
+    from app.deepdive.synthesis import _build_user_prompt
+
+    prompt = _build_user_prompt(
+        "X", "20-F", {"20-F_item5": "rev"}, _qs(), filing_date=None
+    )
+    assert "Filing-Stand: unbekannt" in prompt
+    assert "vor " not in prompt
+    assert "Tagen" not in prompt
+
+
+def test_user_prompt_vintage_position_before_filing_sections():
+    """Vintage line must appear between the valuation block and 'Filing-Sections:'."""
+    from app.deepdive.synthesis import _build_user_prompt
+
+    prompt = _build_user_prompt(
+        "X", "20-F", {"20-F_item5": "rev"}, _qs(), filing_date="2026-02-04"
+    )
+    assert prompt.index("Filing-Stand") < prompt.index("Filing-Sections:")
+
+
+def test_user_prompt_vintage_does_not_affect_existing_blocks():
+    """valuation block content must appear byte-identical inside the prompt."""
+    from app.deepdive.synthesis import _build_user_prompt
+    from app.deepdive.valuation_block import render_valuation_block
+
+    qs = _qs()
+    expected_block = render_valuation_block(qs)
+    prompt = _build_user_prompt(
+        "X", "20-F", {"20-F_item5": "rev"}, qs, filing_date="2026-02-04"
+    )
+    assert expected_block in prompt
+
+
+def test_user_prompt_vintage_handles_unparseable_filing_date():
+    """An unparseable filing_date must render 'Filing-Stand: unbekannt', never 'None'."""
+    from app.deepdive.synthesis import _build_user_prompt
+
+    prompt = _build_user_prompt(
+        "X", "20-F", {"20-F_item5": "rev"}, _qs(), filing_date="not-a-date"
+    )
+    assert "Filing-Stand: unbekannt" in prompt
+    assert "None" not in prompt
+    # must not raise
