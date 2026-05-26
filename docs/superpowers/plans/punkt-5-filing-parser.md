@@ -728,7 +728,15 @@ Ja.
   ```
 
   Run: `uv run python -m pytest tests/deepdive/test_synthesis.py -v -k "validate_sources"`
-  Expected: 5/5 FAIL (body-pattern check + cite-regex fix not implemented yet)
+  Expected (RED): 5/5 neue Tests FAIL (Body-Pattern-Check + Cite-Regex-Fix
+  noch nicht implementiert, neue 4-Arg-Signatur fehlt).
+
+  Nach GREEN müssen zusätzlich die committeten Stage-2-Sub-Item-Tests grün
+  BLEIBEN (`test_no_space_subitem_cite_not_collapsed_red_driver` +
+  `test_multiple_no_space_subitems_not_collapsed`) — kein Regress auf den
+  1.5.2-Wurzelfix. Die 8 bestehenden 3-Arg-Call-Sites in `test_synthesis.py`
+  werden in Step 3.2 auf die neue 4-Arg-Signatur (mit realistischen
+  ITEM-Bodies) aktualisiert.
 
 - [ ] **Step 3.2: Implement body-pattern check**
 
@@ -736,13 +744,25 @@ Ja.
   erfasst heute nur `(\d+)` und kürzt `§1A`/`§7A` still auf `"1"`/`"7"` → der
   Body-Heading-Check unten würde Suffix-Items gegen die falsche Section prüfen
   und die F4-Härtung für `1A`/`7A` aushebeln. Stage 2 extrahiert `§1A`/`§7A`
-  jetzt zuverlässig via Anchor, daher live-relevant. 20-F (§4/§5/§18) ist nicht
-  betroffen.
+  jetzt zuverlässig via Anchor, daher live-relevant.
+
+  **Achtung 10-K/20-F-Asymmetrie:** 10-K-Sub-Items (`§1A`/`§7A`) sind
+  eigenständige SEC-Items und müssen Suffix-tragend bleiben. 20-F-Sub-Absätze
+  (`§4B`/`§5C`) sind dagegen Unter-Teile eines Number-Items; der Parser
+  emittiert nur das Parent (`item4`/`item5`). Eine uniforme `(\d+[A-Z]?)`-Regex
+  **ohne Fallback** würde `§4B` auf `item4B` keyen → nicht vorhanden →
+  fälschlich `["Inferenz"]` und damit den committeten 1.5.2-Wurzelfix
+  (`test_no_space_subitem_cite_not_collapsed_red_driver` + Counterpart)
+  zurückdrehen. Lösung: **Numeric-Fallback** — bei Key-Miss einmal auf den
+  numerischen Stamm zurückfallen, bevor `["Inferenz"]`. Der Body-Heading-Check
+  prüft dann gegen das Item-Label des *gefundenen* Keys (`ITEM 4`, nicht
+  `ITEM 4B`).
 
   ```python
   # app/deepdive/synthesis.py
   # Befund Stage-2-Akzeptanz: (\d+) -> (\d+[A-Z]?), sonst werden 10-K §1A/§7A
-  # auf "1"/"7" gekürzt und gegen die falsche Section validiert.
+  # auf "1"/"7" gekürzt und gegen die falsche Section validiert. 20-F-Sub-
+  # Absätze (§4B/§5C) fangen wir mit dem Numeric-Fallback unten ab.
   _SECTION_CITE_RE = re.compile(r"(10-K|20-F)\s*§\s*(\d+[A-Z]?)", re.IGNORECASE)
 
   _BODY_HEADING_PAT = r"^[\s\S]{{0,300}}?\bITEM\s+{item}\b"
@@ -762,23 +782,31 @@ Ja.
                       "'<form> §<item>' format — not validatable", s,
                   )
               continue
-          # .upper() so a lowercase "§1a" still keys "10-K_item1A" (keys use
-          # uppercase suffix, matching _FORM_ITEMS).
-          item = m.group(2).upper()
-          key = f"{form_type}_item{item}"
-          if key not in sent_keys:
+          # .upper() so a lowercase "§1a" still keys "10-K_item1A".
+          item_full = m.group(2).upper()              # "1A" oder "4B"
+          numeric_part = re.match(r"\d+", item_full).group(0)
+          key_full = f"{form_type}_item{item_full}"
+          key_numeric = f"{form_type}_item{numeric_part}"
+          if key_full in sent_keys:
+              # 10-K §1A/§7A: eigenständiges Item, Suffix bleibt erhalten.
+              key, item_for_body_check = key_full, item_full
+          elif key_numeric in sent_keys:
+              # 20-F §4B/§5C: Sub-Absatz -> Fallback auf das Parent-Item.
+              key, item_for_body_check = key_numeric, numeric_part
+          else:
               return ["Inferenz"]
-          # New: body-content check
+          # Body-content check: body must START with the heading of the
+          # *resolved* key (ITEM 4 for a §4B-fallback, not ITEM 4B).
           body = sections.get(key, "")
           pat = re.compile(
-              _BODY_HEADING_PAT.format(item=re.escape(item)),
+              _BODY_HEADING_PAT.format(item=re.escape(item_for_body_check)),
               re.IGNORECASE,
           )
           if not pat.match(body):
               logger.warning(
                   "cite %s: body does not start with expected ITEM %s heading "
                   "within 300-char tolerance — downgraded to Inferenz",
-                  s, item,
+                  s, item_for_body_check,
               )
               return ["Inferenz"]
       return sources
@@ -826,7 +854,11 @@ Ja.
 
 ### Verification Criterion
 
-`uv run python -m pytest tests/deepdive/test_synthesis.py -v -k "validate_sources"` shows 5+/5+ tests PASS. Coverage hold ≥ 96%.
+`uv run python -m pytest tests/deepdive/test_synthesis.py -v -k "validate_sources"`
+zeigt 5/5 neue Body-Pattern-Tests PASS **und** 2/2 committete Stage-2-Sub-Item-Tests
+(`test_no_space_subitem_cite_not_collapsed_red_driver` +
+`test_multiple_no_space_subitems_not_collapsed`) weiterhin PASS (kein Regress).
+Volle Suite grün, Coverage ≥ 96%.
 
 ### Dependency
 
