@@ -514,3 +514,187 @@ def test_user_prompt_vintage_handles_unparseable_filing_date():
     assert "Filing-Stand: unbekannt" in prompt
     assert "None" not in prompt
     # must not raise
+
+
+# --- Vintage confidence cap (RED phase) -------------------------------------
+# A post-process step in run_synthesis caps confidence to 🟡 for the vintage-
+# sensitive Fisher points {5, 6, 12} when the cited filing is stale
+# (days_since_filing > 180, computed from filing_date + the patchable _today()).
+# Cap only LOWERS: 🟢 -> 🟡; 🟡 and 🔴 stay. None/unparseable filing_date -> no cap.
+# Sections carry a real "ITEM 5" body so the §5 cite stays VALID and is NOT
+# collapsed to ["Inferenz"] — that way the only thing that can change 🟢 here is
+# the vintage cap, giving a clean assertion failure in RED.
+
+_VINTAGE_SECTIONS = {
+    "20-F_item5": "ITEM 5 OPERATING AND FINANCIAL REVIEW. We review results."
+}
+
+
+def test_vintage_cap_lowers_sensitive_points_when_stale():
+    """Stale filing (>180 days): points 5, 6, 12 each start 🟢 with a valid §5
+    source and must be capped to 🟡 by the vintage post-process."""
+    from datetime import date
+    from unittest.mock import patch
+
+    syn = MagicMock()
+    syn.synthesize.return_value = _good_points()  # all 🟢, sources ["20-F §5"]
+    with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
+        pts = run_synthesis(
+            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
+            quant=_qs(), synthesizer=syn, max_input_tokens=200000,
+            filing_date="2025-01-01")  # ~510 days -> stale
+    by_num = {p.number: p for p in pts}
+    assert by_num[5].confidence == "🟡"
+    assert by_num[6].confidence == "🟡"
+    assert by_num[12].confidence == "🟡"
+
+
+def test_vintage_cap_not_applied_below_threshold():
+    """Non-stale filing (<180 days): point 5 starts 🟢 and must stay 🟢.
+
+    A parallel STALE run is the positive control: under the same data, point 5
+    MUST be capped to 🟡 when stale. Asserting the control proves the threshold
+    actually gates the cap and makes this test RED until the feature lands."""
+    from datetime import date
+    from unittest.mock import patch
+
+    syn = MagicMock()
+    syn.synthesize.return_value = _good_points()
+    with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
+        pts = run_synthesis(
+            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
+            quant=_qs(), synthesizer=syn, max_input_tokens=200000,
+            filing_date="2026-03-01")  # ~86 days -> not stale
+    by_num = {p.number: p for p in pts}
+    assert by_num[5].confidence == "🟢"
+
+    # Positive control: same data, STALE -> P5 must be capped.
+    syn_stale = MagicMock()
+    syn_stale.synthesize.return_value = _good_points()
+    with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
+        pts_stale = run_synthesis(
+            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
+            quant=_qs(), synthesizer=syn_stale, max_input_tokens=200000,
+            filing_date="2025-01-01")  # ~510 days -> stale
+    assert {p.number: p for p in pts_stale}[5].confidence == "🟡"
+
+
+def test_vintage_cap_skips_insensitive_points():
+    """Stale filing: a point outside {5,6,12} keeps its 🟢. Guards that the HARD
+    cap set is exactly {5,6,12} — point 8 (clearly out) AND point 13 (the
+    deliberately-excluded borderline point) both stay 🟢. Point 5 (in the set)
+    is the positive control proving the cap actually fired on this run."""
+    from datetime import date
+    from unittest.mock import patch
+
+    syn = MagicMock()
+    syn.synthesize.return_value = _good_points()
+    with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
+        pts = run_synthesis(
+            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
+            quant=_qs(), synthesizer=syn, max_input_tokens=200000,
+            filing_date="2025-01-01")  # stale
+    by_num = {p.number: p for p in pts}
+    assert by_num[5].confidence == "🟡"   # positive control: cap fired
+    assert by_num[8].confidence == "🟢"   # not in set -> untouched
+    assert by_num[13].confidence == "🟢"  # excluded borderline -> untouched
+
+
+def test_vintage_cap_skipped_when_filing_date_none():
+    """filing_date=None -> days_since_filing is None -> NO cap. Point 5 must
+    keep 🟢 explicitly (deliberate: no penalty for missing vintage info).
+
+    A parallel run WITH a stale date is the positive control: under the same
+    data, point 5 must be capped to 🟡. This proves the None-branch is a real
+    skip (not just absence of the feature) and keeps the test RED until the
+    cap exists."""
+    from datetime import date
+    from unittest.mock import patch
+
+    syn = MagicMock()
+    syn.synthesize.return_value = _good_points()
+    pts = run_synthesis(
+        ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
+        quant=_qs(), synthesizer=syn, max_input_tokens=200000,
+        filing_date=None)
+    by_num = {p.number: p for p in pts}
+    assert by_num[5].confidence == "🟢"
+
+    # Positive control: same data, stale date -> P5 must be capped.
+    syn_stale = MagicMock()
+    syn_stale.synthesize.return_value = _good_points()
+    with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
+        pts_stale = run_synthesis(
+            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
+            quant=_qs(), synthesizer=syn_stale, max_input_tokens=200000,
+            filing_date="2025-01-01")
+    assert {p.number: p for p in pts_stale}[5].confidence == "🟡"
+
+
+def test_vintage_cap_only_lowers_never_raises():
+    """Stale filing: a sensitive point already at 🔴 must NOT be raised to 🟡
+    by the cap (cap only lowers). A point at 🟡 stays 🟡. Point 12 (🟢, in the
+    set) is the positive control proving the cap fired on this stale run."""
+    from datetime import date
+    from unittest.mock import patch
+
+    syn = MagicMock()
+    data = _good_points()
+    by_idx = {p["number"]: p for p in data["points"]}
+    by_idx[5]["confidence"] = "🔴"
+    by_idx[6]["confidence"] = "🟡"
+    # point 12 left at 🟢 as the positive control
+    syn.synthesize.return_value = data
+    with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
+        pts = run_synthesis(
+            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
+            quant=_qs(), synthesizer=syn, max_input_tokens=200000,
+            filing_date="2025-01-01")  # stale
+    by_num = {p.number: p for p in pts}
+    assert by_num[5].confidence == "🔴"   # cap must NOT raise 🔴
+    assert by_num[6].confidence == "🟡"   # already ≤🟡, unchanged
+    assert by_num[12].confidence == "🟡"  # positive control: 🟢 -> 🟡
+
+
+def test_vintage_cap_coexists_with_points_14_15_red():
+    """Stale filing, all 🟢: the new vintage cap (P5 -> 🟡) must compose with the
+    existing 14/15 -> 🔴 enforcement. Anti-regress."""
+    from datetime import date
+    from unittest.mock import patch
+
+    syn = MagicMock()
+    syn.synthesize.return_value = _good_points()
+    with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
+        pts = run_synthesis(
+            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
+            quant=_qs(), synthesizer=syn, max_input_tokens=200000,
+            filing_date="2025-01-01")  # stale
+    by_num = {p.number: p for p in pts}
+    assert by_num[5].confidence == "🟡"   # vintage cap
+    assert by_num[14].confidence == "🔴"  # existing enforcement
+    assert by_num[15].confidence == "🔴"  # existing enforcement
+
+
+def test_system_prompt_contains_vintage_rule():
+    """The system prompt must carry a SEMANTIC vintage instruction. The numeric
+    threshold lives only in a code constant, so we assert the German anchor
+    'Filing-Alter', not the number 180."""
+    from app.deepdive.synthesis import _SYSTEM_PROMPT
+
+    assert "Filing-Alter" in _SYSTEM_PROMPT
+
+
+def test_vintage_cap_unparseable_filing_date_no_cap():
+    """Characterization: an UNPARSEABLE filing_date is fail-soft — treated like
+    missing vintage info, so _days_since_filing's `except ValueError` branch
+    returns None and NO cap is applied. Point 5 (a vintage-sensitive point that
+    starts 🟢 with a valid §5 source) must keep 🟢, and run_synthesis must not
+    raise. Locks the contract and covers synthesis.py lines 138-139."""
+    syn = MagicMock()
+    syn.synthesize.return_value = _good_points()  # all 🟢, sources ["20-F §5"]
+    pts = run_synthesis(
+        ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
+        quant=_qs(), synthesizer=syn, max_input_tokens=200000,
+        filing_date="not-a-date")  # unparseable -> no cap
+    by_num = {p.number: p for p in pts}
+    assert by_num[5].confidence == "🟢"
