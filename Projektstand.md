@@ -8,9 +8,11 @@
 
 ---
 
-## Letztes Update: 2026-05-26
+## Letztes Update: 2026-05-27
 
 ## Top of mind
+
+**Pareto-B.2-Entscheidung 2026-05-27.** Der ursprüngliche B.2-Vollausbau-Scope (20–30 Sessions) wurde auf eine Pareto-Variante reduziert und Phase 1 als **sequenzielle Sub-Phasen 1.1–1.6** neu aufgestellt — statt einzelner Tier-1-Items (2a.3 / 2a.1c / B.2) nebeneinander. Die drei Pareto-Hebel schließen die systemischen Substanz-Lücken der dünnen Fisher-Punkte (P8/P9/P11/P15) für US-Filer (DEF-14A-Proxy + Form-4-Insider) plus universellen historischen Bewertungs-Kontext (5J-Range); 20-F-Vergütungs-/Insider-Substanz bleibt Phase-2-Backlog mit manueller Routine als Kompensation. **Aktueller nächster Schritt: Phase 1.1 (2a.3 Globaler Vintage-Confidence-Faktor)** in separater Folge-Session. Master-Plan: `docs/superpowers/plans/2026-05-27-phase-1-pareto-b2.md`. Detail-Backlog: `## Phase 1 — Pareto-B.2 (aktiv)` + `## Phase 2 — Vollausbau (zurückgestellt)` unten; Begründung im Decisions-Log 2026-05-27.
 
 FisherScreen Phase 1 ist produktiv. Erster Lauf am 2026-05-16 erfolgreich durchgeführt nach Fix eines kritischen Feedback-Loop-Bugs. Monatlicher Scheduler-Job läuft, drei Markdown-Outputs (Dimensions, Crosshits, Changes) werden via GitHub Sync ins Obsidian-Repo gepusht. Nächster regulärer Lauf: 2026-06-01 03:00 UTC.
 
@@ -348,80 +350,76 @@ Erster Scheduler-Run produzierte Output, aber löste eine Feedback-Schleife aus:
 - `budget_stop.py`: `os.environ.get()` statt `[]` (kein KeyError beim Cold Start), `GoogleAPICallError`-Catch
 - `DimensionsGenerator`: `qualifying_count` ist pre-cap (nicht post-cap) — durch Review-Loop gefunden
 
-## Nächste Session — Phase 2 TODOs
+## Phase 1 — Pareto-B.2 (aktiv)
 
-Phase 1 ist vollständig. Nächster regulärer Lauf automatisch 2026-06-01 03:00 UTC. Die folgenden Phase-2-Punkte sind nach Priorität geordnet — kein Blocking-Item für den Juni-Lauf.
+Detail-Definition: `docs/superpowers/plans/2026-05-27-phase-1-pareto-b2.md`.
+Exit-Kriterium: drei reale Watchlist-Deep-Dives in Phase 1.6, Stephan bewertet Vorcheck-Nützlichkeit positiv.
 
-**Infra-Phasen-Status (vollständig):**
+**Backlog-Migration (2026-05-27):** Die in den 2026-05-19/20-Verifikations-Läufen identifizierten Tool-B-Items (2a.1c, 2a.2 ✅, 2a.3, B.2) und der frühere „Nächste Session — Phase 2 TODOs"-Block (Tool-A-Backlog) sind in diese Phase-1-/Phase-2-Struktur überführt. Abgeschlossene Infra-Phasen 1–4 und Deploy-/Scheduler-Status: siehe `## Status` und `## GCP-Infrastruktur`.
 
-| Phase | Status |
-|---|---|
-| Phase 1 (Bootstrap) | ✅ |
-| Phase 2 (Deploy) | ✅ |
-| Phase 3a ($5 Warning) | ✅ |
-| Phase 3b ($10 Hard Stop) | ✅ |
-| Phase 3c (Cloud Scheduler) | ✅ |
-| Phase 4 (Universe + Bugfixes + Produktivgang) | ✅ |
+### Sub-Phasen
 
-**Phase-2-Backlog:**
+- [ ] **1.1 — 2a.3 Globaler Vintage-Confidence-Faktor** (1–2 Sessions plus Akzeptanz-Lauf). Branch `feature/deepdive-stage2a3-vintage-confidence`. Brainstorm vor TDD: Enforcement-Mechanismus (Prompt vs. Code vs. Hybrid), Schwellen, vintage-sensitive Punkte-Liste. **Nächste Session.**
+- [ ] **1.2 — 2a.1c Marker-Spec-Gap** (1 Session). Modell erfindet vereinzelt Marker außerhalb der SOURCES-Whitelist (z.B. `[peer_comparison]`) → Whitelist erweitern oder strikter Collapse.
+- [ ] **1.3 — 5J-Bewertungs-Range** (3–4 Sessions plus Akzeptanz-Lauf). Historische Multiples (KGV, EV/EBIT, FCF-Yield) über 5 Jahre, Vergleichs-Anker im Bewertungsblock. Implementation über Quarterly-Financials + Multiples-Rückrechnung (yfinance `info` historisch nicht stabil). FX-Handling Stolperfalle.
+- [ ] **1.4 — Insider-Transactions Form-4** (2 Sessions plus Akzeptanz-Lauf). EDGAR Form-4-XML-Pull, Synthesis-Prompt-Block „Insider-Transactions letzte 12 Monate", P11/P15-Reasoning-Anker. US-spezifisch (Foreign Private Issuers sind Section-16-exempt).
+- [ ] **1.5 — DEF-14A-Proxy-Source-Layer** (5–7 Sessions plus Akzeptanz-Lauf). Zweiter EDGAR-Pull für Proxy-Statement, Filing-Parser + Anchor-Resolver wiederverwendet, neue `_FORM_ITEMS["DEF 14A"]`-Liste, Synthesis-Prompt um neue Sections + Cite-Format `[DEF 14A §X]` erweitert. US-Domestic-Form, greift bei 20-F-Filern nicht.
+- [ ] **1.6 — Phase-1-Akzeptanz-Gate** (1 Session). Drei reale Watchlist-Deep-Dives mit voll-ausgebauten Dossiers, Memo unter `docs/superpowers/diagnostic-reports/`, Stephan beurteilt Vorcheck-Nützlichkeit.
 
-1. **Cloud Run Jobs statt Cloud Run Service für Tool A** — entkoppelt den Monatslauf von Deployments, eliminiert Deployment-Race-Risiko bei zukünftigen Architekturänderungen, höheres Timeout (24h statt 60min). Setzt voraus: Cloud Run Jobs Migration, Scheduler-Trigger auf Job-Execution statt HTTP.
+### Bewusste Lücken in Phase 1 (Honest-Label)
 
-2. ~~**Gemini 503-Retry mit tenacity**~~ ✅ (2026-05-17) — erledigt, siehe TODO #11 (Branch `feature/gemini-503-retry`, PR #3). Ursprung: ALV.DE fiel im Mai-Lauf durch transientes "503 UNAVAILABLE - high demand".
+- **20-F-Filer Vergütungs-/Insider-Substanz:** DEF-14A + Form-4 greifen bei 20-F-Filern nicht. Kompensation: manuelle Routine pro 20-F-Deep-Dive (Vergütungsbericht + Director's-Dealings, ~15 Min). Backlog-Marker für Phase 2: „Vergütungs-/Director's-Dealings-Layer für 20-F-Filer".
+- **EU-Filer ohne US-ADR:** Bleiben Honest-Label-Dossiers (`fallback_used+missing`). Backlog-Marker für Phase 2: „EU-Native-Source-Layer".
+- **Aktualität jenseits Annual Report:** Kompensation manuelle Vor-Kauf-Routine (Quartalsbericht, Konsens-Drift, 8-K-/Ad-hoc-Filings). Backlog-Marker für Phase 2: „10-Q-Quartals-Update-Pipeline".
+- **Sektor-Spezifika** (Banken, REITs, Biotech): manuelle Sektor-Fit-Frage vor Tool-B-Lauf.
+- **Fisher-Stufe-2-Substanz P7–P10:** methodisch unvermeidbar, kein Backlog-Marker (Methodik-Grenze, keine Tool-Lücke).
 
-3. **`has_active_enforcement` ausimplementieren** — derzeit Phase-1-Platzhalter, gibt für alle CIKs `False` zurück. Bei US-Tickern via SEC EDGAR, bei EU-Tickern via BaFin/FCA/AMF/CNMV.
+## Phase 2 — Vollausbau (zurückgestellt)
 
-4. **Idempotenz-Lock auf `/run/monthly`** — Firestore-Dokument `runs/monthly/{YYYY-MM}` mit Status `running|completed`. Verhindert Doppelaufrufe falls Scheduler-Retry trotz neuer Policy noch zuschlägt.
+Re-Evaluation der Scope-Definition nach Phase-1-Abschluss. Reihenfolge innerhalb Phase 2 wird beim Phase-1-Exit festgelegt, nicht jetzt.
 
-5. **Output-Repo-Trennung** — `stnmllr/fisherscreen-output` als separates Repo, wenn Output-Frequenz steigt (Deep-Dives, Hold-Checks). Aktuell nicht nötig.
+### Source-Layer-Erweiterung (kohärente Initiative)
 
-6. **GitHub-Actions-Trigger-Quirk** *(Priorität gesenkt — Trigger funktioniert wieder)* — Untersuchen, warum Squash-Merge-Commit `9b64007` keinen Workflow ausgelöst hat. Mögliche Ursache: zeitliches Aufeinanderfolgen von Commits. Update 2026-05-17: Trigger lief für Commits `2741634` und Folge-Commits wieder zuverlässig (mehrere erfolgreiche Runs in `gh run list`). Phänomen wirkt intermittierend, nicht reproduzierbar — bleibt Backlog ohne Dringlichkeit.
+- **External-Document-Source-Layer** — sammelt mehrere Sub-Quellen unter einer Architektur:
+  - **US DEF-14A-Tiefer-Layer:** über Phase-1-Implementation hinaus (mehrjähriger Proxy-Vergleich, Vergütungs-Trend-Analyse).
+  - **EU-Native-Source-Layer:** Bundesanzeiger (DE), Companies House (UK), AMF (FR), CNMV (ES). Adressiert F5/F7 (ASML-Typ Filings) und EU-ohne-ADR-Filer. Geschätzt 6–10 Sessions.
+  - **20-F-Vergütungs-/Director's-Dealings-Layer:** Vergütungsbericht-Scraping IR-Sites, BaFin/Bundesanzeiger-Director's-Dealings-Pull. Geschätzt 4–6 Sessions.
+  - **IR-PDF-Fallback:** für Filings außerhalb strukturierter Source-Systeme. Geschätzt 2–3 Sessions.
 
-7. ~~**Vorfilter-Dokumentation**~~ ✅ (2026-05-17) — V3-Filterlogik jetzt in `docs/superpowers/brainstorm/2026-05-17-us-titel-bugfix.md` und direkt im Code dokumentiert. Threshold-Werte: Market Cap ≥ €2B, Gross Margin ≥ 30%, Revenue Growth ≥ 0%. Restlicher Audit (EU-Ticker ohne CIK, EDGAR-Stub-Status) weiterhin offen.
+### Tool-B-Aktualitäts-Pipeline
 
-8. **Name-Cleanup im Output** — yfinance liefert Listing-Suffixe ("N", "I", "V") und kaputte Encodings ("DISE...O" statt "DISEÑO"). In `dimensions_generator.py` und `crosshits_generator.py` rstrip/encoding-Cleanup.
+- **10-Q-Quartals-Update-Pipeline:** Quarterly-Filings als zusätzliche Tool-B-Source, Quant-Snapshot-Update bis zum letzten abgeschlossenen Quartal. Geschätzt 3–5 Sessions.
 
-9. **`docs/scoring-methodology.md`** — Detaillierte Dokumentation der Score-Berechnung pro Dimension: yfinance-Feldmapping, Heuristiken, Gemini-Prompt-Templates, Score-Aggregation, Vorfilter-Logik. Wichtig für: Reproduzierbarkeit, künftige Methodenänderungen, Debugging schwacher Score-Plausibilität.
+### Tool-B-Hygiene
 
-10. ~~**Negativ-Filter-Audit (`docs/negative-filters-status.md`)**~~ ✅ (2026-05-17) — Audit aller effektiven Filter erstellt: 4 Basis-Filter (Volume/MarketCap/GrossMargin/RevenueGrowth) aktiv, Bruttomarge/Umsatz nur Single-Value (vereinfacht ggü. V3-Mehrjahres), 3 V3-Kriterien (Dilution/Verluste/neg. Marge) nicht implementiert, `has_active_enforcement` Stub, EDGAR nur US-CIK (EU-Blindfleck). Branch `chore/negative-filters-audit`.
+- **Dynamische ADR-Resolution** via OpenFIGI/SEC statt statischer Tabelle. Löst die heute (2026-05-20) lokal gesetzten Self-References für GOOGL/ASML auf; bündelt mit Schema-Bereinigung `Optional[str]` für `adr_ticker`.
+- **Filing-Cache-Migration nach GCS** (Tool-A/B-übergreifend).
+- **`response_schema` E2** (Synthesis-JSON-Vertrag im Modell-Output erzwungen statt nur post-parse-validiert).
+- **Layering-Aufräumung Punkt-5-Schema:** `SectionFlag` aus `app/deepdive/filing_parser.py` nach `app/models/` ziehen (Inversion `models → deepdive`, kein Zyklus); vorher prüfen, ob weitere Models-Felder aus `app/deepdive/` importieren. Priorität niedrig, keine funktionale Wirkung.
 
-11. ~~**Gemini 503-Retry mit tenacity**~~ ✅ (2026-05-17) — tenacity-Retry für transiente 503 UNAVAILABLE + 429 RESOURCE_EXHAUSTED auf beide Gemini-Calls (count_tokens + generate_content), exponentieller Backoff 1s/4s/16s, max 4 Versuche, reraise → bisheriges Skip-Verhalten bei Dauerfehler erhalten. Branch `feature/gemini-503-retry`, 247 Tests grün. Spec/Plan: `docs/superpowers/specs/2026-05-17-gemini-503-retry-design.md`.
+### Tool-A-Phase-2-Backlog (V3-Spec-Lücken)
 
-12. **Portfolio Hold-Check** — Vollständige Implementierung gemäß V3 Abschnitt 4.3. Sinnvoll zeitlich nach erstem Comdirect-CSV-Export → Portfolio-Analyzer → `portfolio_normalized.json` Workflow. Realistischer Zeithorizont: nach Juni-Lauf, vor Tool B.
+- **Portfolio Hold-Check** (V3 Abschnitt 4.3) — sobald reale Kauf-Snapshots existieren.
+- **Cost-Caps im Code** für Tool A (V3 Architekturprinzip #3) — Tool-B-Teil bereits implementiert (2026-05-18), Tool-A-Run-Cap offen.
+- **`has_active_enforcement` ausimplementieren** — heute Stub (gibt für alle CIKs `False`); US via SEC EDGAR, EU via BaFin/FCA/AMF/CNMV.
+- **Idempotenz-Lock auf `/run/monthly`** — Firestore-Dokument `runs/monthly/{YYYY-MM}`, Defense-in-Depth gegen Scheduler-Retry-Doppelaufrufe.
+- **Cloud Run Jobs statt Service für Tool A** — entkoppelt Monatslauf von Deployments, höheres Timeout (24h statt 60min).
+- **Output-Repo-Trennung** (`stnmllr/fisherscreen-output`) — falls Output-Frequenz steigt.
 
-13. **Cost-Caps im Code** — Hard-Limits für Gemini-Tokens pro Lauf, Logging-Schwelle bei 80%-Erreichung. V3-Architekturprinzip #3. *(Tool-B-Teil ✅ 2026-05-18: Per-Deepdive-Token-Cap + 80%-WARNING in `gemini_deepdive_client`; Tool-A-Run-Cap offen.)*
+### Hygiene / nicht-blockierende Issues
 
-14. **CLAUDE.md gegen V3-Spec prüfen** — Vollständigkeit: cmd.exe-Konventionen, `uv run python -m pytest`-Workaround, Test-Konventionen, Deploy-Workflow lokal vs. CI. *(2026-05-18: SOPRA-EPDR-Abschnitt generalisiert + dev-Default-Group; Rest offen.)*
+- **Sektor-Specific-Heuristics** (Banken/REITs/Biotech) — niedrige Priorität, vermutlich erst nach Phase 2.
+- **Name-Cleanup im Output** (yfinance Listing-Suffixe „N"/„I"/„V", kaputte Encodings) in `dimensions_generator.py` + `crosshits_generator.py`.
+- **`docs/scoring-methodology.md`** — Detail-Dokumentation der Score-Berechnung pro Dimension.
+- **CLAUDE.md gegen V3-Spec prüfen** (Rest nach 2026-05-18-SOPRA-Generalisierung).
+- **GitHub-Actions-Trigger-Quirk-Investigation** (Priorität niedrig, intermittierend).
+- **F8-Cross-Reference-Validator** (eigene Initiative gegen Modell-Halluzination unter validem Cite-Label, z.B. GOOGL-P6-„Nvidia"; adressiert Body→Fakt-Hallucination, nicht nur Section→Body-Mismapping).
+- **GICS-50-Erweiterung** (Communication Services zu F&E-Branchen).
 
-**Tool B — Active:**
+### Universum-Erweiterung (optional, nach Phase 2)
 
-- [x] B.0 + B.1 ✅ (2026-05-18) · B.1-Akzeptanz-Gate ✅ — Synthesis nicht-produktionsreif → Stufe 1 + Stufe 2
-- [x] **Stufe 1** (Prompt-Härtung) ✅ · **Stufe 2** (2a/2b/2c/2d + 1.5/1.5.2) ✅ — alle auf `main`
-
-Backlog (Stand 2026-05-20):
-
-**Erledigt seit letztem Backlog-Update:**
-
-- [x] **1. EBIT-Stale-Cache** — ✅ 2026-05-20 (Schema-Versions-Key `CACHE_SCHEMA_VERSION=2`, lazy refetch bei Mismatch, siehe `## Erledigt`)
-- [x] **2b. 70-Wort-Reasoning Fail-Soft** — ✅ 2026-05-20 (Truncate-Satz-Boundary + Ellipsis-Marker für Hard-Cut-Fall)
-- [x] **3. Test-Isolation** — ✅ 2026-05-20 (preventive `output/`-Write-Guard; Stephans Hypothese „Tests schreiben in `output/`" durch empirischen Suite-Lauf widerlegt — Guard als Anti-Regression installiert)
-- [x] **4. Marker-Drift `[[...]]`/`[historical_series]`** — ✅ 2026-05-20 (Prompt-Fix statt Code-Normalizer; Verifikation in GOOGL+ASML-Läufen bestanden, beide sauber Einzel-Klammer)
-- [x] **2a.1. P13-FCF-Yield-Nudge im Synthesis-Prompt** — ✅ 2026-05-20 (Verifikation: P13-FCF-Yield explizit zitiert in beiden Läufen)
-- [x] **2a.1b — Sterne-Inflation-Fix (Hard-Cap + Begründungs-Pflicht)** — ✅ 2026-05-20 (`1adb4a0`, noch nicht gemergt). **Verifikations-Ergebnis gemischt:** GOOGL 5/15 ⭐⭐⭐⭐⭐ ✅, ASML 6/15 ✗ teilweise — Hard-Cap brüchig bei Inferenz-lastigen Memos (Befund B, siehe unten).
-
-**Offen (Reihenfolge in Klärung, Default-Vorschlag 2026-05-20: 5 → 2a.1c → 2a.2 → 2a.3 → B.2):**
-
-- [ ] **5. Filing-Parser-Mehrfach-Anker** *(vorgezogen — empirisch dringend nach 2a.1+2a.1b-Verifikation)* — Item 4/5/18 „N candidate anchors". ASML-Verifikations-Lauf zeigte Item 4/5 **missing**, Item 18 truncated → 13/15 Punkte auf `[Inferenz]`, Memo investment-untauglich. Solange ungelöst sind alle EU-Filing-Tool-B-Läufe (20-F) inhaltlich unbrauchbar = großer Teil von STOXX 600 ausgeschlossen. Plus: **Hard-Cap aus 2a.1b ist brüchig bei Inferenz-Lastigkeit** — ohne Filing-Substanz fehlt dem Modell die relative Vergleichsbasis. Punkt 5 ist damit Pflicht-Vorbedingung für stabile Sterne-Kalibration bei EU-Filings. Groß, eigene Diagnose-Runde.
-- [ ] **2a.1c — Marker-Spec-Gap** *(neu nach 2a.1b-Verifikation, Befund A)* — Modell erfindet vereinzelt Source-Marker außerhalb der im SOURCES-Block spezifizierten Liste (Beispiel `[peer_comparison]` aus 2a.1-Verifikation, ein weiterer Marker im 2a.1b-Lauf — Detail-Inhalt: in der nächsten Session vor Diagnose zu konkretisieren, der genaue Drift-Marker steht im 2026-05-20-ASML-Dossier). Mögliche Lösungs-Richtungen: SOURCES-Block-Whitelist erweitern (für legitime neue Marker wie Peer-Tabelle), oder striktere Whitelist mit `Inferenz`-Collapse für alle unbekannten Marker analog `_validate_sources` für Section-Cites.
-- [ ] **2a.2 — Filing-Vintage-Anzeige im Prompt** — `filing_date` + `days_since_filing` deterministisch im User-Prompt; Tage zum Synthesis-Zeitpunkt berechnen (nicht im Cache, sonst wird der gecachte Wert zur Lüge bei späterem Lauf). Vorbedingung für 2a.3. Macht erst Sinn, wenn Filing-Inhalt das Modell überhaupt erreicht (siehe Punkt 5).
-- [ ] **2a.3 — Globaler Vintage-Confidence-Faktor** — Confidence-Regel auf Filing-Alter konditioniert (z.B. > 180 Tage → 🟢→🟡 für Margen/Wettbewerb/Outlook). Baut auf 2a.2 auf.
-- [ ] **B.2 Vor-Brainstorm** — Scope wie bisher (Hard-Scuttlebutt-Breite, EU-Voll-Abdeckung, dyn. ADR-Resolution OpenFIGI/SEC, IR-PDF-Fallback, 10-Q+Insider, 5J-Bewertungs-Range B.2.1, `response_schema` E2, DOM-Filing-Parser, historical-cache→GCS) **PLUS Schema-Bereinigung `Optional[str]` für `adr_ticker`** — löst die heute (2026-05-20) lokal gesetzten Self-References für GOOGL/ASML auf (dokumentierte technische Schuld bis B.2; nicht committed in `data/adr_table.json`).
-
-**Beobachtungen aus 2a.1+2a.1b-Verifikations-Läufen (keine Aktion, getrackt):**
-
-- **Hard-Cap brüchig bei Inferenz-lastigen Memos** *(Befund B, 2a.1b-Lauf)* — bei ASML mit 13/15 Inferenz-only-Punkten ignorierte das Modell die nicht-verhandelbare „MAXIMAL 5"-Vorgabe trotz expliziter „keine Ausnahme"-Formulierung und blieb bei 6/15. Hypothese: ohne Filing-Substanz fehlt dem Modell die relative Vergleichsbasis, die die Top-Note semantisch rechtfertigt — der Cap allein zwingt die Korrektur nicht. Bei GOOGL (Filing-substantiell) zog der Cap (5/15). Konsequenz: Sterne-Kalibration ist nach Punkt 5 (Filing-Parser) erneut zu prüfen, **bevor** weitere Prompt-Eingriffe sinnvoll sind.
-- **2a.1d — ABSCHLUSS-CHECK als bedingte Eventualität** — vorbereitet, **nicht eingeplant**. Trigger: wenn nach Punkt 5 (Filing-Parser-Mehrfach-Anker, der die ASML-Inferenz-Lastigkeit beseitigen soll) auch bei filing-substanziellen EU-Läufen weiter Sterne-Inflation auftritt. Vorgesehene Form: separater ABSCHLUSS-CHECK-Block am Ende des Prompts („Bevor du die JSON-Antwort sendest, zähle deine ⭐⭐⭐⭐⭐-Punkte. Wenn mehr als 5, identifiziere den schwächsten und senke auf 4 ..."). Echter Audit-Schritt statt eingebetteter Self-Constraint (Modelle reagieren erfahrungsgemäß besser auf „before you send, check X"). Entscheidung wird mit Daten-Basis getroffen, nicht mit Vermutung.
-- ASML-Dossier-Titel: `# Deep Dive: ASML Holding N.V. - New York Re (ASML)` — „New York Re" gehört nicht in den Titel (Artefakt aus yfinance `company_info`, vermutlich NYRE-Listing-Suffix). Kosmetisch.
+- **Asia-Pazifik-Universum** (Nikkei 225, Hang Seng, ASX 200).
+- **Emerging-Markets-Stress-Tests.**
 
 ## Offene Punkte (nicht-blockierend)
 
@@ -439,16 +437,9 @@ Backlog (Stand 2026-05-20):
 ### Backlog (nicht-blockierend)
 - [ ] IT-Ticket WatchGuard EPDR (strukturelle Lösung statt Workaround)
 - [ ] mypy strict / `@runtime_checkable` auf Protocols erwägen
-- [ ] GICS-50 (Communication Services) zu F&E-Branchen hinzufügen? — nach erstem Lauf bewerten
-- [ ] `has_active_enforcement` ist Stub — SEC EDGAR hat keine direkte Enforcement-API; Lösung evaluieren
 - [ ] Status Telefon-Agent-Migration prüfen (Deadline 1.6.2026)
 - [ ] **V3-Architektur-Doc aktualisieren** (`D:\programme\stef-vault\...\FisherScreen_Architektur_v3.md`): Section 4.2 beschreibt L1-L5 quant-basierte Listen. Implementiert wurden Gemini-Assessment-Dimensionen — Doku-Drift vermerken.
 - [x] **Intermediate-Items-Diagnose (Folge-Ticket aus Punkt-5-Plan-Phase)** ✅ **abgeschlossen 2026-05-26 — kein Handlungsbedarf, Ticket geschlossen.** 3-Ebenen-Probe (String/Substanz/Reasoning) über alle vier Stage-5-Filings: GOOGL §11 „echter DROP" entlarvt als substanz-blinder String-Artefakt (Tail-Treffer = Part-III-TOC-Zeile + Incorporation-by-Reference auf den DEF-14A-Proxy; echte Exec-Comp/Related-Party-Substanz nie im 10-K-Body). §11/§12 wiederholen sich string-seitig in 2/2 US-10-Ks, aber **0 Reasoning-Drops** über alle Filings (alt+neu). N4-Drop entfernt Zeiger, keinen Inhalt → Status-Quo + Honest-Label korrekt. §3/§1C/§13 + 20-F-Pendants = „kein Substanz-Verlust", nicht latenter Defekt. Report: `docs/superpowers/diagnostic-reports/2026-05-26-intermediate-items-diagnose.md`. Reframte echte Lücke → neuer Eintrag „External-Document-Source-Layer" unten.
-- [ ] **F8-Kandidat-Cross-Reference-Validator (Folge-Ticket aus Punkt-5-Plan-Phase)** — Modell-Halluzination unter validem Cite-Label (z.B. GOOGL-P6-„Nvidia": Begriff nicht im Filing, Cite formal valide). Punkt-5-F4-Härtung adressiert nur Section→Body-Mismapping, nicht Body→Fakt-Hallucination. Lösungsrichtung vermutlich LLM-basierter oder Term-Frequency-basierter Cross-Reference-Validator zwischen Cite-Substanz und Body-Substanz. Eigene Initiative, Backlog-Position nicht akut.
-- [ ] **EU-Native-Source-Layer (Folge-Ticket aus Punkt-5-Plan-Phase)** — nur einplanen, falls Universum-Reichweite über SEC-EDGAR-ADR-20-F-Filings als unzureichend bewertet wird (STOXX-600-Komponenten ohne aktives US-ADR-Reporting fallen heute komplett aus Tool-B-Reichweite raus). Eigene Architektur-Initiative; Source-Klassen Bundesanzeiger DE / Companies House UK / AMF FR. Vorbedingt: Bewertung nach mehreren produktiven Tool-B-Läufen, ob die ADR-Reichweite akzeptabel ist. **Verwandt zu „External-Document-Source-Layer" (unten) — gleiches Anti-Pattern „Material existiert, nur nicht im gezogenen Dokument"; in B.2-Vor-Brainstorm als *eine* kohärente Initiative zu prüfen.**
-- [ ] **External-Document-Source-Layer — US-Proxy (DEF-14A) + EU-Native (Folge aus Intermediate-Items-Diagnose 2026-05-26)** — Strukturelle Wurzel: US-10-K Part III (Items 10–14: Governance, Vergütung, Security Ownership, Related-Party) ist per SEC-Gesetz **incorporated-by-reference auf den DEF-14A-Proxy** — eine Filing-System-Eigenschaft, kein Parser-Defekt und kein Punkt-5-Artefakt. Tool B zieht den Proxy nicht → **P8/P9/P15-Grounding ist bei US-Filern aus dem 10-K allein systemisch unmöglich**, egal wie gut der Parser; das begrenzt die Reichweite des Tool-B-Ansatzes ehrlich. Einziger echter Hebel = die externe Quelle ziehen. Methodisch identisch zum EU-Native-Source-Layer (oben): beide = „Material existiert, nur nicht im gezogenen Dokument". Kandidat für **eine** Initiative mit zwei Sub-Quellen (US-Proxy DEF-14A + EU-native Filings), in B.2-Vor-Brainstorm als kohärentes Architektur-Thema zu diskutieren statt zwei isolierter Tickets. Nicht akut — kein Scoring-Regress (P8/P9/P15 sind in den Dossiers bereits ehrlich niedrig/rot bewertet).
-- [ ] **Layering-Aufräumung Punkt-5-Schema (Folge-Ticket aus Stage 2)** — `SectionFlag` lebt in `app/deepdive/filing_parser.py`, wird aber von `app/models/deep_dive_record.py` importiert (Inversion `models → deepdive`, kein Zyklus, Tests grün). Vor Fix kurz prüfen, ob weitere Models-Felder aus `app/deepdive/` importieren; dann ggf. gesammelt nach `app/models/` ziehen. Priorität niedrig, keine funktionale Wirkung.
-
 ## Lessons Learned — GCP Bootstrap
 
 Aufgezeichnet nach dem ersten Deploy-Versuch (2026-05-15). Für künftige Projekte mit ähnlichem Stack.
@@ -658,6 +649,7 @@ und „N/N Downgrades" sind beide Alarmsignale — zuerst prüfen, *ob die Regex
 | 2026-05-20 | Backlog-Reihenfolge revidiert nach 2a.1-Verifikation: Punkt 5 (Filing-Parser-Mehrfach-Anker) **vor** 2a.2/2a.3 vorgezogen | Empirische Halluzinations-Rate 13/15 bei ASML (Item 4/5 missing) macht alle EU-Filing-Tool-B-Läufe inhaltlich unbrauchbar; 2a.2 (Filing-Vintage im Prompt) ist sinnlos, solange das Modell keinen echten Filing-Inhalt sieht. Bauen auf wackeligem Untergrund ist das Anti-Pattern, das wir bei Punkt 1 vermieden haben. | Punkt 5 ist groß (eigene Diagnose-Runde) → längere Pause zwischen 2a.1 und 2a.2; Sterne-Kalibration als 2a.1b dazwischen geschoben |
 | 2026-05-20 | ADR-Table-Schema-Bereinigung (Self-Reference vs. `Optional[str]`): **A jetzt für Verifikation** (`adr_ticker: "GOOGL"`/`adr_ticker: "ASML"` lokal, NICHT committed), **B in B.2** (Schema-Erweiterung auf `Optional[str]`) | Verifikations-Workflow nicht durch Schema-Refactor in unrelatedem Modul blockieren; Self-Reference produziert nur kosmetischen Frontmatter-Effekt (`adr_ticker: GOOGL`), kein Verhaltens-Defekt; B.2 bündelt mit dynamischer ADR-Resolution | Dokumentierte technische Schuld bis B.2; Self-Reference im Frontmatter ist semantische Lüge (`GOOGL` ist nicht GOOGL's ADR) |
 | 2026-05-20 | Marker-Drift `[[...]]` per Prompt-Fix lösen, **nicht** per Code-Normalizer | Ein Code-Normalizer wäre Symptom-Fix, der zukünftige Modell-Format-Regressionen unsichtbar macht (stille Korrektur des falschen Modell-Outputs). Prompt-Fix (`'yfinance, 5J'` ohne Brackets in Beispielen + expliziter „OHNE eckige Klammern"-Hinweis) entzieht dem Drift-Vektor die Quelle. Verifiziert in GOOGL+ASML-Läufen 2026-05-20: keine `[[...]]` mehr | Falls Prompt-Fix bei zukünftigem Modell-Update doch nicht reicht: Normalizer wäre Plan B, dann mit Honest-Label dokumentiert |
+| 2026-05-27 | B.2-Scope auf Pareto-Variante reduziert, sechs sequenzielle Sub-Phasen 1.1–1.6 statt einzelner Tier-1-Items | Reale Substanz-Lücken in Fisher-Stufe-1 (P8/P9/P11/P15) liegen systemisch außerhalb 10-K/20-F; Pareto-Hebel sind DEF-14A-Proxy + Form-4-Insider + 5J-Range; sequenziell statt parallel wg. Wirkungs-Zuordnung (Stage-Lesson v) | Phase 1 dauert 8–10 Wochen statt einzelner Quick Wins; 20-F-Vergütungs-/Insider-Substanz bleibt Phase-2-Backlog mit manueller Routine als Kompensation |
 
 ## Parallele Projekte
 

@@ -1,3 +1,14 @@
+> **Pareto-Restriktion 2026-05-27:** Der ursprüngliche B.2-Scope dieses
+> Master-Brainstorms (Hard-Scuttlebutt-Breite, EU-Voll-Abdeckung,
+> dynamische ADR-Resolution, IR-PDF-Fallback, 10-Q+Insider,
+> 5J-Bewertungs-Range, `response_schema` E2, DOM-Filing-Parser,
+> historical-cache→GCS) wurde auf eine Pareto-Variante reduziert und in
+> sechs sequenzielle Sub-Phasen 1.1–1.6 aufgeteilt. Aktueller Plan:
+> `docs/superpowers/plans/2026-05-27-phase-1-pareto-b2.md`. Inhalte dieses
+> Brainstorms bleiben historisch gültig; zurückgestellte Punkte (EU-Native,
+> 20-F-Vergütung, 10-Q, dynamische ADR-Resolution, `response_schema`,
+> GCS-Cache) sind im PROJEKTSTAND-Phase-2-Block aufgeführt.
+
 # Tool B (Deep Dive) — Master-Brainstorm
 
 **Datum:** 2026-05-18 (rev4)
