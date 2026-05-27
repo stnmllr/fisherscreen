@@ -14,6 +14,12 @@ from app.models.deep_dive_record import FisherPoint, QuantSnapshot
 
 logger = logging.getLogger(__name__)
 
+# Single source of truth for the vintage cap. The numeric threshold lives ONLY
+# here — the prompt references the concept semantically ("Filing-Alter"), never
+# the number, so the rule and the soft prompt nudge cannot drift apart.
+VINTAGE_THRESHOLD_DAYS = 180
+VINTAGE_SENSITIVE_POINTS = frozenset({5, 6, 12})
+
 
 def _today() -> date:
     """Return today's date. Indirection makes synthesis-time date patchable in tests."""
@@ -84,6 +90,9 @@ _SYSTEM_PROMPT = (
     "'yfinance, 5J' für Quant, 'Marktkontext' für Wettbewerbs-/Branchen-"
     "einordnung ohne Quelle, oder 'Inferenz' für kombinierte Quellen ohne "
     "direkten Zitat-Pfad. Bei reiner Inferenz confidence ≤ 🟡.\n"
+    "VINTAGE: berücksichtige das Filing-Alter bei aktuellen Finanzkennzahlen, "
+    "Nahbereich-Outlook und kapitalstruktur-bezogenen Bewertungen — bei deutlich "
+    "überaltertem Filing senke die confidence dieser Punkte entsprechend.\n"
     'Antworte NUR als JSON: {"points":[{"number":int,"title":str,"rating":int,'
     '"confidence":str,"reasoning":str,"sources":[str]}, ... 15 Einträge]}'
 )
@@ -112,6 +121,23 @@ def _format_vintage_line(filing_date: str | None) -> str:
         return "Filing-Stand: unbekannt"
     days = (_today() - parsed).days
     return f"Filing-Stand: {filing_date} (vor {days} Tagen)"
+
+
+def _days_since_filing(filing_date: str | None) -> int | None:
+    """Days between the SEC filing_date and today (_today(), patchable).
+
+    None if filing_date is absent or not an ISO date — mirrors the fail-soft
+    behaviour of DeepDiveRecord.days_since_filing and _format_vintage_line.
+    Computed here (not via the DeepDiveRecord property) because the record does
+    not exist yet at synthesis time.
+    """
+    if filing_date is None:
+        return None
+    try:
+        parsed = date.fromisoformat(filing_date)
+    except ValueError:
+        return None
+    return (_today() - parsed).days
 
 
 def _build_user_prompt(
@@ -157,6 +183,7 @@ def run_synthesis(
         )
 
     sent_keys = set(sections.keys())
+    days = _days_since_filing(filing_date)
     points: list[FisherPoint] = []
     for rp in raw_points:
         sources = list(rp.get("sources", []))
@@ -175,6 +202,17 @@ def run_synthesis(
         # source_coverage section (Task 8).
         if rp.get("number") in (14, 15):
             rp = {**rp, "confidence": "🔴"}
+        # Vintage cap: a stale cited filing caps the model's confidence to 🟡
+        # for the vintage-sensitive points {5,6,12}. The == "🟢" guard against
+        # the CURRENT (end) value makes this order-independent and only-lowering:
+        # it never raises 🔴/🟡, and is robust if enforcement steps get reordered.
+        if (
+            days is not None
+            and days > VINTAGE_THRESHOLD_DAYS
+            and rp.get("number") in VINTAGE_SENSITIVE_POINTS
+            and rp.get("confidence") == "🟢"
+        ):
+            rp = {**rp, "confidence": "🟡"}
         try:
             points.append(FisherPoint(**rp))
         except ValidationError as exc:
