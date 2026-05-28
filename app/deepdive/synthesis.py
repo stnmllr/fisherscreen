@@ -90,9 +90,10 @@ _SYSTEM_PROMPT = (
     "'yfinance, 5J' für Quant, 'Marktkontext' für Wettbewerbs-/Branchen-"
     "einordnung ohne Quelle, oder 'Inferenz' für kombinierte Quellen ohne "
     "direkten Zitat-Pfad. Bei reiner Inferenz confidence ≤ 🟡.\n"
-    "VINTAGE: berücksichtige das Filing-Alter bei aktuellen Finanzkennzahlen, "
-    "Nahbereich-Outlook und kapitalstruktur-bezogenen Bewertungen — bei deutlich "
-    "überaltertem Filing senke die confidence dieser Punkte entsprechend.\n"
+    "VINTAGE: Enthält der Input oben einen 'Aktualitäts-Hinweis', benenne das "
+    "Filing-Alter ausdrücklich im reasoning der dort genannten Punkte als "
+    "Einschränkung der Aktualität der Stichtagskennzahlen. Ohne solchen Hinweis "
+    "erwähne das Filing-Alter NICHT.\n"
     'Antworte NUR als JSON: {"points":[{"number":int,"title":str,"rating":int,'
     '"confidence":str,"reasoning":str,"sources":[str]}, ... 15 Einträge]}'
 )
@@ -104,32 +105,15 @@ def _section_label(key: str) -> str:
     return key.replace("_item", " §", 1)
 
 
-def _format_vintage_line(filing_date: str | None) -> str:
-    """Render the compact filing-vintage anchor for the synthesis prompt.
-
-    Format (valid date): 'Filing-Stand: YYYY-MM-DD (vor N Tagen)'
-    Format (missing/unparseable): 'Filing-Stand: unbekannt'
-
-    Days are computed at call-time via _today() so the value is always
-    current and patchable in tests.
-    """
-    if filing_date is None:
-        return "Filing-Stand: unbekannt"
-    try:
-        parsed = date.fromisoformat(filing_date)
-    except ValueError:
-        return "Filing-Stand: unbekannt"
-    days = (_today() - parsed).days
-    return f"Filing-Stand: {filing_date} (vor {days} Tagen)"
-
-
 def _days_since_filing(filing_date: str | None) -> int | None:
     """Days between the SEC filing_date and today (_today(), patchable).
 
-    None if filing_date is absent or not an ISO date — mirrors the fail-soft
-    behaviour of DeepDiveRecord.days_since_filing and _format_vintage_line.
-    Computed here (not via the DeepDiveRecord property) because the record does
-    not exist yet at synthesis time.
+    THE single day count for synthesis time: the vintage line, the staleness
+    hint and the confidence cap all read from this one function, so they cannot
+    drift apart on a future refactor. None if filing_date is absent or not an
+    ISO date — fail-soft, mirroring DeepDiveRecord.days_since_filing. Computed
+    here (not via the DeepDiveRecord property) because the record does not exist
+    yet at synthesis time.
     """
     if filing_date is None:
         return None
@@ -138,6 +122,43 @@ def _days_since_filing(filing_date: str | None) -> int | None:
     except ValueError:
         return None
     return (_today() - parsed).days
+
+
+def _format_vintage_line(filing_date: str | None, days: int | None) -> str:
+    """Render the compact filing-vintage anchor for the synthesis prompt.
+
+    Format (valid date): 'Filing-Stand: YYYY-MM-DD (vor N Tagen)'
+    Format (missing/unparseable): 'Filing-Stand: unbekannt'
+
+    `days` is passed in from the single _days_since_filing computation rather
+    than parsed again here; days is None iff filing_date is missing or not an
+    ISO date.
+    """
+    if days is None:
+        return "Filing-Stand: unbekannt"
+    return f"Filing-Stand: {filing_date} (vor {days} Tagen)"
+
+
+def _format_vintage_hint(days: int | None) -> str:
+    """Code-emitted staleness signal for the synthesis prompt (1.1b candidate 3).
+
+    Emitted ONLY when the filing is past the vintage threshold. The model reacts
+    to this signal's presence instead of judging staleness itself — the MSFT
+    acceptance run showed the model never reads a ~10-month-old annual 10-K as
+    'veraltet', so a subjective gate never fired. The threshold and the affected
+    point set stay single-sourced in the code constants; the concrete day count
+    is rendered so the wording survives a future threshold change. Empty string
+    when the filing is fresh or undated — which makes the anti-over-mention
+    property structural (the prompt simply has no hint to pick up), not wording.
+    """
+    if days is None or days <= VINTAGE_THRESHOLD_DAYS:
+        return ""
+    points = ", ".join(str(n) for n in sorted(VINTAGE_SENSITIVE_POINTS))
+    return (
+        f"Aktualitäts-Hinweis: Dieses Filing ist {days} Tage alt; seine "
+        f"Stichtagskennzahlen (Punkte {points}) sind möglicherweise nicht "
+        f"mehr tagesaktuell."
+    )
 
 
 def _build_user_prompt(
@@ -151,13 +172,16 @@ def _build_user_prompt(
     sec_txt = "\n\n".join(
         f"### {_section_label(k)}\n{v}" for k, v in sections.items()
     ) or "(keine Filing-Sections extrahiert)"
-    vintage = _format_vintage_line(filing_date)
+    days = _days_since_filing(filing_date)
+    vintage = _format_vintage_line(filing_date, days)
+    hint = _format_vintage_hint(days)
+    vintage_block = f"{vintage}\n{hint}" if hint else vintage
     return (
         f"Ticker: {ticker} (Filing-Typ {form_type})\n\n"
         f"Fishers 15 Punkte:\n{titles}\n\n"
         f"Quant-Snapshot (JSON):\n{quant.model_dump_json()}\n\n"
         f"{render_valuation_block(quant)}\n\n"
-        f"{vintage}\n\n"
+        f"{vintage_block}\n\n"
         f"Filing-Sections:\n{sec_txt}"
     )
 

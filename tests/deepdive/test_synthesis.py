@@ -516,6 +516,59 @@ def test_user_prompt_vintage_handles_unparseable_filing_date():
     # must not raise
 
 
+# --- Task 1.1b (candidate 3): code-emitted staleness hint -------------------
+# The objective trigger that carries the whole fix: _build_user_prompt emits an
+# 'Aktualitäts-Hinweis' iff days_since_filing > VINTAGE_THRESHOLD_DAYS. The model
+# then only reacts to the hint's presence — it no longer judges staleness itself.
+# A pure system-prompt substring test would not cover this trigger mechanism.
+
+
+def test_user_prompt_emits_staleness_hint_when_stale():
+    """days > threshold -> the hint is emitted, carries the concrete day count,
+    and scopes to the vintage-sensitive points (single-sourced from the code)."""
+    from datetime import date
+    from unittest.mock import patch
+
+    from app.deepdive.synthesis import _build_user_prompt
+
+    fixed_today = date(2026, 5, 28)
+    expected_days = (fixed_today - date(2025, 1, 1)).days  # 512 -> stale
+    with patch("app.deepdive.synthesis._today", return_value=fixed_today):
+        prompt = _build_user_prompt(
+            "X", "20-F", {"20-F_item5": "rev"}, _qs(), filing_date="2025-01-01"
+        )
+    assert "Aktualitäts-Hinweis" in prompt
+    assert f"{expected_days} Tage" in prompt  # concrete, threshold-robust age
+    assert "Punkte 5, 6, 12" in prompt        # scoped to VINTAGE_SENSITIVE_POINTS
+
+
+def test_user_prompt_no_staleness_hint_when_fresh():
+    """days <= threshold -> NO hint. Anti-over-mention is structural: a fresh
+    filing's prompt never carries the hint, so the model cannot pick it up."""
+    from datetime import date
+    from unittest.mock import patch
+
+    from app.deepdive.synthesis import _build_user_prompt
+
+    fixed_today = date(2026, 5, 26)  # filing 2026-02-04 -> 111 days, not stale
+    with patch("app.deepdive.synthesis._today", return_value=fixed_today):
+        prompt = _build_user_prompt(
+            "X", "20-F", {"20-F_item5": "rev"}, _qs(), filing_date="2026-02-04"
+        )
+    assert "Aktualitäts-Hinweis" not in prompt
+
+
+def test_user_prompt_no_staleness_hint_when_filing_date_none():
+    """filing_date None -> days None -> no hint (consistent with the fail-soft
+    None path: missing vintage info is never penalised)."""
+    from app.deepdive.synthesis import _build_user_prompt
+
+    prompt = _build_user_prompt(
+        "X", "20-F", {"20-F_item5": "rev"}, _qs(), filing_date=None
+    )
+    assert "Aktualitäts-Hinweis" not in prompt
+
+
 # --- Vintage confidence cap (RED phase) -------------------------------------
 # A post-process step in run_synthesis caps confidence to 🟡 for the vintage-
 # sensitive Fisher points {5, 6, 12} when the cited filing is stale
@@ -682,6 +735,26 @@ def test_system_prompt_contains_vintage_rule():
     from app.deepdive.synthesis import _SYSTEM_PROMPT
 
     assert "Filing-Alter" in _SYSTEM_PROMPT
+
+
+def test_system_prompt_vintage_reacts_to_staleness_hint():
+    """1.1b (candidate 3): the MSFT acceptance run showed the model never judges
+    a ~10-month-old 10-K as 'stale' (the latest annual filing is not 'veraltet'
+    in its ordinary sense), so a subjective gate never fires. The VINTAGE rule
+    therefore no longer asks the model to judge staleness. It reacts
+    UNCONDITIONALLY to the code-emitted 'Aktualitäts-Hinweis' signal — naming the
+    filing age in the reasoning of the points the hint lists — and stays silent
+    when no hint is present. Semantic substrings; the threshold stays in code."""
+    from app.deepdive.synthesis import _SYSTEM_PROMPT
+
+    # reacts to the objective, code-emitted signal (not a subjective judgment)
+    assert "Aktualitäts-Hinweis" in _SYSTEM_PROMPT
+    # unconditional reasoning-naming instruction
+    assert "benenne das Filing-Alter" in _SYSTEM_PROMPT
+    assert "im reasoning" in _SYSTEM_PROMPT
+    # silence when no hint is present (anti-over-mention is also structural:
+    # _build_user_prompt simply omits the hint for fresh filings)
+    assert "erwähne das Filing-Alter NICHT" in _SYSTEM_PROMPT
 
 
 def test_vintage_cap_unparseable_filing_date_no_cap():
