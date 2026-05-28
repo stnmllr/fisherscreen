@@ -8,11 +8,11 @@
 
 ---
 
-## Letztes Update: 2026-05-27
+## Letztes Update: 2026-05-28
 
 ## Top of mind
 
-**Pareto-B.2-Entscheidung 2026-05-27.** Der ursprüngliche B.2-Vollausbau-Scope (20–30 Sessions) wurde auf eine Pareto-Variante reduziert und Phase 1 als **sequenzielle Sub-Phasen 1.1–1.6** neu aufgestellt — statt einzelner Tier-1-Items (2a.3 / 2a.1c / B.2) nebeneinander. Die drei Pareto-Hebel schließen die systemischen Substanz-Lücken der dünnen Fisher-Punkte (P8/P9/P11/P15) für US-Filer (DEF-14A-Proxy + Form-4-Insider) plus universellen historischen Bewertungs-Kontext (5J-Range); 20-F-Vergütungs-/Insider-Substanz bleibt Phase-2-Backlog mit manueller Routine als Kompensation. **Aktueller nächster Schritt: Phase 1.1 (2a.3 Globaler Vintage-Confidence-Faktor)** in separater Folge-Session. Master-Plan: `docs/superpowers/plans/2026-05-27-phase-1-pareto-b2.md`. Detail-Backlog: `## Phase 1 — Pareto-B.2 (aktiv)` + `## Phase 2 — Vollausbau (zurückgestellt)` unten; Begründung im Decisions-Log 2026-05-27.
+**Pareto-B.2-Entscheidung 2026-05-27.** Der ursprüngliche B.2-Vollausbau-Scope (20–30 Sessions) wurde auf eine Pareto-Variante reduziert und Phase 1 als **sequenzielle Sub-Phasen 1.1–1.6** neu aufgestellt — statt einzelner Tier-1-Items (2a.3 / 2a.1c / B.2) nebeneinander. Die drei Pareto-Hebel schließen die systemischen Substanz-Lücken der dünnen Fisher-Punkte (P8/P9/P11/P15) für US-Filer (DEF-14A-Proxy + Form-4-Insider) plus universellen historischen Bewertungs-Kontext (5J-Range); 20-F-Vergütungs-/Insider-Substanz bleibt Phase-2-Backlog mit manueller Routine als Kompensation. **Phase 1.1 (2a.3 Code-Cap + 2a.3b Soft-Layer) ✅ abgeschlossen 2026-05-28** (Merge `937327e` + Squash `24cfedc`, Deploys grün, bezahlt verifiziert MSFT/GOOGL — Details im Decisions-Log 2026-05-28). **Aktueller nächster Schritt: Phase 1.2 (2a.1c Marker-Spec-Gap)** in separater Folge-Session. Master-Plan: `docs/superpowers/plans/2026-05-27-phase-1-pareto-b2.md`. Detail-Backlog: `## Phase 1 — Pareto-B.2 (aktiv)` + `## Phase 2 — Vollausbau (zurückgestellt)` unten; Begründung im Decisions-Log 2026-05-27.
 
 FisherScreen Phase 1 ist produktiv. Erster Lauf am 2026-05-16 erfolgreich durchgeführt nach Fix eines kritischen Feedback-Loop-Bugs. Monatlicher Scheduler-Job läuft, drei Markdown-Outputs (Dimensions, Crosshits, Changes) werden via GitHub Sync ins Obsidian-Repo gepusht. Nächster regulärer Lauf: 2026-06-01 03:00 UTC.
 
