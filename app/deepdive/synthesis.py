@@ -33,6 +33,45 @@ _SECTION_CITE_RE = re.compile(r"(10-K|20-F)\s*§\s*(\d+[A-Z]?)", re.IGNORECASE)
 # {item} is filled via .format(); the {{...}} is a literal regex quantifier.
 _BODY_HEADING_PAT = r"^[\s\S]{{0,300}}?\bITEM\s+{item}\b"
 
+# 2a.1c — source-marker vocabulary. The model invents non-section markers that
+# reference real quant material (e.g. "Quant-Snapshot", "Forward-Estimates").
+# Known quant sub-markers are canonicalized to a single quant marker; genuinely
+# unknown markers collapse to "Inferenz" with a warning. The vocabulary is an
+# EXPLICIT set (NOT derived from QuantSnapshot.model_fields): Gemini sees the
+# rendered valuation block, not field names, so a field rename must never
+# silently drop a still-emitted marker. The warning log drives growth: a new
+# marker fires once, then gets one line added here.
+_CANONICAL_QUANT = "yfinance, 5J"
+
+_QUANT_MARKER_VOCAB = (
+    "Quant-Snapshot",
+    "forward_estimates",
+    "peer_comparison",
+    "historical_series",
+    "trend_metrics",
+    "Bewertung",
+    "Bewertung & Kapitalstruktur",
+)
+_SOFT_MARKER_VOCAB = ("yfinance, 5J", "Marktkontext", "Inferenz")
+
+
+def _norm_marker(s: str) -> str:
+    """Fold a marker to a comparison key: lowercase + strip + collapse the
+    capture-class separators (whitespace, _, -, &, comma). The comma is in the
+    class so the canonical 'yfinance, 5J' folds to the same key its lookup uses
+    (Bug 1)."""
+    return re.sub(r"[\s_\-&,]+", "", s.strip().lower())
+
+
+# key -> canonical display form. Built via _norm_marker over BOTH vocabularies,
+# so keys and canonical strings are consistent by construction (no hand-typed
+# key can drift from its source string).
+_MARKER_CANON: dict[str, str] = {}
+for _m in _SOFT_MARKER_VOCAB:
+    _MARKER_CANON[_norm_marker(_m)] = _m
+for _m in _QUANT_MARKER_VOCAB:
+    _MARKER_CANON[_norm_marker(_m)] = _CANONICAL_QUANT
+
 _SYSTEM_PROMPT = (
     "Du bewertest ein Unternehmen gegen Phil Fishers 15 Punkte als kritischer "
     "Analyst, nicht als Werbetexter. Für JEDEN der 15 Punkte: rating 1-5, "

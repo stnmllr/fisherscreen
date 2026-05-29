@@ -771,3 +771,18 @@ def test_vintage_cap_unparseable_filing_date_no_cap():
         filing_date="not-a-date")  # unparseable -> no cap
     by_num = {p.number: p for p in pts}
     assert by_num[5].confidence == "🟢"
+
+
+# --- 2a.1c marker vocabulary -----------------------------------------------
+
+def test_norm_marker_roundtrip_canonical_in_vocab():
+    """Every canonical vocabulary string must normalize to a key that the
+    canon map actually carries. Guards Bug 1: 'yfinance, 5J' must fold to the
+    same key its own lookup uses (comma in the fold class)."""
+    from app.deepdive.synthesis import (
+        _MARKER_CANON, _norm_marker, _QUANT_MARKER_VOCAB, _SOFT_MARKER_VOCAB,
+    )
+    for c in (*_QUANT_MARKER_VOCAB, *_SOFT_MARKER_VOCAB):
+        assert _norm_marker(c) in _MARKER_CANON, f"{c!r} not roundtrip-stable"
+    # the comma case explicitly
+    assert _norm_marker("yfinance, 5J") in _MARKER_CANON
