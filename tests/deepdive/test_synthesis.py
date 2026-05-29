@@ -776,9 +776,11 @@ def test_vintage_cap_unparseable_filing_date_no_cap():
 # --- 2a.1c marker vocabulary -----------------------------------------------
 
 def test_norm_marker_roundtrip_canonical_in_vocab():
-    """Every canonical vocabulary string must normalize to a key that the
-    canon map actually carries. Guards Bug 1: 'yfinance, 5J' must fold to the
-    same key its own lookup uses (comma in the fold class)."""
+    """Completeness: every canonical vocabulary string is reachable as a key in
+    the canon map (no canonical entry is unmapped). The comma-fold / Bug-1
+    behaviour is guarded separately by
+    test_norm_marker_folds_all_separators_including_comma — this test holds by
+    construction and does NOT prove the fold."""
     from app.deepdive.synthesis import (
         _MARKER_CANON, _norm_marker, _QUANT_MARKER_VOCAB, _SOFT_MARKER_VOCAB,
     )
@@ -786,3 +788,18 @@ def test_norm_marker_roundtrip_canonical_in_vocab():
         assert _norm_marker(c) in _MARKER_CANON, f"{c!r} not roundtrip-stable"
     # the comma case explicitly
     assert _norm_marker("yfinance, 5J") in _MARKER_CANON
+
+
+def test_norm_marker_folds_all_separators_including_comma():
+    """Direct, non-tautological guard for Bug 1 and the capture-class edges:
+    the fold must collapse whitespace, comma, hyphen, underscore and '&'. The
+    comma assertion goes RED if the comma is dropped from the fold class
+    (-> 'yfinance,5j'), which is the exact Bug-1 regression."""
+    from app.deepdive.synthesis import _norm_marker
+    assert _norm_marker("yfinance, 5J") == "yfinance5j"      # comma + space
+    assert _norm_marker("Peer-Comparison") == "peercomparison"   # hyphen + case
+    assert _norm_marker("forward_estimates") == "forwardestimates"  # underscore
+    assert _norm_marker("Bewertung & Kapitalstruktur") == "bewertungkapitalstruktur"  # '&'
+    # a comma-free variant must fold to the SAME key as the canonical (the
+    # property the lookup map relies on; fails if comma is not in the class)
+    assert _norm_marker("yfinance 5J") == _norm_marker("yfinance, 5J")
