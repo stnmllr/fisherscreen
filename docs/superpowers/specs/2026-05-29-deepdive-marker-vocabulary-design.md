@@ -72,7 +72,7 @@ def _norm_marker(s: str) -> str:
 - Faltet `peer_comparison` = `Peer-Comparison` → `peercomparison`,
   `forward_estimates` = `Forward-Estimates` → `forwardestimates`, etc.
 
-### Vokabular — explizites `frozenset`, keine Ableitung aus `model_fields`
+### Vokabular — explizit deklariert (Tupel + abgeleitete Map), keine Ableitung aus `model_fields`
 
 Das Vokabular wird **explizit** neben `_SECTION_CITE_RE` deklariert, **nicht** aus
 `QuantSnapshot.model_fields` abgeleitet.
