@@ -28,6 +28,13 @@ def _today() -> date:
 
 _SECTION_CITE_RE = re.compile(r"(10-K|20-F)\s*§\s*(\d+[A-Z]?)", re.IGNORECASE)
 
+# A filing-form token ('10-K'/'20-F') NOT in the strict '<form> §<item>' cite
+# form: a real section cited in the wrong format (e.g. "20-F Item 5"). Detected
+# on the RAW string — _norm_marker would fold "20-F" to "20f..." and lose the
+# boundary. No quant/soft vocab marker contains these tokens, so false-positive
+# risk is ~0.
+_FILING_FORM_RE = re.compile(r"\b(10-K|20-F)\b", re.IGNORECASE)
+
 # Body-heading guard (F4 defense-in-depth): a cited section body must START
 # with the expected "ITEM N" heading, within a 300-char page-header tolerance.
 # {item} is filled via .format(); the {{...}} is a literal regex quantifier.
@@ -83,6 +90,12 @@ def _normalize_sources(sources: list[str]) -> list[str]:
       .search (not .fullmatch) so a cite EMBEDDED in a longer string (e.g.
       "10-K §7 (S. 12)") is still recognized and passed through — matching how
       _validate_sources recognizes cites.
+    - Misformatted filing cites (_FILING_FORM_RE.search but no § form, e.g.
+      "20-F Item 5"): a real section cited in the WRONG format — the
+      format-drift / 1.5.2 class. Logged with the SPECIFIC "not validatable"
+      diagnostic (distinct from the generic "not in controlled vocabulary" of an
+      invented marker), then collapsed to "Inferenz". NOT rewritten into a § cite
+      — rewriting is explicitly rejected; remediation is a prompt/header nudge.
     - Known quant sub-markers -> _CANONICAL_QUANT; known soft markers -> their
       canonical form. Neither carries a confidence impact.
     - Anything else -> 'Inferenz' + warning (the warning is the catalogue-growth
@@ -94,6 +107,18 @@ def _normalize_sources(sources: list[str]) -> list[str]:
     for s in sources:
         if _SECTION_CITE_RE.search(s):
             out.append(s)
+            continue
+        if _FILING_FORM_RE.search(s):
+            # §-less but filing-form-bearing: a real section cited in the wrong
+            # format ("20-F Item 5" not "20-F §5"). This is the format-drift /
+            # 1.5.2 class, whose remediation is a prompt/header nudge — NOT a
+            # vocabulary catalogue add. Keep the SPECIFIC diagnostic, collapse to
+            # Inferenz (no raw leak), and do NOT rewrite it into a § cite.
+            logger.warning(
+                "source %r looks like a filing cite but is not in the "
+                "'<form> §<item>' format — not validatable", s
+            )
+            out.append("Inferenz")
             continue
         canon = _MARKER_CANON.get(_norm_marker(s))
         if canon is not None:
@@ -286,13 +311,17 @@ def run_synthesis(
     points: list[FisherPoint] = []
     for rp in raw_points:
         sources = list(rp.get("sources", []))
-        validated = _validate_sources(sources, form_type, sent_keys, sections)
-        if validated != sources:
+        normalized = _normalize_sources(sources)
+        validated = _validate_sources(normalized, form_type, sent_keys, sections)
+        rp = {**rp, "sources": validated}
+        # The confidence downgrade keys on a SECTION collapse (validated differs
+        # from the already-normalized list), NOT on mere canonicalization —
+        # otherwise every quant-citing point would be falsely demoted from 🟢.
+        if validated != normalized:
             logger.warning(
                 "point %s: hallucinated section cite -> downgraded to Inferenz",
                 rp.get("number"),
             )
-            rp = {**rp, "sources": validated}
             if rp.get("confidence") == "🟢":
                 rp["confidence"] = "🟡"
         # Spec §5 / ADR-3: points 14/15 (Offenheit/Integrität) have no insider

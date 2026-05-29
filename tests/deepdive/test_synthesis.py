@@ -895,3 +895,82 @@ def test_normalize_empty_list_returns_empty():
     surfaced as GeminiError in run_synthesis)."""
     from app.deepdive.synthesis import _normalize_sources
     assert _normalize_sources([]) == []
+
+
+def test_quant_marker_canonicalized_and_keeps_green():
+    """Load-bearing for A-ordering: pure canonicalization (Quant-Snapshot ->
+    yfinance, 5J) must NOT trigger the section-collapse downgrade. Goes RED if
+    the downgrade compares against the raw (pre-normalization) source list."""
+    syn = MagicMock()
+    data = _good_points()
+    data["points"][0]["sources"] = ["Quant-Snapshot"]
+    data["points"][0]["confidence"] = "🟢"
+    syn.synthesize.return_value = data
+    pts = run_synthesis(
+        ticker="X", form_type="10-K",
+        sections={"10-K_item7": "ITEM 7 MANAGEMENT DISCUSSION. We discuss."},
+        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+    assert pts[0].sources == ["yfinance, 5J"]
+    assert pts[0].confidence == "🟢"
+
+
+def test_two_unknown_markers_dedup_then_cap_to_yellow():
+    """B: two distinct unknowns -> ['Inferenz', 'Inferenz'] -> dedup ->
+    ['Inferenz'] -> FisherPoint validator caps 🟢 to 🟡."""
+    syn = MagicMock()
+    data = _good_points()
+    data["points"][0]["sources"] = ["made_up_one", "made_up_two"]
+    data["points"][0]["confidence"] = "🟢"
+    syn.synthesize.return_value = data
+    pts = run_synthesis(
+        ticker="X", form_type="10-K",
+        sections={"10-K_item7": "ITEM 7 MANAGEMENT DISCUSSION. We discuss."},
+        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+    assert pts[0].sources == ["Inferenz"]
+    assert pts[0].confidence == "🟡"
+
+
+def test_unknown_marker_does_not_sink_grounded_point():
+    """B-dual: a grounded point ([10-K §7, <unknown>]) keeps its section cite,
+    is NOT capped (sources != ['Inferenz']), and stays 🟢."""
+    syn = MagicMock()
+    data = _good_points()
+    data["points"][0]["sources"] = ["10-K §7", "made_up_marker"]
+    data["points"][0]["confidence"] = "🟢"
+    syn.synthesize.return_value = data
+    pts = run_synthesis(
+        ticker="X", form_type="10-K",
+        sections={"10-K_item7": "ITEM 7 MANAGEMENT DISCUSSION. We discuss."},
+        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+    assert pts[0].sources == ["10-K §7", "Inferenz"]
+    assert pts[0].confidence == "🟢"
+
+
+def test_anti_regress_hallucinated_section_still_collapses_and_downgrades():
+    """Anti-regress: a never-sent section cite still collapses to ['Inferenz']
+    and downgrades 🟢 -> 🟡 after the normalize-before-validate refactor."""
+    syn = MagicMock()
+    data = _good_points()
+    data["points"][0]["sources"] = ["20-F §99"]  # never sent
+    data["points"][0]["confidence"] = "🟢"
+    syn.synthesize.return_value = data
+    pts = run_synthesis(
+        ticker="X", form_type="20-F",
+        sections={"20-F_item5": "ITEM 5 OPERATING REVIEW. We review."},
+        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+    assert pts[0].sources == ["Inferenz"]
+    assert pts[0].confidence == "🟡"
+
+
+def test_normalize_misformatted_filing_cite_collapses_to_inference(caplog):
+    """2a.1c no-leak guard for the format-drift edge: a §-less filing-form cite
+    ('20-F Item 5') must NOT leak raw into the dossier — it collapses to
+    ['Inferenz'] — while keeping the SPECIFIC 'not validatable' diagnostic
+    (distinct from the generic 'not in controlled vocabulary' for invented
+    markers)."""
+    from app.deepdive.synthesis import _normalize_sources
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
+        out = _normalize_sources(["20-F Item 5"])
+    assert out == ["Inferenz"]
+    assert "not validatable" in caplog.text
+    assert "not in controlled vocabulary" not in caplog.text
