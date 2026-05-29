@@ -376,6 +376,9 @@ def _validate_sources(
     for s in sources:
         m = _SECTION_CITE_RE.search(s)
         if not m:
+            # Unreachable via run_synthesis (2a.1c: _normalize_sources already
+            # collapses §-less filing-form strings to 'Inferenz' upstream). Kept
+            # as defense-in-depth for any direct caller of _validate_sources.
             if "10-K" in s or "20-F" in s:
                 logger.warning(
                     "source %r looks like a filing cite but is not in the "

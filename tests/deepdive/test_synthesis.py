@@ -974,3 +974,20 @@ def test_normalize_misformatted_filing_cite_collapses_to_inference(caplog):
     assert out == ["Inferenz"]
     assert "not validatable" in caplog.text
     assert "not in controlled vocabulary" not in caplog.text
+
+
+def test_misformatted_filing_cite_caps_confidence_via_full_loop():
+    """E2E B1: a §-less filing-form cite flows through run_synthesis -> collapses
+    to ['Inferenz'] (no raw leak) and the FisherPoint validator caps 🟢 -> 🟡.
+    Pins the full-pipeline behavior of the B1 edge, not just the pure function."""
+    syn = MagicMock()
+    data = _good_points()
+    data["points"][0]["sources"] = ["20-F Item 5"]  # no § — misformatted cite
+    data["points"][0]["confidence"] = "🟢"
+    syn.synthesize.return_value = data
+    pts = run_synthesis(
+        ticker="X", form_type="20-F",
+        sections={"20-F_item5": "ITEM 5 OPERATING REVIEW. We review."},
+        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+    assert pts[0].sources == ["Inferenz"]
+    assert pts[0].confidence == "🟡"
