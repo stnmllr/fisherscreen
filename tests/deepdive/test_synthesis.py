@@ -803,3 +803,69 @@ def test_norm_marker_folds_all_separators_including_comma():
     # a comma-free variant must fold to the SAME key as the canonical (the
     # property the lookup map relies on; fails if comma is not in the class)
     assert _norm_marker("yfinance 5J") == _norm_marker("yfinance, 5J")
+
+
+import logging  # module-scope; pytest is already imported at the top of the file
+
+
+@pytest.mark.parametrize("variant", [
+    "Quant-Snapshot", "quant_snapshot", "quant snapshot",
+    "forward_estimates", "Forward-Estimates", "forward estimates",
+    "peer_comparison", "Peer-Comparison",
+    "historical_series", "trend_metrics",
+    "Bewertung", "Bewertung & Kapitalstruktur",  # '&' fold-class edge (byte-belegt)
+])
+def test_normalize_known_quant_variants_to_canonical(variant):
+    from app.deepdive.synthesis import _normalize_sources
+    assert _normalize_sources([variant]) == ["yfinance, 5J"]
+
+
+def test_normalize_dedups_multiple_quant_markers():
+    from app.deepdive.synthesis import _normalize_sources
+    out = _normalize_sources(["Quant-Snapshot", "historical_series", "trend_metrics"])
+    assert out == ["yfinance, 5J"]
+
+
+def test_normalize_keeps_plain_section_cite_with_quant():
+    from app.deepdive.synthesis import _normalize_sources
+    assert _normalize_sources(["10-K §7", "Quant-Snapshot"]) == ["10-K §7", "yfinance, 5J"]
+
+
+def test_normalize_section_guard_subparagraph_4b_passes_through():
+    """Load-bearing (Lesson w / 1.5.2): the section guard must run via
+    _SECTION_CITE_RE.search BEFORE _norm_marker, else '20-F §4B' folds the
+    hyphen to '20f§4b', misses the vocab, and collapses to Inferenz — destroying
+    grounding. Goes RED if the guard is missing or uses .fullmatch."""
+    from app.deepdive.synthesis import _normalize_sources
+    out = _normalize_sources(["20-F §4B"])
+    assert out == ["20-F §4B"]
+
+
+def test_normalize_section_guard_subparagraph_4b_no_warning(caplog):
+    from app.deepdive.synthesis import _normalize_sources
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
+        _normalize_sources(["20-F §4B"])
+    assert "controlled vocabulary" not in caplog.text
+
+
+def test_normalize_unknown_marker_collapses_to_inference_with_warning(caplog):
+    from app.deepdive.synthesis import _normalize_sources
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
+        out = _normalize_sources(["made_up_marker"])
+    assert out == ["Inferenz"]
+    assert "controlled vocabulary" in caplog.text
+    assert "made_up_marker" in caplog.text
+
+
+def test_normalize_passes_through_soft_markers():
+    from app.deepdive.synthesis import _normalize_sources
+    assert _normalize_sources(["Marktkontext"]) == ["Marktkontext"]
+    assert _normalize_sources(["Inferenz"]) == ["Inferenz"]
+    assert _normalize_sources(["yfinance, 5J"]) == ["yfinance, 5J"]
+
+
+def test_normalize_no_warning_on_canonicalization(caplog):
+    from app.deepdive.synthesis import _normalize_sources
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
+        _normalize_sources(["Quant-Snapshot", "Marktkontext", "yfinance, 5J"])
+    assert "controlled vocabulary" not in caplog.text

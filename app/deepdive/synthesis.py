@@ -72,6 +72,44 @@ for _m in _SOFT_MARKER_VOCAB:
 for _m in _QUANT_MARKER_VOCAB:
     _MARKER_CANON[_norm_marker(_m)] = _CANONICAL_QUANT
 
+
+def _normalize_sources(sources: list[str]) -> list[str]:
+    """Enforce the source-marker vocabulary (2a.1c). Runs BEFORE _validate_sources.
+
+    - Filing-section cites (_SECTION_CITE_RE.search) pass through untouched. This
+      guard MUST precede _norm_marker: otherwise '20-F §4B' folds to '20f§4b',
+      misses the vocabulary, and collapses to Inferenz before _validate_sources
+      ever sees it (destroys grounding — Lesson w / 1.5.2). .search, not
+      .fullmatch, so a sub-paragraph like §4B still matches.
+    - Known quant sub-markers -> _CANONICAL_QUANT; known soft markers -> their
+      canonical form. Neither carries a confidence impact.
+    - Anything else -> 'Inferenz' + warning (the warning is the catalogue-growth
+      signal).
+    - Order-preserving dedup at the end, so two distinct unknowns collapse to
+      ['Inferenz'] and the FisherPoint validator's exact == ['Inferenz'] cap
+      can fire."""
+    out: list[str] = []
+    for s in sources:
+        if _SECTION_CITE_RE.search(s):
+            out.append(s)
+            continue
+        canon = _MARKER_CANON.get(_norm_marker(s))
+        if canon is not None:
+            out.append(canon)
+        else:
+            logger.warning(
+                "source %r not in controlled vocabulary -> Inferenz", s
+            )
+            out.append("Inferenz")
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for s in out:
+        if s not in seen:
+            seen.add(s)
+            deduped.append(s)
+    return deduped
+
+
 _SYSTEM_PROMPT = (
     "Du bewertest ein Unternehmen gegen Phil Fishers 15 Punkte als kritischer "
     "Analyst, nicht als Werbetexter. Für JEDEN der 15 Punkte: rating 1-5, "
