@@ -835,7 +835,8 @@ def test_normalize_section_guard_subparagraph_4b_passes_through():
     """Load-bearing (Lesson w / 1.5.2): the section guard must run via
     _SECTION_CITE_RE.search BEFORE _norm_marker, else '20-F §4B' folds the
     hyphen to '20f§4b', misses the vocab, and collapses to Inferenz — destroying
-    grounding. Goes RED if the guard is missing or uses .fullmatch."""
+    grounding. Goes RED if the guard is missing (the §4B cite would fold to
+    '20f§4b' and collapse)."""
     from app.deepdive.synthesis import _normalize_sources
     out = _normalize_sources(["20-F §4B"])
     assert out == ["20-F §4B"]
@@ -869,3 +870,28 @@ def test_normalize_no_warning_on_canonicalization(caplog):
     with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
         _normalize_sources(["Quant-Snapshot", "Marktkontext", "yfinance, 5J"])
     assert "controlled vocabulary" not in caplog.text
+
+
+def test_normalize_embedded_section_cite_passes_through():
+    """Discriminates .search from .fullmatch: an embedded cite (cite as a
+    substring of a longer string) must be recognized and passed through. Goes
+    RED if the guard uses _SECTION_CITE_RE.fullmatch instead of .search."""
+    from app.deepdive.synthesis import _normalize_sources
+    assert _normalize_sources(["10-K §7 (S. 12)"]) == ["10-K §7 (S. 12)"]
+
+
+def test_normalize_section_cite_with_unknown_marker_keeps_cite():
+    """Pure-function B-dual: a real cite alongside an invented marker keeps the
+    cite and collapses only the unknown -> result is NOT ['Inferenz'] (so the
+    downstream confidence cap will not fire for a grounded point)."""
+    from app.deepdive.synthesis import _normalize_sources
+    assert _normalize_sources(["10-K §7", "made_up_marker"]) == ["10-K §7", "Inferenz"]
+
+
+def test_normalize_empty_list_returns_empty():
+    """Empty input stays empty — NOT collapsed to ['Inferenz']. Inventing an
+    Inferenz source would mask a model contract violation; instead the empty
+    list flows to FisherPoint(sources=[]) whose min_length=1 raises (fail-loud,
+    surfaced as GeminiError in run_synthesis)."""
+    from app.deepdive.synthesis import _normalize_sources
+    assert _normalize_sources([]) == []

@@ -79,8 +79,10 @@ def _normalize_sources(sources: list[str]) -> list[str]:
     - Filing-section cites (_SECTION_CITE_RE.search) pass through untouched. This
       guard MUST precede _norm_marker: otherwise '20-F §4B' folds to '20f§4b',
       misses the vocabulary, and collapses to Inferenz before _validate_sources
-      ever sees it (destroys grounding — Lesson w / 1.5.2). .search, not
-      .fullmatch, so a sub-paragraph like §4B still matches.
+      ever sees it (destroys grounding — Lesson w / 1.5.2).
+      .search (not .fullmatch) so a cite EMBEDDED in a longer string (e.g.
+      "10-K §7 (S. 12)") is still recognized and passed through — matching how
+      _validate_sources recognizes cites.
     - Known quant sub-markers -> _CANONICAL_QUANT; known soft markers -> their
       canonical form. Neither carries a confidence impact.
     - Anything else -> 'Inferenz' + warning (the warning is the catalogue-growth
@@ -101,13 +103,9 @@ def _normalize_sources(sources: list[str]) -> list[str]:
                 "source %r not in controlled vocabulary -> Inferenz", s
             )
             out.append("Inferenz")
-    seen: set[str] = set()
-    deduped: list[str] = []
-    for s in out:
-        if s not in seen:
-            seen.add(s)
-            deduped.append(s)
-    return deduped
+    # order-preserving dedup (so two distinct unknowns collapse to ['Inferenz']
+    # and the FisherPoint == ['Inferenz'] cap can fire)
+    return list(dict.fromkeys(out))
 
 
 _SYSTEM_PROMPT = (
