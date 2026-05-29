@@ -28,10 +28,110 @@ def _today() -> date:
 
 _SECTION_CITE_RE = re.compile(r"(10-K|20-F)\s*§\s*(\d+[A-Z]?)", re.IGNORECASE)
 
+# A filing-form token ('10-K'/'20-F') NOT in the strict '<form> §<item>' cite
+# form: a real section cited in the wrong format (e.g. "20-F Item 5"). Detected
+# on the RAW string — _norm_marker would fold "20-F" to "20f..." and lose the
+# boundary. No quant/soft vocab marker contains these tokens, so false-positive
+# risk is ~0.
+_FILING_FORM_RE = re.compile(r"\b(10-K|20-F)\b", re.IGNORECASE)
+
 # Body-heading guard (F4 defense-in-depth): a cited section body must START
 # with the expected "ITEM N" heading, within a 300-char page-header tolerance.
 # {item} is filled via .format(); the {{...}} is a literal regex quantifier.
 _BODY_HEADING_PAT = r"^[\s\S]{{0,300}}?\bITEM\s+{item}\b"
+
+# 2a.1c — source-marker vocabulary. The model invents non-section markers that
+# reference real quant material (e.g. "Quant-Snapshot", "Forward-Estimates").
+# Known quant sub-markers are canonicalized to a single quant marker; genuinely
+# unknown markers collapse to "Inferenz" with a warning. The vocabulary is an
+# EXPLICIT set (NOT derived from QuantSnapshot.model_fields): Gemini sees the
+# rendered valuation block, not field names, so a field rename must never
+# silently drop a still-emitted marker. The warning log drives growth: a new
+# marker fires once, then gets one line added here.
+_CANONICAL_QUANT = "yfinance, 5J"
+
+_QUANT_MARKER_VOCAB = (
+    "Quant-Snapshot",
+    "forward_estimates",
+    "peer_comparison",
+    "historical_series",
+    "trend_metrics",
+    "Bewertung",
+    "Bewertung & Kapitalstruktur",
+)
+_SOFT_MARKER_VOCAB = ("yfinance, 5J", "Marktkontext", "Inferenz")
+
+
+def _norm_marker(s: str) -> str:
+    """Fold a marker to a comparison key: lowercase + strip + collapse the
+    capture-class separators (whitespace, _, -, &, comma). The comma is in the
+    class so the canonical 'yfinance, 5J' folds to the same key its lookup uses
+    (Bug 1)."""
+    return re.sub(r"[\s_\-&,]+", "", s.strip().lower())
+
+
+# key -> canonical display form. Built via _norm_marker over BOTH vocabularies,
+# so keys and canonical strings are consistent by construction (no hand-typed
+# key can drift from its source string).
+_MARKER_CANON: dict[str, str] = {}
+for _m in _SOFT_MARKER_VOCAB:
+    _MARKER_CANON[_norm_marker(_m)] = _m
+for _m in _QUANT_MARKER_VOCAB:
+    _MARKER_CANON[_norm_marker(_m)] = _CANONICAL_QUANT
+
+
+def _normalize_sources(sources: list[str]) -> list[str]:
+    """Enforce the source-marker vocabulary (2a.1c). Runs BEFORE _validate_sources.
+
+    - Filing-section cites (_SECTION_CITE_RE.search) pass through untouched. This
+      guard MUST precede _norm_marker: otherwise '20-F §4B' folds to '20f§4b',
+      misses the vocabulary, and collapses to Inferenz before _validate_sources
+      ever sees it (destroys grounding — Lesson w / 1.5.2).
+      .search (not .fullmatch) so a cite EMBEDDED in a longer string (e.g.
+      "10-K §7 (S. 12)") is still recognized and passed through — matching how
+      _validate_sources recognizes cites.
+    - Misformatted filing cites (_FILING_FORM_RE.search but no § form, e.g.
+      "20-F Item 5"): a real section cited in the WRONG format — the
+      format-drift / 1.5.2 class. Logged with the SPECIFIC "not validatable"
+      diagnostic (distinct from the generic "not in controlled vocabulary" of an
+      invented marker), then collapsed to "Inferenz". NOT rewritten into a § cite
+      — rewriting is explicitly rejected; remediation is a prompt/header nudge.
+    - Known quant sub-markers -> _CANONICAL_QUANT; known soft markers -> their
+      canonical form. Neither carries a confidence impact.
+    - Anything else -> 'Inferenz' + warning (the warning is the catalogue-growth
+      signal).
+    - Order-preserving dedup at the end, so two distinct unknowns collapse to
+      ['Inferenz'] and the FisherPoint validator's exact == ['Inferenz'] cap
+      can fire."""
+    out: list[str] = []
+    for s in sources:
+        if _SECTION_CITE_RE.search(s):
+            out.append(s)
+            continue
+        if _FILING_FORM_RE.search(s):
+            # §-less but filing-form-bearing: a real section cited in the wrong
+            # format ("20-F Item 5" not "20-F §5"). This is the format-drift /
+            # 1.5.2 class, whose remediation is a prompt/header nudge — NOT a
+            # vocabulary catalogue add. Keep the SPECIFIC diagnostic, collapse to
+            # Inferenz (no raw leak), and do NOT rewrite it into a § cite.
+            logger.warning(
+                "source %r looks like a filing cite but is not in the "
+                "'<form> §<item>' format — not validatable", s
+            )
+            out.append("Inferenz")
+            continue
+        canon = _MARKER_CANON.get(_norm_marker(s))
+        if canon is not None:
+            out.append(canon)
+        else:
+            logger.warning(
+                "source %r not in controlled vocabulary -> Inferenz", s
+            )
+            out.append("Inferenz")
+    # order-preserving dedup (so two distinct unknowns collapse to ['Inferenz']
+    # and the FisherPoint == ['Inferenz'] cap can fire)
+    return list(dict.fromkeys(out))
+
 
 _SYSTEM_PROMPT = (
     "Du bewertest ein Unternehmen gegen Phil Fishers 15 Punkte als kritischer "
@@ -211,13 +311,17 @@ def run_synthesis(
     points: list[FisherPoint] = []
     for rp in raw_points:
         sources = list(rp.get("sources", []))
-        validated = _validate_sources(sources, form_type, sent_keys, sections)
-        if validated != sources:
+        normalized = _normalize_sources(sources)
+        validated = _validate_sources(normalized, form_type, sent_keys, sections)
+        rp = {**rp, "sources": validated}
+        # The confidence downgrade keys on a SECTION collapse (validated differs
+        # from the already-normalized list), NOT on mere canonicalization —
+        # otherwise every quant-citing point would be falsely demoted from 🟢.
+        if validated != normalized:
             logger.warning(
                 "point %s: hallucinated section cite -> downgraded to Inferenz",
                 rp.get("number"),
             )
-            rp = {**rp, "sources": validated}
             if rp.get("confidence") == "🟢":
                 rp["confidence"] = "🟡"
         # Spec §5 / ADR-3: points 14/15 (Offenheit/Integrität) have no insider
@@ -272,6 +376,9 @@ def _validate_sources(
     for s in sources:
         m = _SECTION_CITE_RE.search(s)
         if not m:
+            # Unreachable via run_synthesis (2a.1c: _normalize_sources already
+            # collapses §-less filing-form strings to 'Inferenz' upstream). Kept
+            # as defense-in-depth for any direct caller of _validate_sources.
             if "10-K" in s or "20-F" in s:
                 logger.warning(
                     "source %r looks like a filing cite but is not in the "
