@@ -42,10 +42,17 @@ Suffix) bestätigt:
 
 **Mischform: kanonisieren + Collapse.** Pro Marker eines Punkts, in Reihenfolge:
 
-1. **Section-Cite** (`_SECTION_CITE_RE`) → bestehende `_validate_sources`-Logik
-   **unverändert** (Whole-List-Collapse → `Inferenz` bei nicht-gesendeter / fehlgelabelter
-   Section, inkl. bestehendem 🟢→🟡-Downgrade). Anti-Regress: nicht anfassen.
-2. **Normalisierter Key** über alle übrigen Marker:
+1. **Section-Cite-Guard — ZUERST, in `_normalize_sources` selbst.** Jeder Marker, der
+   `_SECTION_CITE_RE.search(s)` matcht, wird **unverändert durchgereicht** und nie
+   normalisiert. Kritisch: dieser Guard muss **vor** `_norm_marker` greifen, weil
+   `_normalize_sources` **vor** `_validate_sources` läuft. Ohne ihn würde `_norm_marker`
+   den Bindestrich in `20-F §4B` falten → `20f§4b` → kein Vokabular-Treffer → Collapse
+   auf `Inferenz`, bevor `_validate_sources` den Cite je sieht → **Grounding zerstört**
+   (genau der Wurzelfix aus Lesson w / 1.5.2). `.search`, **nicht** `.fullmatch` — sonst
+   matcht `§4B` nicht und fällt durch. Die nachgelagerte `_validate_sources`-Logik
+   (Whole-List-Collapse bei nicht-gesendeter / fehlgelabelter Section inkl. 🟢→🟡-
+   Downgrade) bleibt **unverändert**. Anti-Regress: nicht anfassen.
+2. **Normalisierter Key** über alle Nicht-Section-Marker:
    - **Key ∈ Quant-Vokabular** → ersetze durch kanonisch **`yfinance, 5J`**.
      **Keine Confidence-Änderung** (echte harte Quant-Quelle).
    - **Key ∈ Kanonisch-Soft** (`Marktkontext`, `Inferenz`) bzw. = Collapse-Ziel
@@ -128,10 +135,27 @@ Zwei distinkte Unknowns → `["Inferenz", "Inferenz"]` müssen **erst durch den 
 **Out-of-scope (bewusst stehengelassen):** ein Punkt mit nur `[Marktkontext]` bleibt
 ungecappt — bestehendes Verhalten, nicht 2a.1c.
 
+### Operative Konsequenz (kein Code-Change, bewusst halten)
+
+Der Spec kippt das **Default** für nicht-katalogisierte Nicht-Section-Marker von
+„pass-through" auf „`Inferenz` + Log". Beim nächsten echten Lauf sind daher neue Warnings
+**erwartbar** — für legitime-aber-nicht-katalogisierte Quant-Labels, die das Modell
+gerendert sieht, z. B. bare `[yfinance]` (`_norm_marker` → `yfinance` ≠ `yfinance5j` →
+**kollabiert!**), `[Forward-Konsens]`, `[Analyst Consensus]`. Das ist **by design**:
+konservativ (untertreibt statt zu überschätzen), geloggt, Ein-Zeilen-Fix (Roh-String ins
+`_QUANT_MARKER_VOCAB` nachziehen). Es ist die schmale, temporäre Wiederkehr des
+Option-3-Problems bis zum Katalog-Nachzug.
+
+`unit-test-only / keine bezahlte Re-Verifikation` ist für die **Korrektheit** richtig; die
+**Vollständigkeit** zeigt sich erst im echten Lauf. → **Faktischer Completeness-Check:**
+beim nächsten ohnehin anfallenden Deep-Dive das Warning-Log anschauen, nicht extra Geld
+ausgeben. (Hinweis aus Code-Review 2026-05-29.)
+
 ## Komponenten / Schnittstellen
 
 - **`synthesis.py`** — neue reine Funktion `_normalize_sources(sources) -> list[str]`
-  (Kanonisierung + Unknown-Collapse + Dedup; Quant-/Soft-Vokabular + `_norm_marker`).
+  (Section-Cite-Guard via `_SECTION_CITE_RE.search` **zuerst** → Kanonisierung →
+  Unknown-Collapse → Dedup; Quant-/Soft-Vokabular + `_norm_marker`).
   Aufruf im Punkt-Loop **vor** `_validate_sources`; der `!=`-Downgrade-Vergleich nutzt
   die normalisierte Liste als Baseline.
 - **`_validate_sources`** — unverändert (Section-Cite-Logik).
@@ -141,19 +165,30 @@ ungecappt — bestehendes Verhalten, nicht 2a.1c.
 
 Fixtures aus den byte-belegten Live-Dossiers.
 
-1. **Varianten-Normalisierung** je Konzept, parametrisiert über case / `-` / `_` →
-   `yfinance, 5J`.
+1. **Varianten-Normalisierung** je Konzept, parametrisiert über case / `-` / `_` / **`&`**
+   → `yfinance, 5J`. Das `&` ist eigene Fold-Klassen-Kante: `Bewertung & Kapitalstruktur`
+   (byte-belegt) **explizit** in den Param-Set.
 2. **Roundtrip-Property:** `_norm_marker(c) ∈ keyset` für jedes `c` in
-   `_QUANT_MARKER_VOCAB ∪ _SOFT_MARKER_VOCAB` (sichert Bug 1).
+   `_QUANT_MARKER_VOCAB ∪ _SOFT_MARKER_VOCAB` (sichert Bug 1, inkl. `yfinance, 5J`).
 3. **Dedup:** `[Quant-Snapshot, historical_series, trend_metrics]` → `[yfinance, 5J]`.
-4. **Mixed:** `[10-K §7, Quant-Snapshot]` → `[10-K §7, yfinance, 5J]` (Section erhalten).
-5. **Unknown** → `Inferenz` + `logging.warning` (via `caplog`).
-6. **Pass-through:** `Marktkontext` / `Inferenz` / `yfinance, 5J` unverändert, keine Warning.
-7. **Anti-Regress Confidence (load-bearing):** Punkt mit `[Quant-Snapshot]` 🟢 bleibt 🟢.
+4. **Mixed (plain Section):** `[10-K §7, Quant-Snapshot]` → `[10-K §7, yfinance, 5J]`
+   (Section erhalten).
+5. **§4B-Section-Guard (load-bearing, Lesson w / 1.5.2):**
+   `_normalize_sources(["20-F §4B"]) == ["20-F §4B"]`, **keine** Warning. Muss **ROT**
+   werden, wenn die Section-Erkennung in `_normalize_sources` fehlt **oder** `.fullmatch`
+   statt `.search` nutzt. Das ist die eigentliche Anti-Regress gegen den 1.5.2-Wurzelfix.
+6. **Unknown** → `Inferenz` + `logging.warning` (via `caplog`).
+7. **Pass-through:** `Marktkontext` / `Inferenz` / `yfinance, 5J` unverändert, keine Warning.
+8. **Keine Warning bei Kanonisierung:** bekannter Quant-Marker → `yfinance, 5J` läuft
+   **ohne** Warning (nur Unknowns warnen) — assert in Test 1/3.
+9. **Anti-Regress Confidence (load-bearing):** Punkt mit `[Quant-Snapshot]` 🟢 bleibt 🟢.
    Muss unter falscher Ordering (Vergleich gegen Roh-Liste) wirklich **ROT** werden.
-8. **Cap via Dedup (B):** Punkt mit zwei distinkten Unknown-Markern → `["Inferenz"]` → 🟡.
-9. **Anti-Regress Section:** halluzinierter Section-Cite kollabiert weiterhin zu
-   `["Inferenz"]` + 🟢→🟡-Downgrade.
+10. **B — Cap via Dedup:** Punkt mit zwei distinkten Unknown-Markern →
+    `["Inferenz"]` → 🟡.
+11. **B-Dual — Unknown versenkt Grounding nicht:** Punkt mit `[10-K §7, <unknown>]` →
+    `[10-K §7, Inferenz]`, **nicht** gecappt, 🟢 bleibt 🟢 (Gegenstück zu Test 9).
+12. **Anti-Regress Section:** halluzinierter Section-Cite kollabiert weiterhin zu
+    `["Inferenz"]` + 🟢→🟡-Downgrade.
 
 ## Stop-Bedingungen (aus Plan übernommen)
 
