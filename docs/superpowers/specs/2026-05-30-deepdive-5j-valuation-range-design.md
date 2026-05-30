@@ -101,8 +101,20 @@ läuft über die implizite-Shares-Brücke und teilt deren Basis-Annahmen.
 variiert wöchentlich. Innerhalb des Jahres ändern sich Debt/Cash → die EV-Reihe ist eine
 Approximation (im Dossier als 5J-Band gelabelt, nicht als tagesgenaue EV-Historie).
 
+**Honest-Label (zweite Approximationsquelle):** `shares = net_income / diluted_EPS`
+unterstellt `net_income ≈ net-income-to-common`. Bei Filern mit materiellem
+Minderheitsanteil oder Vorzugskapital weicht das leicht ab → kleine Verzerrung in den
+impliziten Shares → EV/EBIT. Für die Large-Cap-Targets vernachlässigbar, aber als bekannte
+Quelle benannt.
+
 **Edge:** `EPS_current(t) == 0` oder Vorzeichen-Mismatch `net_income/EPS` → `shares_current`
 nicht ableitbar → dieser GJ für EV/EBIT übersprungen (P/E unabhängig behandelt).
+
+**EPS-Verfügbarkeit gated BEIDE Multiples:** fehlt/NaN das `diluted_eps` eines GJ, scheitert
+nicht nur das P/E-Bein, sondern auch die implizite-Shares-Brücke → EV/EBIT für diesen GJ
+weg. yfinance-Feld-Wackligkeit ist aus Stage 2a bekannt (`.analysis` weg, EBIT nur aus
+income_stmt) → die Per-GJ-EPS-Verfügbarkeit ist expliziter §14-Probe-Output, damit eine
+dünne EPS-Reihe eine erwartete `partial`-Einstufung ist, keine Akzeptanz-Überraschung.
 
 ### 3c — FX (Cross-Currency) und Restatements
 
@@ -160,21 +172,43 @@ class ValuationHistory(BaseModel):    # extra="forbid"
 ```
 
 **Status-Schwellen als benannte Konstanten** (Single-Source neben der Logik, analog
-`VINTAGE_THRESHOLD_DAYS`; final in TDD gegen die realen NOVO/GOOGL-Pulls kalibriert):
+`VINTAGE_THRESHOLD_DAYS`). Zwei Klassen — die Unterscheidung ist bewusst:
 
 ```python
+# POLICY — jetzt fixiert, NICHT an Ticker-Pulls kalibriert. Das ist ein Urteil
+# ("wie dicht muss ein Band sein, um aussagekräftig zu sein"), das nicht davon
+# abhängen darf, was zwei Ticker zufällig liefern. Ein löchriger Pull soll
+# AUFFALLEN, nicht die Schwelle nach unten ziehen.
+VALUATION_COMPLETE_MIN_DENSITY = 40     # obs pro Jahr (Dichte-Prüfung gegen löchrige Reihen)
+VALUATION_PARTIAL_MIN_OBS      = 52     # >= 1 Jahr wöchentlich
+
+# DATEN-GEDECKELT — folgt der realen Fundamental-Tiefe (NICHT der Preisreihe),
+# die der §14-Probe-Pull explizit ausgibt. Kalibrier-Regel: "so setzen, dass es
+# die echte GJ-Tiefe EHRLICH abbildet", nicht "niedrig genug, dass NOVO complete
+# erreicht". Provisorisch 4.5; final nach Probe-Pull (siehe unten).
 VALUATION_COMPLETE_MIN_SPAN_YEARS = 4.5
-VALUATION_COMPLETE_MIN_DENSITY    = 40     # obs pro Jahr (Dichte-Prüfung gegen löchrige Reihen)
-VALUATION_PARTIAL_MIN_OBS         = 52     # >= 1 Jahr wöchentlich
 ```
 
-- `complete`: `span_years ≥ 4.5` UND `n_obs / span_years ≥ 40`
+- `complete`: `span_years ≥ MIN_SPAN` UND `n_obs / span_years ≥ 40`
 - `partial`:  `n_obs ≥ 52` aber nicht `complete` (Renderer hängt „(N Wo)" an)
 - `na_data`:  `n_obs < 52`, oder Daten-/Preis-Pull-Fehler
 - `skipped_fx`: Listing ≠ Financial (überschreibt obs-basierte Einstufung)
 
 Die Dichte-Prüfung (`obs/span`) verhindert, dass eine 4,5-Jahre-aber-löchrige Reihe
 fälschlich als `complete` gilt.
+
+**Policy-gegen-Daten-Regel (Richtungs-Umkehr):** Erreicht ein gesunder 5J-Large-Cap unter
+den prinzipiellen Schwellen kein `complete` → **STOP + Diagnose des Pulls**, nicht Schwelle
+senken. Das hält „Policy gegen Daten geprüft" aufrecht statt „Daten setzen Policy".
+
+**`5J`-Label-Provenance (daten-abhängig):** yfinance `income_stmt` liefert je nach
+Version/Ticker oft nur ~4 Jahres-GJ, nicht 5. Mit +90d-Lag (§4) wird der älteste GJ erst
+~ein Quartal nach Periodenende verfügbar → die ersten ~10 Monate Wochen-Preise haben kein
+Fundamental zum Forward-Fillen → ausgeschlossen → effektive Spanne ~4,2J. Zeigt der
+§14-Probe-Pull nur 4 GJ Fundamental-Tiefe, dann **(a)** `MIN_SPAN` ehrlich auf die reale
+Tiefe setzen (z.B. ~4.0) und **(b)** das gerenderte Label von „5J" auf „~4J" o.ä. anpassen
+ODER die reale Tiefe explizit im Honest-Label nennen. Ein als „5J-Median" gerendertes Band
+mit real ~4J Fundamental-Tiefe ist genau die Provenance-Lücke, die wir sonst vermeiden.
 
 ## 6 — Pure-Berechnung: `app/deepdive/valuation_history.py`
 
@@ -301,5 +335,13 @@ Summary-Roundtrip; Wochenreihe wird **nicht** persistiert.
 - 3 Heading-Asserts in `tests/deepdive/test_valuation_block.py` (Z. 28, 176, 258).
 - **TDD-Start:** vor dem ersten RED erneut re-grep dieser Fakten (Anti-Pattern
   plan-doc-verify-against-code) + ein freier (nicht-Gemini) yfinance-Probe-Pull gegen
-  NOVO-B.CO/GOOGL zur byte-Bestätigung der Annual-Zeilen-Verfügbarkeit
-  (net_income/diluted_eps/FCF/debt/cash), der `.history(interval="1wk")`-Flags und `.splits`.
+  NOVO-B.CO/GOOGL. **Geforderte Probe-Outputs (an denen MIN_SPAN + Label hängen):**
+  1. **GJ-Fundamental-Tiefe** (Anzahl Jahres-Spalten in `income_stmt`) — explizit ausgeben;
+     setzt `MIN_SPAN` und entscheidet „5J"- vs. „~4J"-Label (§5).
+  2. **Per-GJ-`diluted_eps`-Verfügbarkeit** (welche GJ haben EPS, welche NaN) — gated beide
+     Multiples (§3b).
+  3. Verfügbarkeit der übrigen Annual-Zeilen (net_income/FCF/debt/cash).
+  4. `.history(interval="1wk")`-Flags (`auto_adjust`) und `.splits`-Format byte-bestätigen.
+
+  Erreicht ein gesunder Large-Cap unter prinzipiellen Schwellen kein `complete` → STOP +
+  Pull-Diagnose, nicht Schwelle senken (§5).
