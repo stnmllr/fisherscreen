@@ -1,10 +1,10 @@
-# 5J-Bewertungs-Range Implementation Plan
+# Mehrjahres-Bewertungs-Range Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Den Stage-2a-Bewertungsblock um historische 5J-Multiple-Bänder (P/E, EV/EBIT, FCF-Yield: Median + 25-Perzentil) erweitern, die automatisch in Synthesis-Prompt, Dossier und Frontmatter fließen.
+**Goal:** Den Stage-2a-Bewertungsblock um historische Mehrjahres-Multiple-Bänder (P/E, EV/EBIT, FCF-Yield: Median + 25-Perzentil über die real verfügbare ~3J-Tiefe, ehrlich gelabelt) erweitern, die automatisch in Synthesis-Prompt, Dossier und Frontmatter fließen. (Master-Plan sagte „5J"; Task-0-Probe belegte 4 GJ freie yfinance-Tiefe → re-scoped auf ehrliches Mehrjahres-Label; echte 5J+ ist ein quellenblinder SEC-XBRL-Swap in Phase 2.)
 
-**Architecture:** Eine neue pure-compute-Schicht (`valuation_history.py`) rechnet aus Wochen-Preisen × forward-filled GJ-Fundamentaldaten ~260 Multiple-Beobachtungen und verdichtet sie zu `MultipleStats` (median/p25/n_obs/span_years/status). Der bestehende `HistoricalDataServiceImpl` zieht die Roh-Inputs (Wochen-Preis, Splits, zusätzliche Annual-Zeilen) und ruft die pure-Funktion; `CachedHistoricalData` cached nur die kompakte Summary (Schema-Bump 2→3); `quant_join` hängt das Ergebnis an `QuantSnapshot`; der Renderer fügt eine konsolidierte facts-only-Zeile ein.
+**Architecture:** Eine neue pure-compute-Schicht (`valuation_history.py`) rechnet aus Wochen-Preisen × forward-filled GJ-Fundamentaldaten ~164 verwertbare Multiple-Beobachtungen (von ~260 Preispunkten, Lag-gedeckelt auf 4 GJ Fundamental) und verdichtet sie zu `MultipleStats` (median/p25/n_obs/span_years/status). **Quellen-agnostischer Seam:** `compute_valuation_history` nimmt `list[AnnualFundamental]` — quellenblind, daher ist die spätere XBRL-Tiefe ein reiner Adapter-Swap, kein Rebuild. Der bestehende `HistoricalDataServiceImpl` zieht die Roh-Inputs (Wochen-Preis, Splits, zusätzliche Annual-Zeilen) und ruft die pure-Funktion; `CachedHistoricalData` cached nur die kompakte Summary (Schema-Bump 2→3); `quant_join` hängt das Ergebnis an `QuantSnapshot`; der Renderer fügt eine konsolidierte facts-only-Zeile mit ehrlichem Spannen-Label ein.
 
 **Tech Stack:** Python 3.12, pydantic v2, pandas (yfinance-Frames), pytest + MagicMock-DI, stdlib `statistics` (keine neue Dependency), uv.
 
@@ -247,7 +247,7 @@ git commit -m "Add ValuationHistory/MultipleStats model for 5J valuation range"
 - Create: `app/deepdive/valuation_history.py`
 - Test: `tests/deepdive/test_valuation_history.py`
 
-> **MIN_SPAN aus Task 0 Step 4 einsetzen** (unten 4.5 als Provisorium; falls Probe 4 GJ zeigt → realer Wert).
+> **Task-0-Befund (entschieden):** freie yfinance = 4 GJ → ~3,1J nutzbare Tiefe → `MIN_SPAN = 2.8` (knapp unter ~3J, damit „complete" = volle verfügbare Tiefe; IPO-junger 2J-Ticker bleibt `partial`).
 
 - [ ] **Step 1: Failing test schreiben**
 
@@ -269,6 +269,11 @@ def test_constants_are_policy_values():
     assert VALUATION_COMPLETE_MIN_DENSITY == 40
     assert VALUATION_PARTIAL_MIN_OBS == 52
     assert REPORTING_LAG_DAYS == 90
+
+
+def test_min_span_is_data_capped_value():
+    # Task-0-Probe: freie yfinance = 4 GJ -> ~3,1J reale Tiefe -> 2.8 (Spec §5).
+    assert VALUATION_COMPLETE_MIN_SPAN_YEARS == 2.8
 
 
 def test_median_p25_hand_computed():
@@ -1159,9 +1164,10 @@ In `app/deepdive/quant_join.py`, in `build_quant_snapshot` nach dem `snapshot = 
 In `app/models/deep_dive_record.py`, `SourceCoverage.valuation`-Default ersetzen:
 ```python
     valuation: str = (
-        "TTM + 5J-Median/Perzentil (KGV/EV-EBIT/FCF-Yield; Wochen-Preis × "
-        "GJ-Fundamental, split-normalisiert); cross-currency Honest-Label-Skip; "
-        "restated-Fassung"
+        "TTM + Mehrjahres-Median/Perzentil (KGV/EV-EBIT/FCF-Yield; Wochen-Preis × "
+        "GJ-Fundamental, split-normalisiert; reale Tiefe ~3J, da freie yfinance "
+        "nur 4 GJ liefert — 5J+ via SEC-XBRL ist Phase-2); cross-currency "
+        "Honest-Label-Skip; restated-Fassung"
     )
 ```
 
@@ -1181,13 +1187,13 @@ git commit -m "Thread valuation_history through quant_join, update SourceCoverag
 
 ---
 
-## Task 9: Renderer — Heading + konsolidierte 5J-Zeile
+## Task 9: Renderer — Heading + konsolidierte Mehrjahres-Range-Zeile
 
 **Files:**
 - Modify: `app/deepdive/valuation_block.py`
 - Test: `tests/deepdive/test_valuation_block.py`
 
-> Label aus Task 0 Step 4: unten „5J" — falls Probe 4 GJ zeigt, Heading + Zeilen-Label auf „~4J" anpassen (an ALLEN Stellen konsistent: Heading, Zeile, die 3 Test-Asserts).
+> **Task-0-Befund (entschieden):** freie yfinance = nur 4 GJ → reale Tiefe ~3J → KEIN „5J"-Label. Heading + Zeile tragen „Mehrjahres"; die reale Spanne steht im Zeilen-Prefix `(~{span}J, {n} Wo)` aus den `MultipleStats` (Label-Provenance, Spec §5/§10).
 
 - [ ] **Step 1: Failing test schreiben**
 
@@ -1212,20 +1218,20 @@ Import oben ergänzen: `from app.models.deep_dive_record import MultipleStats, V
 Die **drei bestehenden Heading-Asserts** (Z. 28, 176, 258) auf den neuen Text ändern:
 ```python
     assert out.startswith(
-        "## Bewertung & Kapitalstruktur (TTM-Stand + 5J-Median/Perzentil-"
-        "Vergleich)")
+        "## Bewertung & Kapitalstruktur (TTM-Stand + Mehrjahres-Median/"
+        "Perzentil-Vergleich)")
 ```
 
 Neue Tests anhängen:
 ```python
 def _vh_complete():
     return ValuationHistory(
-        pe=MultipleStats(median=21.4, p25=12.1, n_obs=200, span_years=4.8,
+        pe=MultipleStats(median=21.4, p25=12.1, n_obs=164, span_years=3.1,
                          status="complete"),
-        ev_ebit=MultipleStats(median=18.0, p25=13.1, n_obs=200, span_years=4.8,
+        ev_ebit=MultipleStats(median=18.0, p25=13.1, n_obs=164, span_years=3.1,
                               status="complete"),
-        fcf_yield=MultipleStats(median=0.038, p25=0.055, n_obs=200,
-                                span_years=4.8, status="complete"))
+        fcf_yield=MultipleStats(median=0.038, p25=0.055, n_obs=164,
+                                span_years=3.1, status="complete"))
 
 
 def test_valuation_range_line_complete_all_three():
@@ -1234,10 +1240,21 @@ def test_valuation_range_line_complete_all_three():
         free_cashflow=1.0e9, market_cap=2.0e10,
         valuation_history=_vh_complete()))
     line = next(l for l in out.splitlines()
-                if l.startswith("5J-Bewertungs-Range:"))
+                if l.startswith("Bewertungs-Range"))
     assert "P/E" in line and "Median 21.4" in line and "25-Perz. 12.1" in line
     assert "EV/EBIT" in line and "Median 18.0" in line
     assert "FCF-Yield" in line
+
+
+def test_valuation_range_prefix_shows_real_span_and_obs():
+    # Label-Provenance (§5/§10): the line names the real span + obs, not "5J".
+    out = render_valuation_block(_qs(trailing_pe=10.9,
+                                     valuation_history=_vh_complete()))
+    line = next(l for l in out.splitlines()
+                if l.startswith("Bewertungs-Range"))
+    assert "164 Wo" in line
+    assert "3" in line  # ~3J span, not "5J"
+    assert "5J" not in line
 
 
 def test_valuation_range_line_between_bewertung_and_kapital():
@@ -1246,41 +1263,52 @@ def test_valuation_range_line_between_bewertung_and_kapital():
     lines = out.splitlines()
     bew = next(i for i, l in enumerate(lines) if l.startswith("Bewertung:"))
     rng = next(i for i, l in enumerate(lines)
-               if l.startswith("5J-Bewertungs-Range:"))
+               if l.startswith("Bewertungs-Range"))
     kap = next(i for i, l in enumerate(lines)
                if l.startswith("Kapitalstruktur:"))
     assert bew < rng < kap
 
 
-def test_valuation_range_skipped_fx():
+def test_valuation_range_all_skipped_fx_collapses():
     vh = ValuationHistory(
         pe=MultipleStats(status="skipped_fx"),
         ev_ebit=MultipleStats(status="skipped_fx"),
         fcf_yield=MultipleStats(status="skipped_fx"))
     out = render_valuation_block(_qs(trailing_pe=10.9, valuation_history=vh))
     line = next(l for l in out.splitlines()
-                if l.startswith("5J-Bewertungs-Range:"))
-    assert "FX: Listing≠Reporting" in line
+                if l.startswith("Bewertungs-Range"))
+    assert line == "Bewertungs-Range: n/a (FX: Listing≠Reporting)"
 
 
-def test_valuation_range_partial_shows_weeks():
+def test_valuation_range_per_multiple_na_when_mixed():
     vh = ValuationHistory(
-        pe=MultipleStats(median=21.4, p25=12.1, n_obs=80, span_years=1.5,
-                         status="partial"),
+        pe=MultipleStats(median=21.4, p25=12.1, n_obs=164, span_years=3.1,
+                         status="complete"),
         ev_ebit=MultipleStats(status="na_data"),
         fcf_yield=MultipleStats(status="na_data"))
     out = render_valuation_block(_qs(trailing_pe=10.9, valuation_history=vh))
     line = next(l for l in out.splitlines()
-                if l.startswith("5J-Bewertungs-Range:"))
-    assert "80 Wo" in line
-    assert "5J-Historie unvollständig" in line  # ev_ebit/fcf na_data
+                if l.startswith("Bewertungs-Range"))
+    assert "P/E TTM 10.9 vs Median 21.4" in line
+    assert "EV/EBIT n/a (Historie unvollständig)" in line
+
+
+def test_valuation_range_all_na_collapses():
+    vh = ValuationHistory(
+        pe=MultipleStats(status="na_data"),
+        ev_ebit=MultipleStats(status="na_data"),
+        fcf_yield=MultipleStats(status="na_data"))
+    out = render_valuation_block(_qs(trailing_pe=10.9, valuation_history=vh))
+    line = next(l for l in out.splitlines()
+                if l.startswith("Bewertungs-Range"))
+    assert line == "Bewertungs-Range: n/a (Mehrjahres-Historie unvollständig)"
 
 
 def test_valuation_range_none_honest_label():
     out = render_valuation_block(_qs(trailing_pe=10.9, valuation_history=None))
     line = next(l for l in out.splitlines()
-                if l.startswith("5J-Bewertungs-Range:"))
-    assert "n/a (Historie nicht verfügbar)" in line
+                if l.startswith("Bewertungs-Range"))
+    assert line == "Bewertungs-Range: n/a (Historie nicht verfügbar)"
 
 
 def test_valuation_range_ttm_leg_matches_bewertung_line():
@@ -1289,14 +1317,14 @@ def test_valuation_range_ttm_leg_matches_bewertung_line():
     # the TTM P/E shown in the range line equals the one in the Bewertung line
     assert "P/E trail. 10.9" in out
     rng = next(l for l in out.splitlines()
-               if l.startswith("5J-Bewertungs-Range:"))
+               if l.startswith("Bewertungs-Range"))
     assert "TTM 10.9" in rng
 ```
 
 - [ ] **Step 2: Test laufen lassen — muss fehlschlagen**
 
 Run: `uv run python -m pytest tests/deepdive/test_valuation_block.py -v`
-Expected: FAIL (Heading-Asserts + neue range-Tests; `5J-Bewertungs-Range:`-Zeile existiert noch nicht).
+Expected: FAIL (Heading-Asserts + neue range-Tests; `Bewertungs-Range`-Zeile existiert noch nicht).
 
 - [ ] **Step 3: Renderer implementieren**
 
@@ -1306,7 +1334,7 @@ In `app/deepdive/valuation_block.py`:
 ```python
 _HEADING = (
     "## Bewertung & Kapitalstruktur "
-    "(TTM-Stand + 5J-Median/Perzentil-Vergleich)"
+    "(TTM-Stand + Mehrjahres-Median/Perzentil-Vergleich)"
 )
 ```
 
@@ -1327,7 +1355,8 @@ def _fcf_yield_ttm(pit: Any) -> float | None:
 
 
 def _range_segment(label: str, ttm: float | None, stats: Any, pct: bool) -> str:
-    """Ein Multiple-Segment der 5J-Range-Zeile nach status (Spec §10)."""
+    """Ein Multiple-Segment der Range-Zeile nach status (Spec §10). Die Spanne
+    steht im Zeilen-Prefix, daher hier KEIN per-Segment-Wo-Suffix."""
     def f(v: float | None) -> str:
         if v is None:
             return "n/a"
@@ -1335,16 +1364,29 @@ def _range_segment(label: str, ttm: float | None, stats: Any, pct: bool) -> str:
     if stats.status == "skipped_fx":
         return f"{label} n/a (FX: Listing≠Reporting)"
     if stats.status == "na_data":
-        return f"{label} n/a (5J-Historie unvollständig)"
-    suffix = f" ({stats.n_obs} Wo)" if stats.status == "partial" else ""
+        return f"{label} n/a (Historie unvollständig)"
     return (f"{label} TTM {f(ttm)} vs Median {f(stats.median)} "
-            f"(25-Perz. {f(stats.p25)}){suffix}")
+            f"(25-Perz. {f(stats.p25)})")
+
+
+def _range_prefix(vh: ValuationHistory) -> str | None:
+    """Repräsentative Spanne für den Zeilen-Prefix: P/E bevorzugt, sonst das
+    erste complete/partial-Multiple. None, wenn keines Werte trägt."""
+    for stats in (vh.pe, vh.ev_ebit, vh.fcf_yield):
+        if stats.status in ("complete", "partial") and stats.span_years:
+            return f"(~{round(stats.span_years)}J, {stats.n_obs} Wo)"
+    return None
 
 
 def _render_valuation_range(quant: QuantSnapshot) -> str:
     vh = quant.valuation_history
     if vh is None:
-        return "5J-Bewertungs-Range: n/a (Historie nicht verfügbar)"
+        return "Bewertungs-Range: n/a (Historie nicht verfügbar)"
+    statuses = {vh.pe.status, vh.ev_ebit.status, vh.fcf_yield.status}
+    if statuses == {"skipped_fx"}:
+        return "Bewertungs-Range: n/a (FX: Listing≠Reporting)"
+    if statuses == {"na_data"}:
+        return "Bewertungs-Range: n/a (Mehrjahres-Historie unvollständig)"
     pit = quant.point_in_time
     segs = [
         _range_segment("P/E", pit.trailing_pe, vh.pe, pct=False),
@@ -1352,7 +1394,9 @@ def _render_valuation_range(quant: QuantSnapshot) -> str:
         _range_segment("FCF-Yield", _fcf_yield_ttm(pit), vh.fcf_yield,
                        pct=True),
     ]
-    return "5J-Bewertungs-Range: " + " · ".join(segs)
+    prefix = _range_prefix(vh)
+    head = f"Bewertungs-Range {prefix}: " if prefix else "Bewertungs-Range: "
+    return head + " · ".join(segs)
 ```
 
 In `render_valuation_block` die Range-Zeile zwischen `bewertung` und `kapital` einfügen — den `block`-Aufbau anpassen:
@@ -1364,6 +1408,8 @@ In `render_valuation_block` die Range-Zeile zwischen `bewertung` und `kapital` e
              f"{consensus}\n{forward}")
 ```
 
+> Hinweis Test-Match: alle Range-Tests matchen auf `startswith("Bewertungs-Range")` — das deckt sowohl `Bewertungs-Range (~3J, 164 Wo): …` (mit Prefix) als auch `Bewertungs-Range: n/a …` (collapse) ab.
+
 - [ ] **Step 4: Test laufen lassen — muss bestehen**
 
 Run: `uv run python -m pytest tests/deepdive/test_valuation_block.py -v`
@@ -1373,7 +1419,7 @@ Expected: PASS (alle, inkl. der angepassten Heading-Asserts + neue Range-Tests +
 
 ```bash
 git add app/deepdive/valuation_block.py tests/deepdive/test_valuation_block.py
-git commit -m "Render 5J valuation range line, update heading"
+git commit -m "Render multi-year valuation range line with real-span label, update heading"
 ```
 
 ---
@@ -1416,11 +1462,13 @@ uv run python -m app.deepdive deepdive GOOGL --peers MSFT,AMZN,META
 ```
 
 - [ ] **Step 2: Akzeptanz prüfen**
-- NOVO-Dossier zeigt „TTM x vs 5J-Median y (25-Perz. z)" o.ä. (Spec §1).
-- **GOOGL-Split-Kanarienvogel:** 5J-Median-P/E plausibel (~20–35), NICHT um Faktor ~20 daneben (Spec §1/§3a). Falls daneben → STOP, Split-Normalisierung diagnostizieren (nicht Akzeptanz „durchwinken").
+- NOVO-Dossier zeigt „TTM x vs Median y (25-Perz. z)" mit ehrlichem Spannen-Label „~3J, N Wo" (Spec §1).
+- **GOOGL-Split-Kanarienvogel:** Median-P/E plausibel (~20–35), NICHT um Faktor ~20 daneben (Spec §1/§3a). Falls daneben → STOP, Split-Normalisierung diagnostizieren (nicht Akzeptanz „durchwinken").
+- **NOVO-Split-Gegenprobe:** NOVOs 2:1 (2023-09-13) liegt im nutzbaren Fenster → auch NOVOs Median-P/E muss plausibel sein (nicht um Faktor 2 verschoben). Zweiter End-to-End-§3a-Test (Spec §1).
+- **Label-Ehrlichkeit:** das Dossier sagt NICHT „5J" (reale Tiefe ~3J im Prefix). Regime-Abdeckungs-Caveat (NOVO-Fenster großteils nach Ozempic-Re-Rating) ist bewusst, kein Defekt (Spec §1).
 
 - [ ] **Step 3: Marker-Vokabular-Log beobachten** (Cross-Ref 1.2)
-Wenn das Modell die neue Substanz mit neuem Quant-Label zitiert (z.B. `[5J-Median]`) → `not in controlled vocabulary`-Warning. Erwarteter Katalog-Wachstums-Hit, kein Defekt: **eine Zeile** in `_QUANT_MARKER_VOCAB` (`synthesis.py:53`) nachziehen — **separater Mini-Commit**, nicht im 1.3-Kern.
+Wenn das Modell die neue Substanz mit neuem Quant-Label zitiert (z.B. `[Median]`/`[Bewertungs-Range]`) → `not in controlled vocabulary`-Warning. Erwarteter Katalog-Wachstums-Hit, kein Defekt: **eine Zeile** in `_QUANT_MARKER_VOCAB` (`synthesis.py:53`) nachziehen — **separater Mini-Commit**, nicht im 1.3-Kern.
 
 ---
 
@@ -1439,4 +1487,8 @@ Deploy nicht grün · Plan-vs-Code-Abweichung · FX/Multiples-Kante unklar (Zahl
 
 ## Nicht-Ziele
 
-Kein 1.4-Vorgriff (Form-4-Insider) · kein PROJEKTSTAND-Edit vor Merge · kein Push/Merge ohne Stephan-Go · kein FX über FX-neutrale Multiples · kein Prompt-Text-Edit in 1.3 (Block fließt automatisch in den Prompt).
+Kein 1.4-Vorgriff (Form-4-Insider) · kein PROJEKTSTAND-Edit vor Merge · kein Push/Merge ohne Stephan-Go · kein FX über FX-neutrale Multiples · kein Prompt-Text-Edit in 1.3 (Block fließt automatisch in den Prompt) · **kein SEC-XBRL-Quellen-Swap in 1.3** (das ist das definierte Phase-2-Tiefe-Ticket — siehe Spec §13; Mid-Stream-Quellentausch verletzt Sequenz-Disziplin Lesson v).
+
+## Phase-2-Folge-Ticket (registriert, NICHT in 1.3)
+
+**SEC-XBRL-Tiefe-Swap:** echte 5–10J-Fundamental-Tiefe via SEC EDGAR `companyfacts` (frei, CIK-Lookup + HTTP aus Punkt 5 vorhanden) durch den quellenblinden `compute_valuation_history`-Seam. Aufwands-Flag: companyfacts-JSON-Parsing, Unit-Handling, Fiscal-Period-Alignment, **us-gaap vs. ifrs-full-Taxonomie** (NOVO bilanziert IFRS → andere XBRL-Tags als us-gaap-Filer). Behebt die Regime-Abdeckungs-Schwäche (~3J = ein Marktregime) + den NOVO-Ozempic-Re-Rating-Caveat aus Spec §1.
