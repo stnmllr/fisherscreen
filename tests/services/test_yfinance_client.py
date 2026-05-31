@@ -189,3 +189,65 @@ def test_get_forward_estimates_hard_failure_raises_data_source_error(mock_yf):
 
     with pytest.raises(DataSourceError, match="forward estimates failed"):
         YFinanceClientImpl().get_forward_estimates("AAPL")
+
+
+def test_get_weekly_close_5y_returns_date_price_pairs(monkeypatch):
+    import pandas as pd
+    from app.services import yfinance_client as mod
+
+    idx = pd.to_datetime(["2020-06-01", "2020-06-08", "2020-06-15"])
+    frame = pd.DataFrame({"Close": [100.0, 101.0, 102.0]}, index=idx)
+
+    class _T:
+        def __init__(self, t): pass
+        def history(self, period, interval, auto_adjust):
+            assert period == "5y" and interval == "1wk" and auto_adjust is True
+            return frame
+
+    monkeypatch.setattr(mod.yf, "Ticker", _T)
+    out = mod.YFinanceClientImpl().get_weekly_close_5y("X")
+    assert out[0][1] == 100.0 and out[-1][1] == 102.0
+    assert str(out[0][0]) == "2020-06-01"
+
+
+def test_get_weekly_close_5y_empty_frame_returns_empty(monkeypatch):
+    import pandas as pd
+    from app.services import yfinance_client as mod
+
+    class _T:
+        def __init__(self, t): pass
+        def history(self, period, interval, auto_adjust):
+            return pd.DataFrame()
+
+    monkeypatch.setattr(mod.yf, "Ticker", _T)
+    assert mod.YFinanceClientImpl().get_weekly_close_5y("X") == []
+
+
+def test_get_splits_returns_date_ratio_pairs(monkeypatch):
+    import pandas as pd
+    from app.services import yfinance_client as mod
+
+    s = pd.Series([20.0], index=pd.to_datetime(["2022-07-18"]))
+
+    class _T:
+        def __init__(self, t): pass
+        @property
+        def splits(self): return s
+
+    monkeypatch.setattr(mod.yf, "Ticker", _T)
+    out = mod.YFinanceClientImpl().get_splits("X")
+    assert out == [(out[0][0], 20.0)]
+    assert str(out[0][0]) == "2022-07-18"
+
+
+def test_get_splits_empty_returns_empty(monkeypatch):
+    import pandas as pd
+    from app.services import yfinance_client as mod
+
+    class _T:
+        def __init__(self, t): pass
+        @property
+        def splits(self): return pd.Series(dtype=float)
+
+    monkeypatch.setattr(mod.yf, "Ticker", _T)
+    assert mod.YFinanceClientImpl().get_splits("X") == []

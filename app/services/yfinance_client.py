@@ -40,6 +40,8 @@ class YFinanceClient(Protocol):
     def get_forward_estimates(
         self, ticker: str
     ) -> ForwardEstimates | None: ...
+    def get_weekly_close_5y(self, ticker: str) -> list[tuple[Any, float]]: ...
+    def get_splits(self, ticker: str) -> list[tuple[Any, float]]: ...
 
 
 class YFinanceClientImpl:
@@ -76,6 +78,32 @@ class YFinanceClientImpl:
             raise DataSourceError(
                 f"yfinance statements failed for {ticker}: {exc}"
             ) from exc
+
+    def get_weekly_close_5y(self, ticker: str) -> list[tuple[Any, float]]:
+        """Wöchentliche Schlusskurse über 5J, split-adj (auto_adjust=True).
+        Leerer Frame (delisted) -> []. Hard yfinance-Fehler -> DataSourceError."""
+        try:
+            frame = yf.Ticker(ticker).history(
+                period="5y", interval="1wk", auto_adjust=True)
+        except Exception as exc:
+            raise DataSourceError(
+                f"yfinance weekly history failed for {ticker}: {exc}") from exc
+        if frame is None or frame.empty or "Close" not in frame.columns:
+            return []
+        return [(idx.date(), float(v))
+                for idx, v in frame["Close"].items()
+                if v is not None]
+
+    def get_splits(self, ticker: str) -> list[tuple[Any, float]]:
+        """Split-Events (Ex-Datum, Ratio). Keine Splits -> []."""
+        try:
+            s = yf.Ticker(ticker).splits
+        except Exception as exc:
+            raise DataSourceError(
+                f"yfinance splits failed for {ticker}: {exc}") from exc
+        if s is None or len(s) == 0:
+            return []
+        return [(idx.date(), float(v)) for idx, v in s.items()]
 
     def get_forward_estimates(self, ticker: str) -> ForwardEstimates | None:
         """Best-effort forward-consensus growth (fractions). Hard yfinance
