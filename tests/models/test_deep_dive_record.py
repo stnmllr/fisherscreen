@@ -284,3 +284,45 @@ def test_deep_dive_record_form_type_literal():
             quant_snapshot=QuantSnapshot(point_in_time=PointInTimeQuant(ticker="X")),
             synthesis=[], source_coverage=SourceCoverage(),
         )
+
+
+def test_multiple_stats_defaults_and_literal():
+    from app.models.deep_dive_record import MultipleStats
+    s = MultipleStats()
+    assert s.median is None and s.p25 is None
+    assert s.n_obs == 0 and s.span_years is None
+    assert s.status == "na_data"
+
+
+def test_multiple_stats_rejects_unknown_status():
+    import pytest
+    from pydantic import ValidationError
+    from app.models.deep_dive_record import MultipleStats
+    with pytest.raises(ValidationError):
+        MultipleStats(status="bogus")
+
+
+def test_multiple_stats_forbids_extra():
+    import pytest
+    from pydantic import ValidationError
+    from app.models.deep_dive_record import MultipleStats
+    with pytest.raises(ValidationError):
+        MultipleStats(unexpected=1)
+
+
+def test_valuation_history_holds_three_multiples():
+    from app.models.deep_dive_record import MultipleStats, ValuationHistory
+    vh = ValuationHistory(
+        pe=MultipleStats(median=21.4, p25=12.1, n_obs=260,
+                         span_years=5.0, status="complete"),
+        ev_ebit=MultipleStats(status="na_data"),
+        fcf_yield=MultipleStats(status="skipped_fx"))
+    assert vh.pe.median == 21.4
+    assert vh.ev_ebit.status == "na_data"
+    assert vh.fcf_yield.status == "skipped_fx"
+
+
+def test_quant_snapshot_valuation_history_optional_defaults_none():
+    from app.models.deep_dive_record import PointInTimeQuant, QuantSnapshot
+    qs = QuantSnapshot(point_in_time=PointInTimeQuant(ticker="X"))
+    assert qs.valuation_history is None

@@ -148,6 +148,27 @@ class TrendMetrics(BaseModel):
     buyback_intensity_5y: float | None = None
 
 
+MultipleStatus = Literal["complete", "partial", "skipped_fx", "na_data"]
+
+
+class MultipleStats(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    median: float | None = None
+    p25: float | None = None
+    n_obs: int = 0
+    span_years: float | None = None
+    status: MultipleStatus = "na_data"
+
+
+class ValuationHistory(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pe: MultipleStats = Field(default_factory=MultipleStats)
+    ev_ebit: MultipleStats = Field(default_factory=MultipleStats)
+    fcf_yield: MultipleStats = Field(default_factory=MultipleStats)
+
+
 class QuantSnapshot(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -157,6 +178,7 @@ class QuantSnapshot(BaseModel):
     gemini_dimensions: dict[str, Any] | None = None
     forward_estimates: ForwardEstimates | None = None
     peer_comparison: PeerComparison | None = None
+    valuation_history: ValuationHistory | None = None
 
 
 class SourceCoverage(BaseModel):
