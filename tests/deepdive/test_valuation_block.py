@@ -2,15 +2,17 @@ from app.deepdive.valuation_block import render_valuation_block
 from app.models.deep_dive_record import (
     ForwardEstimates,
     HistoricalSeries,
+    MultipleStats,
     PeerComparison,
     PeerQuant,
     PointInTimeQuant,
     QuantSnapshot,
     TrendMetrics,
+    ValuationHistory,
 )
 
 
-def _qs(forward=None, **pit_over):
+def _qs(forward=None, valuation_history=None, **pit_over):
     pit = PointInTimeQuant(ticker="X", currency="DKK", **pit_over)
     return QuantSnapshot(
         point_in_time=pit,
@@ -19,14 +21,15 @@ def _qs(forward=None, **pit_over):
             revenue=[1.0e9, 9.0e8, 8.0e8, 7.0e8, 6.0e8]),
         trend_metrics=TrendMetrics(buyback_intensity_5y=0.10),
         forward_estimates=forward,
+        valuation_history=valuation_history,
     )
 
 
 def test_heading_is_stage2a_text_no_roadmap_jargon():
     out = render_valuation_block(_qs())
     assert out.startswith(
-        "## Bewertung & Kapitalstruktur (TTM-Stand, ohne historischen "
-        "5J-Vergleich)")
+        "## Bewertung & Kapitalstruktur (TTM-Stand + Mehrjahres-Median/"
+        "Perzentil-Vergleich)")
     assert "B.2" not in out
     assert "B.2.1" not in out
 
@@ -173,8 +176,8 @@ def test_stage2a_lines_still_present_regression_guard():
         price=100.0, target_mean_price=111.0,
         forward=ForwardEstimates(eps_growth_cy=0.17)))
     assert out.startswith(
-        "## Bewertung & Kapitalstruktur (TTM-Stand, ohne historischen "
-        "5J-Vergleich)")
+        "## Bewertung & Kapitalstruktur (TTM-Stand + Mehrjahres-Median/"
+        "Perzentil-Vergleich)")
     assert "Bewertung: P/E trail. 30.0" in out
     assert "Kapitalstruktur: Total Debt" in out
     assert "Total Shareholder Yield" in out
@@ -255,8 +258,8 @@ def test_no_peer_table_when_peer_comparison_absent_regression():
     assert "Peer-Vergleich" not in out
     # 2a/2b lines byte-identical when no peers
     assert out.startswith(
-        "## Bewertung & Kapitalstruktur (TTM-Stand, ohne historischen "
-        "5J-Vergleich)")
+        "## Bewertung & Kapitalstruktur (TTM-Stand + Mehrjahres-Median/"
+        "Perzentil-Vergleich)")
     assert "Bewertung: P/E trail. 30.0" in out
 
 
@@ -275,3 +278,98 @@ def test_currency_blank_when_absent():
     qs = QuantSnapshot(point_in_time=pit)
     out = render_valuation_block(qs)
     assert "Total Debt 1,000,000,000 " in out  # ccy blank, no crash
+
+
+def _vh_complete():
+    return ValuationHistory(
+        pe=MultipleStats(median=21.4, p25=12.1, n_obs=164, span_years=3.1,
+                         status="complete"),
+        ev_ebit=MultipleStats(median=18.0, p25=13.1, n_obs=164, span_years=3.1,
+                              status="complete"),
+        fcf_yield=MultipleStats(median=0.038, p25=0.055, n_obs=164,
+                                span_years=3.1, status="complete"))
+
+
+def test_valuation_range_line_complete_all_three():
+    out = render_valuation_block(_qs(
+        trailing_pe=10.9, enterprise_value=2.0e10, ebit=1.4e9,
+        free_cashflow=1.0e9, market_cap=2.0e10,
+        valuation_history=_vh_complete()))
+    line = next(l for l in out.splitlines()
+                if l.startswith("Bewertungs-Range"))
+    assert "P/E" in line and "Median 21.4" in line and "25-Perz. 12.1" in line
+    assert "EV/EBIT" in line and "Median 18.0" in line
+    assert "FCF-Yield" in line
+
+
+def test_valuation_range_prefix_shows_real_span_and_obs():
+    out = render_valuation_block(_qs(trailing_pe=10.9,
+                                     valuation_history=_vh_complete()))
+    line = next(l for l in out.splitlines()
+                if l.startswith("Bewertungs-Range"))
+    assert "164 Wo" in line
+    assert "3" in line          # ~3J span
+    assert "5J" not in line     # NOT mislabeled "5J"
+
+
+def test_valuation_range_line_between_bewertung_and_kapital():
+    out = render_valuation_block(_qs(trailing_pe=10.9,
+                                     valuation_history=_vh_complete()))
+    lines = out.splitlines()
+    bew = next(i for i, l in enumerate(lines) if l.startswith("Bewertung:"))
+    rng = next(i for i, l in enumerate(lines)
+               if l.startswith("Bewertungs-Range"))
+    kap = next(i for i, l in enumerate(lines)
+               if l.startswith("Kapitalstruktur:"))
+    assert bew < rng < kap
+
+
+def test_valuation_range_all_skipped_fx_collapses():
+    vh = ValuationHistory(
+        pe=MultipleStats(status="skipped_fx"),
+        ev_ebit=MultipleStats(status="skipped_fx"),
+        fcf_yield=MultipleStats(status="skipped_fx"))
+    out = render_valuation_block(_qs(trailing_pe=10.9, valuation_history=vh))
+    line = next(l for l in out.splitlines()
+                if l.startswith("Bewertungs-Range"))
+    assert line == "Bewertungs-Range: n/a (FX: Listing≠Reporting)"
+
+
+def test_valuation_range_per_multiple_na_when_mixed():
+    vh = ValuationHistory(
+        pe=MultipleStats(median=21.4, p25=12.1, n_obs=164, span_years=3.1,
+                         status="complete"),
+        ev_ebit=MultipleStats(status="na_data"),
+        fcf_yield=MultipleStats(status="na_data"))
+    out = render_valuation_block(_qs(trailing_pe=10.9, valuation_history=vh))
+    line = next(l for l in out.splitlines()
+                if l.startswith("Bewertungs-Range"))
+    assert "P/E TTM 10.9 vs Median 21.4" in line
+    assert "EV/EBIT n/a (Historie unvollständig)" in line
+
+
+def test_valuation_range_all_na_collapses():
+    vh = ValuationHistory(
+        pe=MultipleStats(status="na_data"),
+        ev_ebit=MultipleStats(status="na_data"),
+        fcf_yield=MultipleStats(status="na_data"))
+    out = render_valuation_block(_qs(trailing_pe=10.9, valuation_history=vh))
+    line = next(l for l in out.splitlines()
+                if l.startswith("Bewertungs-Range"))
+    assert line == "Bewertungs-Range: n/a (Mehrjahres-Historie unvollständig)"
+
+
+def test_valuation_range_none_honest_label():
+    out = render_valuation_block(_qs(trailing_pe=10.9, valuation_history=None))
+    line = next(l for l in out.splitlines()
+                if l.startswith("Bewertungs-Range"))
+    assert line == "Bewertungs-Range: n/a (Historie nicht verfügbar)"
+
+
+def test_valuation_range_ttm_leg_matches_bewertung_line():
+    out = render_valuation_block(_qs(trailing_pe=10.9,
+                                     valuation_history=_vh_complete()))
+    assert "P/E trail. 10.9" in out
+    rng = next(l for l in out.splitlines()
+               if l.startswith("Bewertungs-Range"))
+    assert "TTM 10.9" in rng
