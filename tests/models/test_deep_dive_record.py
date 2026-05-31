@@ -216,12 +216,10 @@ def test_pit_quant_still_forbids_extra():
         PointInTimeQuant(ticker="X", bogus=1)
 
 
-def test_source_coverage_valuation_default_is_stage2a():
+def test_source_coverage_valuation_default_is_multiyear():
     cov = SourceCoverage()
-    assert cov.valuation == (
-        "TTM vorhanden (KGV/EV-EBIT/FCF-Yield) · 5J-Range zurückgestellt "
-        "(historische EPS-Rekonstruktion)")
-    assert "folgt B.2" not in cov.valuation
+    assert cov.valuation.startswith("TTM + Mehrjahres-Median/Perzentil")
+    assert "reale Tiefe ~3J" in cov.valuation
 
 
 def test_deep_dive_record_roundtrip_and_forbid_extra():

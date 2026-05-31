@@ -193,8 +193,10 @@ class SourceCoverage(BaseModel):
     sprache: str = "folgt B.4"
     insider: str = "folgt B.2"
     valuation: str = (
-        "TTM vorhanden (KGV/EV-EBIT/FCF-Yield) · 5J-Range zurückgestellt "
-        "(historische EPS-Rekonstruktion)"
+        "TTM + Mehrjahres-Median/Perzentil (KGV/EV-EBIT/FCF-Yield; Wochen-Preis × "
+        "GJ-Fundamental, split-normalisiert; reale Tiefe ~3J, da freie yfinance "
+        "nur 4 GJ liefert — 5J+ via SEC-XBRL ist Phase-2); cross-currency "
+        "Honest-Label-Skip; restated-Fassung"
     )
 
 
