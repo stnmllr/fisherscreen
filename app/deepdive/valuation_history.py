@@ -29,3 +29,25 @@ def _median_p25(values: list[float]) -> tuple[float | None, float | None]:
     med = statistics.median(values)
     p25 = statistics.quantiles(values, n=4, method="inclusive")[0]
     return float(med), float(p25)
+
+
+def _cum_split_factor(
+    fy_end: date, splits: list[tuple[date, float]]
+) -> float:
+    """Kumulativer Split-Faktor für ein GJ: Produkt aller Split-Ratios mit
+    Ex-Datum NACH dem GJ-Periodenende. EPS_current = EPS_reported / factor
+    bringt as-reported EPS auf current (back-adjusted) Basis (Spec §3a)."""
+    factor = 1.0
+    for ex_date, ratio in splits:
+        if ex_date > fy_end:
+            factor *= ratio
+    return factor
+
+
+def _as_of_index(week: date, fy_ends_newest_first: list[date]) -> int | None:
+    """Index des jüngsten GJ, dessen (Periodenende + REPORTING_LAG_DAYS) <= week.
+    None, wenn kein GJ verfügbar ist (Wochenpunkt vor erstem Lag-Ende)."""
+    for i, fy_end in enumerate(fy_ends_newest_first):
+        if fy_end + timedelta(days=REPORTING_LAG_DAYS) <= week:
+            return i
+    return None
