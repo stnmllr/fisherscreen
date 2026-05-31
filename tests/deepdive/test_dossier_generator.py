@@ -157,7 +157,7 @@ def test_valuation_gap_marked_honest(tmp_path):
             "Phase-2); cross-currency Honest-Label-Skip; restated-Fassung") in body
     assert "Bewertungs-Kennzahlen" in body
     assert ("## Bewertung & Kapitalstruktur "
-            "(TTM-Stand, ohne historischen 5J-Vergleich)") in body
+            "(TTM-Stand + Mehrjahres-Median/Perzentil-Vergleich)") in body
 
 
 def test_valuation_block_derived_na_reason_in_dossier(tmp_path):
