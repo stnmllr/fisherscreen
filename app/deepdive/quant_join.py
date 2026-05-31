@@ -151,5 +151,6 @@ def build_quant_snapshot(
         trend_metrics=trends,
         gemini_dimensions=gemini_dimensions,
         forward_estimates=forward_estimates,
+        valuation_history=raw.get("valuation_history"),
     )
     return snapshot, cov

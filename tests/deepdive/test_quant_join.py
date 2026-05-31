@@ -7,7 +7,11 @@ from app.deepdive.quant_join import (
     build_quant_snapshot,
 )
 from app.errors import DataSourceError
-from app.models.deep_dive_record import ForwardEstimates
+from app.models.deep_dive_record import (
+    ForwardEstimates,
+    MultipleStats,
+    ValuationHistory,
+)
 
 
 def _deps(pit_cache=None, dims=None):
