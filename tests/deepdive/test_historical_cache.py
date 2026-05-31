@@ -11,7 +11,10 @@ def _series():
             "operating_margin": [0.4, 0.4, 0.4],
             "ebit": [0.4, 0.8, 1.2], "interest_expense": [0.05, 0.04, 0.03],
             "shares_outstanding": [9, 9, 9],
-            "buyback_cashflow": [-1, -1, -1], "complete": True}
+            "buyback_cashflow": [-1, -1, -1], "complete": True,
+            "net_income": [1, 2, 3], "diluted_eps": [0.1, 0.2, 0.3],
+            "free_cashflow": [1, 1, 1], "total_debt": [9, 9, 9],
+            "cash": [5, 5, 5]}
 
 
 def _cd(tmp_path, ttl=90):
@@ -83,7 +86,7 @@ def test_write_includes_schema_version(tmp_path):
     cd, svc = _cd(tmp_path)
     cd.get_annual_series("X")
     persisted = json.loads((tmp_path / "X.json").read_text(encoding="utf-8"))
-    assert persisted["schema_version"] == 2
+    assert persisted["schema_version"] == 3
 
 
 def test_pre_v2_cache_treated_as_miss(tmp_path):
@@ -113,3 +116,41 @@ def test_pre_v2_cache_treated_as_miss(tmp_path):
     svc.get_annual_series.assert_called_once_with("X")
     refreshed = json.loads((tmp_path / "X.json").read_text(encoding="utf-8"))
     assert refreshed.get("schema_version") == CACHE_SCHEMA_VERSION
+
+
+def test_schema_version_is_three():
+    from app.deepdive.historical_cache import CACHE_SCHEMA_VERSION
+    assert CACHE_SCHEMA_VERSION == 3
+
+
+def test_v2_cache_treated_as_miss(tmp_path):
+    cd, svc = _cd(tmp_path)
+    v2_payload = {
+        "_cached_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": 2,
+        "financial_currency": "DKK",
+        "series": _series(),
+    }
+    (tmp_path / "X.json").write_text(json.dumps(v2_payload), encoding="utf-8")
+    cd.get_annual_series("X")
+    svc.get_annual_series.assert_called_once_with("X")
+    refreshed = json.loads((tmp_path / "X.json").read_text(encoding="utf-8"))
+    assert refreshed["schema_version"] == 3
+
+
+def test_valuation_history_summary_roundtrips(tmp_path):
+    # service returns a ValuationHistory object under series["valuation_history"];
+    # cache write must serialize it, cache read must reconstruct it.
+    from app.models.deep_dive_record import MultipleStats, ValuationHistory
+    cd, svc = _cd(tmp_path)
+    series = dict(_series())
+    series["valuation_history"] = ValuationHistory(
+        pe=MultipleStats(median=21.4, p25=12.1, n_obs=164,
+                         span_years=3.1, status="complete"))
+    svc.get_annual_series.return_value = series
+    cd.get_annual_series("X")           # writes
+    out = cd.get_annual_series("X")     # fresh hit -> reads back
+    assert svc.get_annual_series.call_count == 1
+    vh = out["valuation_history"]
+    assert isinstance(vh, ValuationHistory)
+    assert vh.pe.median == 21.4 and vh.pe.status == "complete"

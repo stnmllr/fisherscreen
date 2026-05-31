@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # Bump bei jedem Schema-Change (Add/Remove/Rename eines im Read-Pfad
 # genutzten series-Feldes). Lese-Pfad behandelt jeden Mismatch (!=) als
 # Cache-Miss → lazy refetch + Re-Write mit aktueller Version.
-CACHE_SCHEMA_VERSION = 2
+CACHE_SCHEMA_VERSION = 3
 
 
 def _load_payload(path: Path) -> dict:
@@ -65,18 +65,28 @@ class CachedHistoricalData:
             payload = _load_payload(path)
             if payload and self._fresh(payload.get("_cached_at", "")):
                 logger.info("historical cache hit: %s", ticker)
-                return payload["series"]
+                cached_series = payload["series"]
+                vh = cached_series.get("valuation_history")
+                if isinstance(vh, dict):
+                    from app.models.deep_dive_record import ValuationHistory
+
+                    cached_series["valuation_history"] = ValuationHistory(**vh)
+                return cached_series
 
         series = self._svc.get_annual_series(ticker)
         if use_cache:
             self._dir.mkdir(parents=True, exist_ok=True)
+            to_store = dict(series)
+            vh = to_store.get("valuation_history")
+            if vh is not None and not isinstance(vh, dict):
+                to_store["valuation_history"] = vh.model_dump()
             _write_atomic(
                 path,
                 {
                     "_cached_at": datetime.now(timezone.utc).isoformat(),
                     "schema_version": CACHE_SCHEMA_VERSION,
                     "financial_currency": series.get("financial_currency"),
-                    "series": series,
+                    "series": to_store,
                 },
             )
         return series
