@@ -324,3 +324,33 @@ def test_quant_snapshot_valuation_history_optional_defaults_none():
     from app.models.deep_dive_record import PointInTimeQuant, QuantSnapshot
     qs = QuantSnapshot(point_in_time=PointInTimeQuant(ticker="X"))
     assert qs.valuation_history is None
+
+
+from app.models.deep_dive_record import (
+    InsiderTransaction,
+    InsiderSummary,
+    DeepDiveRecord,
+)
+
+
+def test_insider_transaction_minimal_and_forbids_extra():
+    t = InsiderTransaction(owner_name="Doe Jane", role="CEO", code="P", bucket="buy")
+    assert t.significant is False
+    assert t.is_10b5_1 is None
+    assert t.value is None
+    import pytest
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):
+        InsiderTransaction(owner_name="X", role="CEO", code="P", bucket="buy", bogus=1)
+
+
+def test_insider_summary_defaults():
+    s = InsiderSummary(coverage_state="empty")
+    assert s.n_filings_total == 0 and s.n_transactions_total == 0
+    assert s.significant_buys == [] and s.routine_count == 0
+    assert s.window_label == "letzte 12 Monate"
+
+
+def test_deep_dive_record_insider_summary_field():
+    s = InsiderSummary(coverage_state="fpi_exempt")
+    assert s.coverage_state == "fpi_exempt"
