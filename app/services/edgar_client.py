@@ -18,12 +18,23 @@ class RawFiling:
     filing_date: str | None = None
 
 
+@dataclass(frozen=True)
+class Form4Ref:
+    accession_number: str
+    primary_document: str
+    filing_date: str
+
+
 class EdgarClient(Protocol):
     def get_cik(self, ticker: str) -> str | None: ...
     def has_restatement(self, cik: str, years: int = 3) -> bool: ...
     def has_going_concern(self, cik: str, months: int = 24) -> bool: ...
     def has_active_enforcement(self, cik: str) -> bool: ...
     def get_latest_annual_filing(self, cik: str, form_type: str) -> RawFiling: ...
+    def get_form4_index(self, cik: str, since: str) -> list["Form4Ref"]: ...
+    def get_form4_document(
+        self, cik: str, accession_number: str, primary_document: str
+    ) -> str: ...
 
 
 class EdgarClientImpl:
@@ -140,3 +151,43 @@ class EdgarClientImpl:
         raise DataSourceError(
             f"no {form_type} filing found for CIK {padded} in recent submissions"
         )
+
+    def get_form4_index(self, cik: str, since: str) -> list[Form4Ref]:
+        """Form-4 refs filed on/after `since` (ISO date). Deliberate single
+        re-fetch of submissions.json (negligible vs the N per-XML pulls)."""
+        padded = cik.zfill(10)
+        data = self._get(f"{self._SEC_BASE}/submissions/CIK{padded}.json")
+        recent = data.get("filings", {}).get("recent", {})
+        forms = recent.get("form", [])
+        accs = recent.get("accessionNumber", [])
+        docs = recent.get("primaryDocument", [])
+        dates = recent.get("filingDate", [])
+        refs: list[Form4Ref] = []
+        oldest: str | None = None
+        for i, form in enumerate(forms):
+            d = dates[i] if i < len(dates) else None
+            if d and (oldest is None or d < oldest):
+                oldest = d
+            if form == "4" and d and d >= since:
+                refs.append(Form4Ref(accs[i], docs[i], d))
+        if oldest is not None and oldest > since:
+            logger.warning(
+                "edgar: form-4 window starts %s but oldest recent filing is %s "
+                "(cik=%s) — older Form-4 not in recent (files-overflow not implemented)",
+                since, oldest, cik,
+            )
+        return refs
+
+    def get_form4_document(
+        self, cik: str, accession_number: str, primary_document: str
+    ) -> str:
+        """Raw Form-4 XML. primaryDocument is the xslF.../ HTML render path;
+        strip the prefix to reach the raw .xml in the same accession folder."""
+        cik_int = str(int(cik))
+        acc_nodash = accession_number.replace("-", "")
+        raw_doc = primary_document.split("/")[-1]
+        url = (
+            f"https://www.sec.gov/Archives/edgar/data/"
+            f"{cik_int}/{acc_nodash}/{raw_doc}"
+        )
+        return self._get_text(url)

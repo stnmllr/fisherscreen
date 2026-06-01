@@ -365,3 +365,41 @@ def test_get_latest_annual_filing_doc_fetch_failure_raises(mock_httpx, mock_time
     client = _make_client()
     with pytest.raises(DataSourceError, match="404"):
         client.get_latest_annual_filing("0000000001", "10-K")
+
+
+# --- Form-4 index & document ---
+
+from app.services.edgar_client import EdgarClientImpl, Form4Ref
+
+
+def _client():
+    return EdgarClientImpl(user_agent="FisherScreen test test@example.com")
+
+
+def test_get_form4_index_filters_form_and_date():
+    c = _client()
+    payload = {"filings": {"recent": {
+        "form": ["10-K", "4", "4", "8-K"],
+        "accessionNumber": ["a0", "a1", "a2", "a3"],
+        "primaryDocument": ["d0", "xslF345X06/d1.xml", "d2.xml", "d3"],
+        "filingDate": ["2026-05-01", "2026-04-01", "2024-01-01", "2026-03-01"],
+    }}}
+    with patch.object(c, "_get", return_value=payload):
+        refs = c.get_form4_index("789019", since="2025-06-01")
+    assert [r.accession_number for r in refs] == ["a1"]
+    assert refs[0].primary_document == "xslF345X06/d1.xml"
+
+
+def test_get_form4_document_strips_xsl_prefix():
+    c = _client()
+    captured = {}
+
+    def fake_text(url):
+        captured["url"] = url
+        return "<ownershipDocument/>"
+
+    with patch.object(c, "_get_text", side_effect=fake_text):
+        xml = c.get_form4_document("789019", "0000789019-26-000075", "xslF345X06/form4.xml")
+    assert xml == "<ownershipDocument/>"
+    assert captured["url"].endswith("/000078901926000075/form4.xml")
+    assert "xslF345X06" not in captured["url"]
