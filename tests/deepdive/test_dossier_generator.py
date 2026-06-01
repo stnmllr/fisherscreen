@@ -184,3 +184,32 @@ def test_valuation_block_tsy_formula_text(tmp_path):
     assert "Total Shareholder Yield" in body
     assert "(Div 2.4% aktuell + Ø" in body
     assert "J Buyback" in body
+
+
+from app.models.deep_dive_record import InsiderSummary, InsiderTransaction
+
+
+def test_dossier_renders_insider_section_and_frontmatter(tmp_path):
+    rec = _record(insider_summary=InsiderSummary(
+        coverage_state="ok", n_filings_total=10, n_parsed=10,
+        n_transactions_total=12, routine_count=11,
+        significant_buys=[InsiderTransaction(
+            owner_name="Roe Sam", role="CEO", code="P", bucket="buy",
+            value=200_000, acquired_disposed="A", significant=True)],
+        net_buy_value=200_000.0, net_sell_value=0.0))
+    post = frontmatter.loads(
+        generate_dossier(rec, tmp_path).read_text(encoding="utf-8"))
+    assert "## Insider-Transaktionen" in post.content
+    assert "Form-4-Filings" in post.content
+    assert post["insider_coverage_state"] == "ok"
+    assert post["insider_n_filings"] == 10
+    assert post["insider_significant_count"] == 1
+    assert post["insider_net_buy"] == 200_000
+
+
+def test_dossier_insider_frontmatter_none_when_absent(tmp_path):
+    post = frontmatter.loads(
+        generate_dossier(_record(), tmp_path).read_text(encoding="utf-8"))
+    assert post["insider_coverage_state"] is None
+    # default _record() has insider_summary=None -> section still present (FPI text)
+    assert "## Insider-Transaktionen" in post.content
