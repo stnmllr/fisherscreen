@@ -53,3 +53,32 @@ def test_coverage_label_states():
         InsiderSummary(coverage_state="fpi_exempt"))
     assert "übersprungen" in insider_coverage_label(
         InsiderSummary(coverage_state="skipped"))
+
+
+def test_aggregate_owner_significant_entries_are_grouped():
+    def _sell(v):
+        return InsiderTransaction(
+            owner_name="Smith B", role="Officer", code="S", bucket="sell",
+            date="2025-05-01", shares=100, price=v / 100, value=v,
+            acquired_disposed="D", direct_or_indirect="D", shares_after=900,
+            significant=True)
+    s = InsiderSummary(
+        coverage_state="ok", n_filings_total=2, n_parsed=2, n_transactions_total=2,
+        significant_sells=[_sell(600_000), _sell(600_000)])
+    out = render_insider_block(s, "10-K")
+    assert out.count("Smith B (Officer)") == 1  # owner header once, not per line
+    constituent_lines = [ln for ln in out.splitlines() if ln.startswith("  - ")]
+    assert len(constituent_lines) == 2
+
+
+def test_single_owner_significant_stays_flat():
+    s = InsiderSummary(
+        coverage_state="ok", n_filings_total=1, n_parsed=1, n_transactions_total=1,
+        significant_sells=[InsiderTransaction(
+            owner_name="Solo X", role="CFO", code="S", bucket="sell",
+            date="2026-01-01", shares=100, price=10.0, value=1000,
+            acquired_disposed="D", direct_or_indirect="D", shares_after=900,
+            significant=True)])
+    out = render_insider_block(s, "10-K")
+    assert "- Solo X (CFO) 2026-01-01:" in out   # flat, owner inline
+    assert "\n  - " not in out                    # no indented constituent lines

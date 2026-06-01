@@ -35,13 +35,16 @@ def _b5_suffix(t: InsiderTransaction) -> str:
     return ""
 
 
-def _tx_line(t: InsiderTransaction) -> str:
+def _tx_detail(t: InsiderTransaction) -> str:
     base = (
-        f"{t.owner_name} ({t.role}) {t.date or '?'}: {t.code} "
-        f"{_money(t.shares)} @ {t.price if t.price is not None else 'n/a'} "
-        f"= {_money(t.value)}"
+        f"{t.date or '?'}: {t.code} {_money(t.shares)} @ "
+        f"{t.price if t.price is not None else 'n/a'} = {_money(t.value)}"
     )
-    return f"- {base}{_pct_suffix(t)}{_b5_suffix(t)}"
+    return f"{base}{_pct_suffix(t)}{_b5_suffix(t)}"
+
+
+def _tx_line(t: InsiderTransaction) -> str:
+    return f"- {t.owner_name} ({t.role}) {_tx_detail(t)}"
 
 
 def render_insider_block(summary: InsiderSummary | None, form_type: str) -> str:
@@ -78,9 +81,19 @@ def render_insider_block(summary: InsiderSummary | None, form_type: str) -> str:
         f"{summary.immaterial_sell_count} immateriell · "
         f"{summary.routine_count} Routine (A/M/F/G){parsed_note}"
     )
-    lines = [header]
+    by_owner: dict[str, list[InsiderTransaction]] = {}
     for t in summary.significant_buys + summary.significant_sells:
-        lines.append(_tx_line(t))
+        by_owner.setdefault(t.owner_name, []).append(t)
+    lines = [header]
+    for owner, txns in by_owner.items():
+        if len(txns) == 1:
+            lines.append(_tx_line(txns[0]))
+        else:
+            lines.append(
+                f"- {owner} ({txns[0].role}) — {len(txns)} signifikante Transaktionen:"
+            )
+            for t in txns:
+                lines.append(f"  - {_tx_detail(t)}")
     return "\n".join(lines)
 
 
