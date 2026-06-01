@@ -8,6 +8,7 @@ from pathlib import Path
 from app.deepdive.compose import (
     build_adr_resolver,
     build_filing_fetcher,
+    build_insider_fetcher,
     build_peer_resolver,
     build_quant_builder,
     build_synthesizer,
@@ -44,6 +45,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional rationale for the peer selection (<=200 chars)",
     )
+    deepdive.add_argument(
+        "--no-insider",
+        action="store_true",
+        help="Skip the Form-4 insider stage (faster iteration)",
+    )
     return parser
 
 
@@ -63,6 +69,9 @@ def main(argv: list[str] | None = None) -> int:
             peer_rationale=args.peer_rationale,
             is_tty=sys.stdin.isatty(),
             peer_resolver=build_peer_resolver(),
+            insider_fetcher=build_insider_fetcher(),
+            insider_lookback_days=settings.insider_lookback_days,
+            no_insider=args.no_insider,
         )
     except DeepDiveError as exc:
         logger.error("deepdive failed (ticker): %s", exc)

@@ -91,3 +91,13 @@ def test_deepdive_maps_deepdive_error_to_exit_1(monkeypatch):
     monkeypatch.setattr(cli, "build_synthesizer", lambda m: MagicMock())
     monkeypatch.setattr(cli, "build_peer_resolver", lambda: MagicMock())
     assert cli.main(["deepdive", "SAP.DE"]) == 1
+
+
+def test_parser_accepts_no_insider_flag():
+    args = build_parser().parse_args(["deepdive", "MSFT", "--no-insider"])
+    assert args.no_insider is True
+
+
+def test_parser_no_insider_defaults_false():
+    args = build_parser().parse_args(["deepdive", "MSFT"])
+    assert args.no_insider is False
