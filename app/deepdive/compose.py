@@ -8,6 +8,7 @@ from app.deepdive.adr_resolver import ADRResolver
 from app.deepdive.adr_table import load_adr_table
 from app.deepdive.filing_cache import CachedFilingFetcher
 from app.deepdive.historical_cache import CachedHistoricalData
+from app.deepdive.insider_cache import CachedInsiderFetcher
 from app.deepdive.peer_preflight import resolve_peers
 from app.deepdive.quant_join import build_quant_snapshot
 from app.screener.compose import build_github_client
@@ -22,6 +23,7 @@ __all__ = [
     "build_github_client",
     "build_adr_resolver",
     "build_filing_fetcher",
+    "build_insider_fetcher",
     "build_quant_builder",
     "build_peer_resolver",
     "build_synthesizer",
@@ -29,6 +31,7 @@ __all__ = [
 
 _FILING_CACHE_DIR = Path("cache/filings")
 _HISTORICAL_CACHE_DIR = Path("cache/yfinance_historical")
+_INSIDER_CACHE_DIR = Path("cache/insider")
 
 
 def build_adr_table() -> dict[str, dict[str, str]]:
@@ -46,6 +49,11 @@ def build_filing_fetcher() -> CachedFilingFetcher:
         cache_dir=_FILING_CACHE_DIR,
         ttl_days=settings.filing_cache_ttl_days,
     )
+
+
+def build_insider_fetcher() -> CachedInsiderFetcher:
+    edgar = EdgarClientImpl(user_agent=settings.edgar_user_agent)
+    return CachedInsiderFetcher(edgar=edgar, cache_dir=_INSIDER_CACHE_DIR)
 
 
 def build_quant_builder() -> Callable[..., tuple[Any, Any]]:
