@@ -60,7 +60,15 @@ _QUANT_MARKER_VOCAB = (
     "Bewertung",
     "Bewertung & Kapitalstruktur",
 )
-_SOFT_MARKER_VOCAB = ("yfinance, 5J", "Marktkontext", "Inferenz", "Form-4")
+_SOFT_MARKER_VOCAB = ("yfinance, 5J", "Marktkontext", "Inferenz")
+
+# Insider (Form-4) markers: the model tends to cite the dossier block heading
+# ("Insider-Transaktionen") or a bare "Insider" rather than the canonical form
+# name. Canonicalize all to "Form-4" so insider-grounded points are NOT
+# collapsed to Inferenz (1.2 catalogue-growth pattern; observed in the MSFT
+# acceptance run).
+_CANONICAL_INSIDER = "Form-4"
+_INSIDER_MARKER_VOCAB = ("Form-4", "Insider-Transaktionen", "Insider")
 
 
 def _norm_marker(s: str) -> str:
@@ -79,6 +87,8 @@ for _m in _SOFT_MARKER_VOCAB:
     _MARKER_CANON[_norm_marker(_m)] = _m
 for _m in _QUANT_MARKER_VOCAB:
     _MARKER_CANON[_norm_marker(_m)] = _CANONICAL_QUANT
+for _m in _INSIDER_MARKER_VOCAB:
+    _MARKER_CANON[_norm_marker(_m)] = _CANONICAL_INSIDER
 
 
 def _normalize_sources(sources: list[str]) -> list[str]:

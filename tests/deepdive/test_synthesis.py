@@ -1023,3 +1023,18 @@ def test_insider_block_present_in_prompt():
         "X", "10-K", {}, qs, filing_date=None,
         insider_summary=InsiderSummary(coverage_state="fpi_exempt"))
     assert "Insider-Transaktionen" in prompt
+
+
+def test_insider_marker_aliases_canonicalize_to_form4():
+    # Gemini emits the block heading or a bare "Insider" instead of "Form-4";
+    # both must canonicalize to "Form-4" (not collapse to Inferenz).
+    assert _normalize_sources(["Insider-Transaktionen"]) == ["Form-4"]
+    assert _normalize_sources(["Insider"]) == ["Form-4"]
+    assert _normalize_sources(["Form-4"]) == ["Form-4"]
+
+
+def test_insider_marker_with_section_not_downgraded():
+    # The MSFT P15 case: ["Insider-Transaktionen", "10-K §7"] must become
+    # ["Form-4", "10-K §7"] — Form-4 recognized, section preserved.
+    assert _normalize_sources(["Insider-Transaktionen", "10-K §7"]) == [
+        "Form-4", "10-K §7"]
