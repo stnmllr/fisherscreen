@@ -21,6 +21,8 @@ from app.deepdive.trend_metrics import (
 
 logger = logging.getLogger(__name__)
 
+_DY_GLITCH_FACTOR = 10  # normalized yield > 10x payout/PE-implied => .info percent-units glitch
+
 
 def _norm_dividend_yield(raw: float | None) -> float | None:
     """yfinance returns dividendYield sometimes as a fraction (0.024) and
@@ -28,6 +30,59 @@ def _norm_dividend_yield(raw: float | None) -> float | None:
     if raw is None:
         return None
     return raw / 100 if raw > 1 else raw
+
+
+def _resolve_dividend_yield(
+    raw: float | None,
+    payout_ratio: float | None,
+    trailing_pe: float | None,
+) -> float | None:
+    """Resolve yfinance .info dividendYield, which is in PERCENT units.
+
+    Sub-1% yields (raw < 1) slip past the magnitude heuristic in
+    _norm_dividend_yield and render ~100x too big (GOOGL 0.23 -> 23%,
+    MSFT 0.81 -> 81%). A single magnitude cannot disambiguate 0.23 (a legit
+    23% fraction vs a mis-read 0.23%); the independent estimate
+    ``payout_ratio / trailing_pe`` supplies the missing bit (dividend yield
+    ~= payout/PE). payout/PE is ONLY the trigger — the correction is the exact
+    inverse of the bug (``raw / 100``), never payout/PE itself (too imprecise;
+    Novo would be 3.99% vs the true 5.43%)."""
+    if raw is None:
+        return None
+    norm = _norm_dividend_yield(raw)
+    assert norm is not None  # raw is float here, so norm is float
+    if norm == 0:
+        return norm  # 0.0; genuine non-payer, unambiguous
+    implied: float | None = None
+    if (
+        payout_ratio is not None
+        and trailing_pe is not None
+        and payout_ratio > 0
+        and trailing_pe > 0
+    ):
+        implied = payout_ratio / trailing_pe
+    if implied is not None:
+        if norm > _DY_GLITCH_FACTOR * implied:
+            corrected = raw / 100
+            logger.warning(
+                "quant: dividend_yield .info percent-units glitch — "
+                "normalized %.4f vs payout/PE-implied %.4f (>%dx) — "
+                "auto-corrected to %.4f",
+                norm,
+                implied,
+                _DY_GLITCH_FACTOR,
+                corrected,
+            )
+            return corrected
+        return norm
+    if raw >= 1:
+        return norm  # >=1% class, magnitude already divided — not the bug class
+    logger.warning(
+        "quant: dividend_yield %.4f sub-1 with no payout/PE cross-check — "
+        "not disambiguable, rendering n/a",
+        raw,
+    )
+    return None
 
 
 def _latest_non_none(seq: Any) -> float | None:
@@ -60,7 +115,11 @@ def _pit_from_info(ticker: str, info: dict[str, Any]) -> PointInTimeQuant:
         total_cash=info.get("totalCash"),
         current_ratio=info.get("currentRatio"),
         payout_ratio=info.get("payoutRatio"),
-        dividend_yield=_norm_dividend_yield(info.get("dividendYield")),
+        dividend_yield=_resolve_dividend_yield(
+            info.get("dividendYield"),
+            info.get("payoutRatio"),
+            info.get("trailingPE"),
+        ),
         recommendation_key=info.get("recommendationKey"),
         recommendation_mean=info.get("recommendationMean"),
         target_mean_price=info.get("targetMeanPrice"),

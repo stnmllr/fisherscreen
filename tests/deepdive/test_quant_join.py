@@ -1,9 +1,12 @@
 import logging
 from unittest.mock import MagicMock
 
+import pytest
+
 from app.deepdive.quant_join import (
     _latest_non_none,
     _norm_dividend_yield,
+    _resolve_dividend_yield,
     build_quant_snapshot,
 )
 from app.errors import DataSourceError
@@ -103,6 +106,54 @@ def test_norm_dividend_yield_branches():
     assert _norm_dividend_yield(0.024) == 0.024  # already a fraction
     assert _norm_dividend_yield(2.4) == 0.024    # percent -> fraction
     assert _norm_dividend_yield(1.0) == 1.0      # boundary: not > 1
+
+
+def test_resolve_dividend_yield_googl_class_glitch_corrected():
+    # real GOOGL .info: payout/PE implies ~0.22%; magnitude-norm 0.23 is
+    # ~100x too big (yfinance percent-units glitch) -> /100
+    assert _resolve_dividend_yield(0.23, 0.0641, 28.99) == pytest.approx(
+        0.0023, abs=1e-5)
+
+
+def test_resolve_dividend_yield_msft_class_glitch_corrected():
+    # MSFT same sub-1% class: 0.81 percent-units -> 0.0081 fraction
+    assert _resolve_dividend_yield(0.81, 0.25, 28.0) == pytest.approx(
+        0.0081, abs=1e-5)
+
+
+def test_resolve_dividend_yield_ko_no_double_correction():
+    # KO raw 2.68 > 1 -> magnitude already /100 = 0.0268; cross-check agrees
+    # (ratio ~1) -> guard MUST stay silent, no second /100
+    assert _resolve_dividend_yield(2.68, 0.70, 26.0) == pytest.approx(
+        0.0268, abs=1e-4)
+
+
+def test_resolve_dividend_yield_legit_fraction_regime_untouched():
+    # old fraction regime: implied 0.025, ratio < 10 -> kept untouched
+    assert _resolve_dividend_yield(0.024, 0.30, 12.0) == pytest.approx(
+        0.024, abs=1e-4)
+
+
+def test_resolve_dividend_yield_fallback_ge1_passes_through():
+    # no usable cross-check, raw >= 1 -> magnitude-normalized passthrough
+    assert _resolve_dividend_yield(2.4, None, None) == pytest.approx(0.024)
+    # payout <= 0 -> no cross-check, raw >= 1 passthrough
+    assert _resolve_dividend_yield(2.4, 0.0, 30.0) == pytest.approx(0.024)
+
+
+def test_resolve_dividend_yield_fallback_sub1_no_crosscheck_is_na():
+    # 0 < raw < 1 without a usable 2nd signal is not disambiguable -> None
+    assert _resolve_dividend_yield(0.23, None, None) is None
+    assert _resolve_dividend_yield(0.5, 0.3, None) is None    # PE missing
+    assert _resolve_dividend_yield(0.23, 0.5, -10.0) is None  # PE<=0 unusable
+    assert _resolve_dividend_yield(0.23, 0.0, 30.0) is None   # payout<=0
+
+
+def test_resolve_dividend_yield_zero_and_none_unambiguous():
+    # raw == 0 -> genuine non-payer, unambiguous (NOT n/a)
+    assert _resolve_dividend_yield(0.0, None, None) == 0.0
+    # raw is None -> None
+    assert _resolve_dividend_yield(None, None, None) is None
 
 
 def test_latest_non_none_helper():
