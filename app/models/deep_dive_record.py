@@ -169,6 +169,54 @@ class ValuationHistory(BaseModel):
     fcf_yield: MultipleStats = Field(default_factory=MultipleStats)
 
 
+InsiderRole = Literal["CEO", "CFO", "Director", "Officer", "TenPercentOwner", "Other"]
+InsiderBucket = Literal["buy", "sell", "routine"]
+InsiderCoverage = Literal[
+    "ok", "partial", "empty", "fetch_failed", "fpi_exempt", "skipped"
+]
+
+
+class InsiderTransaction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    owner_name: str
+    role: InsiderRole
+    officer_title: str | None = None
+    is_director: bool = False
+    is_officer: bool = False
+    is_ten_pct: bool = False
+    date: str | None = None
+    code: str
+    bucket: InsiderBucket
+    shares: float | None = None
+    price: float | None = None
+    value: float | None = None
+    acquired_disposed: Literal["A", "D"] | None = None
+    security_title: str | None = None
+    is_derivative: bool = False
+    shares_after: float | None = None
+    direct_or_indirect: Literal["D", "I"] | None = None
+    is_10b5_1: bool | None = None
+    significant: bool = False
+
+
+class InsiderSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    coverage_state: InsiderCoverage
+    window_label: str = "letzte 12 Monate"
+    n_filings_total: int = 0
+    n_parsed: int = 0
+    n_transactions_total: int = 0
+    significant_buys: list[InsiderTransaction] = Field(default_factory=list)
+    significant_sells: list[InsiderTransaction] = Field(default_factory=list)
+    immaterial_sell_count: int = 0
+    routine_count: int = 0
+    net_buy_value: float = 0.0
+    net_sell_value: float = 0.0
+    by_role: dict[str, dict[str, float]] = Field(default_factory=dict)
+
+
 class QuantSnapshot(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -213,6 +261,7 @@ class DeepDiveRecord(BaseModel):
     synthesis: list[FisherPoint]
     source_coverage: SourceCoverage
     filing_date: str | None = None
+    insider_summary: InsiderSummary | None = None
     generated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

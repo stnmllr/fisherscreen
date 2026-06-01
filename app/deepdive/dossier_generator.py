@@ -7,6 +7,7 @@ from pathlib import Path
 import frontmatter
 
 from app.deepdive.filing_parser import SectionFlag
+from app.deepdive.insider_block import render_insider_block
 from app.deepdive.valuation_block import render_valuation_block
 from app.models.deep_dive_record import DeepDiveRecord
 
@@ -71,6 +72,9 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         "",
         render_valuation_block(record.quant_snapshot),
         "",
+        "## Insider-Transaktionen",
+        render_insider_block(record.insider_summary, record.form_type),
+        "",
         "## Fishers 15 Punkte",
         "",
     ]
@@ -123,6 +127,25 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         },
         "peer_tickers": peer_tickers,
         "peer_rationale": peer_rationale,
+        "insider_coverage_state": (
+            record.insider_summary.coverage_state
+            if record.insider_summary else None
+        ),
+        "insider_n_filings": (
+            record.insider_summary.n_filings_total
+            if record.insider_summary else None
+        ),
+        "insider_significant_count": (
+            len(record.insider_summary.significant_buys)
+            + len(record.insider_summary.significant_sells)
+            if record.insider_summary else None
+        ),
+        "insider_net_buy": (
+            record.insider_summary.net_buy_value if record.insider_summary else None
+        ),
+        "insider_net_sell": (
+            record.insider_summary.net_sell_value if record.insider_summary else None
+        ),
     })
     out.write_text(frontmatter.dumps(post), encoding="utf-8")
     logger.info("dossier: wrote %s", out.name)

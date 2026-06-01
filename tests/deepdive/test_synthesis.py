@@ -991,3 +991,50 @@ def test_misformatted_filing_cite_caps_confidence_via_full_loop():
         quant=_qs(), synthesizer=syn, max_input_tokens=200000)
     assert pts[0].sources == ["Inferenz"]
     assert pts[0].confidence == "🟡"
+
+
+# --- Task 7: insider synthesis integration ---------------------------------
+
+from app.deepdive.synthesis import _p15_floor, _normalize_sources, _build_user_prompt
+from app.models.deep_dive_record import InsiderSummary
+
+
+def test_p15_floor_three_tier():
+    assert _p15_floor(None) == "🔴"
+    assert _p15_floor(InsiderSummary(coverage_state="empty")) == "🔴"
+    assert _p15_floor(InsiderSummary(coverage_state="fetch_failed")) == "🔴"
+    assert _p15_floor(InsiderSummary(coverage_state="fpi_exempt")) == "🔴"
+    assert _p15_floor(InsiderSummary(coverage_state="partial", n_parsed=3)) == "🟡"
+    assert _p15_floor(InsiderSummary(coverage_state="ok", n_parsed=5)) is None
+
+
+def test_form4_marker_recognized_not_inferenz():
+    assert _normalize_sources(["Form-4"]) == ["Form-4"]
+
+
+def test_insider_block_present_in_prompt():
+    from app.models.deep_dive_record import (
+        PointInTimeQuant, QuantSnapshot, HistoricalSeries, TrendMetrics,
+    )
+    qs = QuantSnapshot(
+        point_in_time=PointInTimeQuant(ticker="X"),
+        historical_series=HistoricalSeries(), trend_metrics=TrendMetrics())
+    prompt = _build_user_prompt(
+        "X", "10-K", {}, qs, filing_date=None,
+        insider_summary=InsiderSummary(coverage_state="fpi_exempt"))
+    assert "Insider-Transaktionen" in prompt
+
+
+def test_insider_marker_aliases_canonicalize_to_form4():
+    # Gemini emits the block heading or a bare "Insider" instead of "Form-4";
+    # both must canonicalize to "Form-4" (not collapse to Inferenz).
+    assert _normalize_sources(["Insider-Transaktionen"]) == ["Form-4"]
+    assert _normalize_sources(["Insider"]) == ["Form-4"]
+    assert _normalize_sources(["Form-4"]) == ["Form-4"]
+
+
+def test_insider_marker_with_section_not_downgraded():
+    # The MSFT P15 case: ["Insider-Transaktionen", "10-K §7"] must become
+    # ["Form-4", "10-K §7"] — Form-4 recognized, section preserved.
+    assert _normalize_sources(["Insider-Transaktionen", "10-K §7"]) == [
+        "Form-4", "10-K §7"]

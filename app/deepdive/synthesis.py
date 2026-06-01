@@ -10,7 +10,8 @@ from app.deepdive.fisher_points import FISHER_POINTS
 from app.deepdive.valuation_block import render_valuation_block
 from app.errors import GeminiError
 from app.services.gemini_deepdive_client import DeepDiveSynthesizer
-from app.models.deep_dive_record import FisherPoint, QuantSnapshot
+from app.deepdive.insider_block import render_insider_block
+from app.models.deep_dive_record import FisherPoint, QuantSnapshot, InsiderSummary
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,14 @@ _QUANT_MARKER_VOCAB = (
 )
 _SOFT_MARKER_VOCAB = ("yfinance, 5J", "Marktkontext", "Inferenz")
 
+# Insider (Form-4) markers: the model tends to cite the dossier block heading
+# ("Insider-Transaktionen") or a bare "Insider" rather than the canonical form
+# name. Canonicalize all to "Form-4" so insider-grounded points are NOT
+# collapsed to Inferenz (1.2 catalogue-growth pattern; observed in the MSFT
+# acceptance run).
+_CANONICAL_INSIDER = "Form-4"
+_INSIDER_MARKER_VOCAB = ("Form-4", "Insider-Transaktionen", "Insider")
+
 
 def _norm_marker(s: str) -> str:
     """Fold a marker to a comparison key: lowercase + strip + collapse the
@@ -78,6 +87,8 @@ for _m in _SOFT_MARKER_VOCAB:
     _MARKER_CANON[_norm_marker(_m)] = _m
 for _m in _QUANT_MARKER_VOCAB:
     _MARKER_CANON[_norm_marker(_m)] = _CANONICAL_QUANT
+for _m in _INSIDER_MARKER_VOCAB:
+    _MARKER_CANON[_norm_marker(_m)] = _CANONICAL_INSIDER
 
 
 def _normalize_sources(sources: list[str]) -> list[str]:
@@ -182,8 +193,12 @@ _SYSTEM_PROMPT = (
     "warum (z.B. fehlende Cashflow-Daten im Filing).\n"
     "CONFIDENCE: 🟢 NUR wenn die Kernaussage direkt aus einer harten Quelle "
     "(Filing-Section oder Quant) belegbar ist. Inferenz, Allgemeinwissen oder "
-    "Marktkontext ⇒ höchstens 🟡. Punkte 14 und 15 ohne Sprach-/Insider-Daten "
-    "⇒ 🔴.\n"
+    "Marktkontext ⇒ höchstens 🟡. Punkt 14 ohne Sprachdaten ⇒ 🔴. Punkt 15 "
+    "(Integrität): nutze den Insider-Block — Open-Market-Käufe (P) sind ein "
+    "starkes Alignment-Signal, ungewöhnlich große Verkäufe Vorsicht, "
+    "Routine-RSU-Vesting/Steuer-Einbehalt NICHT überinterpretieren; bei "
+    "'nicht anwendbar'/keinen Daten bleibt P15 🔴 = fehlende Quelle, kein "
+    "Negativ-Urteil. Insider-belegte Aussagen markieren mit 'Form-4'.\n"
     "SOURCES: Marker sind genau (jeweils OHNE eckige Klammern — der Renderer "
     "wrappt automatisch): eine Filing-Section wie '20-F §5' oder '10-K §7' "
     "(NUR Sections die im Input wirklich vorkommen — erfinde KEINE), "
@@ -261,12 +276,25 @@ def _format_vintage_hint(days: int | None) -> str:
     )
 
 
+def _p15_floor(summary: InsiderSummary | None) -> str | None:
+    """Code-decided P15 confidence floor by evidence strength (2a.3 hybrid).
+    Returns the cap char to enforce, or None for 'no floor' (model is free)."""
+    if summary is None:
+        return "🔴"
+    if summary.coverage_state == "ok" and summary.n_parsed > 0:
+        return None
+    if summary.coverage_state == "partial":
+        return "🟡"
+    return "🔴"
+
+
 def _build_user_prompt(
     ticker: str,
     form_type: str,
     sections: dict[str, str],
     quant: QuantSnapshot,
     filing_date: str | None = None,
+    insider_summary: InsiderSummary | None = None,
 ) -> str:
     titles = "\n".join(f"{n}. {t}" for n, t in FISHER_POINTS)
     sec_txt = "\n\n".join(
@@ -276,11 +304,13 @@ def _build_user_prompt(
     vintage = _format_vintage_line(filing_date, days)
     hint = _format_vintage_hint(days)
     vintage_block = f"{vintage}\n{hint}" if hint else vintage
+    insider_block = render_insider_block(insider_summary, form_type)
     return (
         f"Ticker: {ticker} (Filing-Typ {form_type})\n\n"
         f"Fishers 15 Punkte:\n{titles}\n\n"
         f"Quant-Snapshot (JSON):\n{quant.model_dump_json()}\n\n"
         f"{render_valuation_block(quant)}\n\n"
+        f"{insider_block}\n\n"
         f"{vintage_block}\n\n"
         f"Filing-Sections:\n{sec_txt}"
     )
@@ -295,9 +325,12 @@ def run_synthesis(
     synthesizer: DeepDiveSynthesizer,
     max_input_tokens: int,
     filing_date: str | None = None,
+    insider_summary: InsiderSummary | None = None,
 ) -> list[FisherPoint]:
     system = _SYSTEM_PROMPT
-    user = _build_user_prompt(ticker, form_type, sections, quant, filing_date)
+    user = _build_user_prompt(
+        ticker, form_type, sections, quant, filing_date, insider_summary
+    )
     data = synthesizer.synthesize(system, user, max_input_tokens)
 
     raw_points = data.get("points", [])
@@ -328,8 +361,17 @@ def run_synthesis(
         # or language data in B.1 -> confidence is code-enforced to 🔴 (not left
         # to the model). The B.2/B.4 deferral is surfaced in the dossier
         # source_coverage section (Task 8).
-        if rp.get("number") in (14, 15):
+        # P14: candor needs language data (B.4) -> still hard 🔴.
+        # P15: integrity now has a hard source (Form-4); floor by evidence
+        # strength, code-decided (not model judgement).
+        if rp.get("number") == 14:
             rp = {**rp, "confidence": "🔴"}
+        elif rp.get("number") == 15:
+            floor = _p15_floor(insider_summary)
+            if floor == "🔴":
+                rp = {**rp, "confidence": "🔴"}
+            elif floor == "🟡" and rp.get("confidence") == "🟢":
+                rp = {**rp, "confidence": "🟡"}
         # Vintage cap: a stale cited filing caps the model's confidence to 🟡
         # for the vintage-sensitive points {5,6,12}. The == "🟢" guard against
         # the CURRENT (end) value makes this order-independent and only-lowering:
