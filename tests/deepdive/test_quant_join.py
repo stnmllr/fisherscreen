@@ -7,7 +7,11 @@ from app.deepdive.quant_join import (
     build_quant_snapshot,
 )
 from app.errors import DataSourceError
-from app.models.deep_dive_record import ForwardEstimates
+from app.models.deep_dive_record import (
+    ForwardEstimates,
+    MultipleStats,
+    ValuationHistory,
+)
 
 
 def _deps(pit_cache=None, dims=None):
@@ -29,7 +33,10 @@ def _deps(pit_cache=None, dims=None):
         "buyback_cashflow": [-10] * 5,
         "ebit": [50, 45, 40, 35, 30],
         "interest_expense": [-3, -3, -3, -3, -3],
-        "complete": True}
+        "complete": True,
+        "valuation_history": ValuationHistory(
+            pe=MultipleStats(median=21.4, p25=12.1, n_obs=164,
+                             span_years=3.1, status="complete"))}
     return firestore, yfinance, historical
 
 
@@ -224,3 +231,24 @@ def test_use_cache_false_threads_to_historical():
         pit_collection="dev_ticker_cache", dims_collection="dev_gemini_scores",
         use_cache=False)
     hist.get_annual_series.assert_called_once_with("X", use_cache=False)
+
+
+def test_valuation_history_wired_onto_snapshot():
+    fs, yf, hist = _deps(pit_cache={"marketCap": 1}, dims=None)
+    qs, _ = build_quant_snapshot(
+        "X", firestore=fs, yfinance=yf, historical=hist,
+        pit_collection="dev_ticker_cache", dims_collection="dev_gemini_scores")
+    assert qs.valuation_history is not None
+    assert qs.valuation_history.pe.median == 21.4
+    assert qs.valuation_history.pe.status == "complete"
+
+
+def test_valuation_history_none_when_absent_from_series():
+    fs, yf, hist = _deps(pit_cache={"marketCap": 1}, dims=None)
+    series = dict(hist.get_annual_series.return_value)
+    del series["valuation_history"]
+    hist.get_annual_series.return_value = series
+    qs, _ = build_quant_snapshot(
+        "X", firestore=fs, yfinance=yf, historical=hist,
+        pit_collection="dev_ticker_cache", dims_collection="dev_gemini_scores")
+    assert qs.valuation_history is None

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.models.deep_dive_record import QuantSnapshot
+from app.models.deep_dive_record import QuantSnapshot, ValuationHistory
 
 _HEADING = (
     "## Bewertung & Kapitalstruktur "
-    "(TTM-Stand, ohne historischen 5J-Vergleich)"
+    "(TTM-Stand + Mehrjahres-Median/Perzentil-Vergleich)"
 )
 
 
@@ -28,6 +28,65 @@ def _latest(seq: list[float | None] | None) -> float | None:
         if v is not None:
             return v
     return None
+
+
+def _ev_ebit_ttm(pit: Any) -> float | None:
+    ev, ebit = pit.enterprise_value, pit.ebit
+    if ev is None or ebit is None or ebit == 0:
+        return None
+    return ev / ebit
+
+
+def _fcf_yield_ttm(pit: Any) -> float | None:
+    fcf, mcap = pit.free_cashflow, pit.market_cap
+    if fcf is None or mcap is None or mcap == 0:
+        return None
+    return fcf / mcap
+
+
+def _range_segment(label: str, ttm: float | None, stats: Any, pct: bool) -> str:
+    """Ein Multiple-Segment der Range-Zeile nach status (Spec §10). Die Spanne
+    steht im Zeilen-Prefix, daher hier KEIN per-Segment-Wo-Suffix."""
+    def f(v: float | None) -> str:
+        if v is None:
+            return "n/a"
+        return f"{v:.1%}" if pct else f"{v:.1f}"
+    if stats.status == "skipped_fx":
+        return f"{label} n/a (FX: Listing≠Reporting)"
+    if stats.status == "na_data":
+        return f"{label} n/a (Historie unvollständig)"
+    return (f"{label} TTM {f(ttm)} vs Median {f(stats.median)} "
+            f"(25-Perz. {f(stats.p25)})")
+
+
+def _range_prefix(vh: ValuationHistory) -> str | None:
+    """Repräsentative Spanne für den Zeilen-Prefix: P/E bevorzugt, sonst das
+    erste complete/partial-Multiple. None, wenn keines Werte trägt."""
+    for stats in (vh.pe, vh.ev_ebit, vh.fcf_yield):
+        if stats.status in ("complete", "partial") and stats.span_years:
+            return f"(~{round(stats.span_years)}J, {stats.n_obs} Wo)"
+    return None
+
+
+def _render_valuation_range(quant: QuantSnapshot) -> str:
+    vh = quant.valuation_history
+    if vh is None:
+        return "Bewertungs-Range: n/a (Historie nicht verfügbar)"
+    statuses = {vh.pe.status, vh.ev_ebit.status, vh.fcf_yield.status}
+    if statuses == {"skipped_fx"}:
+        return "Bewertungs-Range: n/a (FX: Listing≠Reporting)"
+    if statuses == {"na_data"}:
+        return "Bewertungs-Range: n/a (Mehrjahres-Historie unvollständig)"
+    pit = quant.point_in_time
+    segs = [
+        _range_segment("P/E", pit.trailing_pe, vh.pe, pct=False),
+        _range_segment("EV/EBIT", _ev_ebit_ttm(pit), vh.ev_ebit, pct=False),
+        _range_segment("FCF-Yield", _fcf_yield_ttm(pit), vh.fcf_yield,
+                       pct=True),
+    ]
+    prefix = _range_prefix(vh)
+    head = f"Bewertungs-Range {prefix}: " if prefix else "Bewertungs-Range: "
+    return head + " · ".join(segs)
 
 
 def render_valuation_block(quant: QuantSnapshot) -> str:
@@ -117,9 +176,11 @@ def render_valuation_block(quant: QuantSnapshot) -> str:
         f"Interest Coverage {interest_cov} · {tsy}"
     )
 
+    valuation_range = _render_valuation_range(quant)
     consensus = _render_consensus(pit)
     forward = _render_forward(quant.forward_estimates)
-    block = f"{_HEADING}\n\n{bewertung}\n{kapital}\n{consensus}\n{forward}"
+    block = (f"{_HEADING}\n\n{bewertung}\n{valuation_range}\n{kapital}\n"
+             f"{consensus}\n{forward}")
     peers = _render_peer_table(quant)
     if peers:
         block = f"{block}\n{peers}"

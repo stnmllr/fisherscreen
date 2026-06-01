@@ -3,6 +3,13 @@ from __future__ import annotations
 import logging
 from typing import Any, Protocol
 
+from app.errors import DataSourceError
+from app.deepdive.valuation_history import (
+    AnnualFundamental,
+    compute_valuation_history,
+)
+from app.models.deep_dive_record import MultipleStats, ValuationHistory
+
 logger = logging.getLogger(__name__)
 
 _MIN_COMPLETE_YEARS = 3
@@ -54,6 +61,12 @@ class HistoricalDataServiceImpl:
         bb = _row(cash, "Repurchase Of Capital Stock", ticker)
         sh = _row(bal, "Share Issued", ticker)
 
+        ni = _row(income, "Net Income", ticker)
+        eps = _row(income, "Diluted EPS", ticker)
+        fcf = _row(cash, "Free Cash Flow", ticker)
+        td = _row(bal, "Total Debt", ticker)
+        cce = _row(bal, "Cash And Cash Equivalents", ticker)
+
         def col(d: dict[Any, float | None], c: Any) -> float | None:
             v = d.get(c)
             return None if v is None else float(v)
@@ -74,6 +87,11 @@ class HistoricalDataServiceImpl:
             "interest_expense": [col(ie, c) for c in cols],
             "shares_outstanding": [col(sh, c) for c in cols],
             "buyback_cashflow": [col(bb, c) for c in cols],
+            "net_income": [col(ni, c) for c in cols],
+            "diluted_eps": [col(eps, c) for c in cols],
+            "free_cashflow": [col(fcf, c) for c in cols],
+            "total_debt": [col(td, c) for c in cols],
+            "cash": [col(cce, c) for c in cols],
             "complete": len(years) >= _MIN_COMPLETE_YEARS,
         }
         if not series["complete"]:
@@ -81,4 +99,37 @@ class HistoricalDataServiceImpl:
                 "historical: %s only %d years (<%d) — flagged partial",
                 ticker, len(years), _MIN_COMPLETE_YEARS,
             )
+        series["valuation_history"] = self._build_valuation_history(
+            ticker, cols, ni, eps, ebit, fcf, td, cce, info)
         return series
+
+    def _build_valuation_history(
+        self, ticker, cols, ni, eps, ebit, fcf, td, cce, info
+    ) -> ValuationHistory:
+        """Pullt Wochen-Preis + Splits und ruft die pure-Funktion. Preis-/Split-
+        Pull-Fehler -> ValuationHistory(all na_data) + WARNING (fail-soft)."""
+        def col(d, c):
+            v = d.get(c)
+            return None if v is None else float(v)
+
+        annual = [
+            AnnualFundamental(
+                fy_end=c.date() if hasattr(c, "date") else c,
+                net_income=col(ni, c), diluted_eps=col(eps, c),
+                ebit=col(ebit, c), free_cashflow=col(fcf, c),
+                total_debt=col(td, c), cash=col(cce, c))
+            for c in cols
+        ]
+        try:
+            weekly = self._yf.get_weekly_close_5y(ticker)
+            splits = self._yf.get_splits(ticker)
+        except DataSourceError as exc:
+            logger.warning(
+                "valuation history: %s price/split pull failed — %s "
+                "(na_data)", ticker, exc)
+            na = MultipleStats(status="na_data")
+            return ValuationHistory(pe=na, ev_ebit=na, fcf_yield=na)
+        return compute_valuation_history(
+            weekly, annual, splits,
+            listing_ccy=info.get("currency"),
+            financial_ccy=info.get("financialCurrency"))

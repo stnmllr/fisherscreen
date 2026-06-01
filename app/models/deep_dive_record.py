@@ -148,6 +148,27 @@ class TrendMetrics(BaseModel):
     buyback_intensity_5y: float | None = None
 
 
+MultipleStatus = Literal["complete", "partial", "skipped_fx", "na_data"]
+
+
+class MultipleStats(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    median: float | None = None
+    p25: float | None = None
+    n_obs: int = 0
+    span_years: float | None = None
+    status: MultipleStatus = "na_data"
+
+
+class ValuationHistory(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pe: MultipleStats = Field(default_factory=MultipleStats)
+    ev_ebit: MultipleStats = Field(default_factory=MultipleStats)
+    fcf_yield: MultipleStats = Field(default_factory=MultipleStats)
+
+
 class QuantSnapshot(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -157,6 +178,7 @@ class QuantSnapshot(BaseModel):
     gemini_dimensions: dict[str, Any] | None = None
     forward_estimates: ForwardEstimates | None = None
     peer_comparison: PeerComparison | None = None
+    valuation_history: ValuationHistory | None = None
 
 
 class SourceCoverage(BaseModel):
@@ -171,8 +193,10 @@ class SourceCoverage(BaseModel):
     sprache: str = "folgt B.4"
     insider: str = "folgt B.2"
     valuation: str = (
-        "TTM vorhanden (KGV/EV-EBIT/FCF-Yield) · 5J-Range zurückgestellt "
-        "(historische EPS-Rekonstruktion)"
+        "TTM + Mehrjahres-Median/Perzentil (KGV/EV-EBIT/FCF-Yield; Wochen-Preis × "
+        "GJ-Fundamental, split-normalisiert; reale Tiefe ~3J, da freie yfinance "
+        "nur 4 GJ liefert — 5J+ via SEC-XBRL ist Phase-2); cross-currency "
+        "Honest-Label-Skip; restated-Fassung"
     )
 
 

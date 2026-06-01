@@ -151,11 +151,13 @@ def test_valuation_gap_marked_honest(tmp_path):
         if ln.startswith("- Bewertungs-Kennzahlen:"))
     assert "folgt B.2" not in bewertung_cov_line
     # New SourceCoverage default text + new valuation block heading present.
-    assert ("TTM vorhanden (KGV/EV-EBIT/FCF-Yield) · 5J-Range zurückgestellt "
-            "(historische EPS-Rekonstruktion)") in body
+    assert ("TTM + Mehrjahres-Median/Perzentil (KGV/EV-EBIT/FCF-Yield; "
+            "Wochen-Preis × GJ-Fundamental, split-normalisiert; reale Tiefe "
+            "~3J, da freie yfinance nur 4 GJ liefert — 5J+ via SEC-XBRL ist "
+            "Phase-2); cross-currency Honest-Label-Skip; restated-Fassung") in body
     assert "Bewertungs-Kennzahlen" in body
     assert ("## Bewertung & Kapitalstruktur "
-            "(TTM-Stand, ohne historischen 5J-Vergleich)") in body
+            "(TTM-Stand + Mehrjahres-Median/Perzentil-Vergleich)") in body
 
 
 def test_valuation_block_derived_na_reason_in_dossier(tmp_path):

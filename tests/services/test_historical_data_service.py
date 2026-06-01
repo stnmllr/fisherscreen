@@ -124,3 +124,56 @@ def test_missing_row_in_nonempty_frame_warns(caplog):
     assert s["gross_margin"] == [None, None, None]
     assert s["revenue"] == [100, 100, 100]
     assert "Gross Profit" in caplog.text
+
+
+def _yf_full_for_valuation():
+    from datetime import date, timedelta
+    yf = MagicMock()
+    cols = [pd.Timestamp("2024-12-31"), pd.Timestamp("2023-12-31"),
+            pd.Timestamp("2022-12-31")]
+    income = pd.DataFrame({c: {
+        "Total Revenue": 1000, "Gross Profit": 800, "Operating Income": 400,
+        "EBIT": 420, "Interest Expense": -30,
+        "Net Income": 300, "Diluted EPS": 3.0} for c in cols})
+    cash = pd.DataFrame({c: {"Repurchase Of Capital Stock": -50,
+                             "Free Cash Flow": 250} for c in cols})
+    bal = pd.DataFrame({c: {"Share Issued": 2000, "Total Debt": 100,
+                            "Cash And Cash Equivalents": 500} for c in cols})
+    yf.get_annual_statements.return_value = (income, cash, bal)
+    yf.get_ticker_info.return_value = {"financialCurrency": "USD",
+                                       "currency": "USD"}
+    yf.get_weekly_close_5y.return_value = [
+        (date(2022, 1, 1) + timedelta(days=7 * i), 60.0) for i in range(160)]
+    yf.get_splits.return_value = []
+    return yf
+
+
+def test_extracts_valuation_fundamental_rows():
+    yf = _yf_full_for_valuation()
+    s = HistoricalDataServiceImpl(yfinance=yf).get_annual_series("X")
+    assert s["net_income"] == [300, 300, 300]
+    assert s["diluted_eps"] == [3.0, 3.0, 3.0]
+    assert s["free_cashflow"] == [250, 250, 250]
+    assert s["total_debt"] == [100, 100, 100]
+    assert s["cash"] == [500, 500, 500]
+
+
+def test_valuation_history_key_present_and_computed():
+    yf = _yf_full_for_valuation()
+    s = HistoricalDataServiceImpl(yfinance=yf).get_annual_series("X")
+    vh = s["valuation_history"]
+    assert vh.pe.status in ("complete", "partial")
+    assert vh.pe.median is not None
+
+
+def test_valuation_history_failsoft_on_price_pull_error(caplog):
+    import logging
+    from app.errors import DataSourceError
+    yf = _yf_full_for_valuation()
+    yf.get_weekly_close_5y.side_effect = DataSourceError("boom")
+    with caplog.at_level(logging.WARNING,
+                         logger="app.services.historical_data_service"):
+        s = HistoricalDataServiceImpl(yfinance=yf).get_annual_series("X")
+    vh = s["valuation_history"]
+    assert vh.pe.status == "na_data"
+    assert s["years"] == [2024, 2023, 2022]
