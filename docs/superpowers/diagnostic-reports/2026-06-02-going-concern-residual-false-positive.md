@@ -166,8 +166,32 @@ Cache-Invalidierung + reduzierter bezahlter Lauf (Korb + FRQN).
 
 ## Out of Scope (weiterhin eigene Tickets)
 
-- Lauf-Level-Aggregat für `edgar_skipped` nach Ursache (DataSourceError vs. no-CIK).
+- ~~Lauf-Level-Aggregat für `edgar_skipped` nach Ursache (DataSourceError vs. no-CIK).~~ **✅ ERLEDIGT
+  2026-06-02 (PR #14, Merge `7cc9a6e`, LIVE).** `ScreenerRecord.edgar_skipped_reason` trennt
+  `no_cik` vs `data_source_error`; `app/screener/filter_report.py::build_filter_report` emittiert
+  Count + Ticker-Liste je Ursache.
 - `2026-06-Changes.md` / Cloud-Run-„Erster Run"-Nebenbefund.
+
+---
+
+## Präventive Sichtbarkeit ausgeliefert 2026-06-02 (PR #14) — Boilerplate-Residuum bleibt evidenz-getriggert
+
+Vor dem manuellen vollen Lauf wurden zwei stille Failure-Modi **präventiv** adressiert (PR #14,
+Merge `7cc9a6e`, Revision `fisherscreen-service-00079-d4x`, Traffic 100 %), **ohne** die hier
+beschriebene Detection-Verschärfung vorzuziehen:
+
+- **EDGAR-Throttle** (`RateLimiter`, default 8 req/s, konfigurierbar) verhindert Rate-Limit-bedingte
+  stille Skips beim Voll-Universum.
+- **Going-Concern-Drop-Liste** (`going_concern_hit()` + `build_filter_report`) emittiert pro
+  verworfenem Namen `ticker / cik / accession / file_type / file_date` — **das ist das
+  Evidenz-Instrument** für das hier offene Boilerplate-Residuum (Primär-Dok-Boilerplate /
+  GC-nur-im-Exhibit / `10-K/A`-Amendments). `has_going_concern` + Cache blieben unangetastet.
+- **Dry-Mode** (`POST /run/monthly?dry_run=true`, $0, kein Gemini) macht die Drop-Liste **vor** dem
+  bezahlten Lauf gratis sichtbar.
+
+**Aktivierungsbedingung der Verschärfung unverändert:** erst wenn die Drop-Liste im bezahlten Lauf
+einen echten **gesunden-Namen**-Form-Filter-überlebenden FP zeigt, wird die Boilerplate-Verschärfung
+als eigene Sub-Phase an echter Evidenz aufgesetzt — **nicht** jetzt spekulativ.
 
 ---
 
