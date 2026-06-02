@@ -10,6 +10,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 from app.deepdive.filing_parser import (
     _CHARS_PER_TOKEN,
     _FORM_ITEMS,
@@ -21,6 +23,12 @@ from app.deepdive.filing_parser import (
     _toc_re,
     parse_filing,
 )
+
+# Every test here parses the never-committed authoritative cache filings under
+# cache/filings/ (ADR-4: "never commit cached EDGAR filings"; .gitignore). Those are
+# absent in CI's fresh checkout, so this whole module is integration: excluded in CI
+# (-m "not integration") and run locally where the deep-dive cache is populated.
+pytestmark = pytest.mark.integration
 
 CACHE_DIR = Path(__file__).resolve().parent.parent.parent / "cache" / "filings"
 

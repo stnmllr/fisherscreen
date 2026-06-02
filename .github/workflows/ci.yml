@@ -23,8 +23,10 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --frozen            # uv.lock is committed; without it, plain `uv sync`
-      - run: uv run python -m pytest
+      - run: uv run python -m pytest -m "not integration"
+      # -m "not integration": the unit suite is hermetic (no secrets, no network) and
+      # is the gate. Integration tests need the never-committed local filing cache
+      # (cache/filings/, ADR-4) or real APIs — absent in CI by design, so they run
+      # locally where the cache is populated, not here.
       # The 90% coverage floor is enforced by the pytest config (addopts
       # --cov-fail-under=90) → the check goes red on a coverage drop, no extra step.
-      # NO secrets, NO network: the suite is fixtures-only (hermeticity proven —
-      # scrubbed creds/secrets + dead proxy, 658 green; see commit 28bcd0e).
