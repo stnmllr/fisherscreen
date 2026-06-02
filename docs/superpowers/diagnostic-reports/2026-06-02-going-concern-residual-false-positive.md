@@ -107,24 +107,42 @@ muss FRQN weiterhin `True` liefern, JNJ/AWI auf `False` kippen.
 
 ---
 
-## Fix-Ticket (eigene Sub-Phase — erst Diagnose, dann Code)
+## Fix-Ticket (eigene Sub-Phase — erst Diagnose, dann Code; A NICHT präjudizieren)
 
-**Schritt 1 — Diagnose (frei, kein Code):** Über einen Korb gesunder US-Large-Caps den gefixten
-Pfad fahren; jeden `True` nach **In-Window vs. Out-of-Window**-Treffern bucketen (file_date der
-Hits gegenlesen). Ergebnis bestimmt die Fix-Achse:
-- ausschließlich Out-of-Window-Treffer → **Defekt A dominiert** (Datumsfenster).
+**⚠️ Framing-Disziplin: NICHT vorwegnehmen, dass „Defekt A fixen" JNJ klärt.** AWI (2001–06) ist
+nahezu beweisend für A (ein Filing von 2001 kann nur matchen, wenn `startdt` faktisch nicht
+scoped). JNJ über Talk-Litigation ist die zweideutige Achse: **altes** Filing → A klärt es;
+**aktuelles** Filing mit „raise substantial doubt" im reinen Prozesskontext → **Defekt B**, dann
+hilft das Datumsfenster JNJ **gar nicht**. Die FERTIG-Bedingung „JNJ→False" braucht je nach Befund
+**A oder A+B** — das nicht präjudizieren.
+
+**Schritt 0 — DIE ERSTE Diagnose-Frage (frei, kein Code):** Die `file_date` von **JNJs treffendem
+Hit** lesen — **in-window oder out-of-window?** E7 hat das bereits getan: alle 8 JNJ-Treffer
+2014–2017 = out-of-window → liest **aktuell** als reiner A. Das ist zu **verifizieren, nicht
+anzunehmen**: nach dem A-Fix JNJ **re-proben** und auf `False` pinnen. Findet die Sub-Phase JNJ
+nach dem A-Fix immer noch `True`, ist B im Spiel und ein A-only-Fix wäre an JNJ vorbeigefixt.
+
+**Schritt 1 — Diagnose-Korb (frei, kein Code):** Über einen Korb gesunder US-Large-Caps den
+gefixten Pfad fahren; jeden `True` nach **In-Window vs. Out-of-Window**-Treffern bucketen
+(`file_date` gegenlesen). Ergebnis bestimmt die Fix-Achse:
+- ausschließlich Out-of-Window-Treffer → **Defekt A** klärt den Namen (Datumsfenster).
 - In-Window-Treffer ohne GC-Bedeutung → **Defekt B** (Phrasen-Kopplung) zusätzlich nötig.
-- Bisheriger Stand (E7/E8): **nur A belegt**.
+- Bisheriger Stand (E7/E8): **nur A belegt; B hypothetisch, nicht beobachtet.**
 
 **Schritt 2 — Fix A (Datumsfenster durchsetzen):** Da EFTS `startdt` still ignoriert, das
 Fenster **client-seitig** erzwingen — Hits nach `_source.file_date >= startdt` filtern und nur
 diese zählen (die Hits tragen `file_date`), statt auf `hits.total.value` zu vertrauen. Alternativ
-korrektes EFTS-Scoping recherchieren (ggf. `enddt` Pflicht?). Re-Probe: JNJ/AWI → erwartet
-`False`, FRQN → weiterhin `True`.
+korrektes EFTS-Scoping recherchieren (ggf. `enddt` Pflicht?). Re-Probe: AWI → `False`;
+**JNJ → `False` (zu verifizieren, s. Schritt 0)**; FRQN → weiterhin `True`.
 
-**Schritt 3 — Fix B (nur falls in Schritt 1 belegt):** Query/Phrase auf die **gekoppelte** Form
-verschärfen — „substantial doubt about its ability to continue as a going concern" statt blankem
-„raise substantial doubt".
+**Schritt 3 — Fix B (NUR falls Schritt 0/1 einen In-Window-Nicht-GC-Treffer belegt):** Query/Phrase
+auf die **gekoppelte** Form verschärfen — „substantial doubt about its ability to continue as a
+going concern" statt blankem „raise substantial doubt". Ohne belegten B-Treffer **kein** B-Code
+(vermeidet Fix am nicht-existenten Defekt).
+
+**FERTIG-Bedingung der Sub-Phase:** JNJ **und** AWI → `False` (durch A, oder A+B falls Schritt 0/1
+B belegt), **und** FRQN → `True` (Positiv-Kontrolle, defektunabhängig). Erst dann ist die
+Healthy-Seite sauber.
 
 **Verifikation:** TDD (Unit + ein `@pytest.mark.integration` gegen echtes EFTS: gesunder
 Large-Cap mit alter GC-Sprache → False; FRQN → True). Danach **einmal am Ende**
