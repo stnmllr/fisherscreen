@@ -90,9 +90,17 @@ def test_has_restatement_returns_false_for_empty_filings(mock_httpx, mock_time):
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
 def test_has_going_concern_returns_true_when_hits_found(mock_httpx, mock_time):
+    # A qualifying hit = in-window AND a primary form document (10-K/10-Q).
+    from datetime import date
+    today = date.today().isoformat()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = {"hits": {"total": {"value": 2}}}
+    mock_resp.json.return_value = {
+        "hits": {
+            "total": {"value": 2, "relation": "eq"},
+            "hits": [{"_source": {"file_date": today, "file_type": "10-K"}}],
+        }
+    }
     mock_httpx.get.return_value = mock_resp
 
     client = _make_client()
@@ -148,13 +156,20 @@ def test_has_going_concern_false_for_scoped_healthy_eq_zero(mock_httpx, mock_tim
 @patch("app.services.edgar_client.httpx")
 def test_has_going_concern_true_for_scoped_genuine_hit_eq_relation(mock_httpx, mock_time):
     # Sentinel trennschärfe (the legitimate-positive branch): a correctly-scoped
-    # query that finds a genuine going-concern filing returns a small EXACT count
-    # ({'value': >0, 'relation': 'eq'}) → True. Pins the True branch explicitly,
-    # since the refactor reworked the True/raise split and the older positive test
-    # only reaches True via the default (absent relation), not relation == 'eq'.
+    # query with a small EXACT count ({'relation': 'eq'}) whose hit is in-window AND
+    # in a primary form document → True. Pins the True branch explicitly, since the
+    # refactor reworked the True/raise split; relation == 'eq' must reach True (not
+    # raise), and the qualifying hit drives it (not the bare total count).
+    from datetime import date
+    today = date.today().isoformat()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = {"hits": {"total": {"value": 3, "relation": "eq"}}}
+    mock_resp.json.return_value = {
+        "hits": {
+            "total": {"value": 3, "relation": "eq"},
+            "hits": [{"_source": {"file_date": today, "file_type": "10-Q"}}],
+        }
+    }
     mock_httpx.get.return_value = mock_resp
 
     client = _make_client()
@@ -215,6 +230,83 @@ def test_has_going_concern_raises_after_efts_500_exhausted(mock_httpx, mock_time
     client = _make_client()
     with pytest.raises(DataSourceError, match="500"):
         client.has_going_concern("320193")
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_has_going_concern_false_when_all_hits_out_of_window(mock_httpx, mock_time):
+    # Defekt A (residual): EFTS silently ignores `startdt`, so the CIK-scoped query
+    # returns the CIK's ALL-TIME phrase hits, not the 24-month window (byte-proven:
+    # WITH vs WITHOUT startdt identical). A healthy large-cap (JNJ class) whose only
+    # "raise substantial doubt" hits are OLD 10-K/10-Q must be False. The window is
+    # therefore enforced CLIENT-SIDE on each hit's file_date.
+    old = "2017-02-27"  # years before any plausible today−24mo startdt
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "hits": {
+            "total": {"value": 2, "relation": "eq"},
+            "hits": [
+                {"_source": {"file_date": old, "file_type": "10-K"}},
+                {"_source": {"file_date": "2016-11-04", "file_type": "10-Q"}},
+            ],
+        }
+    }
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.has_going_concern("200406") is False
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_has_going_concern_false_for_in_window_exhibit_boilerplate(mock_httpx, mock_time):
+    # Defekt B (observed at AWI): an IN-WINDOW hit can be auditor-responsibility
+    # BOILERPLATE ("required to evaluate whether there are conditions … that raise
+    # substantial doubt …") living in an EX-99.1 exhibit attached to a 10-K — NOT a
+    # genuine going-concern qualification. Only PRIMARY form documents (10-K/10-Q)
+    # count; exhibits (EX-*) are excluded. AWI is mixed: in-window exhibit +
+    # out-of-window primary → both rejected → False (proves BOTH axes are required).
+    from datetime import date
+    today = date.today().isoformat()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "hits": {
+            "total": {"value": 2, "relation": "eq"},
+            "hits": [
+                {"_source": {"file_date": today, "file_type": "EX-99.1"}},
+                {"_source": {"file_date": "2006-02-24", "file_type": "10-K"}},
+            ],
+        }
+    }
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.has_going_concern("7431") is False
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_has_going_concern_true_for_in_window_primary_form_hit(mock_httpx, mock_time):
+    # Positive control (FRQN class): genuine going-concern language in an IN-WINDOW
+    # PRIMARY 10-Q document → True. The fix must NOT neutralise real detection.
+    from datetime import date
+    today = date.today().isoformat()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "hits": {
+            "total": {"value": 1, "relation": "eq"},
+            "hits": [
+                {"_source": {"file_date": today, "file_type": "10-Q"}},
+            ],
+        }
+    }
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.has_going_concern("1624517") is True
 
 
 @patch("app.services.edgar_client.time")

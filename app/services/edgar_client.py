@@ -44,6 +44,7 @@ class EdgarClientImpl:
     _EFTS_MAX_ATTEMPTS = 3
     _EFTS_RETRY_BACKOFF_SECONDS = 2.0
     _EFTS_OVERBROAD_CAP = 10000  # EFTS caps hits.total.value here when unscoped/over-broad
+    _GC_PRIMARY_FORMS = ("10-K", "10-Q")  # count the phrase only in the primary filing doc
 
     def __init__(self, user_agent: str) -> None:
         if not user_agent:
@@ -126,29 +127,51 @@ class EdgarClientImpl:
     def has_going_concern(self, cik: str, months: int = 24) -> bool:
         padded = cik.zfill(10)
         startdt = (date.today() - timedelta(days=months * 30)).isoformat()  # ~30 days/month approximation
-        url = (
+        base_url = (
             f"{self._EFTS_BASE}/LATEST/search-index"
             f"?q=%22raise+substantial+doubt%22"
             f"&forms=10-K,10-Q"
             f"&dateRange=custom&startdt={startdt}"
             f"&ciks={padded}"  # valid EFTS scoping param; `entity=` is silently ignored
         )
-        data = self._get_efts(url)
-        total = data.get("hits", {}).get("total", {})
-        value = total.get("value", 0)
-        relation = total.get("relation", "eq")
-        # Over-broad sentinel: a CIK-scoped query returns relation == "eq" with a
-        # tiny exact count. relation == "gte" (or a value pinned at the cap) means
-        # the result set was capped/approximate → the query was NOT effectively
-        # scoped. Treating that as going_concern=True would drop every US ticker,
-        # so fail LOUD instead: DataSourceError → runner skips+keeps (E5) and logs.
-        if relation == "gte" or value >= self._EFTS_OVERBROAD_CAP:
-            raise DataSourceError(
-                f"EFTS returned an over-broad/capped result for cik={cik} "
-                f"(value={value}, relation={relation}) — query scoping likely broken; "
-                f"refusing to treat as a going-concern signal"
-            )
-        return value > 0
+        # EFTS scopes `ciks=` and `forms=`, but SILENTLY IGNORES `startdt` (byte-proven:
+        # the CIK-scoped query returns the same hit set with and without startdt). So the
+        # date window MUST be enforced CLIENT-SIDE, per hit, on `_source.file_date`. And
+        # `forms=10-K,10-Q` only scopes the SUBMISSION; the matching document inside it can
+        # be an EX-* exhibit carrying auditor-responsibility boilerplate ("required to
+        # evaluate whether there are conditions … that raise substantial doubt …"), which
+        # is NOT a going-concern qualification (observed at AWI). So count the phrase only
+        # in PRIMARY form documents (`_source.file_type` in {10-K, 10-Q}). going_concern is
+        # True iff at least one hit is BOTH in-window AND in a primary form document.
+        frm = 0
+        while True:
+            data = self._get_efts(f"{base_url}&from={frm}")
+            total = data.get("hits", {}).get("total", {})
+            value = total.get("value", 0)
+            relation = total.get("relation", "eq")
+            # Over-broad sentinel: a CIK-scoped query returns relation == "eq" with a
+            # tiny exact count. relation == "gte" (or a value pinned at the cap) means
+            # the result set was capped/approximate → the query was NOT effectively
+            # scoped. Treating that as going_concern=True would drop every US ticker,
+            # so fail LOUD instead: DataSourceError → runner skips+keeps (E5) and logs.
+            if relation == "gte" or value >= self._EFTS_OVERBROAD_CAP:
+                raise DataSourceError(
+                    f"EFTS returned an over-broad/capped result for cik={cik} "
+                    f"(value={value}, relation={relation}) — query scoping likely broken; "
+                    f"refusing to treat as a going-concern signal"
+                )
+            hits = data.get("hits", {}).get("hits", [])
+            if not hits:
+                return False
+            for hit in hits:
+                source = hit.get("_source", {})
+                file_date = source.get("file_date") or ""
+                file_type = source.get("file_type") or ""
+                if file_date >= startdt and file_type in self._GC_PRIMARY_FORMS:
+                    return True
+            frm += len(hits)
+            if frm >= value:
+                return False
 
     def has_active_enforcement(self, cik: str) -> bool:
         logger.warning(
