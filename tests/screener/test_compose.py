@@ -33,12 +33,16 @@ def test_build_edgar_pipeline_wires_components():
         patch("app.screener.compose.settings", spec=True) as mock_settings,
     ):
         mock_settings.edgar_user_agent = "Test Agent <test@example.com>"
+        mock_settings.edgar_max_requests_per_second = 8.0
         mock_settings.gcp_project_id = "test-project"
         mock_settings.edgar_collection = "dev_edgar_cache"
 
         result = compose_module.build_edgar_pipeline()
 
-        mock_edgar_cls.assert_called_once_with(user_agent="Test Agent <test@example.com>")
+        mock_edgar_cls.assert_called_once_with(
+            user_agent="Test Agent <test@example.com>",
+            max_requests_per_second=8.0,
+        )
         mock_fs_cls.assert_called_once_with(project_id="test-project")
         mock_cached_cls.assert_called_once_with(
             edgar=mock_edgar_cls.return_value,

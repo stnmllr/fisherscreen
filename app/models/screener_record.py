@@ -37,6 +37,7 @@ class ScreenerRecord(BaseModel):
     has_going_concern: bool | None = None
     has_active_enforcement: bool = False
     edgar_skipped: bool = False
+    edgar_skipped_reason: str | None = None  # "no_cik" | "data_source_error" — set in run_edgar_filter
 
     # Gemini scoring (populated in Phase 1.3)
     gemini_dimensions: dict[str, int] | None = None  # {"growth": 3, "profitability": 4, ...}

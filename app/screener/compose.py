@@ -21,7 +21,10 @@ def build_screener_pipeline() -> YFinanceClient:
 
 
 def build_edgar_pipeline() -> EdgarClient:
-    edgar = EdgarClientImpl(user_agent=settings.edgar_user_agent)
+    edgar = EdgarClientImpl(
+        user_agent=settings.edgar_user_agent,
+        max_requests_per_second=settings.edgar_max_requests_per_second,
+    )
     firestore = FirestoreClientImpl(project_id=settings.gcp_project_id)
     return CachedEdgarClient(
         edgar=edgar,

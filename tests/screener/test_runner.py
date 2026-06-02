@@ -255,6 +255,69 @@ def test_run_edgar_filter_returns_empty_for_empty_input():
     assert run_edgar_filter([], MagicMock()) == []
 
 
+def test_run_edgar_filter_sets_no_cik_reason_when_lookup_returns_none():
+    from app.screener.runner import run_edgar_filter
+    mock_edgar = MagicMock()
+    mock_edgar.get_cik.return_value = None
+    record = _passing_basis_record(cik=None)
+    record.cik = None
+
+    run_edgar_filter([record], mock_edgar)
+
+    assert record.edgar_skipped is True
+    assert record.edgar_skipped_reason == "no_cik"
+
+
+def test_run_edgar_filter_sets_data_source_error_reason_on_edgar_failure():
+    from app.screener.runner import run_edgar_filter
+    mock_edgar = _clean_edgar_mock()
+    mock_edgar.get_cik.return_value = "0000320193"
+    mock_edgar.has_restatement.side_effect = DataSourceError("network error")
+    record = _passing_basis_record()
+
+    run_edgar_filter([record], mock_edgar)
+
+    assert record.edgar_skipped is True
+    assert record.edgar_skipped_reason == "data_source_error"
+
+
+def test_run_filter_preview_runs_basis_and_edgar_returns_report():
+    from app.screener.filter_report import FilterReport
+    from app.screener.runner import run_filter_preview
+
+    mock_yf = MagicMock()
+    mock_yf.get_fx_rate.return_value = _FX_USD_EUR
+
+    def yf_side_effect(ticker):
+        return _PASSING_INFO  # both tickers pass basis
+
+    mock_yf.get_ticker_info.side_effect = yf_side_effect
+
+    mock_edgar = _clean_edgar_mock()
+    # PASS resolves a CIK and is clean; NOCIK resolves to None → no_cik skip
+    def cik_side_effect(ticker):
+        return "0000320193" if ticker == "PASS" else None
+
+    mock_edgar.get_cik.side_effect = cik_side_effect
+
+    report = run_filter_preview(["PASS", "NOCIK"], mock_yf, mock_edgar)
+
+    assert isinstance(report, FilterReport)
+    assert report.edgar_skipped_no_cik == ["NOCIK"]
+    assert report.going_concern_drops == []
+
+
+def test_run_filter_preview_has_no_gemini_parameter():
+    # Structurally cannot score: the signature must not accept a gemini client.
+    import inspect
+
+    from app.screener.runner import run_filter_preview
+
+    params = inspect.signature(run_filter_preview).parameters
+    assert "gemini" not in params
+    assert set(params) == {"tickers", "yfinance", "edgar"}
+
+
 # --- run_screener ---
 
 

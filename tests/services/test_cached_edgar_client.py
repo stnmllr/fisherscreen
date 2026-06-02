@@ -105,6 +105,20 @@ def test_has_active_enforcement_delegates_to_edgar_without_caching():
     assert result is False
 
 
+def test_going_concern_hit_delegates_to_edgar_without_caching():
+    mock_edgar = MagicMock()
+    sentinel = object()
+    mock_edgar.going_concern_hit.return_value = sentinel
+    mock_fs = MagicMock()
+
+    client = _make_client(mock_edgar, mock_fs)
+    result = client.going_concern_hit("0000320193")
+
+    mock_edgar.going_concern_hit.assert_called_once_with("0000320193", 24)
+    mock_fs.get.assert_not_called()
+    assert result is sentinel
+
+
 def test_missing_cached_at_triggers_refetch():
     mock_edgar = MagicMock()
     mock_fs = MagicMock()

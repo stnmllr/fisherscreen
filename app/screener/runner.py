@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from app.errors import DataSourceError
 from app.models.screener_record import ScreenerRecord
+from app.screener.filter_report import FilterReport, build_filter_report
 from app.screener.filters import apply_basis_filters, apply_edgar_filters
 
 if TYPE_CHECKING:
@@ -65,16 +66,19 @@ def run_basis_filter(
     return apply_basis_filters(records)
 
 
-def run_edgar_filter(
-    records: list[ScreenerRecord],
-    edgar: EdgarClient,
-) -> list[ScreenerRecord]:
+def _evaluate_edgar(records: list[ScreenerRecord], edgar: EdgarClient) -> None:
+    """Mutate each record in place with EDGAR signals (or a skip reason).
+
+    Keeps using has_going_concern (the bool); the going-concern hit detail is
+    fetched only in build_filter_report for the small set of dropped names.
+    """
     for record in records:
         if record.cik is None:
             record.cik = edgar.get_cik(record.ticker)
         if record.cik is None:
             logger.warning("ticker=%s has no CIK — skipping EDGAR check", record.ticker)
             record.edgar_skipped = True
+            record.edgar_skipped_reason = "no_cik"
             continue
         try:
             record.has_restatement = edgar.has_restatement(record.cik)
@@ -83,8 +87,39 @@ def run_edgar_filter(
         except DataSourceError as exc:
             logger.warning("ticker=%s EDGAR fetch failed: %s — skipping", record.ticker, exc)
             record.edgar_skipped = True
+            record.edgar_skipped_reason = "data_source_error"
     logger.info("runner: EDGAR lookup complete for %d records", len(records))
-    return apply_edgar_filters(records)
+
+
+def run_edgar_filter(
+    records: list[ScreenerRecord],
+    edgar: EdgarClient,
+) -> list[ScreenerRecord]:
+    _evaluate_edgar(records, edgar)
+    passed = apply_edgar_filters(records)
+    report = build_filter_report(records, edgar)
+    report.log(logger)
+    return passed
+
+
+def run_filter_preview(
+    tickers: list[str],
+    yfinance: YFinanceClient,
+    edgar: EdgarClient,
+) -> FilterReport:
+    """Free ($0) filters-only preview: basis + EDGAR filters, no Gemini, no
+    run-tracker, no output. Returns a FilterReport for dry-run visibility."""
+    records = run_basis_filter(tickers, yfinance)
+    _evaluate_edgar(records, edgar)
+    apply_edgar_filters(records)
+    report = build_filter_report(records, edgar)
+    report.log(logger)
+    logger.info(
+        "filter_preview: %d gc-drops, %d skipped",
+        len(report.going_concern_drops),
+        report.total_skipped(),
+    )
+    return report
 
 
 def run_screener(

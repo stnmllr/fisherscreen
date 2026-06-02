@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from app.services.edgar_client import EdgarClient
+    from app.services.edgar_client import EdgarClient, GoingConcernHit
     from app.services.firestore_client import FirestoreClient
 
 _TTL_SECONDS = 7 * 24 * 3600  # 7 days
@@ -53,6 +53,11 @@ class CachedEdgarClient:
 
     def has_going_concern(self, cik: str, months: int = 24) -> bool:
         return self._fetch_and_cache(cik)["has_going_concern"]
+
+    def going_concern_hit(self, cik: str, months: int = 24) -> GoingConcernHit | None:
+        """Delegate directly to EDGAR — used only for the going-concern drop report
+        (the few dropped names), so re-scanning uncached is acceptable."""
+        return self._edgar.going_concern_hit(cik, months)
 
     def has_active_enforcement(self, cik: str) -> bool:
         """Delegate directly to EDGAR — not cached (always returns False stub)."""

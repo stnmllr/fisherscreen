@@ -15,7 +15,7 @@ from app.screener.compose import (
     build_run_tracker,
     build_screener_pipeline,
 )
-from app.screener.runner import run_screener
+from app.screener.runner import run_filter_preview, run_screener
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +35,16 @@ def health() -> dict[str, str]:
 
 
 @app.post("/run/monthly")
-def run_monthly() -> dict[str, Any]:
+def run_monthly(dry_run: bool = False) -> dict[str, Any]:
     tickers = _load_universe()
     yfinance = build_screener_pipeline()
     edgar = build_edgar_pipeline()
+
+    if dry_run:
+        report = run_filter_preview(tickers, yfinance, edgar)
+        logger.info("monthly run: free dry-run (filters only, $0) — no Gemini, no GitHub push")
+        return {"dry_run": True, **report.to_dict()}
+
     gemini = build_gemini_pipeline()
     tracker = build_run_tracker()
     github = build_github_client()
