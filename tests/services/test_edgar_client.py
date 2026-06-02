@@ -113,6 +113,112 @@ def test_has_going_concern_returns_false_when_no_hits(mock_httpx, mock_time):
 
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
+def test_has_going_concern_scopes_query_with_ciks_param(mock_httpx, mock_time):
+    # Root-cause fix: the query MUST be CIK-scoped via the valid EFTS `ciks=`
+    # parameter. The bug used `entity=`, which EFTS silently ignores, letting the
+    # query run unscoped over the whole corpus (10000 hits → False-Positive True).
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"hits": {"total": {"value": 0, "relation": "eq"}}}
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    client.has_going_concern("320193")
+
+    call_url = mock_httpx.get.call_args[0][0]
+    assert "ciks=0000320193" in call_url  # padded CIK passed through to the valid param
+    assert "entity=" not in call_url       # the invalid, silently-ignored param is gone
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_has_going_concern_false_for_scoped_healthy_eq_zero(mock_httpx, mock_time):
+    # Sentinel trennschärfe (negative half): a correctly-scoped healthy large-cap
+    # returns {'value': 0, 'relation': 'eq'} → no going-concern doubt → False.
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"hits": {"total": {"value": 0, "relation": "eq"}}}
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.has_going_concern("320193") is False
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_has_going_concern_true_for_scoped_genuine_hit_eq_relation(mock_httpx, mock_time):
+    # Sentinel trennschärfe (the legitimate-positive branch): a correctly-scoped
+    # query that finds a genuine going-concern filing returns a small EXACT count
+    # ({'value': >0, 'relation': 'eq'}) → True. Pins the True branch explicitly,
+    # since the refactor reworked the True/raise split and the older positive test
+    # only reaches True via the default (absent relation), not relation == 'eq'.
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"hits": {"total": {"value": 3, "relation": "eq"}}}
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.has_going_concern("320193") is True
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_has_going_concern_raises_on_overbroad_gte_relation(mock_httpx, mock_time):
+    # Sentinel trennschärfe (positive half): an over-broad / unscoped result is
+    # EDGAR-canonically signalled by relation == 'gte' (count capped/approximate).
+    # That must NOT be read as "going concern True for everyone" — it is a scoping
+    # failure and must fail LOUD (DataSourceError → runner skips+keeps, logs),
+    # never silently drop the whole universe.
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"hits": {"total": {"value": 10000, "relation": "gte"}}}
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    with pytest.raises(DataSourceError, match="over-broad"):
+        client.has_going_concern("320193")
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_has_going_concern_retries_on_efts_500_then_succeeds(mock_httpx, mock_time, caplog):
+    # EFTS sporadically returns 500 (observed in diagnosis E5). A transient 5xx
+    # must not randomly flip a ticker between dropped/kept — retry with backoff.
+    # The retry MUST log a WARNING so a genuine persistent EFTS outage is not masked.
+    import logging
+
+    resp500 = MagicMock()
+    resp500.status_code = 500
+    resp200 = MagicMock()
+    resp200.status_code = 200
+    resp200.json.return_value = {"hits": {"total": {"value": 0, "relation": "eq"}}}
+    mock_httpx.get.side_effect = [resp500, resp200]
+
+    client = _make_client()
+    with caplog.at_level(logging.WARNING, logger="app.services.edgar_client"):
+        result = client.has_going_concern("320193")
+
+    assert result is False
+    assert mock_httpx.get.call_count == 2
+    assert "500" in caplog.text
+    assert "retry" in caplog.text.lower()
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_has_going_concern_raises_after_efts_500_exhausted(mock_httpx, mock_time):
+    # Persistent 5xx exhausts retries → DataSourceError (runner skips+keeps).
+    resp500 = MagicMock()
+    resp500.status_code = 500
+    mock_httpx.get.return_value = resp500
+
+    client = _make_client()
+    with pytest.raises(DataSourceError, match="500"):
+        client.has_going_concern("320193")
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
 def test_get_raises_data_source_error_on_non_200(mock_httpx, mock_time):
     mock_resp = MagicMock()
     mock_resp.status_code = 403
