@@ -12,11 +12,18 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 from app.deepdive.anchor_resolver import resolve_anchors
+
+# The four real-filing tests below read the never-committed cache/filings/ corpus
+# (ADR-4), absent in CI → marked integration and excluded there. The synthetic
+# edge-case tests further down stay hermetic and run everywhere.
 
 CACHE_DIR = Path(__file__).resolve().parent.parent.parent / "cache" / "filings"
 
 
+@pytest.mark.integration
 def test_anchor_resolver_ko_10k_full_coverage():
     raw = (CACHE_DIR / "0000021344" / "0001628280-26-010047.txt").read_text(
         encoding="utf-8", errors="replace"
@@ -35,6 +42,7 @@ def test_anchor_resolver_ko_10k_full_coverage():
     )
 
 
+@pytest.mark.integration
 def test_anchor_resolver_googl_10k_with_page_header_prefix():
     raw = (CACHE_DIR / "0001652044" / "0001652044-26-000018.txt").read_text(
         encoding="utf-8", errors="replace"
@@ -52,6 +60,7 @@ def test_anchor_resolver_googl_10k_with_page_header_prefix():
     assert "ITEM 1A" in item_1a.next_text_excerpt.upper()
 
 
+@pytest.mark.integration
 def test_anchor_resolver_novo_20f_bare_number_style():
     raw = (CACHE_DIR / "0000353278" / "0000353278-26-000012.txt").read_text(
         encoding="utf-8", errors="replace"
@@ -67,6 +76,7 @@ def test_anchor_resolver_novo_20f_bare_number_style():
     )
 
 
+@pytest.mark.integration
 def test_anchor_resolver_asml_20f_no_sec_item_anchors():
     raw = (CACHE_DIR / "0000937966" / "0001628280-26-011378.txt").read_text(
         encoding="utf-8", errors="replace"

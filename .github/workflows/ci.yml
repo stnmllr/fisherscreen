@@ -1,0 +1,32 @@
+name: CI
+
+# Test gate that runs BEFORE a merge to main — closing the gap that deploy.yml
+# (push:[main] → Cloud Run) deploys without ever running the suite. The only prior
+# check was a local pytest passed by word of mouth, which already caused a merge-gate
+# stumble (no PR CI exists → a PR can never show a green check by construction).
+#
+# NO paths-ignore — deliberate. Once this check is made "required" via branch
+# protection, a path-filtered required check on a docs-only PR deadlocks: the check
+# never reports → the merge is blocked forever (exactly the trap we already hit).
+# ~6.5 min on a docs-only PR is the lesser evil. Do NOT "optimize" this with
+# paths-ignore.
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5     # pinned to current major; bump deliberately
+        with:
+          enable-cache: true
+      - run: uv sync --frozen            # uv.lock is committed; without it, plain `uv sync`
+      - run: uv run python -m pytest -m "not integration"
+      # -m "not integration": the unit suite is hermetic (no secrets, no network) and
+      # is the gate. Integration tests need the never-committed local filing cache
+      # (cache/filings/, ADR-4) or real APIs — absent in CI by design, so they run
+      # locally where the cache is populated, not here.
+      # The 90% coverage floor is enforced by the pytest config (addopts
+      # --cov-fail-under=90) → the check goes red on a coverage drop, no extra step.

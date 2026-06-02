@@ -19,10 +19,21 @@ def test_build_adr_resolver_resolves_seed():
 
 
 def test_build_insider_fetcher_returns_cached_fetcher():
+    from unittest.mock import patch
+
     from app.deepdive.compose import build_insider_fetcher
     from app.deepdive.insider_cache import CachedInsiderFetcher
-    f = build_insider_fetcher()
+
+    # Patch only the config-dependent construction: EdgarClientImpl requires a
+    # non-empty SEC user agent (settings.edgar_user_agent), which is absent in CI.
+    # The REAL CachedInsiderFetcher is still constructed, so the compose/cache
+    # contract under test — returns a CachedInsiderFetcher that WRAPS the edgar
+    # client — is preserved, not mocked into a tautology.
+    with patch("app.deepdive.compose.EdgarClientImpl") as mock_edgar_cls:
+        f = build_insider_fetcher()
+
     assert isinstance(f, CachedInsiderFetcher)
+    assert f._edgar is mock_edgar_cls.return_value
 
 
 def test_insider_lookback_setting_default():

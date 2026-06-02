@@ -71,6 +71,11 @@ def test_deepdive_end_to_end_writes_dossier(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, "build_quant_builder", lambda: qb)
     monkeypatch.setattr(cli, "build_synthesizer", lambda m: synth)
     monkeypatch.setattr(cli, "build_peer_resolver", lambda: peer_resolver)
+    # Stub the 6th builder too — it was missed when Phase 1.4 wired insider fetching
+    # into the CLI. Building the real one constructs an EdgarClientImpl (needs a SEC
+    # user agent), which has no place in a CLI-orchestration test. NOVO-B.CO is a
+    # 20-F/FPI, so the insider stage is skipped and the fetcher is never exercised.
+    monkeypatch.setattr(cli, "build_insider_fetcher", lambda: MagicMock())
 
     rc = cli.main(["deepdive", "NOVO-B.CO", "--peers", "LLY,PFE,MRK"])
     assert rc == 0
@@ -90,6 +95,7 @@ def test_deepdive_maps_deepdive_error_to_exit_1(monkeypatch):
     monkeypatch.setattr(cli, "build_quant_builder", lambda: MagicMock())
     monkeypatch.setattr(cli, "build_synthesizer", lambda m: MagicMock())
     monkeypatch.setattr(cli, "build_peer_resolver", lambda: MagicMock())
+    monkeypatch.setattr(cli, "build_insider_fetcher", lambda: MagicMock())
     assert cli.main(["deepdive", "SAP.DE"]) == 1
 
 
