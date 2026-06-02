@@ -41,6 +41,9 @@ class EdgarClientImpl:
     _SEC_BASE = "https://data.sec.gov"
     _EFTS_BASE = "https://efts.sec.gov"
     _RATE_LIMIT_SECONDS = 0.5
+    _EFTS_MAX_ATTEMPTS = 3
+    _EFTS_RETRY_BACKOFF_SECONDS = 2.0
+    _EFTS_OVERBROAD_CAP = 10000  # EFTS caps hits.total.value here when unscoped/over-broad
 
     def __init__(self, user_agent: str) -> None:
         if not user_agent:
@@ -94,6 +97,32 @@ class EdgarClientImpl:
                 return True
         return False
 
+    def _get_efts(self, url: str) -> dict[str, Any]:
+        """GET an EFTS search URL with bounded retry on transient 5xx.
+
+        EFTS sporadically returns 500 (observed in diagnosis). A transient 5xx must
+        not randomly flip a ticker between "kept" and "dropped", so retry with
+        linear backoff. Each retry logs a WARNING so a genuine persistent EFTS
+        outage surfaces loudly instead of being silently masked by the retry.
+        """
+        for attempt in range(1, self._EFTS_MAX_ATTEMPTS + 1):
+            time.sleep(self._RATE_LIMIT_SECONDS)
+            try:
+                resp = httpx.get(url, headers=self._headers, timeout=30)
+            except Exception as exc:
+                raise DataSourceError(f"EDGAR HTTP request failed: {exc}") from exc
+            if resp.status_code == 200:
+                return resp.json()
+            if resp.status_code < 500 or attempt == self._EFTS_MAX_ATTEMPTS:
+                raise DataSourceError(f"EDGAR returned {resp.status_code} for {url}")
+            logger.warning(
+                "edgar: EFTS returned %s for %s — transient, retry %d/%d",
+                resp.status_code, url, attempt, self._EFTS_MAX_ATTEMPTS,
+            )
+            time.sleep(self._EFTS_RETRY_BACKOFF_SECONDS * attempt)
+        # unreachable: loop either returns 200 or raises on the final attempt
+        raise DataSourceError(f"EDGAR EFTS retry loop exited without result for {url}")
+
     def has_going_concern(self, cik: str, months: int = 24) -> bool:
         padded = cik.zfill(10)
         startdt = (date.today() - timedelta(days=months * 30)).isoformat()  # ~30 days/month approximation
@@ -102,10 +131,24 @@ class EdgarClientImpl:
             f"?q=%22raise+substantial+doubt%22"
             f"&forms=10-K,10-Q"
             f"&dateRange=custom&startdt={startdt}"
-            f"&entity={padded}"
+            f"&ciks={padded}"  # valid EFTS scoping param; `entity=` is silently ignored
         )
-        data = self._get(url)
-        return data.get("hits", {}).get("total", {}).get("value", 0) > 0
+        data = self._get_efts(url)
+        total = data.get("hits", {}).get("total", {})
+        value = total.get("value", 0)
+        relation = total.get("relation", "eq")
+        # Over-broad sentinel: a CIK-scoped query returns relation == "eq" with a
+        # tiny exact count. relation == "gte" (or a value pinned at the cap) means
+        # the result set was capped/approximate → the query was NOT effectively
+        # scoped. Treating that as going_concern=True would drop every US ticker,
+        # so fail LOUD instead: DataSourceError → runner skips+keeps (E5) and logs.
+        if relation == "gte" or value >= self._EFTS_OVERBROAD_CAP:
+            raise DataSourceError(
+                f"EFTS returned an over-broad/capped result for cik={cik} "
+                f"(value={value}, relation={relation}) — query scoping likely broken; "
+                f"refusing to treat as a going-concern signal"
+            )
+        return value > 0
 
     def has_active_enforcement(self, cik: str) -> bool:
         logger.warning(
