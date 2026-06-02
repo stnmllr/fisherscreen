@@ -168,3 +168,98 @@ Cache-Invalidierung + reduzierter bezahlter Lauf (Korb + FRQN).
 
 - Lauf-Level-Aggregat für `edgar_skipped` nach Ursache (DataSourceError vs. no-CIK).
 - `2026-06-Changes.md` / Cloud-Run-„Erster Run"-Nebenbefund.
+
+---
+
+## Fix-Session 2026-06-02 (TDD, NICHT gepusht) — Diagnose-Korrektur + Code
+
+> Schritt-1-Diagnose (freie, read-only EFTS-Korb-Probe, kein Gemini, kein Geld) vor jedem
+> Code; STOP-Gate; Stephans Go für Achse = Primary-Form-Filter. Skripte (working-tree,
+> untracked): `scripts/diagnose_going_concern_residual.py`,
+> `scripts/diagnose_gc_inwindow_nail.py`, `scripts/verify_residual_fix_freeprobe.py`.
+
+### Schritt-1-Befund — korrigiert zwei Ticket-Annahmen
+
+**(1) Voller FP-Korb (50 US-Large-Caps, sektorbreit) = `{JNJ, JPM, HON, AWI}`** — **zwei mehr**
+als das Ticket kannte (JPM, HON). Die Korb-Probe war damit berechtigt (Lehre 4: Einzelprobe
+hätte JPM/HON verdeckt). Übrige 46 → korrekt `False`.
+
+**(2) Klassifikation (file_date UND Kontext gelesen, alle Treffer paginiert):**
+
+| Name | total | In-Window | Befund |
+|---|---|---|---|
+| JNJ | 8 | 0 | alle 2014–2017 (10-K/10-Q/EX-13) → **reiner Defekt A** |
+| JPM | 1 | 0 | 2008 (10-Q) → **reiner Defekt A** |
+| HON | 1 | 0 | 2020-07 (10-Q) → **reiner Defekt A** |
+| AWI | 38 | **2** | 36 out-of-window + **2 IN-WINDOW** `EX-99.1`-Exhibits zu 10-K → **A + B** |
+
+- **JNJ disambiguiert (nicht präjudiziert):** alle 8 Treffer out-of-window → **reiner A**; der
+  A-Fix bringt JNJ→False (live re-geprobt: bestätigt).
+- **AWI ist NICHT reiner A — korrigiert Ticket-TL;DR/E7/E8.** AWIs 2 In-Window-Treffer (2026-02-24,
+  2025-02-25) sind echte 10-K-Exhibits im Fenster. Ihr matchender Text ist **PCAOB-Auditor-
+  Verantwortungs-Boilerplate** („management **is required to evaluate whether there are** conditions
+  or events … that raise substantial doubt about the company's ability to continue as a going
+  concern …"), **keine** GC-Feststellung. → A-Fix **allein** lässt AWI True.
+- **Defekt B existiert — aber anders als im Ticket hypothetisiert.** Ticket-B = „In-Window-Phrase
+  ohne GC-Kopplung (Litigation)" → im gesamten Korb **NICHT** beobachtet. Der **reale** Rest-Defekt
+  ist **coupled boilerplate im Exhibit**. Damit ist der **Ticket-Fix-B (Phrase auf gekoppelte Form
+  verschärfen) widerlegt** — das Boilerplate enthält die gekoppelte Phrase wörtlich.
+
+**(3) Defekt A byte-identisch belegt** (gleiche Methode wie der `entity=`-Bug): AWI `&ciks=…`
+**mit** `startdt=2024-06-12` vs. **ohne** → `total={'value':38,'relation':'eq'}` und identische
+38er-Hit-Menge in beiden → `startdt` gesendet, aber **nicht** gescoped.
+
+**(4) Param-Klassen-Audit komplett (Lehre 4):** `forms=10-K,10-Q` **wirkt** (AWIs EX-99.1 haben
+`form=10-K` → Exhibits echter 10-K-Submissions; nur 10-K/10-Q + deren Exhibits tauchen auf),
+`ciks=` **wirkt**. **Nur `startdt` ist tot.** Kein weiterer toter Param.
+
+**(5) FRQN Positiv-Kontrolle:** 7 In-Window-Treffer, alle **primär** 10-K/10-Q, deklarative GC
+(„these factors **raise substantial doubt about the company's ability to continue as a going
+concern**. … dependent upon its ability to generate sufficient cash flows…") → True (korrekt).
+
+### Schritt-2-Fix (`app/services/edgar_client.py::has_going_concern`)
+
+Prädikat: **`True ⟺ ∃ Treffer mit (file_date ≥ startdt) UND (file_type ∈ {10-K, 10-Q})`** —
+**beide Achsen nötig, keine allein reicht** (nur Fenster → AWI bleibt True via EX-99.1; nur Form →
+JNJ bleibt True via alte primäre Treffer).
+
+- **Achse A (Defekt A):** Da EFTS `startdt` ignoriert, das Fenster **client-seitig** pro Treffer auf
+  `_source.file_date >= startdt` erzwingen — statt `hits.total.value` zu vertrauen.
+- **Achse B (Defekt B, Option 1 = Primary-Form-Filter):** nur Treffer in **Primär-Form-Dokumenten**
+  zählen (`_source.file_type ∈ {10-K, 10-Q}`); Exhibits (`EX-*`) ausschließen. Deterministisch, **kein
+  Extra-Fetch** (`file_type` steckt in der EFTS-Antwort). Option 2 (Content-Discriminator) bewusst
+  **nicht** gebaut — verteidigt gegen einen im Korb **nicht beobachteten** Modus (Primär-Dok-Boilerplate)
+  und der Prosa-Textmatch zerfasert in freier Wildbahn → als Residual geticketet, nicht spekulativ gefixt.
+- `has_going_concern` liest jetzt die **hits-Liste** und paginiert via `&from`; Over-broad-Sentinel
+  (`relation=="gte"` / `value>=10000`) bleibt als Regressions-Gürtel **unverändert**, EFTS-500-Retry
+  unberührt.
+
+**Tests (TDD, erst rot):** +3 (`false_when_all_hits_out_of_window` = JNJ/A,
+`false_for_in_window_exhibit_boilerplate` = AWI/B-mixed [pinnt, dass **beide** Achsen nötig sind],
+`true_for_in_window_primary_form_hit` = FRQN-Positiv-Kontrolle); 2 bestehende total-only-True-Tests auf
+den neuen Kontrakt (qualifizierender In-Window-Primary-Treffer) umgestellt. **658 Tests grün / 97.20 %.**
+
+**Verifikation dreiseitig — Unit (gemockt) UND live EFTS** (`verify_residual_fix_freeprobe.py`, frei):
+`JNJ/AWI/JPM/HON/MSFT → False`, `FRQN → True`. Die `&from`-Paginierung greift real (AWIs 38-Treffer/
+4 Seiten → 0 qualifizierend → False).
+
+### Honest-Label — bekanntes, überwachtes Residuum (NEUES eigenes Ticket, NICHT gefixt)
+
+- **Primär-Dok-Boilerplate:** ein gesunder Filer mit derselben Auditor-/ASC-205-40-Verantwortungs-
+  Sprache **im Primär-10-K** (statt Exhibit) würde den Form-Filter überleben → FP. Im 50er-Korb
+  **nicht** aufgetreten. **Aktivierungsbedingung des Tickets = der spätere bezahlte Lauf:** taucht dort
+  ein Form-Filter-überlebender neuer FP auf, ist es per Definition dieser Fall → dann an echter Evidenz
+  entscheiden (Section-Scope vs. Content-Check vs. weichere Behandlung), nicht jetzt spekulieren.
+- **Recall-Trade-off:** eine echte GC, die **nur** in einem Exhibit (z. B. EX-13 incorporated financials)
+  steht — nie im Primär-Dok — würde verfehlt. Klein, weil GC-Feststellungen nach ASC 205-40 in den
+  Financial-Statements/MD&A des Primär-Dokuments leben (FRQN bestätigt). Akzeptiert.
+- **Form-Amendments** (`10-K/A`, `10-Q/A`) zählen mit der exakten `{10-K,10-Q}`-Menge **nicht** —
+  Teil desselben Residuums (im Korb nicht beobachtet).
+
+### Offen vor dem nächsten Schritt (separate „Go"-Session — Gate-Sequenz fortsetzen)
+1. Push des Branches `chore/going-concern-residual-ticket`.
+2. Deploy auf Cloud Run (neues Image).
+3. Vorprobe diesmal MUSS **JNJ → False** zeigen (vor Cache-Delete).
+4. Cache-Invalidierung: `scripts/invalidate_edgar_going_concern_cache.py` — erst Dry-run, dann `--apply`.
+5. **Reduzierter** bezahlter Lauf (Korb gesunder US-Large-Caps **+ FRQN** als Positiv-Beleg), KEIN voller
+   cache-kalter Lauf.
