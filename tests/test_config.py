@@ -23,6 +23,11 @@ def test_edgar_user_agent_defaults_to_empty():
     assert settings.edgar_user_agent == ""
 
 
+def test_edgar_max_requests_per_second_defaults_to_eight():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.edgar_max_requests_per_second == 8.0
+
+
 def test_reads_gemini_api_key(monkeypatch):
     monkeypatch.setenv("FISHERSCREEN_GEMINI_API_KEY", "api-key-xyz")
     settings = FisherScreenSettings(_env_file=None)

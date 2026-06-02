@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 class FisherScreenSettings(BaseSettings):
     gcp_project_id: str = ""
     edgar_user_agent: str = ""  # must be set via FISHERSCREEN_EDGAR_USER_AGENT; validated in EdgarClientImpl
+    edgar_max_requests_per_second: float = 8.0  # SEC fair-access limit is 10 req/s; 8 is conservative
     gemini_api_key: str = ""
     apify_api_key: str = ""
     github_token: str = ""

@@ -7,6 +7,10 @@ from typing import Any, Protocol
 import httpx
 
 from app.errors import DataSourceError
+from app.services.rate_limiter import (
+    DEFAULT_EDGAR_MAX_REQUESTS_PER_SECOND,
+    RateLimiter,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +29,18 @@ class Form4Ref:
     filing_date: str
 
 
+@dataclass(frozen=True)
+class GoingConcernHit:
+    accession_number: str | None
+    file_type: str | None
+    file_date: str | None
+
+
 class EdgarClient(Protocol):
     def get_cik(self, ticker: str) -> str | None: ...
     def has_restatement(self, cik: str, years: int = 3) -> bool: ...
     def has_going_concern(self, cik: str, months: int = 24) -> bool: ...
+    def going_concern_hit(self, cik: str, months: int = 24) -> "GoingConcernHit | None": ...
     def has_active_enforcement(self, cik: str) -> bool: ...
     def get_latest_annual_filing(self, cik: str, form_type: str) -> RawFiling: ...
     def get_form4_index(self, cik: str, since: str) -> list["Form4Ref"]: ...
@@ -40,22 +52,32 @@ class EdgarClient(Protocol):
 class EdgarClientImpl:
     _SEC_BASE = "https://data.sec.gov"
     _EFTS_BASE = "https://efts.sec.gov"
-    _RATE_LIMIT_SECONDS = 0.5
     _EFTS_MAX_ATTEMPTS = 3
     _EFTS_RETRY_BACKOFF_SECONDS = 2.0
     _EFTS_OVERBROAD_CAP = 10000  # EFTS caps hits.total.value here when unscoped/over-broad
     _GC_PRIMARY_FORMS = ("10-K", "10-Q")  # count the phrase only in the primary filing doc
 
-    def __init__(self, user_agent: str) -> None:
+    def __init__(
+        self,
+        user_agent: str,
+        *,
+        max_requests_per_second: float = DEFAULT_EDGAR_MAX_REQUESTS_PER_SECOND,
+        rate_limiter: RateLimiter | None = None,
+    ) -> None:
         if not user_agent:
             raise DataSourceError(
                 "EDGAR user agent not set — configure FISHERSCREEN_EDGAR_USER_AGENT"
             )
         self._headers = {"User-Agent": user_agent}
         self._ticker_map: dict[str, str] | None = None
+        self._rate_limiter = (
+            rate_limiter
+            if rate_limiter is not None
+            else RateLimiter(max_requests_per_second)
+        )
 
     def _get(self, url: str) -> dict[str, Any]:
-        time.sleep(self._RATE_LIMIT_SECONDS)
+        self._rate_limiter.acquire()
         try:
             resp = httpx.get(url, headers=self._headers, timeout=30)
         except Exception as exc:
@@ -107,7 +129,7 @@ class EdgarClientImpl:
         outage surfaces loudly instead of being silently masked by the retry.
         """
         for attempt in range(1, self._EFTS_MAX_ATTEMPTS + 1):
-            time.sleep(self._RATE_LIMIT_SECONDS)
+            self._rate_limiter.acquire()
             try:
                 resp = httpx.get(url, headers=self._headers, timeout=30)
             except Exception as exc:
@@ -125,6 +147,9 @@ class EdgarClientImpl:
         raise DataSourceError(f"EDGAR EFTS retry loop exited without result for {url}")
 
     def has_going_concern(self, cik: str, months: int = 24) -> bool:
+        return self.going_concern_hit(cik, months) is not None
+
+    def going_concern_hit(self, cik: str, months: int = 24) -> "GoingConcernHit | None":
         padded = cik.zfill(10)
         startdt = (date.today() - timedelta(days=months * 30)).isoformat()  # ~30 days/month approximation
         base_url = (
@@ -162,16 +187,20 @@ class EdgarClientImpl:
                 )
             hits = data.get("hits", {}).get("hits", [])
             if not hits:
-                return False
+                return None
             for hit in hits:
                 source = hit.get("_source", {})
                 file_date = source.get("file_date") or ""
                 file_type = source.get("file_type") or ""
                 if file_date >= startdt and file_type in self._GC_PRIMARY_FORMS:
-                    return True
+                    return GoingConcernHit(
+                        accession_number=source.get("adsh"),
+                        file_type=file_type,
+                        file_date=file_date,
+                    )
             frm += len(hits)
             if frm >= value:
-                return False
+                return None
 
     def has_active_enforcement(self, cik: str) -> bool:
         logger.warning(
@@ -180,7 +209,7 @@ class EdgarClientImpl:
         return False
 
     def _get_text(self, url: str) -> str:
-        time.sleep(self._RATE_LIMIT_SECONDS)
+        self._rate_limiter.acquire()
         try:
             resp = httpx.get(url, headers=self._headers, timeout=60)
         except Exception as exc:

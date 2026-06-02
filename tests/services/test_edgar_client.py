@@ -4,9 +4,15 @@ from unittest.mock import MagicMock, patch
 from app.errors import DataSourceError
 
 
+from app.services.rate_limiter import RateLimiter
+
+
 def _make_client(user_agent="Test Agent <test@example.com>"):
     from app.services.edgar_client import EdgarClientImpl
-    return EdgarClientImpl(user_agent=user_agent)
+    return EdgarClientImpl(
+        user_agent=user_agent,
+        rate_limiter=RateLimiter(8.0, sleep=lambda _s: None),
+    )
 
 
 def test_init_raises_when_user_agent_empty():
@@ -571,7 +577,10 @@ from app.services.edgar_client import EdgarClientImpl, Form4Ref
 
 
 def _client():
-    return EdgarClientImpl(user_agent="FisherScreen test test@example.com")
+    return EdgarClientImpl(
+        user_agent="FisherScreen test test@example.com",
+        rate_limiter=RateLimiter(8.0, sleep=lambda _s: None),
+    )
 
 
 def test_get_form4_index_filters_form_and_date():
@@ -601,3 +610,72 @@ def test_get_form4_document_strips_xsl_prefix():
     assert xml == "<ownershipDocument/>"
     assert captured["url"].endswith("/000078901926000075/form4.xml")
     assert "xslF345X06" not in captured["url"]
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_going_concern_hit_returns_hit_with_accession_for_primary_form(mock_httpx, mock_time):
+    from datetime import date
+
+    from app.services.edgar_client import GoingConcernHit
+
+    today = date.today().isoformat()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "hits": {
+            "total": {"value": 1, "relation": "eq"},
+            "hits": [
+                {
+                    "_source": {
+                        "file_date": today,
+                        "file_type": "10-K",
+                        "adsh": "0000320193-26-000010",
+                    }
+                }
+            ],
+        }
+    }
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    hit = client.going_concern_hit("320193")
+
+    assert isinstance(hit, GoingConcernHit)
+    assert hit.accession_number == "0000320193-26-000010"
+    assert hit.file_type == "10-K"
+    assert hit.file_date == today
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_going_concern_hit_returns_none_when_no_qualifying_hit(mock_httpx, mock_time):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"hits": {"total": {"value": 0, "relation": "eq"}}}
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.going_concern_hit("320193") is None
+
+
+@patch("app.services.edgar_client.httpx")
+def test_rate_limiter_acquire_invoked_on_request_path(mock_httpx):
+    # The injected rate limiter MUST be consulted before each EDGAR HTTP call —
+    # proves the throttle is wired into the request path, not just constructed.
+    from app.services.edgar_client import EdgarClientImpl
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "filings": {"recent": {"form": [], "filingDate": [], "items": []}}
+    }
+    mock_httpx.get.return_value = mock_resp
+
+    spy = MagicMock()
+    client = EdgarClientImpl(
+        user_agent="Test Agent <test@example.com>", rate_limiter=spy
+    )
+    client.has_restatement("320193")
+
+    assert spy.acquire.called
