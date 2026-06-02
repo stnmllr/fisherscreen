@@ -5,6 +5,26 @@
       "adr_ticker": "NVO",
       "cik": "0000353278",
       "form_type": "20-F"
+    },
+    "GOOGL": {
+      "adr_ticker": "GOOGL",
+      "cik": "0001652044",
+      "form_type": "10-K"
+    },
+    "ASML": {
+      "adr_ticker": "ASML",
+      "cik": "0000937966",
+      "form_type": "20-F"
+    },
+    "KO": {
+      "adr_ticker": "KO",
+      "cik": "0000021344",
+      "form_type": "10-K"
+    },
+    "MSFT": {
+      "adr_ticker": "MSFT",
+      "cik": "0000789019",
+      "form_type": "10-K"
     }
   }
 }
