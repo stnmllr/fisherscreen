@@ -256,10 +256,28 @@ den neuen Kontrakt (qualifizierender In-Window-Primary-Treffer) umgestellt. **65
 - **Form-Amendments** (`10-K/A`, `10-Q/A`) zählen mit der exakten `{10-K,10-Q}`-Menge **nicht** —
   Teil desselben Residuums (im Korb nicht beobachtet).
 
-### Offen vor dem nächsten Schritt (separate „Go"-Session — Gate-Sequenz fortsetzen)
-1. Push des Branches `chore/going-concern-residual-ticket`.
-2. Deploy auf Cloud Run (neues Image).
-3. Vorprobe diesmal MUSS **JNJ → False** zeigen (vor Cache-Delete).
-4. Cache-Invalidierung: `scripts/invalidate_edgar_going_concern_cache.py` — erst Dry-run, dann `--apply`.
-5. **Reduzierter** bezahlter Lauf (Korb gesunder US-Large-Caps **+ FRQN** als Positiv-Beleg), KEIN voller
-   cache-kalter Lauf.
+### Gate-Sequenz ABGESCHLOSSEN 2026-06-02 — Incident gelöst
+
+Alle fünf Gates durchlaufen, zweiseitig belegt:
+
+1. ✅ **Push** `chore/going-concern-residual-ticket` (`ef3fb7a`).
+2. ✅ **Deploy** — PR #9 nach `main` gemergt (Merge-Commit `69a1b87`), GHA-Deploy-Run
+   `26813328891` = `success`, Image `app:69a1b87…` live (100 % Traffic). (PR #8 hatte zuvor nur
+   die Ticket-Doc-Commits gebracht; der eigentliche Fix kam über PR #9.)
+3. ✅ **Freie Vorprobe** — JNJ/AWI/JPM/HON/MSFT→False, FRQN→True auf dem gefixten, deployten
+   Commit (`verify_residual_fix_freeprobe.py`, live EFTS).
+4. ✅ **Cache-Invalidate** — `invalidate_edgar_going_concern_cache.py --apply`: **777** vergiftete
+   `dev_edgar_cache`-Docs (`has_going_concern==True`, die US-mit-CIK-Teilmenge) gelöscht; Re-Probe
+   bestätigt **0** verbleibend. Größenordnung gegengelesen (plausibel = ~alle US-CIKs, die der
+   `entity=`-Bug auf True cachte; inkl. JNJ/JPM/HON/MSFT/AAPL/KO).
+5. ✅ **Reduzierter bezahlter Lauf** (`reduced_paid_run_going_concern.py`, Korb 9, Flash Lite,
+   output→`output-test/`, kein Push): `success`, **$0.00026** (997/397 Tokens, ≪ Hard-Caps).
+   **Zweiseitig:** 7/7 healthy US erreichen Gemini-Scoring inkl. **JNJ + HON** (beide vorher
+   gedroppt); **FRQN** Positiv-Kontrolle `has_going_concern=True`. (FRQN fällt im Pipeline-Basis-
+   Filter als Micro-Cap vor EDGAR — Positiv-Kontrolle daher als direkter freier EDGAR-Call belegt.)
+
+**FERTIG-Bedingung „Healthy-Seite sauber (kein FP mehr) + Positiv-Kontrolle hält" erfüllt.** Der
+nächste reguläre Scheduler-Lauf (2026-07-01) läuft gegen gefixten Code + sauberen Cache → US-Titel
+erscheinen wieder im Universum-Output. Honest-label-Residuum (Primär-Dok-Boilerplate etc.) bleibt
+als eigenes, überwachtes Ticket — Aktivierung war/ist der bezahlte Lauf; im 9er-Korb **kein**
+Form-Filter-überlebender FP aufgetreten.
