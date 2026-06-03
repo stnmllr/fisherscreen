@@ -352,13 +352,15 @@ def test_cik_is_zero_padded_to_10_digits_in_url(mock_httpx, mock_time):
     assert "CIK0000320193" in call_url
 
 
-def test_has_active_enforcement_returns_false_and_logs_warning(caplog):
+def test_has_active_enforcement_is_silent(caplog):
     import logging
+
     client = _make_client()
-    with caplog.at_level(logging.WARNING, logger="app.services.edgar_client"):
-        result = client.has_active_enforcement("320193")
+    with caplog.at_level(logging.DEBUG, logger="app.services.edgar_client"):
+        result = client.has_active_enforcement("123")
     assert result is False
-    assert "not implemented" in caplog.text
+    # Deliberately inert no-op: must not emit a per-CIK log record (was 538-line spam).
+    assert [r for r in caplog.records if r.name == "app.services.edgar_client"] == []
 
 
 # --- get_cik ---
