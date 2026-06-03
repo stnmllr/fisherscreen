@@ -3,7 +3,13 @@
 Fixtures-only: no network, no HTTP. Only the pure string functions are exercised.
 """
 
-from scripts.build_universe import _apply_country_suffix, _normalise_us_ticker
+import pytest
+
+from scripts.build_universe import (
+    _apply_country_suffix,
+    _normalise_class_suffix,
+    _normalise_us_ticker,
+)
 
 
 # --- ITEM 1: trailing-dot fix on LSE tickers --------------------------------
@@ -41,3 +47,50 @@ def test_internal_dot_base_keeps_internal_dot_only_trailing_stripped():
     # trailing dot would be stripped. Documents that internal-dot multi-class is
     # a separate, out-of-scope residual; pins current trailing-only behaviour.
     assert _apply_country_suffix("BT.A", "United Kingdom") == "BT.A.L"
+
+
+# --- Nordic class-share normalisation (trailing lowercase a/b/c) -------------
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("ERICb", "ERIC-B"),
+        ("ATCOa", "ATCO-A"),
+        ("ELUXb", "ELUX-B"),
+        ("SKFb", "SKF-B"),
+        ("TEL2b", "TEL2-B"),  # digit in base is allowed
+    ],
+)
+def test_class_suffix_is_normalised(raw, expected):
+    assert _normalise_class_suffix(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "ticker",
+    [
+        "BRK-B",   # already hyphenated -> not [A-Z0-9]{2,}[abc]$
+        "AAPL",    # plain US ticker, no trailing lowercase
+        "NESN",    # plain EU ticker
+        "HMB",     # all-caps concatenated class form -> deliberately NOT split
+        "MSFT",
+        "NOVO-B",  # already hyphenated
+        "A",       # too short
+        "Ab",      # base length 1 -> must NOT transform
+        "ABCd",    # trailing 'd' not in a/b/c
+        "",        # empty -> unchanged
+    ],
+)
+def test_non_class_suffix_unchanged(ticker):
+    assert _normalise_class_suffix(ticker) == ticker
+
+
+def test_apply_country_suffix_normalises_nordic_class_share():
+    # ERICb (Sweden) must resolve to the yfinance form ERIC-B.ST.
+    assert _apply_country_suffix("ERICb", "Sweden") == "ERIC-B.ST"
+
+
+def test_apply_country_suffix_leaves_allcaps_form_untouched():
+    # HMB is all-caps concatenated: ambiguous, deliberately NOT split here
+    # (handled at the data level instead). Documents the limitation.
+    assert _apply_country_suffix("HMB", "Sweden") == "HMB.ST"
