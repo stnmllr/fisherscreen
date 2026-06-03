@@ -1,8 +1,9 @@
 import logging
+import random
 import time
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
 import httpx
 
@@ -52,8 +53,8 @@ class EdgarClient(Protocol):
 class EdgarClientImpl:
     _SEC_BASE = "https://data.sec.gov"
     _EFTS_BASE = "https://efts.sec.gov"
-    _EFTS_MAX_ATTEMPTS = 3
-    _EFTS_RETRY_BACKOFF_SECONDS = 2.0
+    _EFTS_MAX_ATTEMPTS = 5
+    _EFTS_BACKOFF_BASE_SECONDS = 1.0  # full-jitter cap for retry N is base * 2**(N-1)
     _EFTS_OVERBROAD_CAP = 10000  # EFTS caps hits.total.value here when unscoped/over-broad
     _GC_PRIMARY_FORMS = ("10-K", "10-Q")  # count the phrase only in the primary filing doc
 
@@ -63,6 +64,8 @@ class EdgarClientImpl:
         *,
         max_requests_per_second: float = DEFAULT_EDGAR_MAX_REQUESTS_PER_SECOND,
         rate_limiter: RateLimiter | None = None,
+        efts_sleep: Callable[[float], None] | None = None,
+        rng: random.Random | None = None,
     ) -> None:
         if not user_agent:
             raise DataSourceError(
@@ -75,6 +78,13 @@ class EdgarClientImpl:
             if rate_limiter is not None
             else RateLimiter(max_requests_per_second)
         )
+        # EFTS backoff is injected separately from the rate-limiter clock so tests
+        # can capture delays + pin the jitter deterministically without real sleeps
+        # or real randomness. Default to time.sleep / a fresh Random() in production.
+        self._efts_sleep: Callable[[float], None] = (
+            efts_sleep if efts_sleep is not None else time.sleep
+        )
+        self._rng: random.Random = rng if rng is not None else random.Random()
 
     def _get(self, url: str) -> dict[str, Any]:
         self._rate_limiter.acquire()
@@ -123,10 +133,15 @@ class EdgarClientImpl:
     def _get_efts(self, url: str) -> dict[str, Any]:
         """GET an EFTS search URL with bounded retry on transient 5xx.
 
-        EFTS sporadically returns 500 (observed in diagnosis). A transient 5xx must
-        not randomly flip a ticker between "kept" and "dropped", so retry with
-        linear backoff. Each retry logs a WARNING so a genuine persistent EFTS
-        outage surfaces loudly instead of being silently masked by the retry.
+        EFTS (efts.sec.gov) sporadically returns HTTP 500 on /search-index — server
+        flakiness, NOT rate-limiting (a rate-exceed is 403, never observed). A
+        transient 5xx must not randomly flip a ticker between "kept" and "dropped",
+        so retry up to ``_EFTS_MAX_ATTEMPTS`` times with EXPONENTIAL FULL-JITTER
+        backoff: the sleep before retry N is ``uniform(0, base * 2**(N-1))`` with
+        ``base = _EFTS_BACKOFF_BASE_SECONDS``. Full jitter (uniform 0..cap, not a
+        fixed value) decouples synchronised retries under full-universe load. Each
+        retry logs a WARNING so a genuine persistent EFTS outage surfaces loudly
+        instead of being silently masked by the retry.
         """
         for attempt in range(1, self._EFTS_MAX_ATTEMPTS + 1):
             self._rate_limiter.acquire()
@@ -142,7 +157,8 @@ class EdgarClientImpl:
                 "edgar: EFTS returned %s for %s — transient, retry %d/%d",
                 resp.status_code, url, attempt, self._EFTS_MAX_ATTEMPTS,
             )
-            time.sleep(self._EFTS_RETRY_BACKOFF_SECONDS * attempt)
+            cap = self._EFTS_BACKOFF_BASE_SECONDS * (2 ** (attempt - 1))
+            self._efts_sleep(self._rng.uniform(0, cap))
         # unreachable: loop either returns 200 or raises on the final attempt
         raise DataSourceError(f"EDGAR EFTS retry loop exited without result for {url}")
 
