@@ -1,0 +1,326 @@
+symbol,mcap_eur_bn,drop_reason,gross_margin,revenue_growth,name
+TSLA,1370.7,gross_margin,0.19065,0.158,"Tesla, Inc."
+BRK-B,888.1,gross_margin,0.2778,0.044,Berkshire Hathaway Inc. New
+WMT,802.2,gross_margin,0.24976,0.073,Walmart Inc.
+JPM,696.9,gross_margin,0.0,0.127,JP Morgan Chase & Co.
+XOM,547.1,gross_margin,0.29768,0.026,Exxon Mobil Corporation
+CAT,367.6,gross_margin,0.28601998,0.222,"Caterpillar, Inc."
+COST,367.5,gross_margin,0.12876001,0.215,Costco Wholesale Corporation
+BAC,321.0,gross_margin,0.0,0.081,Bank of America Corporation
+UNH,298.5,gross_margin,0.18801,0.02,UnitedHealth Group Incorporated
+HSBA.L,276.0,gross_margin,0.0,0.033,HSBC HOLDINGS PLC ORD $0.50 (UK
+RO.SW,275.4,avg_volume,0.7449,-0.004,ROCHE I
+NOVN.SW,235.6,revenue_growth,0.75554,-0.007,NOVARTIS N
+DELL,234.8,gross_margin,0.19173999,0.875,Dell Technologies Inc.
+MC.PA,227.7,revenue_growth,0.66242,-0.047,LVMH
+QCOM,227.7,revenue_growth,0.54799,-0.035,QUALCOMM Incorporated
+GEV,223.8,gross_margin,0.20282,0.163,GE Vernova Inc.
+NESN.SW,216.2,revenue_growth,0.45826,-0.022,NESTLE N
+SHEL.L,210.0,gross_margin,0.25858,0.007,SHELL PLC ORD EUR0.07
+WFC,208.1,gross_margin,0.0,0.057,Wells Fargo & Company
+RTX,202.4,gross_margin,0.20212999,0.087,RTX Corporation
+C,191.7,gross_margin,0.0,0.159,"Citigroup, Inc."
+SAN.MC,152.3,gross_margin,0.0,0.046,BANCO SANTANDER S.A.
+RIO.L,151.8,gross_margin,0.28124002,0.146,RIO TINTO PLC ORD 10P
+BA,144.9,gross_margin,0.048249997,0.14,Boeing Company (The)
+ALV.DE,139.8,gross_margin,0.24341999,0.088,Allianz SE                    v
+DE,137.4,gross_margin,0.25965,-0.111,Deere & Company
+UBSG.SW,133.5,gross_margin,0.0,0.138,UBS GROUP N
+AIR.PA,133.3,gross_margin,0.15366,-0.066,AIRBUS SE
+IBE.MC,131.8,revenue_growth,0.53907,-0.045,ACCIONES IBERDROLA
+COP,124.5,revenue_growth,0.45591,-0.053,ConocoPhillips
+RR.L,120.7,gross_margin,0.27868,0.166,ROLLS-ROYCE HOLDINGS PLC ORD SH
+IFX.DE,114.4,revenue_growth,0.41162,,INFINEON TECHNOLOGIES AG      N
+LISN.SW,112.5,avg_volume,0.62784,0.075,LINDT N
+UCG.MI,110.1,gross_margin,0.0,0.064,UNICREDIT
+BBVA.MC,108.7,gross_margin,0.0,0.119,BANCO BILBAO VIZCAYA ARGENTARIA
+ULVR.L,103.2,revenue_growth,0.46945998,,UNILEVER PLC ORD 3.5P
+LMT,102.7,gross_margin,0.09906,0.003,Lockheed Martin Corporation
+CVS,102.0,gross_margin,0.13387999,0.061,CVS Health Corporation
+ISP.MI,98.4,gross_margin,0.0,0.06,INTESA SANPAOLO
+BP.L,97.5,gross_margin,0.2891,0.116,BP PLC $0.25
+PGR,97.5,gross_margin,0.18562001,0.087,Progressive Corporation (The)
+COF,96.2,gross_margin,0.0,0.463,Capital One Financial Corporati
+SBUX,94.7,gross_margin,0.21897,0.088,Starbucks Corporation
+ENEL.MI,94.1,revenue_growth,0.38531,-0.067,ENEL
+PWR,93.0,gross_margin,0.15100001,0.263,"Quanta Services, Inc."
+ZURN.SW,88.7,gross_margin,0.23815,0.095,ZURICH INSURANCE N
+GLEN.L,82.4,gross_margin,0.02474,0.143,GLENCORE PLC ORD USD0.01
+CEG,82.2,gross_margin,0.23263,0.638,Constellation Energy Corporatio
+CMI,82.0,gross_margin,0.25847998,0.027,Cummins Inc.
+BK,81.1,gross_margin,0.0,0.134,The Bank of New York Mellon Cor
+CABK.MC,80.1,gross_margin,0.0,0.027,"CAIXABANK, S.A."
+UPS,79.6,gross_margin,0.2245,-0.016,"United Parcel Service, Inc."
+CS.PA,79.4,gross_margin,0.14503999,0.032,AXA
+GD,79.3,gross_margin,0.15241,0.103,General Dynamics Corporation
+MCK,76.5,gross_margin,0.03601,0.06,McKesson Corporation
+PNC,76.1,gross_margin,0.0,0.138,"PNC Financial Services Group, I"
+INGA.AS,75.3,gross_margin,0.0,0.029,ING GROEP N.V.
+ELV,73.6,gross_margin,0.25891,0.026,"Elevance Health, Inc."
+KKR,72.7,revenue_growth,0.55542,-0.066,KKR & Co. Inc.
+SLB,72.7,gross_margin,0.17802,0.027,SLB Limited
+BARC.L,72.0,gross_margin,0.0,0.039,BARCLAYS PLC ORD 25P
+USB,71.7,gross_margin,0.0,0.046,U.S. Bancorp
+ENI.MI,68.9,gross_margin,0.20799999,-0.126,ENI
+ENGI.PA,68.2,revenue_growth,0.31912002,-0.066,ENGIE
+MDLZ,68.2,gross_margin,0.28771,0.082,"Mondelez International, Inc."
+DG.PA,67.8,gross_margin,0.17764,0.052,VINCI
+MPC,67.7,gross_margin,0.10739,0.088,Marathon Petroleum Corporation
+VLO,67.1,gross_margin,0.14563,0.066,Valero Energy Corporation
+FDX,66.9,gross_margin,0.27552,0.083,FedEx Corporation
+LLOY.L,66.7,gross_margin,0.0,0.115,LLOYDS BANKING GROUP PLC ORD 10
+NOC,65.0,gross_margin,0.20517999,0.044,Northrop Grumman Corporation
+BA.L,64.5,gross_margin,0.13213,0.067,BAE SYSTEMS PLC ORD 2.5P
+GM,64.2,gross_margin,0.111420006,-0.009,General Motors Company
+PSX,64.0,gross_margin,0.1252,0.069,Phillips 66
+CI,62.5,gross_margin,0.09149,0.046,The Cigna Group
+APO,61.9,revenue_growth,0.35222,-0.092,"Apollo Global Management, Inc. "
+VOLV-B.ST,60.8,gross_margin,0.23527001,-0.091,"Volvo, AB ser. B"
+CVNA,59.3,gross_margin,0.20131001,0.52,Carvana Co.
+DHL.DE,58.8,gross_margin,0.17523001,-0.019,DEUTSCHE POST AG              N
+WBD,58.5,revenue_growth,0.45748,-0.01,"Warner Bros. Discovery, Inc. - "
+FIX,58.1,gross_margin,0.25128,0.01,"Comfort Systems USA, Inc."
+MUV2.DE,56.2,revenue_growth,0.36108002,-0.06,MUENCHENER RUECKVERS.-GES. AG N
+BKR,54.7,gross_margin,0.23643999,0.025,Baker Hughes Company
+NDA-FI.HE,54.7,gross_margin,0.0,0.014,Nordea Bank Abp
+NWG.L,54.3,gross_margin,0.0,0.075,NATWEST GROUP PLC ORD 107.69P
+F,53.9,gross_margin,0.07064,0.064,Ford Motor Company
+PCAR,52.2,gross_margin,0.13583,-0.089,PACCAR Inc.
+FLEX,52.0,gross_margin,0.094069995,0.169,Flex Ltd.
+TFC,51.3,gross_margin,0.0,0.052,Truist Financial Corporation
+GLE.PA,51.2,gross_margin,0.0,0.002,SOCIETE GENERALE
+OXY,51.2,revenue_growth,0.69757,-0.083,Occidental Petroleum Corporatio
+STAN.L,50.9,gross_margin,0.0,0.086,STANDARD CHARTERED PLC ORD USD0
+NUE,50.7,gross_margin,0.14062999,0.213,Nucor Corporation
+SRE,50.5,revenue_growth,0.42457,-0.039,DBA Sempra
+TRGP,49.2,revenue_growth,0.41766,-0.102,"Targa Resources, Inc."
+TGT,48.8,gross_margin,0.28139,0.067,Target Corporation
+CARR,48.5,gross_margin,0.25180998,0.024,Carrier Global Corporation
+MBG.DE,47.8,gross_margin,0.15545,-0.049,Mercedes-Benz Group AG        N
+OKE,47.5,gross_margin,0.29636,0.196,"ONEOK, Inc."
+EOAN.DE,47.3,gross_margin,0.27811,-0.134,E.ON SE                       N
+ORA.PA,47.1,revenue_growth,0.36918998,,ORANGE
+MT.AS,46.6,gross_margin,0.074200004,0.045,ARCELORMITTAL SA
+DVN,46.2,revenue_growth,0.46929002,-0.008,Devon Energy Corporation
+HOLN.SW,45.8,revenue_growth,0.42343,-0.036,HOLCIM N
+MET,45.1,gross_margin,0.23754999,0.027,"MetLife, Inc."
+BAS.DE,44.9,gross_margin,0.23423,-0.03,BASF SE                       N
+DAL,44.8,gross_margin,0.19900998,0.129,"Delta Air Lines, Inc."
+COR,44.3,gross_margin,0.03796,0.038,"Cencora, Inc."
+KBC.BR,44.1,gross_margin,0.0,0.064,KBC
+BMW.DE,43.3,gross_margin,0.13136,-0.081,BAYERISCHE MOTOREN WERKE AG   S
+P911.DE,43.3,gross_margin,0.14064,-0.052,Dr. Ing. h.c. F. Porsche AG   I
+ODFL,41.9,revenue_growth,0.38946,-0.029,"Old Dominion Freight Line, Inc."
+FER.AS,40.9,avg_volume,0.87442,0.057,Ferrovial N.V.
+RWE.DE,40.8,revenue_growth,0.37570998,-0.328,RWE AG                        I
+SHB-B.ST,40.4,gross_margin,0.0,-0.093,Svenska Handelsbanken ser. B
+CBK.DE,39.9,gross_margin,0.0,0.043,Commerzbank AG                I
+CAH,39.7,gross_margin,0.037550002,0.11,"Cardinal Health, Inc."
+EBS.VI,39.0,gross_margin,0.0,0.289,Erste Group Bank AG
+FITB,39.0,gross_margin,0.0,0.33,Fifth Third Bancorp
+DGE.L,37.9,revenue_growth,0.60003,-0.04,DIAGEO PLC ORD 28 101/108P
+SGO.PA,37.8,gross_margin,0.27836,-0.021,SAINT GOBAIN
+STT,37.8,gross_margin,0.0,-0.028,State Street Corporation
+COIN,37.6,revenue_growth,0.85475,-0.308,"Coinbase Global, Inc."
+LONN.SW,37.1,revenue_growth,0.35966998,,LONZA N
+SCMN.SW,37.0,avg_volume,0.58134,-0.041,SWISSCOM N
+SREN.SW,36.7,gross_margin,0.20421,-0.02,SWISS RE N
+DHI,35.5,gross_margin,0.21597,-0.023,"D.R. Horton, Inc."
+ADM,35.2,gross_margin,0.062979996,0.016,Archer-Daniels-Midland Company
+JBL,34.6,gross_margin,0.09037,0.231,Jabil Inc.
+BAYN.DE,34.1,revenue_growth,0.59918,-0.024,Bayer AG                      N
+STLD,34.1,gross_margin,0.14038,0.191,"Steel Dynamics, Inc."
+SWED-A.ST,34.1,gross_margin,0.0,-0.032,Swedbank AB ser A
+CCI,33.9,revenue_growth,0.73819,-0.048,Crown Castle Inc.
+HUM,33.9,gross_margin,0.14006,0.235,Humana Inc.
+ASSA-B.ST,33.2,revenue_growth,0.43120998,-0.058,ASSA ABLOY AB ser. B
+RKT.L,33.0,revenue_growth,0.60780996,,RECKITT BENCKISER GROUP PLC ORD
+LYV,32.8,gross_margin,0.25868,0.122,"Live Nation Entertainment, Inc."
+SSE.L,32.6,revenue_growth,0.37050998,-0.021,SSE PLC ORD 50P
+KR,32.5,gross_margin,0.241,0.012,Kroger Company (The)
+DTG.DE,32.4,gross_margin,0.17694001,-0.133,Daimler Truck Holding AG      N
+TSCO.L,32.4,gross_margin,0.07626,0.072,TESCO PLC ORD 6 1/3P
+EME,32.3,gross_margin,0.19294001,0.197,"EMCOR Group, Inc."
+SEB-A.ST,32.2,gross_margin,0.0,-0.068,Skandinaviska Enskilda Banken s
+CBRE,31.9,gross_margin,0.18501,0.186,CBRE Group Inc
+MAERSK-B.CO,31.8,avg_volume,0.15996,-0.026,A.P. Møller - Mærsk B A/S
+VMC,31.8,gross_margin,0.27684,0.074,Vulcan Materials Company (Holdi
+HEI.DE,31.2,revenue_growth,0.64184,-0.009,Heidelberg Materials AG       I
+SYY,30.9,gross_margin,0.18537001,0.047,Sysco Corporation
+SATS,30.8,gross_margin,0.27082002,-0.052,EchoStar Corporation
+EPI-A.ST,30.7,revenue_growth,0.36068,-0.076,Epiroc AB ser. A
+PRU,30.4,gross_margin,0.28956,0.153,"Prudential Financial, Inc."
+SCHP.SW,30.3,revenue_growth,0.73779,-0.051,SCHINDLER PS
+MLM,30.2,gross_margin,0.29748,0.172,"Martin Marietta Materials, Inc."
+VOD.L,30.2,revenue_growth,0.3147,,VODAFONE GROUP PLC ORD USD0.20 
+KER.PA,29.9,revenue_growth,0.72641,,KERING
+HAL,29.3,gross_margin,0.15283,-0.003,Halliburton Company
+GIVN.SW,28.2,avg_volume,0.43522,-0.018,GIVAUDAN N
+HBAN,28.2,gross_margin,0.0,0.336,Huntington Bancshares Incorpora
+ABN.AS,27.5,gross_margin,0.0,0.036,ABN AMRO BANK N.V.
+MTB,27.2,gross_margin,0.0,0.057,M&T Bank Corporation
+HNR1.DE,27.1,gross_margin,0.22308001,-0.228,HANNOVER RUECK SE NA O.N.
+NTGY.MC,26.9,revenue_growth,0.40171,-0.069,"NATURGY ENERGY GROUP, S.A."
+NTRS,26.8,gross_margin,0.0,0.139,Northern Trust Corporation
+HEN3.DE,26.7,revenue_growth,0.50847,-0.063,Henkel AG & Co. KGaA          I
+ACGL,26.6,revenue_growth,0.39369,-0.033,Arch Capital Group Ltd.
+SIKA.SW,26.3,revenue_growth,0.54936004,-0.079,SIKA N
+DTE,25.7,gross_margin,0.28689,0.158,DTE Energy Company
+VIE.PA,25.7,gross_margin,0.17733999,,VEOLIA ENVIRON.
+MTZ,25.6,gross_margin,0.12824,0.345,"MasTec, Inc."
+REP.MC,25.6,gross_margin,0.29479998,0.084,"REPSOL,  S.A."
+STRL,25.6,gross_margin,0.23287001,0.916,"Sterling Infrastructure, Inc."
+TLX.DE,25.6,gross_margin,0.22693,-0.035,Talanx AG                     N
+FISV,25.4,gross_margin,,,"Fiserv, Inc."
+CNC,25.3,gross_margin,0.10559,0.051,Centene Corporation
+SLHN.SW,25.2,avg_volume,0.34651002,0.011,SWISS LIFE HOLDING AG N
+III.L,25.0,gross_margin,,,3I GROUP PLC ORD 73 19/22P
+CASY,24.8,gross_margin,0.24535999,0.003,"Caseys General Stores, Inc."
+NRG,24.4,gross_margin,0.16445999,0.195,"NRG Energy, Inc."
+KNIN.SW,24.3,revenue_growth,0.36519,-0.115,KUEHNE+NAGEL INT N
+SMCI,24.3,gross_margin,0.08394,1.227,"Super Micro Computer, Inc."
+SAMPO.HE,23.5,revenue_growth,0.40976003,-0.078,Sampo Plc A
+FOXA,23.4,revenue_growth,0.36843,-0.086,Fox Corporation
+VWS.CO,23.3,gross_margin,0.13504,0.144,Vestas Wind Systems A/S
+FTI,23.2,gross_margin,0.22584999,0.116,TechnipFMC plc
+BT-A.L,22.9,revenue_growth,0.47145998,-0.039,BT GROUP PLC ORD 5P
+JBHT,22.6,gross_margin,0.18861,0.046,"J.B. Hunt Transport Services, I"
+CFG,22.5,gross_margin,0.0,0.138,"Citizens Financial Group, Inc."
+FN,22.4,gross_margin,0.12037,0.393,Fabrinet
+BG,22.3,gross_margin,0.04442,0.878,Bunge Limited
+TEF.MC,22.2,revenue_growth,0.45129,-0.124,"TELEFONICA,S.A."
+XPO,22.0,gross_margin,0.18556,0.073,"XPO, Inc."
+DOW,21.8,gross_margin,0.06255,-0.061,Dow Inc.
+NHY.OL,21.6,revenue_growth,0.3525,-0.117,NORSK HYDRO
+EXO.AS,21.4,gross_margin,0.0,,EXOR
+ATI,21.1,gross_margin,0.23199,0.006,ATI Inc.
+CINF,21.1,gross_margin,0.27938998,0.116,Cincinnati Financial Corporatio
+AV.L,21.0,gross_margin,0.19179001,0.371,AVIVA PLC ORD 32 17/19P
+CRS,20.9,gross_margin,0.29735002,0.116,Carpenter Technology Corporatio
+FOX,20.9,revenue_growth,0.36843,-0.086,Fox Corporation
+OMV.VI,20.9,revenue_growth,0.32265,-0.041,OMV AG
+HPQ,20.6,gross_margin,0.20315,0.09,HP Inc.
+ALFA.ST,20.3,revenue_growth,0.36625,-0.033,Alfa Laval AB
+RF,20.3,gross_margin,0.0,0.073,Regions Financial Corporation
+SYF,20.2,gross_margin,0.0,0.061,Synchrony Financial
+VACN.SW,20.2,avg_volume,0.61017,0.047,VAT GROUP N
+STZ,20.1,revenue_growth,0.51651,-0.113,"Constellation Brands, Inc."
+UTHR,20.1,revenue_growth,0.86583,-0.016,United Therapeutics Corporation
+VER.VI,20.1,revenue_growth,0.47465,-0.155,VERBUND AG Kat. A
+SMT.L,19.8,gross_margin,,,SCOTTISH MORTGAGE INVESTMENT TR
+DRI,19.7,gross_margin,0.21507,0.059,"Darden Restaurants, Inc."
+KEY,19.6,gross_margin,0.0,0.118,KeyCorp
+PSTG,19.3,revenue_growth,0.70381,,"Everpure, Inc."
+SNX,19.3,gross_margin,0.07097,0.181,TD SYNNEX Corporation
+NXT,19.2,gross_margin,0.2192,-0.047,Nextpower Inc.
+PHM,19.2,gross_margin,0.261,-0.124,"PulteGroup, Inc."
+EN.PA,19.1,revenue_growth,0.56477,-0.032,BOUYGUES
+SW,19.1,gross_margin,0.19027,0.007,Smurfit WestRock plc
+TEL.OL,19.1,revenue_growth,0.65228,-0.014,TELENOR
+LEN,19.0,gross_margin,0.16871001,-0.133,Lennar Corporation
+PFG,19.0,revenue_growth,0.47612998,-0.045,Principal Financial Group Inc
+LYB,18.7,gross_margin,0.09227,-0.063,LyondellBasell Industries NV
+NN.AS,18.7,revenue_growth,0.58268,-0.015,NN GROUP
+AA,18.6,gross_margin,0.16254,-0.052,Alcoa Corporation
+CHRW,18.5,gross_margin,0.08574,-0.008,"C.H. Robinson Worldwide, Inc."
+EDP.LS,18.4,revenue_growth,0.40208998,-0.008,"EDP, SA"
+STLAM.MI,18.4,gross_margin,0.057919998,0.065,STELLANTIS
+LH,18.3,gross_margin,0.28834,0.058,Labcorp Holdings Inc.
+EMSN.SW,18.2,avg_volume,0.48496,-0.054,EMS-CHEMIE N
+GEBN.SW,18.2,revenue_growth,0.73640996,-0.006,GEBERIT N
+OMC,18.1,gross_margin,0.18431999,0.692,Omnicom Group Inc.
+WWD,18.1,gross_margin,0.28545,0.234,"Woodward, Inc."
+EXPD,17.9,gross_margin,0.1362,0.044,Expeditors International of Was
+TELIA.ST,17.8,revenue_growth,0.50043,-0.003,Telia Company AB
+TSN,17.8,gross_margin,0.06385,0.044,"Tyson Foods, Inc."
+ROIV,17.7,gross_margin,0.0,-0.667,Roivant Sciences Ltd.
+8TRA.DE,17.4,gross_margin,0.16899,-0.035,TRATON SE                     I
+LUV,17.4,gross_margin,0.23006001,0.128,Southwest Airlines Company
+MB.MI,17.3,gross_margin,0.0,0.005,MEDIOBANCA
+PKG,17.3,gross_margin,0.21753,0.106,Packaging Corporation of Americ
+RS,17.3,gross_margin,0.28701,0.155,"Reliance, Inc."
+ALB,17.2,gross_margin,0.18531,0.327,Albemarle Corporation
+VNA.DE,17.2,revenue_growth,0.60118,-0.338,Vonovia SE                    N
+LGEN.L,17.0,gross_margin,0.25487,0.139,LEGAL & GENERAL GROUP PLC ORD 2
+TTMI,16.9,gross_margin,0.21004,0.304,"TTM Technologies, Inc."
+MRNA,16.8,gross_margin,-0.69888,2.602,"Moderna, Inc."
+AMKR,16.3,gross_margin,0.14425999,0.275,"Amkor Technology, Inc."
+IFF,16.3,revenue_growth,0.36346,-0.036,International Flavors & Fragran
+RBI.VI,16.1,gross_margin,0.0,-0.063,Raiffeisen Bank Internat. AG
+CHTR,16.0,revenue_growth,0.55346,-0.01,"Charter Communications, Inc."
+USFD,15.9,gross_margin,0.17395,0.028,US Foods Holding Corp.
+MTX.DE,15.8,gross_margin,0.19239001,0.057,MTU Aero Engines AG           N
+WCC,15.7,gross_margin,0.21191,0.138,"WESCO International, Inc."
+BOL.PA,15.5,gross_margin,0.065349996,-0.133,BOLLORE SE
+IP,15.4,gross_margin,0.29687,0.134,International Paper Company
+WY,15.4,gross_margin,0.14675,-0.02,Weyerhaeuser Company
+CDW,15.3,gross_margin,0.21572,0.092,CDW Corporation
+EDPR.LS,15.3,revenue_growth,0.79794,-0.1,"EDP RENEWABLES, SA"
+AMCR,15.2,gross_margin,0.19143999,0.774,Amcor plc
+ABF.L,15.1,gross_margin,0.074250005,0.011,ASSOCIATED BRITISH FOODS PLC OR
+H,15.1,revenue_growth,0.42521,-0.035,Hyatt Hotels Corporation
+BOL.ST,15.0,gross_margin,0.1765,0.317,Boliden AB
+BEI.DE,14.7,revenue_growth,0.57714003,-0.002,BEIERSDORF AG                 I
+BWXT,14.6,gross_margin,0.22658001,0.261,"BWX Technologies, Inc."
+BAER.SW,14.4,gross_margin,0.0,0.018,JULIUS BAER N
+EWBC,14.4,gross_margin,0.0,0.141,"East West Bancorp, Inc."
+HST,14.3,gross_margin,0.28978002,0.028,"Host Hotels & Resorts, Inc."
+CON.DE,14.2,gross_margin,0.26707,-0.104,CONTINENTAL AG                I
+NVR,14.2,avg_volume,0.22489999,-0.214,"NVR, Inc."
+APTV,14.1,gross_margin,0.18922001,0.054,Aptiv PLC
+URW.PA,14.1,revenue_growth,0.69456,-0.038,UNIBAIL-RODAMCO-WESTFIELD
+BWA,13.8,gross_margin,0.18787001,0.005,BorgWarner Inc.
+SAB.MC,13.8,gross_margin,0.0,-0.106,BANCO DE SABADELL
+TXT,13.8,gross_margin,0.17836,0.118,Textron Inc.
+LDOS,13.6,gross_margin,0.17906,0.037,"Leidos Holdings, Inc."
+ANA.MC,13.4,avg_volume,0.69632006,-0.017,"ACCIONA, S.A."
+AGS.BR,13.3,gross_margin,0.29833,0.195,AGEAS
+UPM.HE,13.3,gross_margin,0.11256,-0.053,UPM-Kymmene Corporation
+SOON.SW,13.2,revenue_growth,0.73721004,,SONOVA N
+CG,13.1,revenue_growth,0.8778,-0.941,The Carlyle Group Inc.
+PFGC,13.1,gross_margin,0.12508,0.064,Performance Food Group Company
+BBY,13.0,gross_margin,0.22518,0.019,"Best Buy Co., Inc."
+BKT.MC,12.7,gross_margin,0.0,0.061,"BANKINTER, S.A."
+WSO,12.7,gross_margin,0.28012,0.001,"Watsco, Inc."
+MLI,12.6,gross_margin,0.29714,0.193,"Mueller Industries, Inc."
+RTO.L,12.6,gross_margin,0.13767,0.058,RENTOKIL INITIAL PLC ORD 1P
+J,12.4,gross_margin,0.2342,0.27,Jacobs Solutions Inc.
+PNFP,12.3,gross_margin,0.0,1.564,"Pinnacle Financial Partners, In"
+DY,12.2,gross_margin,0.20462999,0.561,"Dycom Industries, Inc."
+YAR.OL,12.2,gross_margin,0.2894,0.166,YARA INTERNATIONAL
+ARMK,12.1,gross_margin,0.15359999,0.147,Aramark
+BALL,12.1,gross_margin,0.1917,0.163,Ball Corporation
+CSL,12.0,revenue_growth,0.35571,-0.04,Carlisle Companies Incorporated
+UHR.SW,12.0,revenue_growth,0.82197,-0.021,SWATCH GROUP I
+CNH,11.8,gross_margin,0.18482,-0.001,CNH Industrial N.V.
+APA,11.7,revenue_growth,0.72273004,-0.119,APA Corporation
+DHER.DE,11.7,gross_margin,0.24418,0.101,Delivery Hero SE              N
+SOLV,11.7,revenue_growth,0.53655,-0.03,Solventum Corporation
+UNM,11.5,gross_margin,0.29533002,0.085,Unum Group
+DINO,11.4,gross_margin,0.1114,0.118,HF Sinclair Corporation
+1COV.DE,11.3,avg_volume,0.14488,-0.137,Covestro AG                   I
+JMT.LS,11.2,gross_margin,0.20718999,0.063,"J.MARTINS,SGPS"
+SPSN.SW,11.2,revenue_growth,0.88682,-0.196,SWISS PRIME SITE N
+ADM.L,11.1,revenue_growth,0.41483003,-0.041,ADMIRAL GROUP PLC ORD 0.1P
+BVI.PA,11.1,gross_margin,0.29119,0.018,BUREAU VERITAS
+RGA,11.1,gross_margin,0.13461,0.235,"Reinsurance Group of America, I"
+TOL,11.1,gross_margin,0.25203,-0.076,"Toll Brothers, Inc."
+HRL,11.0,gross_margin,0.15783,-0.029,Hormel Foods Corporation
+ALLY,10.9,gross_margin,0.0,0.197,Ally Financial Inc.
+EG,10.9,gross_margin,0.15487,-0.047,"Everest Group, Ltd."
+KNX,10.9,gross_margin,0.24023001,0.014,Knight-Swift Transportation Hol
+RXL.PA,10.9,gross_margin,0.25072,-0.002,REXEL
+AC.PA,10.8,gross_margin,0.22398001,-0.012,ACCOR
+AIZ,10.6,gross_margin,0.12745,0.113,"Assurant, Inc."
+SAIA,10.6,gross_margin,0.23625,0.024,"Saia, Inc."
+SWKS,10.6,revenue_growth,0.41075,-0.01,"Skyworks Solutions, Inc."
+SY1.DE,10.6,revenue_growth,0.37627,-0.024,Symrise AG                    I
+AAON,10.4,gross_margin,0.26242,0.543,"AAON, Inc."
+MOG-A,10.4,gross_margin,0.2727,0.126,Moog Inc.
+SKF-B.ST,10.4,gross_margin,0.27211002,-0.087,"SKF, AB ser. B"
+AVY,10.3,gross_margin,0.28755,0.07,Avery Dennison Corporation
+CRBG,10.3,gross_margin,0.18412,0.021,Corebridge Financial Inc.
+IVZ,10.3,gross_margin,0.28915,0.141,Invesco Ltd
+RNR,10.3,revenue_growth,0.45793,-0.366,RenaissanceRe Holdings Ltd.
+ARW,10.1,gross_margin,0.11259,0.39,"Arrow Electronics, Inc."
+WBS,10.1,gross_margin,0.0,0.087,Webster Financial Corporation

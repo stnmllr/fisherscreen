@@ -1,0 +1,53 @@
+[reres] universe N=1349
+[reres] pass1 50/1349 resolved=50 elapsed=23s
+[reres] pass1 100/1349 resolved=98 elapsed=46s
+[reres] pass1 150/1349 resolved=146 elapsed=69s
+[reres] pass1 200/1349 resolved=195 elapsed=95s
+[reres] pass1 250/1349 resolved=245 elapsed=118s
+[reres] pass1 300/1349 resolved=295 elapsed=142s
+[reres] pass1 350/1349 resolved=345 elapsed=163s
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: EFGI.PA"}}}
+[reres] pass1 400/1349 resolved=392 elapsed=186s
+[reres] pass1 450/1349 resolved=440 elapsed=207s
+[reres] pass1 500/1349 resolved=489 elapsed=229s
+[reres] pass1 550/1349 resolved=539 elapsed=251s
+[reres] pass1 600/1349 resolved=588 elapsed=273s
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: INP.L"}}}
+[reres] pass1 650/1349 resolved=635 elapsed=296s
+[reres] pass1 700/1349 resolved=685 elapsed=318s
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: LIN.L"}}}
+[reres] pass1 750/1349 resolved=732 elapsed=351s
+[reres] pass1 800/1349 resolved=780 elapsed=384s
+[reres] pass1 850/1349 resolved=819 elapsed=405s
+[reres] pass1 900/1349 resolved=819 elapsed=407s
+[reres] pass1 950/1349 resolved=819 elapsed=409s
+[reres] pass1 1000/1349 resolved=819 elapsed=411s
+[reres] pass1 1050/1349 resolved=819 elapsed=413s
+[reres] pass1 1100/1349 resolved=819 elapsed=415s
+[reres] pass1 1150/1349 resolved=819 elapsed=417s
+[reres] pass1 1200/1349 resolved=819 elapsed=419s
+[reres] pass1 1250/1349 resolved=819 elapsed=421s
+[reres] pass1 1300/1349 resolved=819 elapsed=424s
+[reres] pass1 done: 530 failures -> retry
+[reres] pass2 25/530
+[reres] pass2 50/530
+[reres] pass2 75/530
+[reres] pass2 100/530
+[reres] pass2 125/530
+[reres] pass2 150/530
+[reres] pass2 175/530
+[reres] pass2 200/530
+[reres] pass2 225/530
+[reres] pass2 250/530
+[reres] pass2 275/530
+[reres] pass2 300/530
+[reres] pass2 325/530
+[reres] pass2 350/530
+[reres] pass2 375/530
+[reres] pass2 400/530
+[reres] pass2 425/530
+[reres] pass2 450/530
+[reres] pass2 475/530
+[reres] pass2 500/530
+[reres] pass2 525/530
+[reres] DONE resolved=819/1349 failed=530 -> D:\programme\fisherscreen\docs\superpowers\audits\2026-06-03-universe-completeness\re_resolution.json

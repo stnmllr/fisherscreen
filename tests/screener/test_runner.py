@@ -154,6 +154,25 @@ def test_run_basis_filter_collects_unresolved_on_data_source_error():
     assert result.unresolved == ["FAIL1", "FAIL2"]
 
 
+def test_run_basis_filter_collects_unresolved_on_degraded_dict():
+    # Degraded yfinance 404 dict (no name/marketCap) surfaces from the client
+    # as DataSourceError ("degraded info") → must land in unresolved, not pass
+    # silently as a generic missing-field basis drop.
+    mock_yf = MagicMock()
+    mock_yf.get_fx_rate.return_value = _FX_USD_EUR
+
+    def side_effect(ticker):
+        if ticker == "DEGRADED":
+            raise DataSourceError("yfinance returned degraded info for DEGRADED")
+        return _PASSING_INFO
+
+    mock_yf.get_ticker_info.side_effect = side_effect
+    result = run_basis_filter(["DEGRADED", "GOOD"], mock_yf)
+
+    assert [r.ticker for r in result.passed] == ["GOOD"]
+    assert result.unresolved == ["DEGRADED"]
+
+
 def test_run_basis_filter_collects_unresolved_on_validation_error():
     mock_yf = MagicMock()
     mock_yf.get_fx_rate.return_value = _FX_USD_EUR

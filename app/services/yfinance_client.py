@@ -50,9 +50,13 @@ class YFinanceClientImpl:
             data = yf.Ticker(ticker).info
         except Exception as exc:
             raise DataSourceError(f"yfinance failed for {ticker}: {exc}") from exc
-        # NOTE: does not catch partial-data dicts (e.g. single-key responses from degraded yfinance state)
         if not data:
             raise DataSourceError(f"yfinance returned empty info for {ticker}")
+        # yfinance HTTP 404 can return a non-empty but degraded dict (a few keys,
+        # no identity/valuation). Treat "no name and no marketCap" as unresolved
+        # so it surfaces as attrition instead of a generic missing-field drop.
+        if not (data.get("shortName") or data.get("longName") or data.get("marketCap")):
+            raise DataSourceError(f"yfinance returned degraded info for {ticker}")
         return data
 
     def get_historical(self, ticker: str, period: str) -> Any:

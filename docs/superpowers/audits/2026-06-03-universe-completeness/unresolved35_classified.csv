@@ -1,0 +1,36 @@
+universe_ticker,real_company,correct_ticker,correct_in_universe,category,materiality,note
+DLG.L,Direct Line,,NO,DELISTED,PRUNE (delisted/acquired),acquired by Aviva 2025
+LUN.ST,Lundin Energy,,NO,DELISTED,PRUNE (delisted/acquired),merged into Aker BP 2022 (LUMI.ST=Lundin Mining is a diff co)
+MAN.DE,MAN SE,,NO,DELISTED,PRUNE (delisted/acquired),taken private by VW/Traton ~2021
+MOR.DE,MorphoSys,,NO,DELISTED,PRUNE (delisted/acquired),acquired by Novartis 2024
+MRW.L,Wm Morrison,,NO,DELISTED,PRUNE (delisted/acquired),taken private (CD&R) 2021
+NEOEN.PA,Neoen,,NO,DELISTED,PRUNE (delisted/acquired),taken private (Brookfield) 2024
+SMDS.L,DS Smith,,NO,DELISTED,PRUNE (delisted/acquired),acquired by International Paper 2025
+SOW.DE,Software AG,,NO,DELISTED,PRUNE (delisted/acquired),taken private by Silver Lake 2024
+SWMA.ST,Swedish Match,,NO,DELISTED,PRUNE (delisted/acquired),taken private (Philip Morris) 2022
+TPG.L,TP Group plc (likely),,NO,DELISTED,PRUNE (delisted/acquired),likely taken private ~2023; TCAP.L=TP ICAP is a different co
+UN01.DE,Uniper,,NO,DELISTED,PRUNE (delisted/acquired),nationalised by German govt 2022/23; illiquid/delisted
+VAR1.DE,Varta,,NO,DELISTED,PRUNE (delisted/acquired),2024/25 restructuring/delisting
+AMS.VI,ams-OSRAM / Amadeus?,,NO,UNCLEAR,INVESTIGATE,AMS.VI stale; AMS.MC=Amadeus is a DIFFERENT co
+RIGN.SW,unidentified,,NO,UNCLEAR,INVESTIGATE,no live alias confirmed
+ROL.L,unidentified,,NO,UNCLEAR,INVESTIGATE,no live alias found (RR.L=Rolls-Royce is a diff co)
+SANO.HE,Sanofi/Sanoma?,,NO,UNCLEAR,INVESTIGATE,SAN.PA=Sanofi already in universe; SAA1V.HE=Sanoma fails too
+SCHA.OL,Schibsted A,,NO,UNCLEAR,INVESTIGATE,degraded; Schibsted/Adevinta reorg — alias not confirmed
+AKERBP.OL,Aker BP,AKRBP.OL,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)",ticker AKERBP.OL stale; AKRBP.OL resolves
+ASMI.AS,ASM International,ASM.AS,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)",ticker renamed ASMI->ASM; MISSING
+ATCOa.ST,Atlas Copco A,ATCO-A.ST,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)",lowercase class suffix; -A.ST resolves
+BDEV.L,Barratt Redrow,BTRW.L,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)",2024 merger renamed BDEV->BTRW; MISSING
+DSM.SW,DSM-Firmenich,DSFIR.AS,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)",merger/rename+exchange; MISSING
+EFGI.PA,EFG International,EFGN.SW,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)","wrong exchange; financial (gm=0, drops anyway)"
+ELUXb.ST,Electrolux B,ELUX-B.ST,YES,WRONG_TICKER,BENIGN (correct ticker already in universe),ELUX-B.ST ALSO in universe -> benign dup
+ERICb.ST,Ericsson B,ERIC-B.ST,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)",lowercase class suffix
+FLTR.IR,Flutter Entertainment,FLTR.L,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)",moved listing IR->L; MISSING
+HMB.ST,H&M B,HM-B.ST,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)",correct ticker MISSING -> silently excluded
+ICP.L,ICG plc (Intermediate Capital),ICG.L,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)",wrong ticker; MISSING
+INDV.L,Indivior,INDV,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)",moved primary listing L->US; MISSING
+INP.L,Investec,INVP.L,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)","wrong ticker; financial (gm=0, drops anyway)"
+LIN.L,Linde plc,LIN,YES,WRONG_TICKER,BENIGN (correct ticker already in universe),LIN ALSO in universe -> benign dup
+NGG.L,National Grid,NG.L,YES,WRONG_TICKER,BENIGN (correct ticker already in universe),NG.L ALSO in universe -> benign dup
+SKFb.ST,SKF B,SKF-B.ST,YES,WRONG_TICKER,BENIGN (correct ticker already in universe),SKF-B.ST ALSO in universe -> benign dup
+TEL2b.ST,Tele2 B,TEL2-B.ST,YES,WRONG_TICKER,BENIGN (correct ticker already in universe),TEL2-B.ST ALSO in universe -> benign dup
+TEV,Teva Pharmaceutical,TEVA,NO,WRONG_TICKER,"SILENTLY EXCLUDED (real co, correct ticker absent)",wrong US ticker (TEV vs TEVA); MISSING

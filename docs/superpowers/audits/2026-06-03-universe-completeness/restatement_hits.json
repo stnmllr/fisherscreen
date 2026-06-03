@@ -1,0 +1,38 @@
+{
+ "hits": [
+  {
+   "ticker": "AXON",
+   "cik": "0001069183"
+  },
+  {
+   "ticker": "CPAY",
+   "cik": "0001175454"
+  },
+  {
+   "ticker": "DOCN",
+   "cik": "0001582961"
+  },
+  {
+   "ticker": "ELS",
+   "cik": "0000895417"
+  },
+  {
+   "ticker": "MPWR",
+   "cik": "0001280452"
+  },
+  {
+   "ticker": "RGEN",
+   "cik": "0000730272"
+  },
+  {
+   "ticker": "SITM",
+   "cik": "0001451809"
+  },
+  {
+   "ticker": "TRU",
+   "cik": "0001552033"
+  }
+ ],
+ "us_passers_without_cik": [],
+ "eval_errors": []
+}

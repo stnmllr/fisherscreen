@@ -47,6 +47,59 @@ def test_get_ticker_info_raises_data_source_error_on_empty(mock_yf):
 
 
 @patch("app.services.yfinance_client.yf")
+def test_get_ticker_info_raises_on_degraded_dict_no_name_no_marketcap(mock_yf):
+    # yfinance HTTP 404 often returns a non-empty but degraded dict with no
+    # usable identity/valuation — must be rejected as silent attrition.
+    mock_ticker = MagicMock()
+    mock_ticker.info = {"symbol": "X", "currency": "USD"}
+    mock_yf.Ticker.return_value = mock_ticker
+
+    client = YFinanceClientImpl()
+
+    with pytest.raises(DataSourceError, match="degraded info"):
+        client.get_ticker_info("X")
+
+
+@patch("app.services.yfinance_client.yf")
+def test_get_ticker_info_resolves_with_name_only(mock_yf):
+    # shortName present → real security resolved, even without marketCap.
+    mock_ticker = MagicMock()
+    mock_ticker.info = {"shortName": "Some Co"}
+    mock_yf.Ticker.return_value = mock_ticker
+
+    client = YFinanceClientImpl()
+    result = client.get_ticker_info("X")
+
+    assert result == {"shortName": "Some Co"}
+
+
+@patch("app.services.yfinance_client.yf")
+def test_get_ticker_info_resolves_with_marketcap_only(mock_yf):
+    # marketCap present → real security resolved, even without a name.
+    mock_ticker = MagicMock()
+    mock_ticker.info = {"marketCap": 5_000_000_000}
+    mock_yf.Ticker.return_value = mock_ticker
+
+    client = YFinanceClientImpl()
+    result = client.get_ticker_info("X")
+
+    assert result == {"marketCap": 5_000_000_000}
+
+
+@patch("app.services.yfinance_client.yf")
+def test_get_ticker_info_resolves_with_longname(mock_yf):
+    # longName present → real security resolved.
+    mock_ticker = MagicMock()
+    mock_ticker.info = {"longName": "Some Long Co", "symbol": "X"}
+    mock_yf.Ticker.return_value = mock_ticker
+
+    client = YFinanceClientImpl()
+    result = client.get_ticker_info("X")
+
+    assert result == {"longName": "Some Long Co", "symbol": "X"}
+
+
+@patch("app.services.yfinance_client.yf")
 def test_get_ticker_info_raises_data_source_error_on_exception(mock_yf):
     mock_yf.Ticker.side_effect = Exception("network error")
 
