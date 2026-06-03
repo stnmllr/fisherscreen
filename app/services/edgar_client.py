@@ -1,5 +1,6 @@
 import logging
 import random
+import re
 import time
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -57,6 +58,29 @@ class EdgarClientImpl:
     _EFTS_BACKOFF_BASE_SECONDS = 1.0  # full-jitter cap for retry N is base * 2**(N-1)
     _EFTS_OVERBROAD_CAP = 10000  # EFTS caps hits.total.value here when unscoped/over-broad
     _GC_PRIMARY_FORMS = ("10-K", "10-Q")  # count the phrase only in the primary filing doc
+
+    # --- SUB-PHASE 4: going-concern polarity discriminator ---
+    # Every 10-K/10-Q carries the ASC-205-40 "substantial doubt" phrase as boilerplate
+    # (the evaluation duty). A phrase occurrence is an AFFIRMATIVE going-concern finding
+    # ONLY IF, within its GOVERNING CLAUSE (the phrase back to the previous sentence
+    # terminator, bounded by ~400 chars), there is NO "whether" duty, NO negation, and
+    # NO hypothetical modal. We OR the affirmative verdicts across ALL occurrences:
+    # going_concern is True iff ≥1 occurrence is affirmative (a doc may contain both the
+    # duty-intro and a real finding, e.g. FRQN).
+    # We anchor on the bare phrase "substantial doubt" and judge polarity from its
+    # GOVERNING CLAUSE. This subsumes every affirmative form generously — "[these]
+    # factors raise substantial doubt", "there is substantial doubt", "substantial
+    # doubt exists" are all just the phrase sitting in a clause with no rejection token.
+    _GC_PHRASE_RE = re.compile(r"substantial\s+doubt", re.IGNORECASE)
+    # Clause-scoping: a generous backward window when no sentence terminator is found.
+    _GC_CLAUSE_MAX_CHARS = 400
+    _GC_CLAUSE_TERMINATORS = ".;:"
+    # Rejection tokens scanned across the WHOLE governing clause before the phrase.
+    _GC_WHETHER_RE = re.compile(r"\bwhether\b", re.IGNORECASE)
+    _GC_MODAL_RE = re.compile(r"\b(?:may|might|could|would)\b", re.IGNORECASE)
+    _GC_NEGATION_RE = re.compile(
+        r"\b(?:no|not|never|free\s+from|without|absence\s+of)\b", re.IGNORECASE
+    )
 
     def __init__(
         self,
@@ -165,6 +189,58 @@ class EdgarClientImpl:
     def has_going_concern(self, cik: str, months: int = 24) -> bool:
         return self.going_concern_hit(cik, months) is not None
 
+    @staticmethod
+    def _strip_html(html: str) -> str:
+        """Fast tag strip + whitespace collapse — NO BeautifulSoup.
+
+        A cold run fetches one large primary doc for nearly every US ticker (all carry
+        the boilerplate), so a full DOM parse per doc is prohibitive. A regex strip is
+        enough to land the phrase + its governing clause on a single flat string.
+        """
+        text = re.sub(r"<[^>]+>", " ", html)
+        return re.sub(r"\s+", " ", text).strip()
+
+    def _governing_clause(self, text: str, phrase_start: int) -> str:
+        """The clause governing a phrase occurrence: from the phrase back to the
+        previous sentence terminator (.;:), bounded by ~400 chars if none is found.
+
+        Clause-scoped, NOT a token window: WTW/HIMS put the negation ~10+ words before
+        'raise', so a check on the immediately-preceding token misses it and reproduces
+        the false positive. We scan the entire governing clause for the rejection tokens.
+        """
+        window_start = max(0, phrase_start - self._GC_CLAUSE_MAX_CHARS)
+        clause_start = window_start
+        for idx in range(phrase_start - 1, window_start - 1, -1):
+            if text[idx] in self._GC_CLAUSE_TERMINATORS:
+                clause_start = idx + 1
+                break
+        return text[clause_start:phrase_start]
+
+    def _has_affirmative_going_concern(self, text: str) -> bool:
+        """True iff ≥1 'substantial doubt' occurrence is an affirmative going-concern
+        finding — i.e. its governing clause carries NO 'whether' duty, NO negation, and
+        NO hypothetical modal. Iterates EVERY occurrence and ORs the verdicts.
+
+        Direction: True DROPS the ticker. Affirmative patterns are generous; the
+        rejection is clause-scoped and reliable so boilerplate (the FP bug) is not
+        over-accepted while a real distressed finding (FRQN) is not over-rejected.
+        """
+        flat = self._strip_html(text)
+        # ∃-affirmative over ALL "substantial doubt" occurrences: an occurrence is
+        # affirmative iff its GOVERNING CLAUSE carries no whether-duty, no negation and
+        # no hypothetical modal. A doc may hold both the duty-intro and a real finding
+        # (FRQN), so we iterate every occurrence and short-circuit on the first clean one.
+        for match in self._GC_PHRASE_RE.finditer(flat):
+            clause = self._governing_clause(flat, match.start())
+            if self._GC_WHETHER_RE.search(clause):
+                continue
+            if self._GC_NEGATION_RE.search(clause):
+                continue
+            if self._GC_MODAL_RE.search(clause):
+                continue
+            return True
+        return False
+
     def going_concern_hit(self, cik: str, months: int = 24) -> "GoingConcernHit | None":
         padded = cik.zfill(10)
         startdt = (date.today() - timedelta(days=months * 30)).isoformat()  # ~30 days/month approximation
@@ -182,8 +258,12 @@ class EdgarClientImpl:
         # be an EX-* exhibit carrying auditor-responsibility boilerplate ("required to
         # evaluate whether there are conditions … that raise substantial doubt …"), which
         # is NOT a going-concern qualification (observed at AWI). So count the phrase only
-        # in PRIMARY form documents (`_source.file_type` in {10-K, 10-Q}). going_concern is
-        # True iff at least one hit is BOTH in-window AND in a primary form document.
+        # in PRIMARY form documents (`_source.file_type` in {10-K, 10-Q}). That window +
+        # form check is a CHEAP PRE-FILTER only: every healthy 10-K/10-Q ALSO carries the
+        # ASC-205-40 phrase as boilerplate (evaluation duty / negation / hypothetical),
+        # so a surviving candidate must additionally have its PRIMARY DOCUMENT fetched
+        # and pass the polarity discriminator (`_has_affirmative_going_concern`).
+        # going_concern is True iff some candidate's doc has ≥1 affirmative occurrence.
         frm = 0
         while True:
             data = self._get_efts(f"{base_url}&from={frm}")
@@ -208,7 +288,16 @@ class EdgarClientImpl:
                 source = hit.get("_source", {})
                 file_date = source.get("file_date") or ""
                 file_type = source.get("file_type") or ""
-                if file_date >= startdt and file_type in self._GC_PRIMARY_FORMS:
+                if not (file_date >= startdt and file_type in self._GC_PRIMARY_FORMS):
+                    continue
+                # Pre-filter passed → fetch the primary doc and discriminate on polarity.
+                # A fetch failure raises DataSourceError (fail-safe: runner keeps the
+                # ticker, no silent drop). Boilerplate → not affirmative → keep scanning.
+                doc_url = self._gc_doc_url(cik, hit)
+                if doc_url is None:
+                    continue
+                document = self._get_text(doc_url)
+                if self._has_affirmative_going_concern(document):
                     return GoingConcernHit(
                         accession_number=source.get("adsh"),
                         file_type=file_type,
@@ -217,6 +306,23 @@ class EdgarClientImpl:
             frm += len(hits)
             if frm >= value:
                 return None
+
+    def _gc_doc_url(self, cik: str, hit: dict[str, Any]) -> str | None:
+        """Build the primary-document archive URL from an EFTS hit.
+
+        The hit ``_id`` is ``"{accession}:{filename}"``. The archive URL is
+        ``https://www.sec.gov/Archives/edgar/data/{int(cik)}/{accession_nodash}/{filename}``.
+        Returns None if the ``_id`` lacks the ``accession:filename`` shape (no doc to fetch).
+        """
+        hit_id = hit.get("_id") or ""
+        accession, sep, filename = hit_id.partition(":")
+        if not sep or not filename:
+            return None
+        acc_nodash = accession.replace("-", "")
+        return (
+            f"https://www.sec.gov/Archives/edgar/data/"
+            f"{int(cik)}/{acc_nodash}/{filename}"
+        )
 
     def has_active_enforcement(self, cik: str) -> bool:
         """Deliberately inert no-op.
