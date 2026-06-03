@@ -203,9 +203,16 @@ class EdgarClientImpl:
                 return None
 
     def has_active_enforcement(self, cik: str) -> bool:
-        logger.warning(
-            "has_active_enforcement not implemented — returning False for cik=%s", cik
-        )
+        """Deliberately inert no-op.
+
+        Enforcement screening (Fisher Point 15 / integrity) is not implemented
+        yet, so this always returns ``False`` (no enforcement signal). It
+        intentionally does NOT log per CIK — doing so produced 538 WARNING lines
+        of pure noise in a full run. The method and its call seam in
+        ``app/screener/runner.py::_evaluate_edgar`` are kept so the Protocol
+        contract stays stable for the future implementation.
+        See ``docs/superpowers/tickets/2026-06-03-enforcement-screening.md``.
+        """
         return False
 
     def _get_text(self, url: str) -> str:

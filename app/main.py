@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from app.config import settings
+from app.logging_config import configure_logging
 from app.screener.compose import (
     build_edgar_pipeline,
     build_gemini_pipeline,
@@ -16,6 +17,11 @@ from app.screener.compose import (
     build_screener_pipeline,
 )
 from app.screener.runner import run_filter_preview, run_screener
+
+# Configure structured logging when uvicorn imports this module, so app.* INFO
+# aggregates are actually emitted in production (otherwise the root last-resort
+# handler drops everything below WARNING). force=True wins over prior basicConfig.
+configure_logging()
 
 logger = logging.getLogger(__name__)
 
