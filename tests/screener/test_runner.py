@@ -29,7 +29,7 @@ _PASSING_INFO = {
 
 def test_run_returns_passing_records():
     mock_yf = _make_yf_mock(_PASSING_INFO)
-    result = run_basis_filter(["BIGC"], mock_yf)
+    result = run_basis_filter(["BIGC"], mock_yf).passed
 
     assert len(result) == 1
     assert result[0].ticker == "BIGC"
@@ -40,7 +40,7 @@ def test_run_skips_tickers_with_data_source_errors():
     mock_yf = MagicMock()
     mock_yf.get_ticker_info.side_effect = DataSourceError("network error")
 
-    result = run_basis_filter(["FAIL"], mock_yf)
+    result = run_basis_filter(["FAIL"], mock_yf).passed
 
     assert result == []
 
@@ -55,7 +55,7 @@ def test_run_processes_multiple_tickers():
         return {**_PASSING_INFO, "revenueGrowth": -0.10}  # declining revenue fails V3
 
     mock_yf.get_ticker_info.side_effect = side_effect
-    result = run_basis_filter(["GOOD", "SHRK"], mock_yf)
+    result = run_basis_filter(["GOOD", "SHRK"], mock_yf).passed
 
     assert len(result) == 1
     assert result[0].ticker == "GOOD"
@@ -63,7 +63,7 @@ def test_run_processes_multiple_tickers():
 
 def test_run_returns_empty_for_empty_ticker_list():
     mock_yf = MagicMock()
-    result = run_basis_filter([], mock_yf)
+    result = run_basis_filter([], mock_yf).passed
     assert result == []
 
 
@@ -77,7 +77,7 @@ def test_run_continues_after_individual_data_source_error():
         return _PASSING_INFO
 
     mock_yf.get_ticker_info.side_effect = side_effect
-    result = run_basis_filter(["FAIL", "GOOD"], mock_yf)
+    result = run_basis_filter(["FAIL", "GOOD"], mock_yf).passed
 
     assert len(result) == 1
     assert result[0].ticker == "GOOD"
@@ -95,7 +95,7 @@ def test_run_skips_ticker_with_malformed_yfinance_data():
         return _PASSING_INFO
 
     mock_yf.get_ticker_info.side_effect = side_effect
-    result = run_basis_filter(["MALFORMED", "GOOD"], mock_yf)
+    result = run_basis_filter(["MALFORMED", "GOOD"], mock_yf).passed
 
     assert len(result) == 1
     assert result[0].ticker == "GOOD"
@@ -104,7 +104,7 @@ def test_run_skips_ticker_with_malformed_yfinance_data():
 def test_run_sets_market_cap_eur_on_record():
     # Verifies FX conversion is applied in runner (not in filter layer)
     mock_yf = _make_yf_mock(_PASSING_INFO)
-    result = run_basis_filter(["BIGC"], mock_yf)
+    result = run_basis_filter(["BIGC"], mock_yf).passed
 
     assert len(result) == 1
     assert result[0].market_cap_eur is not None
@@ -118,9 +118,95 @@ def test_run_fails_ticker_when_fx_rate_unavailable():
     mock_yf.get_ticker_info.return_value = _PASSING_INFO
     mock_yf.get_fx_rate.side_effect = DataSourceError("FX unavailable")
 
-    result = run_basis_filter(["BIGC"], mock_yf)
+    result = run_basis_filter(["BIGC"], mock_yf).passed
 
     assert result == []
+
+
+# --- ITEM 2: yfinance resolution aggregate ---
+
+
+def test_run_basis_filter_returns_basis_filter_result_with_passed_and_unresolved():
+    from app.screener.runner import BasisFilterResult
+
+    mock_yf = _make_yf_mock(_PASSING_INFO)
+    result = run_basis_filter(["BIGC"], mock_yf)
+
+    assert isinstance(result, BasisFilterResult)
+    assert [r.ticker for r in result.passed] == ["BIGC"]
+    assert result.unresolved == []
+
+
+def test_run_basis_filter_collects_unresolved_on_data_source_error():
+    mock_yf = MagicMock()
+    mock_yf.get_fx_rate.return_value = _FX_USD_EUR
+
+    def side_effect(ticker):
+        if ticker in ("FAIL2", "FAIL1"):
+            raise DataSourceError("bad ticker")
+        return _PASSING_INFO
+
+    mock_yf.get_ticker_info.side_effect = side_effect
+    result = run_basis_filter(["FAIL2", "GOOD", "FAIL1"], mock_yf)
+
+    assert [r.ticker for r in result.passed] == ["GOOD"]
+    # sorted, deterministic
+    assert result.unresolved == ["FAIL1", "FAIL2"]
+
+
+def test_run_basis_filter_collects_unresolved_on_validation_error():
+    mock_yf = MagicMock()
+    mock_yf.get_fx_rate.return_value = _FX_USD_EUR
+
+    def side_effect(ticker):
+        if ticker == "MALFORMED":
+            return {**_PASSING_INFO, "marketCap": "n/a"}
+        return _PASSING_INFO
+
+    mock_yf.get_ticker_info.side_effect = side_effect
+    result = run_basis_filter(["MALFORMED", "GOOD"], mock_yf)
+
+    assert result.unresolved == ["MALFORMED"]
+
+
+def test_run_basis_filter_emits_aggregate_warning_with_count(caplog):
+    import logging
+
+    mock_yf = MagicMock()
+    mock_yf.get_fx_rate.return_value = _FX_USD_EUR
+
+    def side_effect(ticker):
+        if ticker in ("FAIL1", "FAIL2"):
+            raise DataSourceError("bad ticker")
+        return _PASSING_INFO
+
+    mock_yf.get_ticker_info.side_effect = side_effect
+
+    with caplog.at_level(logging.WARNING, logger="app.screener.runner"):
+        run_basis_filter(["FAIL1", "GOOD", "FAIL2"], mock_yf)
+
+    aggregate = [
+        r
+        for r in caplog.records
+        if r.levelno == logging.WARNING and "unresolved by yfinance" in r.getMessage()
+    ]
+    assert len(aggregate) == 1
+    msg = aggregate[0].getMessage()
+    assert "2/3" in msg
+    assert "FAIL1" in msg and "FAIL2" in msg
+
+
+def test_run_basis_filter_no_aggregate_warning_when_all_resolve(caplog):
+    import logging
+
+    mock_yf = _make_yf_mock(_PASSING_INFO)
+    with caplog.at_level(logging.WARNING, logger="app.screener.runner"):
+        run_basis_filter(["BIGC"], mock_yf)
+
+    aggregate = [
+        r for r in caplog.records if "unresolved by yfinance" in r.getMessage()
+    ]
+    assert aggregate == []
 
 
 # --- run_edgar_filter ---
@@ -305,6 +391,29 @@ def test_run_filter_preview_runs_basis_and_edgar_returns_report():
     assert isinstance(report, FilterReport)
     assert report.edgar_skipped_no_cik == ["NOCIK"]
     assert report.going_concern_drops == []
+
+
+def test_run_filter_preview_propagates_unresolved_into_report():
+    from app.screener.runner import run_filter_preview
+
+    mock_yf = MagicMock()
+    mock_yf.get_fx_rate.return_value = _FX_USD_EUR
+
+    def yf_side_effect(ticker):
+        if ticker == "GHOST":
+            raise DataSourceError("404 no such ticker")
+        return _PASSING_INFO
+
+    mock_yf.get_ticker_info.side_effect = yf_side_effect
+
+    mock_edgar = _clean_edgar_mock()
+    mock_edgar.get_cik.return_value = "0000320193"
+
+    report = run_filter_preview(["PASS", "GHOST"], mock_yf, mock_edgar)
+
+    assert report.yfinance_unresolved == ["GHOST"]
+    payload = report.to_dict()
+    assert payload["yfinance_unresolved"] == {"count": 1, "tickers": ["GHOST"]}
 
 
 def test_run_filter_preview_has_no_gemini_parameter():

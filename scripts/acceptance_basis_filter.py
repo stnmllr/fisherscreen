@@ -51,7 +51,7 @@ def main() -> None:
           f"(US={len(US_SAMPLE)}, EU={len(EU_SAMPLE)})")
     print("=" * 60)
 
-    records = run_basis_filter(ALL_TICKERS, yfinance)
+    records = run_basis_filter(ALL_TICKERS, yfinance).passed
 
     # Analyse results
     passed_us = [r for r in records if "." not in r.ticker]

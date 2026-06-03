@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from app.errors import DataSourceError
@@ -25,6 +25,8 @@ class FilterReport:
     going_concern_drops: list[GoingConcernDrop]
     edgar_skipped_no_cik: list[str]
     edgar_skipped_data_source_error: list[str]
+    # Universe symbols yfinance could not resolve (basis-filter stage attrition).
+    yfinance_unresolved: list[str] = field(default_factory=list)
 
     def total_skipped(self) -> int:
         return len(self.edgar_skipped_no_cik) + len(self.edgar_skipped_data_source_error)
@@ -50,6 +52,10 @@ class FilterReport:
                     "count": len(self.edgar_skipped_data_source_error),
                     "tickers": list(self.edgar_skipped_data_source_error),
                 },
+            },
+            "yfinance_unresolved": {
+                "count": len(self.yfinance_unresolved),
+                "tickers": list(self.yfinance_unresolved),
             },
         }
 

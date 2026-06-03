@@ -123,6 +123,22 @@ def test_to_dict_returns_documented_json_shape():
     }
 
 
+def test_to_dict_includes_yfinance_unresolved_default_empty():
+    report = build_filter_report([], MagicMock())
+    payload = report.to_dict()
+    assert payload["yfinance_unresolved"] == {"count": 0, "tickers": []}
+
+
+def test_to_dict_includes_yfinance_unresolved_when_populated():
+    report = build_filter_report([], MagicMock())
+    report.yfinance_unresolved = ["GHOST", "ZOMBIE"]
+    payload = report.to_dict()
+    assert payload["yfinance_unresolved"] == {
+        "count": 2,
+        "tickers": ["GHOST", "ZOMBIE"],
+    }
+
+
 def test_report_log_emits_warning_per_drop_and_info_summary(caplog):
     import logging
 
