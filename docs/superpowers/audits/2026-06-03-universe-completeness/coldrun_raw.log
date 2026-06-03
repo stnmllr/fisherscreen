@@ -1,0 +1,772 @@
+2026-06-03T17:00:02.954550Z			INFO:     Finished server process [34]
+2026-06-03T17:00:02.954436Z			INFO:     Application shutdown complete.
+2026-06-03T17:00:02.954152Z			INFO:     Waiting for application shutdown.
+2026-06-03T17:00:02.852710Z			INFO:     Shutting down
+2026-06-03T16:44:53.788712Z			INFO:     169.254.169.126:61800 - "POST /run/monthly?dry_run=true HTTP/1.1" 200 OK
+2026-06-03T16:44:53.785419Z	INFO	monthly run: free dry-run (filters only, $0) ? no Gemini, no GitHub push	
+2026-06-03T16:44:53.783365Z	INFO	filter_preview: 0 gc-drops, 141 skipped	
+2026-06-03T16:44:53.783316Z	INFO	filter_report: edgar_skipped total=141 no_cik=140 ['AAL.L', 'ABBN.SW', 'ABI.BR', 'ACS.MC', 'ADS.DE', 'ADYEN.AS', 'AENA.MC', 'ALC.SW', 'AMBU-B.CO', 'ANTO.L', 'ARGX.BR', 'ASML.AS', 'AUTO.L', 'AZN.L', 'BALD-B.ST', 'BATS.L', 'BC.MI', 'BEZ.L', 'BME.L', 'BRBY.L', 'CAST.ST', 'CCH.L', 'CDR.WA', 'CFR.SW', 'CNA.L', 'CPG.L', 'CRDA.L', 'CTEC.L', 'DB1.DE', 'DEMANT.CO', 'DLN.L', 'DPLM.L', 'DTE.DE', 'EDEN.PA', 'EDV.L', 'EL.PA', 'ENG.MC', 'ENT.L', 'EXPN.L', 'EZJ.L', 'FORTUM.HE', 'FRA.DE', 'G1A.DE', 'G24.DE', 'GALP.LS', 'GET.PA', 'GFC.PA', 'GSK.L', 'HIK.L', 'HLMA.L', 'HLN.L', 'HWDN.L', 'IAG.L', 'IGG.L', 'IHG.L', 'IMB.L', 'IMI.L', 'INDT.ST', 'INF.L', 'IPN.PA', 'ITRK.L', 'ITX.MC', 'JD.L', 'KGF.L', 'KNEBV.HE', 'KPN.AS', 'LAND.L', 'LDO.MI', 'LOGN.SW', 'LSEG.L', 'LSG.OL', 'MEL.MC', 'METSO.HE', 'MKS.L', 'MNDI.L', 'MNG.L', 'MONC.MI', 'MRL.MC', 'NEM.DE', 'NEXI.MI', 'NG.L', 'NOKIA.HE', 'NOVO-B.CO', 'NXT.L', 'OR.PA', 'ORK.OL', 'ORSTED.CO', 'PGHN.SW', 'PNN.L', 'PRU.L', 'PRY.MI', 'PSON.L', 'PST.MI', 'QIA.DE', 'RACE.MI', 'REC.MI', 'RED.MC', 'REL.L', 'RHM.DE', 'RMS.PA', 'RMV.L', 'SAF.PA', 'SALM.OL', 'SAN.PA', 'SAND.ST', 'SAP.DE', 'SCT.L', 'SDR.L', 'SDZ.SW', 'SGE.L', 'SGRO.L', 'SGSN.SW', 'SIE.DE', 'SN.L', 'SPX.L', 'SRG.MI', 'SRT3.DE', 'STMN.SW', 'STMPA.PA', 'SU.PA', 'SVT.L', 'SWEC-B.ST', 'TEL2-B.ST', 'TEMN.SW', 'TEN.MI', 'TIT.MI', 'TOM.OL', 'TRN.MI', 'TRYG.CO', 'TTE.PA', 'UMG.AS', 'UTG.L', 'VPK.AS', 'WDP.BR', 'WEIR.L', 'WIHL.ST', 'WISE.L', 'WKL.AS', 'WTB.L', 'ZAL.DE'] data_source_error=1 ['COLM']	
+2026-06-03T16:44:53.782837Z	INFO	edgar_filter: 682/690 records passed	
+2026-06-03T16:44:53.781528Z	INFO	runner: EDGAR lookup complete for 690 records	
+2026-06-03T16:44:49.530414Z	WARNING	ticker=ZAL.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:44:46.129575Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001670592&from=0 ? transient, retry 2/5	
+2026-06-03T16:44:45.023386Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001670592&from=0 ? transient, retry 1/5	
+2026-06-03T16:44:41.189015Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001524472&from=0 ? transient, retry 1/5	
+2026-06-03T16:44:34.142328Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001174922&from=0 ? transient, retry 1/5	
+2026-06-03T16:44:28.690322Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000078128&from=0 ? transient, retry 1/5	
+2026-06-03T16:44:28.207885Z	WARNING	ticker=WTB.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:44:19.542281Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001025378&from=0 ? transient, retry 1/5	
+2026-06-03T16:44:13.212679Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000107263&from=0 ? transient, retry 1/5	
+2026-06-03T16:44:11.675434Z	WARNING	ticker=WKL.AS has no CIK ? skipping EDGAR check	
+2026-06-03T16:44:11.675342Z	WARNING	ticker=WISE.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:44:10.558213Z	WARNING	ticker=WIHL.ST has no CIK ? skipping EDGAR check	
+2026-06-03T16:44:04.827507Z	WARNING	ticker=WEIR.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:44:03.616022Z	WARNING	ticker=WDP.BR has no CIK ? skipping EDGAR check	
+2026-06-03T16:43:47.459109Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001674101&from=0 ? transient, retry 1/5	
+2026-06-03T16:43:44.056808Z	WARNING	ticker=VPK.AS has no CIK ? skipping EDGAR check	
+2026-06-03T16:43:28.648997Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001393052&from=0 ? transient, retry 1/5	
+2026-06-03T16:43:26.790673Z	WARNING	ticker=UTG.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:43:22.694391Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001067701&from=0 ? transient, retry 4/5	
+2026-06-03T16:43:20.823341Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001067701&from=0 ? transient, retry 3/5	
+2026-06-03T16:43:19.826755Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001067701&from=0 ? transient, retry 2/5	
+2026-06-03T16:43:19.461723Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001067701&from=0 ? transient, retry 1/5	
+2026-06-03T16:43:17.392140Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000100885&from=0 ? transient, retry 1/5	
+2026-06-03T16:43:16.980171Z	WARNING	ticker=UMG.AS has no CIK ? skipping EDGAR check	
+2026-06-03T16:43:14.104824Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001901440&from=0 ? transient, retry 1/5	
+2026-06-03T16:43:08.881549Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000352915&from=0 ? transient, retry 2/5	
+2026-06-03T16:43:08.617159Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000352915&from=0 ? transient, retry 1/5	
+2026-06-03T16:42:54.782771Z	WARNING	ticker=TTE.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:45.990720Z	WARNING	ticker=TRYG.CO has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:42.082679Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001552033&from=0 ? transient, retry 2/5	
+2026-06-03T16:42:41.792709Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001552033&from=0 ? transient, retry 1/5	
+2026-06-03T16:42:39.157111Z	WARNING	ticker=TRN.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:33.997993Z	WARNING	ticker=TOM.OL has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:23.944500Z	WARNING	ticker=TIT.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:19.616703Z	WARNING	ticker=TEN.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:19.616624Z	WARNING	ticker=TEMN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:19.616258Z	WARNING	ticker=TEL2-B.ST has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:07.559798Z	WARNING	ticker=SWEC-B.ST has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:07.559730Z	WARNING	ticker=SVT.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:07.559662Z	WARNING	ticker=SU.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:03.636309Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001465128&from=0 ? transient, retry 2/5	
+2026-06-03T16:42:02.787566Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001465128&from=0 ? transient, retry 1/5	
+2026-06-03T16:42:02.276110Z	WARNING	ticker=STMPA.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:42:02.276045Z	WARNING	ticker=STMN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:57.678740Z	WARNING	ticker=SRT3.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:57.678486Z	WARNING	ticker=SRG.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:54.458790Z	WARNING	ticker=SPX.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:44.357568Z	WARNING	ticker=SN.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:38.190538Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000091419&from=0 ? transient, retry 1/5	
+2026-06-03T16:41:36.199308Z	WARNING	ticker=SIE.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:33.963841Z	WARNING	ticker=SGSN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:33.963778Z	WARNING	ticker=SGRO.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:32.555186Z	WARNING	ticker=SGE.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:29.363290Z	WARNING	ticker=SDZ.SW has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:29.363177Z	WARNING	ticker=SDR.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:29.363078Z	WARNING	ticker=SCT.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:25.329257Z	WARNING	ticker=SAP.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:25.329197Z	WARNING	ticker=SAND.ST has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:25.329136Z	WARNING	ticker=SAN.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:25.329051Z	WARNING	ticker=SALM.OL has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:25.328896Z	WARNING	ticker=SAF.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:21.249767Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000031791&from=0 ? transient, retry 2/5	
+2026-06-03T16:41:20.946112Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000031791&from=0 ? transient, retry 1/5	
+2026-06-03T16:41:12.855564Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000745732&from=0 ? transient, retry 2/5	
+2026-06-03T16:41:11.918841Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000745732&from=0 ? transient, retry 1/5	
+2026-06-03T16:41:06.233902Z	WARNING	ticker=RMV.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:06.233855Z	WARNING	ticker=RMS.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:41:02.942826Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000943819&from=0 ? transient, retry 2/5	
+2026-06-03T16:41:01.842312Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000943819&from=0 ? transient, retry 1/5	
+2026-06-03T16:40:59.779304Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000917273&from=0 ? transient, retry 1/5	
+2026-06-03T16:40:57.713843Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000084246&from=0 ? transient, retry 1/5	
+2026-06-03T16:40:53.975384Z	WARNING	ticker=RHM.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:40:50.317528Z	WARNING	ticker=REL.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:40:44.656130Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000910606&from=0 ? transient, retry 3/5	
+2026-06-03T16:40:44.313026Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000910606&from=0 ? transient, retry 2/5	
+2026-06-03T16:40:43.819286Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000910606&from=0 ? transient, retry 1/5	
+2026-06-03T16:40:43.404914Z	WARNING	ticker=RED.MC has no CIK ? skipping EDGAR check	
+2026-06-03T16:40:43.404863Z	WARNING	ticker=REC.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:40:38.400652Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001046102&from=0 ? transient, retry 1/5	
+2026-06-03T16:40:37.849355Z	WARNING	ticker=RACE.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:40:36.529266Z	WARNING	ticker=QIA.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:40:34.714419Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0002058873&from=0 ? transient, retry 1/5	
+2026-06-03T16:40:24.500321Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000857005&from=0 ? transient, retry 4/5	
+2026-06-03T16:40:21.411054Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000857005&from=0 ? transient, retry 3/5	
+2026-06-03T16:40:20.431822Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000857005&from=0 ? transient, retry 2/5	
+2026-06-03T16:40:19.925060Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000857005&from=0 ? transient, retry 1/5	
+2026-06-03T16:40:19.515778Z	WARNING	ticker=PST.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:40:19.515486Z	WARNING	ticker=PSON.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:40:14.465037Z	WARNING	ticker=PRY.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:40:14.464954Z	WARNING	ticker=PRU.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:40:04.081922Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000922224&from=0 ? transient, retry 4/5	
+2026-06-03T16:40:03.215152Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000922224&from=0 ? transient, retry 3/5	
+2026-06-03T16:40:01.818969Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000922224&from=0 ? transient, retry 2/5	
+2026-06-03T16:40:00.880283Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000922224&from=0 ? transient, retry 1/5	
+2026-06-03T16:39:54.460295Z	WARNING	ticker=PNN.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:39:43.282100Z	WARNING	ticker=PGHN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T16:39:26.291038Z	WARNING	ticker=ORSTED.CO has no CIK ? skipping EDGAR check	
+2026-06-03T16:39:24.995412Z	WARNING	ticker=ORK.OL has no CIK ? skipping EDGAR check	
+2026-06-03T16:39:22.289755Z	WARNING	ticker=OR.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:39:13.981616Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000888491&from=0 ? transient, retry 2/5	
+2026-06-03T16:39:13.228601Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000888491&from=0 ? transient, retry 1/5	
+2026-06-03T16:39:10.087711Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000726728&from=0 ? transient, retry 1/5	
+2026-06-03T16:39:08.076176Z	WARNING	ticker=NXT.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:39:06.612904Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001142417&from=0 ? transient, retry 1/5	
+2026-06-03T16:39:01.090568Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001564708&from=0 ? transient, retry 1/5	
+2026-06-03T16:38:50.854137Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001045810&from=0 ? transient, retry 1/5	
+2026-06-03T16:38:48.847962Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001618732&from=0 ? transient, retry 1/5	
+2026-06-03T16:38:45.722258Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001002047&from=0 ? transient, retry 1/5	
+2026-06-03T16:38:38.834776Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001373715&from=0 ? transient, retry 3/5	
+2026-06-03T16:38:38.479843Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001373715&from=0 ? transient, retry 2/5	
+2026-06-03T16:38:37.664350Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001373715&from=0 ? transient, retry 1/5	
+2026-06-03T16:38:34.821426Z	WARNING	ticker=NOVO-B.CO has no CIK ? skipping EDGAR check	
+2026-06-03T16:38:34.821353Z	WARNING	ticker=NOKIA.HE has no CIK ? skipping EDGAR check	
+2026-06-03T16:38:25.374536Z	WARNING	ticker=NG.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:38:20.544466Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000070145&from=0 ? transient, retry 1/5	
+2026-06-03T16:38:20.071739Z	WARNING	ticker=NEXI.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:38:20.071658Z	WARNING	ticker=NEM.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:37:50.758136Z	WARNING	ticker=MRL.MC has no CIK ? skipping EDGAR check	
+2026-06-03T16:37:44.973531Z	WARNING	ticker=MONC.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:37:43.034062Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000764180&from=0 ? transient, retry 1/5	
+2026-06-03T16:37:41.415911Z	WARNING	ticker=MNG.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:37:41.415826Z	WARNING	ticker=MNDI.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:37:39.159313Z	WARNING	ticker=MKS.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:37:32.494357Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000789570&from=0 ? transient, retry 1/5	
+2026-06-03T16:37:31.987631Z	WARNING	ticker=METSO.HE has no CIK ? skipping EDGAR check	
+2026-06-03T16:37:28.585213Z	WARNING	ticker=MEL.MC has no CIK ? skipping EDGAR check	
+2026-06-03T16:37:24.478825Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001059556&from=0 ? transient, retry 1/5	
+2026-06-03T16:37:16.333897Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000063908&from=0 ? transient, retry 3/5	
+2026-06-03T16:37:15.296739Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000063908&from=0 ? transient, retry 2/5	
+2026-06-03T16:37:14.848342Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000063908&from=0 ? transient, retry 1/5	
+2026-06-03T16:37:03.957588Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000912595&from=0 ? transient, retry 2/5	
+2026-06-03T16:37:03.394919Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000912595&from=0 ? transient, retry 1/5	
+2026-06-03T16:36:54.990244Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001397187&from=0 ? transient, retry 1/5	
+2026-06-03T16:36:54.580315Z	WARNING	ticker=LSG.OL has no CIK ? skipping EDGAR check	
+2026-06-03T16:36:54.580218Z	WARNING	ticker=LSEG.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:36:47.308648Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001434588&from=0 ? transient, retry 1/5	
+2026-06-03T16:36:46.882908Z	WARNING	ticker=LOGN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T16:36:41.407018Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000059478&from=0 ? transient, retry 1/5	
+2026-06-03T16:36:27.459772Z	WARNING	ticker=LDO.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:36:27.459677Z	WARNING	ticker=LAND.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:36:23.763545Z	WARNING	ticker=KPN.AS has no CIK ? skipping EDGAR check	
+2026-06-03T16:36:22.320191Z	WARNING	ticker=KNEBV.HE has no CIK ? skipping EDGAR check	
+2026-06-03T16:36:14.645328Z	WARNING	ticker=KGF.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:36:04.615422Z	WARNING	ticker=JD.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:36:02.792684Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000833444&from=0 ? transient, retry 2/5	
+2026-06-03T16:36:02.443005Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000833444&from=0 ? transient, retry 1/5	
+2026-06-03T16:35:58.863372Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001232524&from=0 ? transient, retry 2/5	
+2026-06-03T16:35:58.014925Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001232524&from=0 ? transient, retry 1/5	
+2026-06-03T16:35:57.589567Z	WARNING	ticker=ITX.MC has no CIK ? skipping EDGAR check	
+2026-06-03T16:35:54.459342Z	WARNING	ticker=ITRK.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:35:52.061298Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001035267&from=0 ? transient, retry 1/5	
+2026-06-03T16:35:40.772002Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001478242&from=0 ? transient, retry 1/5	
+2026-06-03T16:35:40.367081Z	WARNING	ticker=IPN.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:35:34.485817Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000896878&from=0 ? transient, retry 2/5	
+2026-06-03T16:35:33.728594Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000896878&from=0 ? transient, retry 1/5	
+2026-06-03T16:35:31.161208Z	WARNING	ticker=INF.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:35:31.161110Z	WARNING	ticker=INDT.ST has no CIK ? skipping EDGAR check	
+2026-06-03T16:35:29.145354Z	WARNING	ticker=IMI.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:35:29.145298Z	WARNING	ticker=IMB.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:35:25.902837Z	WARNING	ticker=IHG.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:35:25.902749Z	WARNING	ticker=IGG.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:35:20.195363Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000874716&from=0 ? transient, retry 3/5	
+2026-06-03T16:35:19.439859Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000874716&from=0 ? transient, retry 2/5	
+2026-06-03T16:35:19.013394Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000874716&from=0 ? transient, retry 1/5	
+2026-06-03T16:35:16.947901Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001571949&from=0 ? transient, retry 1/5	
+2026-06-03T16:35:10.312861Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001381197&from=0 ? transient, retry 1/5	
+2026-06-03T16:35:09.870388Z	WARNING	ticker=IAG.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:35:07.857015Z	WARNING	ticker=HWDN.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:35:02.833854Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000048898&from=0 ? transient, retry 2/5	
+2026-06-03T16:35:02.453662Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000048898&from=0 ? transient, retry 1/5	
+2026-06-03T16:34:59.061576Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000047111&from=0 ? transient, retry 2/5	
+2026-06-03T16:34:58.608512Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000047111&from=0 ? transient, retry 1/5	
+2026-06-03T16:34:52.107255Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000012659&from=0 ? transient, retry 2/5	
+2026-06-03T16:34:51.734442Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000012659&from=0 ? transient, retry 1/5	
+2026-06-03T16:34:43.478119Z	WARNING	ticker=HLN.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:34:43.477991Z	WARNING	ticker=HLMA.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:34:38.356996Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000719413&from=0 ? transient, retry 3/5	
+2026-06-03T16:34:37.346801Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000719413&from=0 ? transient, retry 2/5	
+2026-06-03T16:34:36.258867Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000719413&from=0 ? transient, retry 1/5	
+2026-06-03T16:34:33.227819Z	WARNING	ticker=HIK.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:34:20.612348Z	WARNING	ticker=GSK.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:33:57.618143Z	WARNING	ticker=GFC.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:33:57.617748Z	WARNING	ticker=GET.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:33:53.226990Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000040545&from=0 ? transient, retry 1/5	
+2026-06-03T16:33:48.742668Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000040211&from=0 ? transient, retry 1/5	
+2026-06-03T16:33:44.379601Z	WARNING	ticker=GALP.LS has no CIK ? skipping EDGAR check	
+2026-06-03T16:33:44.379541Z	WARNING	ticker=G24.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:33:44.379487Z	WARNING	ticker=G1A.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:33:40.851919Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001659166&from=0 ? transient, retry 1/5	
+2026-06-03T16:33:34.289582Z	WARNING	ticker=FRA.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:33:27.577091Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001794669&from=0 ? transient, retry 1/5	
+2026-06-03T16:33:27.173131Z	WARNING	ticker=FORTUM.HE has no CIK ? skipping EDGAR check	
+2026-06-03T16:33:18.549480Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000814547&from=0 ? transient, retry 1/5	
+2026-06-03T16:33:08.510330Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000831259&from=0 ? transient, retry 2/5	
+2026-06-03T16:33:08.001357Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000831259&from=0 ? transient, retry 1/5	
+2026-06-03T16:32:58.419026Z	WARNING	ticker=EZJ.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:32:53.431724Z	WARNING	ticker=EXPN.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:32:40.563782Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001099800&from=0 ? transient, retry 1/5	
+2026-06-03T16:32:35.745340Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001360901&from=0 ? transient, retry 1/5	
+2026-06-03T16:32:27.407168Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001877322&from=0 ? transient, retry 1/5	
+2026-06-03T16:32:22.480114Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000906107&from=0 ? transient, retry 1/5	
+2026-06-03T16:32:19.141796Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001045450&from=0 ? transient, retry 1/5	
+2026-06-03T16:32:16.333639Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001101302&from=0 ? transient, retry 1/5	
+2026-06-03T16:32:15.920667Z	WARNING	ticker=ENT.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:32:15.920583Z	WARNING	ticker=ENG.MC has no CIK ? skipping EDGAR check	
+2026-06-03T16:32:14.135981Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000032604&from=0 ? transient, retry 1/5	
+2026-06-03T16:32:10.079023Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000895417&from=0 ? transient, retry 4/5	
+2026-06-03T16:32:09.760065Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000895417&from=0 ? transient, retry 3/5	
+2026-06-03T16:32:09.397218Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000895417&from=0 ? transient, retry 2/5	
+2026-06-03T16:32:08.179652Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000895417&from=0 ? transient, retry 1/5	
+2026-06-03T16:32:04.929562Z	WARNING	ticker=EL.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:32:03.110935Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001001250&from=0 ? transient, retry 1/5	
+2026-06-03T16:31:55.720301Z	WARNING	ticker=EDV.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:31:55.720213Z	WARNING	ticker=EDEN.PA has no CIK ? skipping EDGAR check	
+2026-06-03T16:31:42.114094Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001326160&from=0 ? transient, retry 1/5	
+2026-06-03T16:31:40.111481Z	WARNING	ticker=DTE.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:31:38.460456Z	WARNING	ticker=DPLM.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:31:30.402812Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000765880&from=0 ? transient, retry 1/5	
+2026-06-03T16:31:27.054948Z	WARNING	ticker=DLN.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:31:25.496668Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001308547&from=0 ? transient, retry 1/5	
+2026-06-03T16:31:19.526023Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001022079&from=0 ? transient, retry 1/5	
+2026-06-03T16:31:17.223612Z	WARNING	ticker=DEMANT.CO has no CIK ? skipping EDGAR check	
+2026-06-03T16:31:15.469485Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000910521&from=0 ? transient, retry 1/5	
+2026-06-03T16:31:11.107776Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001666700&from=0 ? transient, retry 1/5	
+2026-06-03T16:31:06.920699Z	WARNING	ticker=DB1.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:30:58.904101Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001792789&from=0 ? transient, retry 4/5	
+2026-06-03T16:30:56.898235Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001792789&from=0 ? transient, retry 3/5	
+2026-06-03T16:30:54.861091Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001792789&from=0 ? transient, retry 2/5	
+2026-06-03T16:30:54.212010Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001792789&from=0 ? transient, retry 1/5	
+2026-06-03T16:30:51.167105Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000026324&from=0 ? transient, retry 1/5	
+2026-06-03T16:30:43.888515Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000025232&from=0 ? transient, retry 1/5	
+2026-06-03T16:30:37.130996Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001058290&from=0 ? transient, retry 1/5	
+2026-06-03T16:30:34.679298Z	WARNING	ticker=CTEC.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:30:20.795605Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001100682&from=0 ? transient, retry 1/5	
+2026-06-03T16:30:18.235296Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000849395&from=0 ? transient, retry 1/5	
+2026-06-03T16:30:17.792240Z	WARNING	ticker=CRDA.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:30:13.543046Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000900075&from=0 ? transient, retry 1/5	
+2026-06-03T16:30:13.100521Z	WARNING	ticker=CPG.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:30:10.887664Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001175454&from=0 ? transient, retry 1/5	
+2026-06-03T16:30:08.929669Z	WARNING	ticker=COLM EDGAR fetch failed: EDGAR returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001050797&from=0 ? skipping	
+2026-06-03T16:30:01.856001Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001050797&from=0 ? transient, retry 4/5	
+2026-06-03T16:30:01.180072Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001050797&from=0 ? transient, retry 3/5	
+2026-06-03T16:30:00.021008Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001050797&from=0 ? transient, retry 2/5	
+2026-06-03T16:29:59.468901Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001050797&from=0 ? transient, retry 1/5	
+2026-06-03T16:29:50.577943Z	WARNING	ticker=CNA.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:29:28.599962Z	WARNING	ticker=CFR.SW has no CIK ? skipping EDGAR check	
+2026-06-03T16:29:23.975215Z	WARNING	ticker=CDR.WA has no CIK ? skipping EDGAR check	
+2026-06-03T16:29:18.200169Z	WARNING	ticker=CCH.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:29:14.367269Z	WARNING	ticker=CAST.ST has no CIK ? skipping EDGAR check	
+2026-06-03T16:29:08.683633Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001037540&from=0 ? transient, retry 2/5	
+2026-06-03T16:29:08.046569Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001037540&from=0 ? transient, retry 1/5	
+2026-06-03T16:29:06.008256Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001393818&from=0 ? transient, retry 1/5	
+2026-06-03T16:29:03.979030Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001579298&from=0 ? transient, retry 1/5	
+2026-06-03T16:29:01.715424Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001031308&from=0 ? transient, retry 1/5	
+2026-06-03T16:28:54.792243Z	WARNING	ticker=BRBY.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:28:50.339081Z	WARNING	ticker=BME.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:28:43.332404Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000012208&from=0 ? transient, retry 2/5	
+2026-06-03T16:28:42.451846Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000012208&from=0 ? transient, retry 1/5	
+2026-06-03T16:28:38.572617Z	WARNING	ticker=BEZ.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:28:35.361953Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000038777&from=0 ? transient, retry 1/5	
+2026-06-03T16:28:32.015015Z	WARNING	ticker=BC.MI has no CIK ? skipping EDGAR check	
+2026-06-03T16:28:29.248155Z	WARNING	ticker=BATS.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:28:29.248088Z	WARNING	ticker=BALD-B.ST has no CIK ? skipping EDGAR check	
+2026-06-03T16:28:26.084764Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000866787&from=0 ? transient, retry 1/5	
+2026-06-03T16:28:25.658495Z	WARNING	ticker=AZN.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:28:18.845063Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000004962&from=0 ? transient, retry 1/5	
+2026-06-03T16:28:12.402535Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001722482&from=0 ? transient, retry 2/5	
+2026-06-03T16:28:11.585673Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001722482&from=0 ? transient, retry 1/5	
+2026-06-03T16:28:06.407816Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001730168&from=0 ? transient, retry 2/5	
+2026-06-03T16:28:05.604990Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001730168&from=0 ? transient, retry 1/5	
+2026-06-03T16:28:03.550224Z	WARNING	ticker=AUTO.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:28:00.399302Z	WARNING	ticker=ASML.AS has no CIK ? skipping EDGAR check	
+2026-06-03T16:27:59.338388Z	WARNING	ticker=ARGX.BR has no CIK ? skipping EDGAR check	
+2026-06-03T16:27:56.612662Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001433270&from=0 ? transient, retry 1/5	
+2026-06-03T16:27:45.756607Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000002969&from=0 ? transient, retry 2/5	
+2026-06-03T16:27:45.176881Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000002969&from=0 ? transient, retry 1/5	
+2026-06-03T16:27:43.248049Z	WARNING	ticker=ANTO.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:27:41.046699Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001596532&from=0 ? transient, retry 3/5	
+2026-06-03T16:27:39.602022Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001596532&from=0 ? transient, retry 2/5	
+2026-06-03T16:27:38.608899Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001596532&from=0 ? transient, retry 1/5	
+2026-06-03T16:27:26.752310Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001037868&from=0 ? transient, retry 1/5	
+2026-06-03T16:27:24.992165Z	WARNING	ticker=AMBU-B.CO has no CIK ? skipping EDGAR check	
+2026-06-03T16:27:16.290930Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000866291&from=0 ? transient, retry 2/5	
+2026-06-03T16:27:15.478441Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000866291&from=0 ? transient, retry 1/5	
+2026-06-03T16:27:15.019729Z	WARNING	ticker=ALC.SW has no CIK ? skipping EDGAR check	
+2026-06-03T16:27:05.365688Z	WARNING	ticker=AENA.MC has no CIK ? skipping EDGAR check	
+2026-06-03T16:27:03.591004Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000927003&from=0 ? transient, retry 1/5	
+2026-06-03T16:27:01.061902Z	WARNING	ticker=ADYEN.AS has no CIK ? skipping EDGAR check	
+2026-06-03T16:26:59.071389Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000769397&from=0 ? transient, retry 1/5	
+2026-06-03T16:26:58.689772Z	WARNING	ticker=ADS.DE has no CIK ? skipping EDGAR check	
+2026-06-03T16:26:50.635699Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000796343&from=0 ? transient, retry 2/5	
+2026-06-03T16:26:49.513091Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000796343&from=0 ? transient, retry 1/5	
+2026-06-03T16:26:49.102288Z	WARNING	ticker=ACS.MC has no CIK ? skipping EDGAR check	
+2026-06-03T16:26:42.692506Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001559720&from=0 ? transient, retry 1/5	
+2026-06-03T16:26:42.273382Z	WARNING	ticker=ABI.BR has no CIK ? skipping EDGAR check	
+2026-06-03T16:26:39.538698Z	WARNING	ticker=ABBN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T16:26:37.434178Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000320193&from=0 ? transient, retry 1/5	
+2026-06-03T16:26:36.983137Z	WARNING	ticker=AAL.L has no CIK ? skipping EDGAR check	
+2026-06-03T16:26:35.251148Z	INFO	basis_filter: 690/1349 records passed (US 550/905, EU 140/444)	
+2026-06-03T16:26:35.249863Z	WARNING	ticker=VOD.L revenue_growth_yoy missing	
+2026-06-03T16:26:35.249692Z	WARNING	ticker=VIV.PA revenue_growth_yoy missing	
+2026-06-03T16:26:35.249529Z	WARNING	ticker=VAR1.DE avg_daily_volume missing	
+2026-06-03T16:26:35.249357Z	WARNING	ticker=UN01.DE avg_daily_volume missing	
+2026-06-03T16:26:35.249286Z	WARNING	ticker=ULVR.L revenue_growth_yoy missing	
+2026-06-03T16:26:35.248962Z	WARNING	ticker=TPG.L avg_daily_volume missing	
+2026-06-03T16:26:35.248753Z	WARNING	ticker=TEV avg_daily_volume missing	
+2026-06-03T16:26:35.248615Z	WARNING	ticker=TEL2b.ST avg_daily_volume missing	
+2026-06-03T16:26:35.248396Z	WARNING	ticker=TATE.L revenue_growth_yoy missing	
+2026-06-03T16:26:35.242904Z	WARNING	ticker=SWMA.ST avg_daily_volume missing	
+2026-06-03T16:26:35.242598Z	WARNING	ticker=SOW.DE avg_daily_volume missing	
+2026-06-03T16:26:35.242528Z	WARNING	ticker=SOON.SW revenue_growth_yoy missing	
+2026-06-03T16:26:35.242420Z	WARNING	ticker=SOGN.PA avg_daily_volume missing	
+2026-06-03T16:26:35.242319Z	WARNING	ticker=SMT.L gross_margin missing	
+2026-06-03T16:26:35.242241Z	WARNING	ticker=SMDS.L avg_daily_volume missing	
+2026-06-03T16:26:35.242125Z	WARNING	ticker=SKY.L avg_daily_volume missing	
+2026-06-03T16:26:35.242056Z	WARNING	ticker=SKFb.ST avg_daily_volume missing	
+2026-06-03T16:26:35.241899Z	WARNING	ticker=SGOB.PA avg_daily_volume missing	
+2026-06-03T16:26:35.241816Z	WARNING	ticker=SGEF.PA avg_daily_volume missing	
+2026-06-03T16:26:35.241660Z	WARNING	ticker=SCHN.PA avg_daily_volume missing	
+2026-06-03T16:26:35.241578Z	WARNING	ticker=SCHA.OL avg_daily_volume missing	
+2026-06-03T16:26:35.241479Z	WARNING	ticker=SASY.PA avg_daily_volume missing	
+2026-06-03T16:26:35.241403Z	WARNING	ticker=SANO.HE avg_daily_volume missing	
+2026-06-03T16:26:35.241182Z	WARNING	ticker=ROL.L avg_daily_volume missing	
+2026-06-03T16:26:35.241090Z	WARNING	ticker=RNL.PA avg_daily_volume missing	
+2026-06-03T16:26:35.240980Z	WARNING	ticker=RKT.L revenue_growth_yoy missing	
+2026-06-03T16:26:35.240900Z	WARNING	ticker=RIGN.SW avg_daily_volume missing	
+2026-06-03T16:26:35.240781Z	WARNING	ticker=RENA.PA avg_daily_volume missing	
+2026-06-03T16:26:35.240566Z	WARNING	ticker=PSTG revenue_growth_yoy missing	
+2026-06-03T16:26:35.240270Z	WARNING	ticker=PERP.PA avg_daily_volume missing	
+2026-06-03T16:26:35.240061Z	WARNING	ticker=OREP.PA avg_daily_volume missing	
+2026-06-03T16:26:35.239981Z	WARNING	ticker=ORA.PA revenue_growth_yoy missing	
+2026-06-03T16:26:35.239581Z	WARNING	ticker=NGG.L avg_daily_volume missing	
+2026-06-03T16:26:35.239478Z	WARNING	ticker=NEOEN.PA avg_daily_volume missing	
+2026-06-03T16:26:35.239271Z	WARNING	ticker=MRW.L avg_daily_volume missing	
+2026-06-03T16:26:35.239142Z	WARNING	ticker=MOR.DE avg_daily_volume missing	
+2026-06-03T16:26:35.238998Z	WARNING	ticker=MICP.PA avg_daily_volume missing	
+2026-06-03T16:26:35.238815Z	WARNING	ticker=MAN.DE avg_daily_volume missing	
+2026-06-03T16:26:35.238675Z	WARNING	ticker=LUN.ST avg_daily_volume missing	
+2026-06-03T16:26:35.238552Z	WARNING	ticker=LONN.SW revenue_growth_yoy missing	
+2026-06-03T16:26:35.238433Z	WARNING	ticker=LIN.L avg_daily_volume missing	
+2026-06-03T16:26:35.238377Z	WARNING	ticker=LII.L avg_daily_volume missing	
+2026-06-03T16:26:35.238066Z	WARNING	ticker=KER.PA revenue_growth_yoy missing	
+2026-06-03T16:26:35.237774Z	WARNING	ticker=INP.L avg_daily_volume missing	
+2026-06-03T16:26:35.237648Z	WARNING	ticker=INDV.L avg_daily_volume missing	
+2026-06-03T16:26:35.237555Z	WARNING	ticker=IFX.DE revenue_growth_yoy missing	
+2026-06-03T16:26:35.237420Z	WARNING	ticker=ICP.L avg_daily_volume missing	
+2026-06-03T16:26:35.237184Z	WARNING	ticker=HMB.ST avg_daily_volume missing	
+2026-06-03T16:26:35.236812Z	WARNING	ticker=GLB.IR avg_daily_volume missing	
+2026-06-03T16:26:35.236639Z	WARNING	ticker=GF.SW gross_margin missing	
+2026-06-03T16:26:35.236470Z	WARNING	ticker=FTI.L avg_daily_volume missing	
+2026-06-03T16:26:35.236112Z	WARNING	ticker=FLTR.IR avg_daily_volume missing	
+2026-06-03T16:26:35.235962Z	WARNING	ticker=FISV gross_margin missing	
+2026-06-03T16:26:35.235669Z	WARNING	ticker=ERICb.ST avg_daily_volume missing	
+2026-06-03T16:26:35.235524Z	WARNING	ticker=ENX.AS avg_daily_volume missing	
+2026-06-03T16:26:35.235340Z	WARNING	ticker=ELUXb.ST avg_daily_volume missing	
+2026-06-03T16:26:35.235213Z	WARNING	ticker=EFGI.PA avg_daily_volume missing	
+2026-06-03T16:26:35.235020Z	WARNING	ticker=DSM.SW avg_daily_volume missing	
+2026-06-03T16:26:35.234856Z	WARNING	ticker=DLG.L avg_daily_volume missing	
+2026-06-03T16:26:35.234703Z	WARNING	ticker=DANO.PA avg_daily_volume missing	
+2026-06-03T16:26:35.234608Z	WARNING	ticker=CTS.DE avg_daily_volume missing	
+2026-06-03T16:26:35.234217Z	WARNING	ticker=CARR.PA avg_daily_volume missing	
+2026-06-03T16:26:35.234139Z	WARNING	ticker=CAPP.PA avg_daily_volume missing	
+2026-06-03T16:26:35.234078Z	WARNING	ticker=CAGR.PA avg_daily_volume missing	
+2026-06-03T16:26:35.233883Z	WARNING	ticker=BOUY.PA avg_daily_volume missing	
+2026-06-03T16:26:35.233808Z	WARNING	ticker=BNPP.PA avg_daily_volume missing	
+2026-06-03T16:26:35.233650Z	WARNING	ticker=BDEV.L avg_daily_volume missing	
+2026-06-03T16:26:35.233481Z	WARNING	ticker=ATOS.PA avg_daily_volume missing	
+2026-06-03T16:26:35.233393Z	WARNING	ticker=ATCOa.ST avg_daily_volume missing	
+2026-06-03T16:26:35.233295Z	WARNING	ticker=ASMI.AS avg_daily_volume missing	
+2026-06-03T16:26:35.232642Z	WARNING	ticker=AMS.VI avg_daily_volume missing	
+2026-06-03T16:26:35.232465Z	WARNING	ticker=AKERBP.OL avg_daily_volume missing	
+2026-06-03T16:26:35.232371Z	WARNING	ticker=AIRP.PA avg_daily_volume missing	
+2026-06-03T16:26:35.230484Z	INFO	runner: fetched US=905 EU=444 total=1349/1349	
+2026-06-03T16:24:22.468866Z	ERROR	HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: SANO.HE"}}}	
+2026-06-03T16:21:58.686152Z	ERROR	HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: LIN.L"}}}	
+2026-06-03T16:21:22.330057Z	ERROR	HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: INP.L"}}}	
+2026-06-03T16:19:35.938023Z	ERROR	HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: EFGI.PA"}}}	
+2026-06-03T16:16:35.062149Z	INFO	runner: universe input US=905 EU=444 total=1349	
+2026-06-03T16:16:34.573383Z	INFO		
+2026-06-03T16:16:20.254557Z			INFO:     169.254.169.126:5694 - "POST /health HTTP/1.1" 405 Method Not Allowed
+2026-06-03T16:16:20.239791Z	WARNING		
+2026-06-03T16:10:07.902161Z	INFO		
+2026-06-03T16:10:06.541044Z	INFO		
+2026-06-03T16:10:06.445517Z	INFO		Default STARTUP TCP probe succeeded after 1 attempt for container "app-1" on port 8080.
+2026-06-03T16:10:06.445096Z			INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+2026-06-03T16:10:06.442931Z			INFO:     Application startup complete.
+2026-06-03T16:10:06.442167Z			INFO:     Waiting for application startup.
+2026-06-03T16:10:06.441975Z			INFO:     Started server process [34]
+2026-06-03T16:09:53.164205Z			Installed 8 packages in 14ms
+2026-06-03T16:09:53.149730Z			Uninstalled 1 package in 4ms
+2026-06-03T16:09:53.142486Z			      Built fisherscreen @ file:///app
+2026-06-03T16:09:51.783926Z			   Building fisherscreen @ file:///app
+2026-06-03T16:09:50.185895Z	INFO		Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+2026-06-03T16:09:34.216082Z	NOTICE		
+2026-06-03T15:10:50.886500Z			INFO:     Finished server process [45]
+2026-06-03T15:10:50.886397Z			INFO:     Application shutdown complete.
+2026-06-03T15:10:50.886189Z			INFO:     Waiting for application shutdown.
+2026-06-03T15:10:50.784679Z			INFO:     Shutting down
+2026-06-03T14:55:51.743423Z	INFO		
+2026-06-03T14:55:49.566486Z	INFO		
+2026-06-03T14:55:49.483744Z	INFO		Default STARTUP TCP probe succeeded after 1 attempt for container "app-1" on port 8080.
+2026-06-03T14:55:49.483299Z			INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+2026-06-03T14:55:49.481301Z			INFO:     Application startup complete.
+2026-06-03T14:55:49.480715Z			INFO:     Waiting for application startup.
+2026-06-03T14:55:49.480612Z			INFO:     Started server process [45]
+2026-06-03T14:55:36.802256Z			Installed 8 packages in 10ms
+2026-06-03T14:55:36.791290Z			Uninstalled 1 package in 4ms
+2026-06-03T14:55:36.784044Z			      Built fisherscreen @ file:///app
+2026-06-03T14:55:35.537357Z			   Building fisherscreen @ file:///app
+2026-06-03T14:55:34.142165Z	INFO		Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+2026-06-03T14:55:26.478893Z	NOTICE		
+2026-06-03T14:18:00.174771Z			INFO:     Finished server process [29]
+2026-06-03T14:18:00.174671Z			INFO:     Application shutdown complete.
+2026-06-03T14:18:00.174390Z			INFO:     Waiting for application shutdown.
+2026-06-03T14:18:00.073221Z			INFO:     Shutting down
+2026-06-03T14:02:55.887441Z	INFO		
+2026-06-03T14:02:53.377170Z	INFO		
+2026-06-03T14:02:53.298219Z	INFO		Default STARTUP TCP probe succeeded after 1 attempt for container "app-1" on port 8080.
+2026-06-03T14:02:53.297770Z			INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+2026-06-03T14:02:53.295865Z			INFO:     Application startup complete.
+2026-06-03T14:02:53.295385Z			INFO:     Waiting for application startup.
+2026-06-03T14:02:53.295286Z			INFO:     Started server process [29]
+2026-06-03T14:02:39.854939Z			Installed 8 packages in 13ms
+2026-06-03T14:02:39.840826Z			Uninstalled 1 package in 3ms
+2026-06-03T14:02:39.833158Z			      Built fisherscreen @ file:///app
+2026-06-03T14:02:38.553105Z			   Building fisherscreen @ file:///app
+2026-06-03T14:02:37.244349Z	INFO		Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+2026-06-03T14:02:23.542501Z	NOTICE		
+2026-06-03T13:27:36.130200Z			INFO:     Finished server process [30]
+2026-06-03T13:27:36.129957Z			INFO:     Application shutdown complete.
+2026-06-03T13:27:36.129657Z			INFO:     Waiting for application shutdown.
+2026-06-03T13:27:36.028158Z			INFO:     Shutting down
+2026-06-03T13:12:31.980976Z			INFO:     169.254.169.126:43492 - "POST /run/monthly?dry_run=true HTTP/1.1" 200 OK
+2026-06-03T13:12:31.975786Z	INFO	monthly run: free dry-run (filters only, $0) ? no Gemini, no GitHub push	
+2026-06-03T13:12:31.973909Z	INFO	filter_preview: 5 gc-drops, 127 skipped	
+2026-06-03T13:12:31.973873Z	INFO	filter_report: edgar_skipped total=127 no_cik=126 ['AAL.L', 'ABBN.SW', 'ABI.BR', 'ACS.MC', 'ADS.DE', 'ADYEN.AS', 'AENA.MC', 'ALC.SW', 'AMBU-B.CO', 'ANTO.L', 'ASML.AS', 'AUTO.L', 'AZN.L', 'BALD-B.ST', 'BATS.L', 'BEZ.L', 'BRBY.L', 'CAST.ST', 'CFR.SW', 'CNA.L', 'CPG.L', 'CRDA.L', 'CTEC.L', 'DB1.DE', 'DEMANT.CO', 'DLN.L', 'DPLM.L', 'DTE.DE', 'EDEN.PA', 'EDV.L', 'ENG.MC', 'ENT.L', 'EXPN.L', 'EZJ.L', 'FORTUM.HE', 'FRA.DE', 'G1A.DE', 'G24.DE', 'GALP.LS', 'GET.PA', 'GFC.PA', 'GSK.L', 'HIK.L', 'HLMA.L', 'HWDN.L', 'IAG.L', 'IHG.L', 'IMB.L', 'IMI.L', 'INDT.ST', 'INF.L', 'IPN.PA', 'ITRK.L', 'ITX.MC', 'JD.L', 'KGF.L', 'KNEBV.HE', 'KPN.AS', 'LAND.L', 'LDO.MI', 'LOGN.SW', 'LSEG.L', 'LSG.OL', 'MEL.MC', 'METSO.HE', 'MKS.L', 'MNDI.L', 'MNG.L', 'MONC.MI', 'MRL.MC', 'NEM.DE', 'NEXI.MI', 'NG.L', 'NOKIA.HE', 'NOVO-B.CO', 'NXT.L', 'OR.PA', 'ORK.OL', 'ORSTED.CO', 'PGHN.SW', 'PNN.L', 'PRU.L', 'PRY.MI', 'PSON.L', 'PST.MI', 'REC.MI', 'RED.MC', 'REL.L', 'RHM.DE', 'RMS.PA', 'RMV.L', 'SAF.PA', 'SALM.OL', 'SAND.ST', 'SAP.DE', 'SCT.L', 'SDR.L', 'SDZ.SW', 'SGE.L', 'SGRO.L', 'SGSN.SW', 'SIE.DE', 'SN.L', 'SPX.L', 'SRG.MI', 'SRT3.DE', 'STMN.SW', 'SU.PA', 'SVT.L', 'TEL2-B.ST', 'TEMN.SW', 'TIT.MI', 'TOM.OL', 'TRN.MI', 'TRYG.CO', 'TTE.PA', 'UMG.AS', 'UTG.L', 'VPK.AS', 'WDP.BR', 'WEIR.L', 'WIHL.ST', 'WISE.L', 'WKL.AS', 'WTB.L', 'ZAL.DE'] data_source_error=1 ['IEX']	
+2026-06-03T13:12:31.973727Z	WARNING	filter_report: going_concern drop ticker=WTW cik=1140536 accession=0000950170-25-026278 file_type=10-K file_date=2025-02-25	
+2026-06-03T13:12:31.973686Z	WARNING	filter_report: going_concern drop ticker=LIVN cik=1639691 accession=0001639691-26-000010 file_type=10-K file_date=2026-02-25	
+2026-06-03T13:12:31.973642Z	WARNING	filter_report: going_concern drop ticker=HIMS cik=1773751 accession=0001773751-25-000062 file_type=10-K file_date=2025-02-24	
+2026-06-03T13:12:31.973583Z	WARNING	filter_report: going_concern drop ticker=FR cik=921825 accession=0000921825-25-000019 file_type=10-K file_date=2025-02-14	
+2026-06-03T13:12:31.973535Z	WARNING	filter_report: going_concern drop ticker=ADC cik=917251 accession=0001558370-25-005142 file_type=10-Q file_date=2025-04-22	
+2026-06-03T13:12:24.581866Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001639691&from=0 ? transient, retry 2/3	
+2026-06-03T13:12:22.330339Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001639691&from=0 ? transient, retry 1/3	
+2026-06-03T13:12:16.213185Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001773751&from=0 ? transient, retry 2/3	
+2026-06-03T13:12:13.978857Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001773751&from=0 ? transient, retry 1/3	
+2026-06-03T13:12:08.467153Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000921825&from=0 ? transient, retry 2/3	
+2026-06-03T13:12:06.279895Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000921825&from=0 ? transient, retry 1/3	
+2026-06-03T13:12:03.130069Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000917251&from=0 ? transient, retry 1/3	
+2026-06-03T13:12:02.923269Z	INFO	edgar_filter: 662/675 records passed	
+2026-06-03T13:12:02.922069Z	INFO	runner: EDGAR lookup complete for 675 records	
+2026-06-03T13:12:02.834553Z	WARNING	ticker=ZAL.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:56.578722Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001140536&from=0 ? transient, retry 2/3	
+2026-06-03T13:11:54.338827Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001140536&from=0 ? transient, retry 1/3	
+2026-06-03T13:11:53.854389Z	WARNING	ticker=WTB.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:53.692306Z	WARNING	ticker=WKL.AS has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:53.692144Z	WARNING	ticker=WISE.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:53.672663Z	WARNING	ticker=WIHL.ST has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:53.605097Z	WARNING	ticker=WEIR.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:53.585054Z	WARNING	ticker=WDP.BR has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:53.317229Z	WARNING	ticker=VPK.AS has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:53.113216Z	WARNING	ticker=UTG.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:53.070651Z	WARNING	ticker=UMG.AS has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:52.818897Z	WARNING	ticker=TTE.PA has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:52.729467Z	WARNING	ticker=TRYG.CO has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:52.666901Z	WARNING	ticker=TRN.MI has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:52.573662Z	WARNING	ticker=TOM.OL has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:51.552080Z	WARNING	ticker=TIT.MI has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:51.509019Z	WARNING	ticker=TEMN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:51.509002Z	WARNING	ticker=TEL2-B.ST has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:51.341096Z	WARNING	ticker=SVT.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:51.340999Z	WARNING	ticker=SU.PA has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:51.295424Z	WARNING	ticker=STMN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:51.219340Z	WARNING	ticker=SRT3.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:51.219319Z	WARNING	ticker=SRG.MI has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:51.177535Z	WARNING	ticker=SPX.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:51.025880Z	WARNING	ticker=SN.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.922086Z	WARNING	ticker=SIE.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.882896Z	WARNING	ticker=SGSN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.882832Z	WARNING	ticker=SGRO.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.862194Z	WARNING	ticker=SGE.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.799256Z	WARNING	ticker=SDZ.SW has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.799146Z	WARNING	ticker=SDR.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.798931Z	WARNING	ticker=SCT.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.738499Z	WARNING	ticker=SAP.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.738484Z	WARNING	ticker=SAND.ST has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.738142Z	WARNING	ticker=SALM.OL has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.738051Z	WARNING	ticker=SAF.PA has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.515223Z	WARNING	ticker=RMV.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.515169Z	WARNING	ticker=RMS.PA has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.415079Z	WARNING	ticker=RHM.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.338199Z	WARNING	ticker=REL.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.295705Z	WARNING	ticker=RED.MC has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.295569Z	WARNING	ticker=REC.MI has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.126931Z	WARNING	ticker=PST.MI has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.126853Z	WARNING	ticker=PSON.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.081010Z	WARNING	ticker=PRY.MI has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:50.080997Z	WARNING	ticker=PRU.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:49.936828Z	WARNING	ticker=PNN.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:49.814859Z	WARNING	ticker=PGHN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:49.557355Z	WARNING	ticker=ORSTED.CO has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:49.539338Z	WARNING	ticker=ORK.OL has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:49.499610Z	WARNING	ticker=OR.PA has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:49.325053Z	WARNING	ticker=NXT.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.962494Z	WARNING	ticker=NOVO-B.CO has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.962433Z	WARNING	ticker=NOKIA.HE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.863398Z	WARNING	ticker=NG.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.821048Z	WARNING	ticker=NEXI.MI has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.820971Z	WARNING	ticker=NEM.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.470049Z	WARNING	ticker=MRL.MC has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.380272Z	WARNING	ticker=MONC.MI has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.335893Z	WARNING	ticker=MNG.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.335842Z	WARNING	ticker=MNDI.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.295582Z	WARNING	ticker=MKS.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.234615Z	WARNING	ticker=METSO.HE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:48.213119Z	WARNING	ticker=MEL.MC has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:41.944193Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001613103&from=0 ? transient, retry 2/3	
+2026-06-03T13:11:39.742103Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0001613103&from=0 ? transient, retry 1/3	
+2026-06-03T13:11:39.047557Z	WARNING	ticker=LSG.OL has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:39.047495Z	WARNING	ticker=LSEG.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:38.958615Z	WARNING	ticker=LOGN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.952877Z	WARNING	ticker=LDO.MI has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.952761Z	WARNING	ticker=LAND.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.887656Z	WARNING	ticker=KPN.AS has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.859365Z	WARNING	ticker=KNEBV.HE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.751837Z	WARNING	ticker=KGF.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.589573Z	WARNING	ticker=JD.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.547634Z	WARNING	ticker=ITX.MC has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.502191Z	WARNING	ticker=ITRK.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.394334Z	WARNING	ticker=IPN.PA has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.285737Z	WARNING	ticker=INF.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.285635Z	WARNING	ticker=INDT.ST has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.259926Z	WARNING	ticker=IMI.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.259865Z	WARNING	ticker=IMB.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.238208Z	WARNING	ticker=IHG.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:36.237937Z	WARNING	ticker=IEX EDGAR fetch failed: EDGAR returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000832101&from=0 ? skipping	
+2026-06-03T13:11:32.032995Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000832101&from=0 ? transient, retry 2/3	
+2026-06-03T13:11:29.824970Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000832101&from=0 ? transient, retry 1/3	
+2026-06-03T13:11:29.238825Z	WARNING	ticker=IAG.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:29.217013Z	WARNING	ticker=HWDN.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:29.032320Z	WARNING	ticker=HLMA.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:28.992770Z	WARNING	ticker=HIK.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:28.820453Z	WARNING	ticker=GSK.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:28.473710Z	WARNING	ticker=GFC.PA has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:28.473642Z	WARNING	ticker=GET.PA has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:28.341203Z	WARNING	ticker=GALP.LS has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:28.341139Z	WARNING	ticker=G24.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:28.341069Z	WARNING	ticker=G1A.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:28.235021Z	WARNING	ticker=FRA.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:28.185741Z	WARNING	ticker=FORTUM.HE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:27.861935Z	WARNING	ticker=EZJ.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:27.817669Z	WARNING	ticker=EXPN.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:27.367042Z	WARNING	ticker=ENT.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:27.366928Z	WARNING	ticker=ENG.MC has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:27.167565Z	WARNING	ticker=EDV.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:27.167377Z	WARNING	ticker=EDEN.PA has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:26.941478Z	WARNING	ticker=DTE.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:26.919012Z	WARNING	ticker=DPLM.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:26.770942Z	WARNING	ticker=DLN.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:26.625105Z	WARNING	ticker=DEMANT.CO has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:26.512681Z	WARNING	ticker=DB1.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:24.182834Z	WARNING	ticker=CTEC.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:24.003434Z	WARNING	ticker=CRDA.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:23.962183Z	WARNING	ticker=CPG.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:23.792436Z	WARNING	ticker=CNA.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:23.473893Z	WARNING	ticker=CFR.SW has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:20.191888Z	WARNING	edgar: EFTS returned 500 for https://efts.sec.gov/LATEST/search-index?q=%22raise+substantial+doubt%22&forms=10-K,10-Q&dateRange=custom&startdt=2024-06-13&ciks=0000896159&from=0 ? transient, retry 1/3	
+2026-06-03T13:11:19.743549Z	WARNING	ticker=CAST.ST has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:19.524119Z	WARNING	ticker=BRBY.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:19.344132Z	WARNING	ticker=BEZ.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:19.249247Z	WARNING	ticker=BATS.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:19.249168Z	WARNING	ticker=BALD-B.ST has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:19.228078Z	WARNING	ticker=AZN.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:19.062821Z	WARNING	ticker=AUTO.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:19.017185Z	WARNING	ticker=ASML.AS has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:16.942572Z	WARNING	ticker=ANTO.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:16.737736Z	WARNING	ticker=AMBU-B.CO has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:16.619584Z	WARNING	ticker=ALC.SW has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:14.848641Z	WARNING	ticker=AENA.MC has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:14.804228Z	WARNING	ticker=ADYEN.AS has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:14.782996Z	WARNING	ticker=ADS.DE has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:12.358543Z	WARNING	ticker=ACS.MC has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:12.281085Z	WARNING	ticker=ABI.BR has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:12.260538Z	WARNING	ticker=ABBN.SW has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:12.241333Z	WARNING	ticker=AAL.L has no CIK ? skipping EDGAR check	
+2026-06-03T13:11:11.705870Z	INFO	basis_filter: 675/1389 records passed (US 549/904, EU 126/485)	
+2026-06-03T13:11:11.704203Z	WARNING	ticker=WEND.PA avg_daily_volume missing	
+2026-06-03T13:11:11.703924Z	WARNING	ticker=VOD.L revenue_growth_yoy missing	
+2026-06-03T13:11:11.703685Z	WARNING	ticker=VIV.PA revenue_growth_yoy missing	
+2026-06-03T13:11:11.703675Z	WARNING	ticker=VESTAS.CO avg_daily_volume missing	
+2026-06-03T13:11:11.703352Z	WARNING	ticker=VAR1.DE avg_daily_volume missing	
+2026-06-03T13:11:11.703175Z	WARNING	ticker=UPW.L avg_daily_volume missing	
+2026-06-03T13:11:11.703067Z	WARNING	ticker=UN01.DE avg_daily_volume missing	
+2026-06-03T13:11:11.702956Z	WARNING	ticker=ULVR.L revenue_growth_yoy missing	
+2026-06-03T13:11:11.702842Z	WARNING	ticker=UC.MI avg_daily_volume missing	
+2026-06-03T13:11:11.702643Z	WARNING	ticker=TUI.DE avg_daily_volume missing	
+2026-06-03T13:11:11.702369Z	WARNING	ticker=TPG.L avg_daily_volume missing	
+2026-06-03T13:11:11.702234Z	WARNING	ticker=TOM.AS avg_daily_volume missing	
+2026-06-03T13:11:11.701874Z	WARNING	ticker=TJW.L avg_daily_volume missing	
+2026-06-03T13:11:11.701814Z	WARNING	ticker=TIGO.ST avg_daily_volume missing	
+2026-06-03T13:11:11.701780Z	WARNING	ticker=THL.PA avg_daily_volume missing	
+2026-06-03T13:11:11.701322Z	WARNING	ticker=TEV avg_daily_volume missing	
+2026-06-03T13:11:11.701220Z	WARNING	ticker=TEN.LU avg_daily_volume missing	
+2026-06-03T13:11:11.701114Z	WARNING	ticker=TEL2b.ST avg_daily_volume missing	
+2026-06-03T13:11:11.700860Z	WARNING	ticker=TATE.L revenue_growth_yoy missing	
+2026-06-03T13:11:11.700746Z	WARNING	ticker=SXS.L avg_daily_volume missing	
+2026-06-03T13:11:11.700643Z	WARNING	ticker=SWMA.ST avg_daily_volume missing	
+2026-06-03T13:11:11.700349Z	WARNING	ticker=SWECO-B.ST avg_daily_volume missing	
+2026-06-03T13:11:11.700185Z	WARNING	ticker=STMPA.SW avg_daily_volume missing	
+2026-06-03T13:11:11.700098Z	WARNING	ticker=STMPA.AS avg_daily_volume missing	
+2026-06-03T13:11:11.700036Z	WARNING	ticker=STLAM.AS avg_daily_volume missing	
+2026-06-03T13:11:11.699967Z	WARNING	ticker=STER.HE avg_daily_volume missing	
+2026-06-03T13:11:11.699813Z	WARNING	ticker=SRENH.SW avg_daily_volume missing	
+2026-06-03T13:11:11.699777Z	WARNING	ticker=SRB.OL avg_daily_volume missing	
+2026-06-03T13:11:11.699637Z	WARNING	ticker=SOW.DE avg_daily_volume missing	
+2026-06-03T13:11:11.699591Z	WARNING	ticker=SOON.SW revenue_growth_yoy missing	
+2026-06-03T13:11:11.699529Z	WARNING	ticker=SON.SW avg_daily_volume missing	
+2026-06-03T13:11:11.699449Z	WARNING	ticker=SOGN.PA avg_daily_volume missing	
+2026-06-03T13:11:11.699362Z	WARNING	ticker=SNY.PA avg_daily_volume missing	
+2026-06-03T13:11:11.699272Z	WARNING	ticker=SN..L avg_daily_volume missing	
+2026-06-03T13:11:11.699210Z	WARNING	ticker=SMT.L gross_margin missing	
+2026-06-03T13:11:11.699114Z	WARNING	ticker=SMDS.L avg_daily_volume missing	
+2026-06-03T13:11:11.698998Z	WARNING	ticker=SKY.L avg_daily_volume missing	
+2026-06-03T13:11:11.698924Z	WARNING	ticker=SKG.IR avg_daily_volume missing	
+2026-06-03T13:11:11.698890Z	WARNING	ticker=SKFb.ST avg_daily_volume missing	
+2026-06-03T13:11:11.698871Z	WARNING	ticker=SIG.SW avg_daily_volume missing	
+2026-06-03T13:11:11.698620Z	WARNING	ticker=SGOB.PA avg_daily_volume missing	
+2026-06-03T13:11:11.698535Z	WARNING	ticker=SGEF.PA avg_daily_volume missing	
+2026-06-03T13:11:11.698442Z	WARNING	ticker=SEB.ST avg_daily_volume missing	
+2026-06-03T13:11:11.698266Z	WARNING	ticker=SCHN.PA avg_daily_volume missing	
+2026-06-03T13:11:11.698183Z	WARNING	ticker=SCHA.OL avg_daily_volume missing	
+2026-06-03T13:11:11.698081Z	WARNING	ticker=SASY.PA avg_daily_volume missing	
+2026-06-03T13:11:11.698011Z	WARNING	ticker=SANO.HE avg_daily_volume missing	
+2026-06-03T13:11:11.697951Z	WARNING	ticker=S4.L avg_daily_volume missing	
+2026-06-03T13:11:11.697941Z	WARNING	ticker=RR..L avg_daily_volume missing	
+2026-06-03T13:11:11.697560Z	WARNING	ticker=ROL.L avg_daily_volume missing	
+2026-06-03T13:11:11.697446Z	WARNING	ticker=ROG.SW avg_daily_volume missing	
+2026-06-03T13:11:11.697351Z	WARNING	ticker=RNL.PA avg_daily_volume missing	
+2026-06-03T13:11:11.697229Z	WARNING	ticker=RKT.L revenue_growth_yoy missing	
+2026-06-03T13:11:11.697149Z	WARNING	ticker=RIGN.SW avg_daily_volume missing	
+2026-06-03T13:11:11.697019Z	WARNING	ticker=RENA.PA avg_daily_volume missing	
+2026-06-03T13:11:11.696891Z	WARNING	ticker=QIA.AS avg_daily_volume missing	
+2026-06-03T13:11:11.696775Z	WARNING	ticker=PSTG revenue_growth_yoy missing	
+2026-06-03T13:11:11.696668Z	WARNING	ticker=PSN.PA avg_daily_volume missing	
+2026-06-03T13:11:11.696443Z	WARNING	ticker=PLPH.SW avg_daily_volume missing	
+2026-06-03T13:11:11.696382Z	WARNING	ticker=PHNX.L avg_daily_volume missing	
+2026-06-03T13:11:11.696158Z	WARNING	ticker=PERP.PA avg_daily_volume missing	
+2026-06-03T13:11:11.695935Z	WARNING	ticker=PANDORA.CO avg_daily_volume missing	
+2026-06-03T13:11:11.695747Z	WARNING	ticker=OREP.PA avg_daily_volume missing	
+2026-06-03T13:11:11.695691Z	WARNING	ticker=ORAN.PA avg_daily_volume missing	
+2026-06-03T13:11:11.695620Z	WARNING	ticker=ORA.PA revenue_growth_yoy missing	
+2026-06-03T13:11:11.695543Z	WARNING	ticker=ONT.BR avg_daily_volume missing	
+2026-06-03T13:11:11.695223Z	WARNING	ticker=NSN.HE avg_daily_volume missing	
+2026-06-03T13:11:11.695139Z	WARNING	ticker=NOV-N.SW avg_daily_volume missing	
+2026-06-03T13:11:11.694981Z	WARNING	ticker=NGG.L avg_daily_volume missing	
+2026-06-03T13:11:11.694871Z	WARNING	ticker=NEOEN.PA avg_daily_volume missing	
+2026-06-03T13:11:11.694791Z	WARNING	ticker=NDA-SE.HE avg_daily_volume missing	
+2026-06-03T13:11:11.694736Z	WARNING	ticker=NAB.AT avg_daily_volume missing	
+2026-06-03T13:11:11.694547Z	WARNING	ticker=MT.LU avg_daily_volume missing	
+2026-06-03T13:11:11.694428Z	WARNING	ticker=MRW.L avg_daily_volume missing	
+2026-06-03T13:11:11.694328Z	WARNING	ticker=MOR.DE avg_daily_volume missing	
+2026-06-03T13:11:11.694163Z	WARNING	ticker=MICP.PA avg_daily_volume missing	
+2026-06-03T13:11:11.693960Z	WARNING	ticker=MGG.L avg_daily_volume missing	
+2026-06-03T13:11:11.693684Z	WARNING	ticker=MAN.DE avg_daily_volume missing	
+2026-06-03T13:11:11.693479Z	WARNING	ticker=LUN.ST avg_daily_volume missing	
+2026-06-03T13:11:11.693357Z	WARNING	ticker=LUMI.PA avg_daily_volume missing	
+2026-06-03T13:11:11.693273Z	WARNING	ticker=LONN.SW revenue_growth_yoy missing	
+2026-06-03T13:11:11.693081Z	WARNING	ticker=LIN.L avg_daily_volume missing	
+2026-06-03T13:11:11.693050Z	WARNING	ticker=LII.L avg_daily_volume missing	
+2026-06-03T13:11:11.692927Z	WARNING	ticker=LIF.IR avg_daily_volume missing	
+2026-06-03T13:11:11.692624Z	WARNING	ticker=LANV.PA avg_daily_volume missing	
+2026-06-03T13:11:11.692356Z	WARNING	ticker=KER.PA revenue_growth_yoy missing	
+2026-06-03T13:11:11.692245Z	WARNING	ticker=JUST.AS avg_daily_volume missing	
+2026-06-03T13:11:11.691990Z	WARNING	ticker=IPX.PA avg_daily_volume missing	
+2026-06-03T13:11:11.691726Z	WARNING	ticker=INPST.LU avg_daily_volume missing	
+2026-06-03T13:11:11.691648Z	WARNING	ticker=INP.L avg_daily_volume missing	
+2026-06-03T13:11:11.691543Z	WARNING	ticker=INDV.L avg_daily_volume missing	
+2026-06-03T13:11:11.691411Z	WARNING	ticker=IGGI.L avg_daily_volume missing	
+2026-06-03T13:11:11.691348Z	WARNING	ticker=IFX.DE revenue_growth_yoy missing	
+2026-06-03T13:11:11.691239Z	WARNING	ticker=IDP.MI avg_daily_volume missing	
+2026-06-03T13:11:11.691113Z	WARNING	ticker=ICP.L avg_daily_volume missing	
+2026-06-03T13:11:11.690423Z	WARNING	ticker=HNR.DE avg_daily_volume missing	
+2026-06-03T13:11:11.690345Z	WARNING	ticker=HMB.ST avg_daily_volume missing	
+2026-06-03T13:11:11.690239Z	WARNING	ticker=HLM.L avg_daily_volume missing	
+2026-06-03T13:11:11.690142Z	WARNING	ticker=HLI.L avg_daily_volume missing	
+2026-06-03T13:11:11.689734Z	WARNING	ticker=HELN.SW avg_daily_volume missing	
+2026-06-03T13:11:11.689424Z	WARNING	ticker=GWI.MI avg_daily_volume missing	
+2026-06-03T13:11:11.689280Z	WARNING	ticker=GRLS.MC avg_daily_volume missing	
+2026-06-03T13:11:11.689170Z	WARNING	ticker=GREG.L avg_daily_volume missing	
+2026-06-03T13:11:11.688641Z	WARNING	ticker=GLB.IR avg_daily_volume missing	
+2026-06-03T13:11:11.688460Z	WARNING	ticker=GFT.IR avg_daily_volume missing	
+2026-06-03T13:11:11.688228Z	WARNING	ticker=GF.SW revenue_growth_yoy missing	
+2026-06-03T13:11:11.687624Z	WARNING	ticker=FTI.L avg_daily_volume missing	
+2026-06-03T13:11:11.687489Z	WARNING	ticker=FOR.MC avg_daily_volume missing	
+2026-06-03T13:11:11.687341Z	WARNING	ticker=FLTR.IR avg_daily_volume missing	
+2026-06-03T13:11:11.687148Z	WARNING	ticker=FISV gross_margin missing	
+2026-06-03T13:11:11.687021Z	WARNING	ticker=FERR.MI avg_daily_volume missing	
+2026-06-03T13:11:11.686899Z	WARNING	ticker=FALK.CO avg_daily_volume missing	
+2026-06-03T13:11:11.686695Z	WARNING	ticker=EVR.L avg_daily_volume missing	
+2026-06-03T13:11:11.686618Z	WARNING	ticker=ESLX.PA avg_daily_volume missing	
+2026-06-03T13:11:11.686534Z	WARNING	ticker=ERICb.ST avg_daily_volume missing	
+2026-06-03T13:11:11.686406Z	WARNING	ticker=ENX.AS avg_daily_volume missing	
+2026-06-03T13:11:11.686333Z	WARNING	ticker=ENGIE.PA avg_daily_volume missing	
+2026-06-03T13:11:11.686158Z	WARNING	ticker=ELUXb.ST avg_daily_volume missing	
+2026-06-03T13:11:11.686040Z	WARNING	ticker=EFGI.PA avg_daily_volume missing	
+2026-06-03T13:11:11.685866Z	WARNING	ticker=DSM.SW avg_daily_volume missing	
+2026-06-03T13:11:11.685709Z	WARNING	ticker=DLG.L avg_daily_volume missing	
+2026-06-03T13:11:11.685506Z	WARNING	ticker=DASH.DE avg_daily_volume missing	
+2026-06-03T13:11:11.685410Z	WARNING	ticker=DANO.PA avg_daily_volume missing	
+2026-06-03T13:11:11.685255Z	WARNING	ticker=CTS.DE avg_daily_volume missing	
+2026-06-03T13:11:11.684580Z	WARNING	ticker=CCH.SW avg_daily_volume missing	
+2026-06-03T13:11:11.684459Z	WARNING	ticker=CASP.ST avg_daily_volume missing	
+2026-06-03T13:11:11.684373Z	WARNING	ticker=CARR.PA avg_daily_volume missing	
+2026-06-03T13:11:11.684290Z	WARNING	ticker=CAPP.PA avg_daily_volume missing	
+2026-06-03T13:11:11.684214Z	WARNING	ticker=CAGR.PA avg_daily_volume missing	
+2026-06-03T13:11:11.684029Z	WARNING	ticker=BT.A.L avg_daily_volume missing	
+2026-06-03T13:11:11.684007Z	WARNING	ticker=BRNW.MI avg_daily_volume missing	
+2026-06-03T13:11:11.683811Z	WARNING	ticker=BOUY.PA avg_daily_volume missing	
+2026-06-03T13:11:11.683695Z	WARNING	ticker=BNPP.PA avg_daily_volume missing	
+2026-06-03T13:11:11.683466Z	WARNING	ticker=BEB.SW avg_daily_volume missing	
+2026-06-03T13:11:11.683459Z	WARNING	ticker=BDEV.L avg_daily_volume missing	
+2026-06-03T13:11:11.683098Z	WARNING	ticker=BALN.SW avg_daily_volume missing	
+2026-06-03T13:11:11.682714Z	WARNING	ticker=BA..L avg_daily_volume missing	
+2026-06-03T13:11:11.682566Z	WARNING	ticker=ATOS.PA avg_daily_volume missing	
+2026-06-03T13:11:11.682512Z	WARNING	ticker=ATCOa.ST avg_daily_volume missing	
+2026-06-03T13:11:11.682460Z	WARNING	ticker=ASMI.AS avg_daily_volume missing	
+2026-06-03T13:11:11.682370Z	WARNING	ticker=ARND.DE avg_daily_volume missing	
+2026-06-03T13:11:11.682318Z	WARNING	ticker=ARGX.AS avg_daily_volume missing	
+2026-06-03T13:11:11.682199Z	WARNING	ticker=AMS.VI avg_daily_volume missing	
+2026-06-03T13:11:11.682092Z	WARNING	ticker=ALLFG.MC avg_daily_volume missing	
+2026-06-03T13:11:11.682026Z	WARNING	ticker=AKERBP.OL avg_daily_volume missing	
+2026-06-03T13:11:11.681934Z	WARNING	ticker=AIRP.PA avg_daily_volume missing	
+2026-06-03T13:11:11.681785Z	WARNING	ticker=AHT.L avg_daily_volume missing	
+2026-06-03T13:11:11.681453Z	WARNING	ticker=ADH.OL avg_daily_volume missing	
+2026-06-03T13:11:11.679116Z	INFO	runner: fetched US=904 EU=485 total=1389/1389	
+2026-06-03T13:10:43.589326Z	INFO	runner: universe input US=904 EU=485 total=1389	
+2026-06-03T13:10:43.045321Z	INFO		
+2026-06-03T13:10:30.298897Z			INFO:     169.254.169.126:26560 - "GET /health HTTP/1.1" 200 OK
+2026-06-03T13:10:30.281693Z	INFO		
+2026-06-03T13:09:37.756822Z	WARNING		The request was not authenticated. Either allow unauthenticated invocations or set the proper Authorization header. Empty Authorization header value. Read more at https://cloud.google.com/run/docs/securing/authenticating Additional troubleshooting documentation can be found at: https://cloud.google.com/run/docs/troubleshooting#unauthorized-client
+2026-06-03T13:09:25.024149Z			INFO:     169.254.169.126:65384 - "GET /health HTTP/1.1" 200 OK
+2026-06-03T13:09:25.007220Z	INFO		
+2026-06-03T13:08:21.195780Z	WARNING		The request was not authenticated. Either allow unauthenticated invocations or set the proper Authorization header. Empty Authorization header value. Read more at https://cloud.google.com/run/docs/securing/authenticating Additional troubleshooting documentation can be found at: https://cloud.google.com/run/docs/troubleshooting#unauthorized-client
+2026-06-03T13:07:52.825722Z			INFO:     169.254.169.126:10906 - "GET /health HTTP/1.1" 200 OK
+2026-06-03T13:07:52.808637Z	INFO		
+2026-06-03T13:06:24.459414Z	WARNING		The request was not authenticated. Either allow unauthenticated invocations or set the proper Authorization header. Empty Authorization header value. Read more at https://cloud.google.com/run/docs/securing/authenticating Additional troubleshooting documentation can be found at: https://cloud.google.com/run/docs/troubleshooting#unauthorized-client
+2026-06-03T13:02:41.341740Z			INFO:     169.254.169.126:17722 - "GET /health HTTP/1.1" 200 OK
+2026-06-03T13:02:41.317330Z	INFO		
+2026-06-03T13:01:44.381202Z			INFO:     169.254.169.126:14072 - "GET /health HTTP/1.1" 200 OK
+2026-06-03T13:01:44.308976Z	INFO		
+2026-06-03T12:59:23.477795Z	INFO		
+2026-06-03T12:59:21.014442Z	INFO		
+2026-06-03T12:59:20.935Z	INFO		Default STARTUP TCP probe succeeded after 1 attempt for container "app-1" on port 8080.
+2026-06-03T12:59:20.934614Z			INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+2026-06-03T12:59:20.931955Z			INFO:     Application startup complete.
+2026-06-03T12:59:20.931037Z			INFO:     Waiting for application startup.
+2026-06-03T12:59:20.931003Z			INFO:     Started server process [30]
+2026-06-03T12:59:04.182543Z			Installed 8 packages in 17ms
+2026-06-03T12:59:04.164908Z			Uninstalled 1 package in 5ms
+2026-06-03T12:59:04.149466Z			      Built fisherscreen @ file:///app
+2026-06-03T12:59:02.417757Z			   Building fisherscreen @ file:///app
+2026-06-03T12:59:00.793440Z	INFO		Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+2026-06-03T12:58:53.163506Z	NOTICE		

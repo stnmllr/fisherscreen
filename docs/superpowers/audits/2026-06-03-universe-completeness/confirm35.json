@@ -1,0 +1,506 @@
+{
+ "AKERBP.OL": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {}
+ },
+ "AMS.VI": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {
+   "AMS.MC": {
+    "keys": 162,
+    "name": "AMADEUS IT GROUP, S.A.",
+    "marketCap": 22715750400,
+    "currency": "EUR",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "ASMI.AS": {
+  "keys": 25,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "MUTUALFUND",
+  "resolved": false,
+  "alternates": {}
+ },
+ "ATCOa.ST": {
+  "keys": 26,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "MUTUALFUND",
+  "resolved": false,
+  "alternates": {
+   "ATCO-A.ST": {
+    "keys": 171,
+    "name": "Atlas Copco AB ser. A",
+    "marketCap": 889860390912,
+    "currency": "SEK",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "BDEV.L": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {}
+ },
+ "DLG.L": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {}
+ },
+ "DSM.SW": {
+  "keys": 14,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {
+   "DSFIR.AS": {
+    "keys": 156,
+    "name": "DSM FIRMENICH AG",
+    "marketCap": 16979748864,
+    "currency": "EUR",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "EFGI.PA": {
+  "keys": 1,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": null,
+  "resolved": false,
+  "alternates": {
+   "EFGN.SW": {
+    "keys": 162,
+    "name": "EFG INTERNATIONAL N",
+    "marketCap": 4886641664,
+    "currency": "CHF",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "ELUXb.ST": {
+  "keys": 26,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "MUTUALFUND",
+  "resolved": false,
+  "alternates": {
+   "ELUX-B.ST": {
+    "keys": 166,
+    "name": "Electrolux, AB ser. B",
+    "marketCap": 15087629312,
+    "currency": "SEK",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "ERICb.ST": {
+  "keys": 26,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "MUTUALFUND",
+  "resolved": false,
+  "alternates": {
+   "ERIC-B.ST": {
+    "keys": 170,
+    "name": "Ericsson, Telefonab. L M ser. B",
+    "marketCap": 422021005312,
+    "currency": "SEK",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "FLTR.IR": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {
+   "FLTR.L": {
+    "keys": 167,
+    "name": "FLUTTER ENTERTAINMENT PLC ORD E",
+    "marketCap": 13053587456,
+    "currency": "GBp",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "HMB.ST": {
+  "keys": 27,
+  "name": null,
+  "marketCap": null,
+  "currency": "9.2",
+  "quoteType": "MUTUALFUND",
+  "resolved": false,
+  "alternates": {
+   "HM-B.ST": {
+    "keys": 169,
+    "name": "Hennes & Mauritz AB, H & M ser.",
+    "marketCap": 263720812544,
+    "currency": "SEK",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "ICP.L": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {}
+ },
+ "INDV.L": {
+  "keys": 13,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {}
+ },
+ "INP.L": {
+  "keys": 1,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": null,
+  "resolved": false,
+  "alternates": {
+   "INVP.L": {
+    "keys": 164,
+    "name": "INVESTEC PLC ORD GBP0.0002",
+    "marketCap": 5629799424,
+    "currency": "GBp",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "LIN.L": {
+  "keys": 1,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": null,
+  "resolved": false,
+  "alternates": {
+   "LIN": {
+    "keys": 179,
+    "name": "Linde plc",
+    "marketCap": 234909401088,
+    "currency": "USD",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "LUN.ST": {
+  "keys": 13,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {}
+ },
+ "MAN.DE": {
+  "keys": 12,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {
+   "MAN.SG": {
+    "keys": 6,
+    "name": null,
+    "marketCap": null,
+    "currency": null,
+    "quoteType": "NONE",
+    "resolved": false
+   }
+  }
+ },
+ "MOR.DE": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {
+   "MOR.F": {
+    "keys": 6,
+    "name": null,
+    "marketCap": null,
+    "currency": null,
+    "quoteType": "NONE",
+    "resolved": false
+   }
+  }
+ },
+ "MRW.L": {
+  "keys": 12,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {}
+ },
+ "NEOEN.PA": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {}
+ },
+ "NGG.L": {
+  "keys": 26,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "MUTUALFUND",
+  "resolved": false,
+  "alternates": {
+   "NG.L": {
+    "keys": 165,
+    "name": "NATIONAL GRID PLC ORD 12 204/47",
+    "marketCap": 59633889280,
+    "currency": "GBp",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "RIGN.SW": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {
+   "RIGN.VX": {
+    "keys": 29,
+    "name": null,
+    "marketCap": null,
+    "currency": null,
+    "quoteType": "MUTUALFUND",
+    "resolved": false
+   }
+  }
+ },
+ "ROL.L": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {}
+ },
+ "SANO.HE": {
+  "keys": 1,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": null,
+  "resolved": false,
+  "alternates": {
+   "SAA1V.HE": {
+    "keys": 12,
+    "name": null,
+    "marketCap": null,
+    "currency": null,
+    "quoteType": "NONE",
+    "resolved": false
+   }
+  }
+ },
+ "SCHA.OL": {
+  "keys": 13,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {}
+ },
+ "SKFb.ST": {
+  "keys": 26,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "MUTUALFUND",
+  "resolved": false,
+  "alternates": {
+   "SKF-B.ST": {
+    "keys": 165,
+    "name": "SKF, AB ser. B",
+    "marketCap": 113713577984,
+    "currency": "SEK",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "SMDS.L": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {}
+ },
+ "SOW.DE": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {
+   "SOW.F": {
+    "keys": 71,
+    "name": "SOW.F,0P0000EJQV,0",
+    "marketCap": 2771287040,
+    "currency": "EUR",
+    "quoteType": "MUTUALFUND",
+    "resolved": true
+   }
+  }
+ },
+ "SWMA.ST": {
+  "keys": 12,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {
+   "SWMA.ST": {
+    "keys": 12,
+    "name": null,
+    "marketCap": null,
+    "currency": null,
+    "quoteType": "NONE",
+    "resolved": false
+   }
+  }
+ },
+ "TEL2b.ST": {
+  "keys": 26,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "MUTUALFUND",
+  "resolved": false,
+  "alternates": {
+   "TEL2-B.ST": {
+    "keys": 164,
+    "name": "Tele2 AB ser. B",
+    "marketCap": 122794123264,
+    "currency": "SEK",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "TEV": {
+  "keys": 33,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "ECNQUOTE",
+  "resolved": false,
+  "alternates": {
+   "TEVA.TA": {
+    "keys": 158,
+    "name": "TEVA PHARMA IND",
+    "marketCap": 108734193664,
+    "currency": "ILA",
+    "quoteType": "EQUITY",
+    "resolved": true
+   }
+  }
+ },
+ "UN01.DE": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {
+   "UN01.F": {
+    "keys": 6,
+    "name": null,
+    "marketCap": null,
+    "currency": null,
+    "quoteType": "NONE",
+    "resolved": false
+   }
+  }
+ },
+ "VAR1.DE": {
+  "keys": 6,
+  "name": null,
+  "marketCap": null,
+  "currency": null,
+  "quoteType": "NONE",
+  "resolved": false,
+  "alternates": {
+   "VAR1.F": {
+    "keys": 6,
+    "name": null,
+    "marketCap": null,
+    "currency": null,
+    "quoteType": "NONE",
+    "resolved": false
+   }
+  }
+ }
+}
