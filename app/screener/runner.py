@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -19,6 +20,19 @@ if TYPE_CHECKING:
     from app.services.yfinance_client import YFinanceClient
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class BasisFilterResult:
+    """Result of the basis filter stage.
+
+    `passed` are records that survived the basis filters; `unresolved` are
+    universe symbols that yfinance could not resolve (fetch raised
+    DataSourceError / ValidationError) — the durable attrition signal.
+    """
+
+    passed: list[ScreenerRecord] = field(default_factory=list)
+    unresolved: list[str] = field(default_factory=list)
 
 
 def _resolve_market_cap_eur(
@@ -44,12 +58,13 @@ def _resolve_market_cap_eur(
 def run_basis_filter(
     tickers: list[str],
     yfinance: YFinanceClient,
-) -> list[ScreenerRecord]:
+) -> BasisFilterResult:
     us_input = sum(1 for t in tickers if "." not in t)
     eu_input = len(tickers) - us_input
     logger.info("runner: universe input US=%d EU=%d total=%d", us_input, eu_input, len(tickers))
 
     records: list[ScreenerRecord] = []
+    unresolved: list[str] = []
     fx_cache: dict[str, float] = {}
     for ticker in tickers:
         try:
@@ -59,11 +74,24 @@ def run_basis_filter(
             records.append(record)
         except (DataSourceError, ValidationError) as exc:
             logger.warning("ticker=%s data fetch failed: %s", ticker, exc)
+            unresolved.append(ticker)
 
     us_fetched = sum(1 for r in records if "." not in r.ticker)
     eu_fetched = len(records) - us_fetched
     logger.info("runner: fetched US=%d EU=%d total=%d/%d", us_fetched, eu_fetched, len(records), len(tickers))
-    return apply_basis_filters(records)
+
+    if unresolved:
+        unresolved.sort()
+        # WARNING level is deliberate: an unresolved universe symbol is silent
+        # attrition and must be visible regardless of any INFO logging config.
+        logger.warning(
+            "resolution: %d/%d universe symbols unresolved by yfinance: %s",
+            len(unresolved),
+            len(tickers),
+            unresolved,
+        )
+
+    return BasisFilterResult(passed=apply_basis_filters(records), unresolved=unresolved)
 
 
 def _evaluate_edgar(records: list[ScreenerRecord], edgar: EdgarClient) -> None:
@@ -109,10 +137,12 @@ def run_filter_preview(
 ) -> FilterReport:
     """Free ($0) filters-only preview: basis + EDGAR filters, no Gemini, no
     run-tracker, no output. Returns a FilterReport for dry-run visibility."""
-    records = run_basis_filter(tickers, yfinance)
+    basis = run_basis_filter(tickers, yfinance)
+    records = basis.passed
     _evaluate_edgar(records, edgar)
     apply_edgar_filters(records)
     report = build_filter_report(records, edgar)
+    report.yfinance_unresolved = basis.unresolved
     report.log(logger)
     logger.info(
         "filter_preview: %d gc-drops, %d skipped",
@@ -144,7 +174,7 @@ def run_screener(
     min_dims = crosshits_min_dimensions if crosshits_min_dimensions is not None else settings.crosshits_min_dimensions
     cap = crosshits_cap if crosshits_cap is not None else settings.crosshits_cap
 
-    records = run_basis_filter(tickers, yfinance)
+    records = run_basis_filter(tickers, yfinance).passed
     records = run_edgar_filter(records, edgar)
     records = run_gemini_scoring(records, gemini, run_tracker)
     run_record = run_tracker.finish()

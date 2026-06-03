@@ -203,6 +203,10 @@ def _apply_country_suffix(raw_ticker: str, country: str) -> str | None:
     Returns None when the ticker is blank or the country is not mapped.
     """
     ticker = raw_ticker.strip().replace(" ", "-")
+    # Wikipedia LSE tickers arrive with a trailing dot (e.g. "BA.", "RR.", "SN.").
+    # Strip trailing dot(s) before appending the suffix so we get "BA.L", not
+    # "BA..L". Only trailing dots are removed — legit internal dots survive.
+    ticker = ticker.rstrip(".")
     if not ticker or ticker in ("-", "nan"):
         return None
 
