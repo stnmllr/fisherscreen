@@ -238,6 +238,128 @@ def test_has_going_concern_raises_after_efts_500_exhausted(mock_httpx, mock_time
         client.has_going_concern("320193")
 
 
+# --- EFTS exponential full-jitter backoff (SUB-PHASE 2) ---
+
+
+class _StubRng:
+    """Deterministic RNG stub: uniform(lo, hi) returns hi (the cap), so the
+    full-jitter schedule collapses to its upper bound and is assertable."""
+
+    def uniform(self, lo: float, hi: float) -> float:
+        return hi
+
+
+def _make_client_with_efts(efts_sleep, rng):
+    from app.services.edgar_client import EdgarClientImpl
+
+    return EdgarClientImpl(
+        user_agent="Test Agent <test@example.com>",
+        rate_limiter=RateLimiter(8.0, sleep=lambda _s: None),
+        efts_sleep=efts_sleep,
+        rng=rng,
+    )
+
+
+@patch("app.services.edgar_client.httpx")
+def test_efts_500_then_200_recovers(mock_httpx):
+    # 500 then 200 → recovery path: going_concern_hit succeeds, exactly one sleep.
+    resp500 = MagicMock()
+    resp500.status_code = 500
+    resp200 = MagicMock()
+    resp200.status_code = 200
+    resp200.json.return_value = {"hits": {"total": {"value": 0, "relation": "eq"}}}
+    mock_httpx.get.side_effect = [resp500, resp200]
+
+    delays: list[float] = []
+    client = _make_client_with_efts(efts_sleep=delays.append, rng=_StubRng())
+    result = client.going_concern_hit("320193")
+
+    assert result is None
+    assert mock_httpx.get.call_count == 2
+    assert len(delays) == 1  # one retry → one sleep
+
+
+@patch("app.services.edgar_client.httpx")
+def test_efts_full_jitter_exponential_schedule(mock_httpx):
+    # rng.uniform stubbed to its upper bound → captured caps are the exponential
+    # full-jitter upper bounds: base*2**(n-1) for attempts 1..4 = [1, 2, 4, 8].
+    # 5 consecutive 500s → exhausted (attempt 5 raises, no 5th sleep).
+    resp500 = MagicMock()
+    resp500.status_code = 500
+    mock_httpx.get.return_value = resp500
+
+    delays: list[float] = []
+    client = _make_client_with_efts(efts_sleep=delays.append, rng=_StubRng())
+    with pytest.raises(DataSourceError):
+        client.going_concern_hit("320193")
+
+    assert delays == [1.0, 2.0, 4.0, 8.0]
+
+
+@patch("app.services.edgar_client.httpx")
+def test_efts_full_jitter_is_within_bounds(mock_httpx):
+    # Real seeded RNG → each slept delay must lie in [0, cap_n] where
+    # cap_n = base*2**(n-1). Pins full jitter (uniform 0..cap), not a fixed value.
+    import random
+
+    resp500 = MagicMock()
+    resp500.status_code = 500
+    mock_httpx.get.return_value = resp500
+
+    delays: list[float] = []
+    client = _make_client_with_efts(
+        efts_sleep=delays.append, rng=random.Random(0)
+    )
+    with pytest.raises(DataSourceError):
+        client.going_concern_hit("320193")
+
+    caps = [1.0, 2.0, 4.0, 8.0]
+    assert len(delays) == len(caps)
+    for delay, cap in zip(delays, caps):
+        assert 0.0 <= delay <= cap
+    # full jitter must actually vary, not collapse to the caps
+    assert delays != caps
+
+
+@patch("app.services.edgar_client.httpx")
+def test_efts_500_exhausted_raises_data_source_error(mock_httpx, caplog):
+    # 5x500 → fail-safe DataSourceError, 5 attempts made, per-retry WARNING loud.
+    import logging
+
+    resp500 = MagicMock()
+    resp500.status_code = 500
+    mock_httpx.get.return_value = resp500
+
+    delays: list[float] = []
+    client = _make_client_with_efts(efts_sleep=delays.append, rng=_StubRng())
+    with caplog.at_level(logging.WARNING, logger="app.services.edgar_client"):
+        with pytest.raises(DataSourceError, match="500"):
+            client.going_concern_hit("320193")
+
+    assert mock_httpx.get.call_count == 5  # _EFTS_MAX_ATTEMPTS
+    assert len(delays) == 4  # sleeps before retries 1..4; attempt 5 raises
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 4
+    assert "500" in caplog.text
+    assert "retry" in caplog.text.lower()
+
+
+@patch("app.services.edgar_client.httpx")
+def test_efts_non_5xx_not_retried(mock_httpx):
+    # 404 → immediate DataSourceError, NO sleep, NO retry (preserve behavior).
+    resp404 = MagicMock()
+    resp404.status_code = 404
+    mock_httpx.get.return_value = resp404
+
+    delays: list[float] = []
+    client = _make_client_with_efts(efts_sleep=delays.append, rng=_StubRng())
+    with pytest.raises(DataSourceError, match="404"):
+        client.going_concern_hit("320193")
+
+    assert mock_httpx.get.call_count == 1
+    assert delays == []
+
+
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
 def test_has_going_concern_false_when_all_hits_out_of_window(mock_httpx, mock_time):
