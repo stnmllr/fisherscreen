@@ -23,6 +23,7 @@ iShares and other financial sites use a browser-like User-Agent.
 
 import json
 import logging
+import re
 from io import StringIO
 from pathlib import Path
 
@@ -189,6 +190,25 @@ def _normalise_us_ticker(raw: str) -> str:
     return raw.strip().replace(".", "-")
 
 
+# Trailing lowercase class letter on an otherwise upper/digit base, e.g. the
+# Nordic source form "ERICb". The base must be >=2 chars so single-letter
+# tickers like "A"/"Ab" are never touched; only a/b/c are recognised classes.
+_CLASS_SUFFIX_RE = re.compile(r"^([A-Z0-9]{2,})([abc])$")
+
+
+def _normalise_class_suffix(ticker: str) -> str:
+    """Convert a trailing lowercase class letter on an otherwise upper/digit
+    base into the hyphenated yfinance form: ERICb -> ERIC-B, ATCOa -> ATCO-A,
+    TEL2b -> TEL2-B. Conservative: only fires on r'^[A-Z0-9]{2,}[abc]$' so it
+    cannot touch normal tickers. All-caps concatenated forms (e.g. HMB) are
+    deliberately NOT split — ambiguous, handled at the data level."""
+    match = _CLASS_SUFFIX_RE.match(ticker)
+    if match is None:
+        return ticker
+    base, class_letter = match.groups()
+    return f"{base}-{class_letter.upper()}"
+
+
 def _apply_country_suffix(raw_ticker: str, country: str) -> str | None:
     """
     Map a raw Wikipedia STOXX 600 ticker + country to a yfinance ticker.
@@ -207,6 +227,7 @@ def _apply_country_suffix(raw_ticker: str, country: str) -> str | None:
     # Strip trailing dot(s) before appending the suffix so we get "BA.L", not
     # "BA..L". Only trailing dots are removed — legit internal dots survive.
     ticker = ticker.rstrip(".")
+    ticker = _normalise_class_suffix(ticker)
     if not ticker or ticker in ("-", "nan"):
         return None
 
@@ -267,6 +288,7 @@ def _parse_ishares_csv(csv_text: str) -> list[str]:
         exchange = str(row.get(exchange_col, "")) if exchange_col else ""
 
         ticker = raw_ticker.replace(" ", "-")
+        ticker = _normalise_class_suffix(ticker)
         if not ticker or ticker in ("-", "nan"):
             continue
 
