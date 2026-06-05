@@ -1,0 +1,1413 @@
+{
+ "GHC": {
+  "ticker": "GHC",
+  "identity": {
+   "figi": "BBG000C3FGH9",
+   "name": "GRAHAM HOLDINGS CO-CLASS B",
+   "ticker": "GHC",
+   "exchCode": "US",
+   "compositeFIGI": "BBG000C3FGH9",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S6H317",
+   "securityType2": "Common Stock",
+   "securityDescription": "GHC"
+  },
+  "name_audit": "Graham Holdings Company",
+  "avg_volume": "18963",
+  "special_marker": "-C",
+  "issuer_query": "GRAHAM HOLDINGS CO-CLASS B",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "LANV": {
+  "ticker": "LANV",
+  "identity": {
+   "figi": "BBG019XS5Y65",
+   "name": "LANVIN GROUP HOLDINGS LTD",
+   "ticker": "LANV",
+   "exchCode": "US",
+   "compositeFIGI": "BBG019XS5Y65",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG019XS5Y74",
+   "securityType2": "Common Stock",
+   "securityDescription": "LANV"
+  },
+  "name_audit": "Lanvin Group Holdings Limited",
+  "avg_volume": "71746",
+  "special_marker": null,
+  "issuer_query": "LANVIN GROUP HOLDINGS LTD",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "NVR": {
+  "ticker": "NVR",
+  "identity": {
+   "figi": "BBG000BQBYR3",
+   "name": "NVR INC",
+   "ticker": "NVR",
+   "exchCode": "US",
+   "compositeFIGI": "BBG000BQBYR3",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S5TSM8",
+   "securityType2": "Common Stock",
+   "securityDescription": "NVR"
+  },
+  "name_audit": "NVR, Inc.",
+  "avg_volume": "25923",
+  "special_marker": null,
+  "issuer_query": "NVR INC",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "FER.AS": {
+  "ticker": "FER.AS",
+  "identity": {
+   "figi": "BBG01H0DPNL1",
+   "name": "FERROVIAL NV",
+   "ticker": "FER",
+   "exchCode": "NA",
+   "compositeFIGI": "BBG01H0DPNK2",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG01H0DF6H4",
+   "securityType2": "Common Stock",
+   "securityDescription": "FER"
+  },
+  "name_audit": "Ferrovial N.V.",
+  "avg_volume": "7287",
+  "special_marker": null,
+  "issuer_query": "FERROVIAL NV",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "COLR.BR": {
+  "ticker": "COLR.BR",
+  "identity": {
+   "figi": "BBG000BQ4B64",
+   "name": "COLRUYT GROUP N.V",
+   "ticker": "COLR",
+   "exchCode": "BB",
+   "compositeFIGI": "BBG000BQ49H7",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S8WXP4",
+   "securityType2": "Common Stock",
+   "securityDescription": "COLR"
+  },
+  "name_audit": "Colruyt Group N.V.",
+  "avg_volume": "52472",
+  "special_marker": null,
+  "issuer_query": "COLRUYT GROUP N.V",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "DIE.BR": {
+  "ticker": "DIE.BR",
+  "identity": {
+   "figi": "BBG000BRPPL1",
+   "name": "D'IETEREN GROUP",
+   "ticker": "DIE",
+   "exchCode": "BB",
+   "compositeFIGI": "BBG000BRPP68",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001SGLMW4",
+   "securityType2": "Common Stock",
+   "securityDescription": "DIE"
+  },
+  "name_audit": "D'Ieteren Group SA",
+  "avg_volume": "76172",
+  "special_marker": null,
+  "issuer_query": "D'IETEREN GROUP",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "MELE.BR": {
+  "ticker": "MELE.BR",
+  "identity": {
+   "figi": "BBG000FYF6K6",
+   "name": "MELEXIS NV",
+   "ticker": "MELE",
+   "exchCode": "BB",
+   "compositeFIGI": "BBG000FYF662",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S5NHP5",
+   "securityType2": "Common Stock",
+   "securityDescription": "MELE"
+  },
+  "name_audit": "Melexis NV",
+  "avg_volume": "73157",
+  "special_marker": null,
+  "issuer_query": "MELEXIS NV",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "MAERSK-B.CO": {
+  "ticker": "MAERSK-B.CO",
+  "identity": {
+   "_warning": "No identifier found."
+  },
+  "name_audit": "A.P. M\u00f8ller - M\u00e6rsk A/S",
+  "avg_volume": "18687",
+  "special_marker": null,
+  "reason": "no clean OpenFIGI identity",
+  "bucket": "NEEDS_MANUAL"
+ },
+ "1COV.DE": {
+  "ticker": "1COV.DE",
+  "identity": {
+   "figi": "BBG009YTYX09",
+   "name": "COVESTRO AG",
+   "ticker": "1COV",
+   "exchCode": "GY",
+   "compositeFIGI": "BBG009YTYWV7",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG009YTYWT0",
+   "securityType2": "Common Stock",
+   "securityDescription": "1COV"
+  },
+  "name_audit": "Covestro AG",
+  "avg_volume": "14902",
+  "special_marker": null,
+  "issuer_query": "COVESTRO AG",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "SIX2.DE": {
+  "ticker": "SIX2.DE",
+  "identity": {
+   "figi": "BBG000BCR723",
+   "name": "SIXT SE",
+   "ticker": "SIX2",
+   "exchCode": "GY",
+   "compositeFIGI": "BBG000BCR5S9",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S6HDJ6",
+   "securityType2": "Common Stock",
+   "securityDescription": "SIX2"
+  },
+  "name_audit": "Sixt SE",
+  "avg_volume": "65775",
+  "special_marker": null,
+  "issuer_query": "SIXT SE",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "CTG.L": {
+  "ticker": "CTG.L",
+  "identity": {
+   "figi": "BBG000BDD1X5",
+   "name": "CHRISTIE GROUP PLC",
+   "ticker": "CTG",
+   "exchCode": "LN",
+   "compositeFIGI": "BBG000BDD192",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S61PL3",
+   "securityType2": "Common Stock",
+   "securityDescription": "CTG"
+  },
+  "name_audit": "Christie Group plc",
+  "avg_volume": "8182",
+  "special_marker": null,
+  "issuer_query": "CHRISTIE GROUP PLC",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "GAW.L": {
+  "ticker": "GAW.L",
+  "identity": {
+   "figi": "BBG000DMJJ77",
+   "name": "GAMES WORKSHOP GROUP PLC",
+   "ticker": "GAW",
+   "exchCode": "LN",
+   "compositeFIGI": "BBG000DMJHD4",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S89BD1",
+   "securityType2": "Common Stock",
+   "securityDescription": "GAW"
+  },
+  "name_audit": "Games Workshop Group PLC",
+  "avg_volume": "94945",
+  "special_marker": null,
+  "issuer_query": "GAMES WORKSHOP GROUP PLC",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "ANA.MC": {
+  "ticker": "ANA.MC",
+  "identity": {
+   "figi": "BBG000BMJCK9",
+   "name": "ACCIONA SA",
+   "ticker": "ANA",
+   "exchCode": "SM",
+   "compositeFIGI": "BBG000BMJCK9",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S9RSB4",
+   "securityType2": "Common Stock",
+   "securityDescription": "ANA"
+  },
+  "name_audit": "Acciona, S.A.",
+  "avg_volume": "81759",
+  "special_marker": null,
+  "issuer_query": "ACCIONA SA",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "DIA.MC": {
+  "ticker": "DIA.MC",
+  "identity": {
+   "figi": "BBG000TG1N00",
+   "name": "DISTRIBUIDORA INTERNACIONAL",
+   "ticker": "DIA",
+   "exchCode": "SM",
+   "compositeFIGI": "BBG000TG1N00",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001T02JQ3",
+   "securityType2": "Common Stock",
+   "securityDescription": "DIA"
+  },
+  "name_audit": "Distribuidora Internacional de Alimentaci\u00f3n, S.A.",
+  "avg_volume": "37363",
+  "special_marker": null,
+  "issuer_query": "DISTRIBUIDORA INTERNACIONAL",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "MF.PA": {
+  "ticker": "MF.PA",
+  "identity": {
+   "figi": "BBG000BC8CR6",
+   "name": "WENDEL",
+   "ticker": "MF",
+   "exchCode": "FP",
+   "compositeFIGI": "BBG000BC8CB3",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S69110",
+   "securityType2": "Common Stock",
+   "securityDescription": "MF"
+  },
+  "name_audit": "Wendel",
+  "avg_volume": "76116",
+  "special_marker": null,
+  "issuer_query": "WENDEL",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "RCO.PA": {
+  "ticker": "RCO.PA",
+  "identity": {
+   "figi": "BBG000BB9HW0",
+   "name": "REMY COINTREAU",
+   "ticker": "RCO",
+   "exchCode": "FP",
+   "compositeFIGI": "BBG000BB9HH7",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S5W4K9",
+   "securityType2": "Common Stock",
+   "securityDescription": "RCO"
+  },
+  "name_audit": "R\u00e9my Cointreau SA",
+  "avg_volume": "76996",
+  "special_marker": null,
+  "issuer_query": "REMY COINTREAU",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "VCT.PA": {
+  "ticker": "VCT.PA",
+  "identity": {
+   "figi": "BBG000BCGJZ3",
+   "name": "VICAT",
+   "ticker": "VCT",
+   "exchCode": "FP",
+   "compositeFIGI": "BBG000BCGJN6",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S69RG7",
+   "securityType2": "Common Stock",
+   "securityDescription": "VCT"
+  },
+  "name_audit": "Vicat S.A.",
+  "avg_volume": "45620",
+  "special_marker": null,
+  "issuer_query": "VICAT",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "BARN.SW": {
+  "ticker": "BARN.SW",
+  "identity": {
+   "figi": "BBG000C35LZ9",
+   "name": "BARRY CALLEBAUT AG-REG",
+   "ticker": "BARN",
+   "exchCode": "SW",
+   "compositeFIGI": "BBG000C35LZ9",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S6SXT9",
+   "securityType2": "Common Stock",
+   "securityDescription": "BARN"
+  },
+  "name_audit": "Barry Callebaut AG",
+  "avg_volume": "14746",
+  "special_marker": "-REG",
+  "issuer_query": "BARRY CALLEBAUT AG",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "EMSN.SW": {
+  "ticker": "EMSN.SW",
+  "identity": {
+   "figi": "BBG000SVX806",
+   "name": "EMS-CHEMIE HOLDING AG-REG",
+   "ticker": "EMSN",
+   "exchCode": "SW",
+   "compositeFIGI": "BBG000SVX806",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S9SSX9",
+   "securityType2": "Common Stock",
+   "securityDescription": "EMSN"
+  },
+  "name_audit": "EMS-CHEMIE HOLDING AG",
+  "avg_volume": "17197",
+  "special_marker": "-REG",
+  "issuer_query": "EMS-CHEMIE HOLDING AG",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "GIVN.SW": {
+  "ticker": "GIVN.SW",
+  "identity": {
+   "figi": "BBG000DB0Q75",
+   "name": "GIVAUDAN-REG",
+   "ticker": "GIVN",
+   "exchCode": "SW",
+   "compositeFIGI": "BBG000DB0Q75",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001SFDHB9",
+   "securityType2": "Common Stock",
+   "securityDescription": "GIVN"
+  },
+  "name_audit": "Givaudan SA",
+  "avg_volume": "26007",
+  "special_marker": "-REG",
+  "issuer_query": "GIVAUDAN",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "LISN.SW": {
+  "ticker": "LISN.SW",
+  "identity": {
+   "figi": "BBG000BC5J58",
+   "name": "CHOCOLADEFABRIKEN LINDT-REG",
+   "ticker": "LISN",
+   "exchCode": "SW",
+   "compositeFIGI": "BBG000BC5J58",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S68VR7",
+   "securityType2": "Common Stock",
+   "securityDescription": "LISN"
+  },
+  "name_audit": "Chocoladefabriken Lindt & Spr\u00fcngli AG",
+  "avg_volume": "176",
+  "special_marker": "-REG",
+  "issuer_query": "CHOCOLADEFABRIKEN LINDT",
+  "search_ok": true,
+  "sibling_classes": {
+   "BBG001S68VS6": [
+    {
+     "ticker": "LISP",
+     "exchCode": "XE",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "XX",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPGBP",
+     "exchCode": "XQ",
+     "desc": "LISPGBP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "EP",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPEUR",
+     "exchCode": "XW",
+     "desc": "LISPEUR",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LSPPD",
+     "exchCode": "L3",
+     "desc": "LSPPD",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPZ",
+     "exchCode": "QX",
+     "desc": "LISPZ",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPEUR",
+     "exchCode": "X2",
+     "desc": "LISPEUR",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPEUR",
+     "exchCode": "XX",
+     "desc": "LISPEUR",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "EZ",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LSPP",
+     "exchCode": "GS",
+     "desc": "LSPP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LDSVF",
+     "exchCode": "US",
+     "desc": "LDSVF",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "XV",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPEUR",
+     "exchCode": "XV",
+     "desc": "LISPEUR",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LSPPD",
+     "exchCode": "PO",
+     "desc": "LSPPD",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPGBP",
+     "exchCode": "XX",
+     "desc": "LISPGBP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPEUR",
+     "exchCode": "EP",
+     "desc": "LISPEUR",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "X9",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "XO",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPEUR",
+     "exchCode": "E1",
+     "desc": "LISPEUR",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPZ",
+     "exchCode": "TQ",
+     "desc": "LISPZ",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPZ",
+     "exchCode": "B3",
+     "desc": "LISPZ",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LSPP",
+     "exchCode": "QT",
+     "desc": "LSPP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPGBP",
+     "exchCode": "XZ",
+     "desc": "LISPGBP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPEUR",
+     "exchCode": "XO",
+     "desc": "LISPEUR",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "EU",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "X1",
+     "desc": null,
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LSPP",
+     "exchCode": "LU",
+     "desc": "LSPP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPZ",
+     "exchCode": "IX",
+     "desc": "LISPZ",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPN",
+     "exchCode": "MM",
+     "desc": "LISPN",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPZ",
+     "exchCode": "PO",
+     "desc": "LISPZ",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LSPP",
+     "exchCode": "GZ",
+     "desc": "LSPP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "1LISP",
+     "exchCode": "IM",
+     "desc": "1LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "SE",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LDSVF",
+     "exchCode": "UV",
+     "desc": "LDSVF",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "XL",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "AV",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LSPP",
+     "exchCode": "GD",
+     "desc": "LSPP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPZ",
+     "exchCode": "L3",
+     "desc": "LISPZ",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LSPPD",
+     "exchCode": "B3",
+     "desc": "LSPPD",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPZ",
+     "exchCode": "BQ",
+     "desc": "LISPZ",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISP",
+     "exchCode": "SW",
+     "desc": "LISP",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPEUR",
+     "exchCode": "EO",
+     "desc": "LISPEUR",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "LISPN",
+     "exchCode": "MF",
+     "desc": "LISPN",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    },
+    {
+     "ticker": "0QP1",
+     "exchCode": "LO",
+     "desc": "0QP1",
+     "name": "CHOCOLADEFABRIKEN LINDT-PC"
+    }
+   ],
+   "BBG01P22XQQ4": [
+    {
+     "ticker": "LISPEZ",
+     "exchCode": "S1",
+     "desc": "LISPEZ",
+     "name": "CHOCOLADEFABRIKEN LINDT-NEW"
+    },
+    {
+     "ticker": "LISPE",
+     "exchCode": "SE",
+     "desc": "LISPE",
+     "name": "CHOCOLADEFABRIKEN LINDT-NEW"
+    },
+    {
+     "ticker": "LISPE",
+     "exchCode": "SW",
+     "desc": "LISPE",
+     "name": "CHOCOLADEFABRIKEN LINDT-NEW"
+    }
+   ],
+   "BBG00K9FW6H5": [
+    {
+     "ticker": "LISN1CHF",
+     "exchCode": "XS",
+     "desc": "LISN1CHF",
+     "name": "CHOCOLADEFABRIKEN LINDT-NEW"
+    }
+   ],
+   "BBG01P1Z7SN0": [
+    {
+     "ticker": "LISNE",
+     "exchCode": "SE",
+     "desc": "LISNE",
+     "name": "CHOCOLADEFABRIKEN LINDT-NEW"
+    }
+   ],
+   "BBG00K9FZJ11": [
+    {
+     "ticker": "LISP1CHF",
+     "exchCode": "XS",
+     "desc": "LISP1CHF",
+     "name": "CHOCOLADEFABRIKEN LINDT-NEW"
+    }
+   ]
+  },
+  "sibling_yf_tests": [
+   {
+    "sym": "LISP.SW",
+    "resolved": true,
+    "name": "Chocoladefabriken Lindt & Spr\u00fcngli AG",
+    "avgVol": 3503,
+    "currency": "CHF",
+    "liquid": false,
+    "shareClassFIGI": "BBG001S68VS6"
+   },
+   {
+    "sym": "LISPE.SW",
+    "resolved": true,
+    "name": "LINDT PS 2.LINIE",
+    "avgVol": 99,
+    "currency": "CHF",
+    "liquid": false,
+    "shareClassFIGI": "BBG01P22XQQ4"
+   }
+  ],
+  "reason": "sibling class(es) on home exch but none reach 100k volume",
+  "bucket": "MULTI_NO_LIQUID"
+ },
+ "RO.SW": {
+  "ticker": "RO.SW",
+  "identity": {
+   "figi": "BBG000BCLVP1",
+   "name": "ROCHE HOLDING AG-BR",
+   "ticker": "RO",
+   "exchCode": "SW",
+   "compositeFIGI": "BBG000BCLVP1",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S6BD20",
+   "securityType2": "Common Stock",
+   "securityDescription": "RO"
+  },
+  "name_audit": "Roche Holding AG",
+  "avg_volume": "36387",
+  "special_marker": "-BR",
+  "issuer_query": "ROCHE HOLDING AG",
+  "search_ok": true,
+  "sibling_classes": {
+   "BBG020ZHBNT7": [
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "EZ",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "X2",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XH",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "EO",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XO",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XV",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "1ROG",
+     "exchCode": "IF",
+     "desc": "1ROG",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "RHOA",
+     "exchCode": "GR",
+     "desc": "RHOA",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XW",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "0QOK",
+     "exchCode": "LO",
+     "desc": "0QOK",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP",
+     "exchCode": "SE",
+     "desc": "ROP",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XQ",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XZ",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "RHOA",
+     "exchCode": "GM",
+     "desc": "RHOA",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "RHOA",
+     "exchCode": "QT",
+     "desc": "RHOA",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XT",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPZ",
+     "exchCode": "BQ",
+     "desc": "ROPZ",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XG",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XO",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XU",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XX",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "RHOA",
+     "exchCode": "GH",
+     "desc": "RHOA",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "E1",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XU",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XZ",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP",
+     "exchCode": "SW",
+     "desc": "ROP",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XF",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XV",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "X1",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "EU",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XH",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XJ",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "RHOA",
+     "exchCode": "GZ",
+     "desc": "RHOA",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP",
+     "exchCode": "BW",
+     "desc": "ROP",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "EP",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XA",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XQ",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1N",
+     "exchCode": "MU",
+     "desc": "ROP1N",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "RHHVF",
+     "exchCode": "PQ",
+     "desc": "RHHVF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "X1",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "RHOA",
+     "exchCode": "TH",
+     "desc": "RHOA",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPZ",
+     "exchCode": "IX",
+     "desc": "ROPZ",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1N",
+     "exchCode": "MF",
+     "desc": "ROP1N",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "1ROG",
+     "exchCode": "IM",
+     "desc": "1ROG",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XT",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "X2",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPZ",
+     "exchCode": "L3",
+     "desc": "ROPZ",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPZ",
+     "exchCode": "QX",
+     "desc": "ROPZ",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1N",
+     "exchCode": "MM",
+     "desc": "ROP1N",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "RHHVF",
+     "exchCode": "US",
+     "desc": "RHHVF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XF",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XY",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPZ",
+     "exchCode": "L1",
+     "desc": "ROPZ",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPZ",
+     "exchCode": "S1",
+     "desc": "ROPZ",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "RHHVF",
+     "exchCode": "UV",
+     "desc": "RHHVF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XJ",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XY",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "EP",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPZ",
+     "exchCode": "PO",
+     "desc": "ROPZ",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPZ",
+     "exchCode": "B3",
+     "desc": "ROPZ",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROGP",
+     "exchCode": "AV",
+     "desc": "ROGP",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "E1",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XW",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "EZ",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XL",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XG",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XA",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "EO",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPCHF",
+     "exchCode": "XL",
+     "desc": "ROPCHF",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "RHOA",
+     "exchCode": "GF",
+     "desc": "RHOA",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "XX",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROP1EUR",
+     "exchCode": "EU",
+     "desc": "ROP1EUR",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPZ",
+     "exchCode": "EB",
+     "desc": "ROPZ",
+     "name": "ROCHE HOLDING AG"
+    },
+    {
+     "ticker": "ROPZ",
+     "exchCode": "TQ",
+     "desc": "ROPZ",
+     "name": "ROCHE HOLDING AG"
+    }
+   ],
+   "BBG001SD12S2": [
+    {
+     "ticker": "ROGN",
+     "exchCode": "MM",
+     "desc": "ROGN",
+     "name": "ROCHE HOLDING AG-GENUSSCHEIN"
+    }
+   ]
+  },
+  "sibling_yf_tests": [
+   {
+    "sym": "ROP.SW",
+    "resolved": true,
+    "name": "Roche Holding AG",
+    "avgVol": 1018486,
+    "currency": "CHF",
+    "liquid": true,
+    "shareClassFIGI": "BBG020ZHBNT7"
+   }
+  ],
+  "bucket": "A_SELECTION"
+ },
+ "SCMN.SW": {
+  "ticker": "SCMN.SW",
+  "identity": {
+   "figi": "BBG000CWDCF8",
+   "name": "SWISSCOM AG-REG",
+   "ticker": "SCMN",
+   "exchCode": "SW",
+   "compositeFIGI": "BBG000CWDCF8",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S983J2",
+   "securityType2": "Common Stock",
+   "securityDescription": "SCMN"
+  },
+  "name_audit": "Swisscom AG",
+  "avg_volume": "89569",
+  "special_marker": "-REG",
+  "issuer_query": "SWISSCOM AG",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "SLHN.SW": {
+  "ticker": "SLHN.SW",
+  "identity": {
+   "figi": "BBG000BRJTZ5",
+   "name": "SWISS LIFE HOLDING AG-REG",
+   "ticker": "SLHN",
+   "exchCode": "SW",
+   "compositeFIGI": "BBG000BRJTZ5",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001SFPMM3",
+   "securityType2": "Common Stock",
+   "securityDescription": "SLHN"
+  },
+  "name_audit": "Swiss Life Holding AG",
+  "avg_volume": "77739",
+  "special_marker": "-REG",
+  "issuer_query": "SWISS LIFE HOLDING AG",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "VACN.SW": {
+  "ticker": "VACN.SW",
+  "identity": {
+   "figi": "BBG00CM52ZC4",
+   "name": "VAT GROUP AG",
+   "ticker": "VACN",
+   "exchCode": "SW",
+   "compositeFIGI": "BBG00CM52ZC4",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG00CM52ZD3",
+   "securityType2": "Common Stock",
+   "securityDescription": "VACN"
+  },
+  "name_audit": "VAT Group AG",
+  "avg_volume": "92318",
+  "special_marker": null,
+  "issuer_query": "VAT GROUP AG",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "VIG.VI": {
+  "ticker": "VIG.VI",
+  "identity": {
+   "figi": "BBG000BJKZH7",
+   "name": "VIENNA INSURANCE GROUP AG",
+   "ticker": "VIG",
+   "exchCode": "AV",
+   "compositeFIGI": "BBG000BJKZ32",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S6G2K9",
+   "securityType2": "Common Stock",
+   "securityDescription": "VIG"
+  },
+  "name_audit": "Vienna Insurance Group AG",
+  "avg_volume": "58701",
+  "special_marker": null,
+  "issuer_query": "VIENNA INSURANCE GROUP AG",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ },
+ "LPP.WA": {
+  "ticker": "LPP.WA",
+  "identity": {
+   "figi": "BBG000BNDZR5",
+   "name": "LPP SA",
+   "ticker": "LPP",
+   "exchCode": "PW",
+   "compositeFIGI": "BBG000BNDZK2",
+   "securityType": "Common Stock",
+   "marketSector": "Equity",
+   "shareClassFIGI": "BBG001S9TZW3",
+   "securityType2": "Common Stock",
+   "securityDescription": "LPP"
+  },
+  "name_audit": "LPP SA",
+  "avg_volume": "3986",
+  "special_marker": null,
+  "issuer_query": "LPP SA",
+  "search_ok": true,
+  "sibling_classes": {},
+  "sibling_yf_tests": [],
+  "bucket": "SINGLE_LINE"
+ }
+}
