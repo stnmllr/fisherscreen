@@ -1,0 +1,28 @@
+ticker,name,avg_volume,market_cap,currency,gross_margin,revenue_growth,sector,suffix
+GHC,Graham Holdings Company,18963,4746384896,USD,0.30153,0.06,Consumer Defensive,(US)
+LANV,Lanvin Group Holdings Limited,71746,213856976,USD,0.58162,,Consumer Cyclical,(US)
+NVR,"NVR, Inc.",25923,16431777792,USD,0.22489999,-0.214,Consumer Cyclical,(US)
+FER.AS,Ferrovial N.V.,7287,40869675008,EUR,0.87442,0.057,Industrials,AS
+COLR.BR,Colruyt Group N.V.,52472,3996616192,EUR,0.29007,0.045,Consumer Defensive,BR
+DIE.BR,D'Ieteren Group SA,76172,8576887808,EUR,0.25089002,0.034,Consumer Cyclical,BR
+MELE.BR,Melexis NV,73157,3378564608,EUR,0.38999,0.019,Technology,BR
+MAERSK-B.CO,A.P. Møller - Mærsk A/S,18687,237551501312,DKK,0.15996,-0.026,Industrials,CO
+1COV.DE,Covestro AG,14902,11320645632,EUR,0.14488,-0.137,,DE
+SIX2.DE,Sixt SE,65775,3438601216,EUR,0.63625,0.082,Industrials,DE
+CTG.L,Christie Group plc,8182,36520936,GBp,0.32775003,,Industrials,L
+GAW.L,Games Workshop Group PLC,94945,6397384704,GBp,0.7225,0.109,Consumer Cyclical,L
+ANA.MC,"Acciona, S.A.",81759,13397345280,EUR,0.69632006,-0.017,Industrials,MC
+DIA.MC,"Distribuidora Internacional de Alimentación, S.A.",37363,2166468864,EUR,0.24781,-0.043,Consumer Defensive,MC
+MF.PA,Wendel,76116,3355437312,EUR,0.11479,,Financial Services,PA
+RCO.PA,Rémy Cointreau SA,76996,1963739520,EUR,0.68144995,-0.083,Consumer Defensive,PA
+VCT.PA,Vicat S.A.,45620,2681170432,EUR,0.36078,0.012,Basic Materials,PA
+BARN.SW,Barry Callebaut AG,14746,6447656448,CHF,0.101569995,-0.073,Consumer Defensive,SW
+EMSN.SW,EMS-CHEMIE HOLDING AG,17197,16699765760,CHF,0.48496,-0.054,Basic Materials,SW
+GIVN.SW,Givaudan SA,26007,25915584512,CHF,0.43522,-0.018,Basic Materials,SW
+LISN.SW,Chocoladefabriken Lindt & Sprüngli AG,176,103405289472,CHF,0.62784,0.075,Consumer Defensive,SW
+RO.SW,Roche Holding AG,36387,253165551616,CHF,0.7449,-0.004,Healthcare,SW
+SCMN.SW,Swisscom AG,89569,33982074880,CHF,0.58134,-0.041,Communication Services,SW
+SLHN.SW,Swiss Life Holding AG,77739,23183585280,CHF,0.34651002,0.011,Financial Services,SW
+VACN.SW,VAT Group AG,92318,18525554688,CHF,0.61017,0.047,Industrials,SW
+VIG.VI,Vienna Insurance Group AG,58701,7552000000,EUR,0.15291001,0.083,Financial Services,VI
+LPP.WA,LPP SA,3986,40309932032,PLN,0.49901,0.139,Consumer Cyclical,WA
