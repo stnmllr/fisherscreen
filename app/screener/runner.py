@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
-from app.errors import DataSourceError
+from app.errors import DataSourceError, DegradedDataError
 from app.models.screener_record import ScreenerRecord
 from app.screener.filter_report import FilterReport, build_filter_report
 from app.screener.filters import apply_basis_filters, apply_edgar_filters
@@ -26,13 +26,16 @@ logger = logging.getLogger(__name__)
 class BasisFilterResult:
     """Result of the basis filter stage.
 
-    `passed` are records that survived the basis filters; `unresolved` are
-    universe symbols that yfinance could not resolve (fetch raised
-    DataSourceError / ValidationError) — the durable attrition signal.
+    `passed` survived the basis filters. `resolved` are ALL records that yfinance
+    resolved (passed + gate-failed) — gate-failed ones carry filter_failed_reason.
+    `unresolved` are symbols yfinance could not resolve at all (the attrition
+    signal); `degraded` is the subset of `unresolved` that raised DegradedDataError.
     """
 
     passed: list[ScreenerRecord] = field(default_factory=list)
     unresolved: list[str] = field(default_factory=list)
+    resolved: list[ScreenerRecord] = field(default_factory=list)
+    degraded: list[str] = field(default_factory=list)
 
 
 def _resolve_market_cap_eur(
@@ -65,6 +68,7 @@ def run_basis_filter(
 
     records: list[ScreenerRecord] = []
     unresolved: list[str] = []
+    degraded: list[str] = []
     fx_cache: dict[str, float] = {}
     for ticker in tickers:
         try:
@@ -72,6 +76,10 @@ def run_basis_filter(
             record = ScreenerRecord.from_yfinance_info(ticker, info)
             record.market_cap_eur = _resolve_market_cap_eur(record, yfinance, fx_cache)
             records.append(record)
+        except DegradedDataError as exc:  # MUST precede DataSourceError (subclass)
+            logger.warning("ticker=%s degraded dict: %s", ticker, exc)
+            unresolved.append(ticker)
+            degraded.append(ticker)
         except (DataSourceError, ValidationError) as exc:
             logger.warning("ticker=%s data fetch failed: %s", ticker, exc)
             unresolved.append(ticker)
@@ -91,7 +99,12 @@ def run_basis_filter(
             unresolved,
         )
 
-    return BasisFilterResult(passed=apply_basis_filters(records), unresolved=unresolved)
+    return BasisFilterResult(
+        passed=apply_basis_filters(records),
+        unresolved=unresolved,
+        resolved=records,
+        degraded=sorted(degraded),
+    )
 
 
 def _evaluate_edgar(records: list[ScreenerRecord], edgar: EdgarClient) -> None:

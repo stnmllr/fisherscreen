@@ -1,9 +1,9 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from app.errors import DataSourceError
+from app.errors import DataSourceError, DegradedDataError
 from app.models.run_record import RunRecord
-from app.screener.runner import run_basis_filter
+from app.screener.runner import BasisFilterResult, run_basis_filter
 from app.services.gemini_client import GeminiScoreResult
 
 _FX_USD_EUR = 0.92  # approximate USD → EUR rate for tests
@@ -213,6 +213,28 @@ def test_run_basis_filter_emits_aggregate_warning_with_count(caplog):
     msg = aggregate[0].getMessage()
     assert "2/3" in msg
     assert "FAIL1" in msg and "FAIL2" in msg
+
+
+class _FunnelYF:
+    """Resolves GOOD; raises DegradedDataError for DEGR; DataSourceError for GONE."""
+    def get_ticker_info(self, ticker):
+        if ticker == "DEGR":
+            raise DegradedDataError("degraded")
+        if ticker == "GONE":
+            raise DataSourceError("404")
+        return {"shortName": ticker, "marketCap": 5e9, "averageVolume": 5e5,
+                "currency": "EUR", "grossMargins": 0.5, "revenueGrowth": 0.1,
+                "sector": "Technology"}
+    def get_fx_rate(self, currency):
+        return 1.0
+
+
+def test_basis_result_splits_degraded_from_unresolved():
+    result = run_basis_filter(["GOOD", "DEGR", "GONE"], _FunnelYF())
+    assert result.degraded == ["DEGR"]
+    assert set(result.unresolved) == {"DEGR", "GONE"}  # unresolved = all that failed resolution
+    assert [r.ticker for r in result.resolved] == ["GOOD"]
+    assert [r.ticker for r in result.passed] == ["GOOD"]
 
 
 def test_run_basis_filter_no_aggregate_warning_when_all_resolve(caplog):
