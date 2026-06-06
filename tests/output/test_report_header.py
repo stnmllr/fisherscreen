@@ -31,3 +31,10 @@ def test_header_graceful_without_provenance():
     s.provenance = None
     out = render_header(s, run_month="2026-06")
     assert "nicht erfasst" in out        # graceful fallback
+
+
+def test_stage_label_map_covers_all_stages():
+    from app.output.report_header import _STAGE_LABEL
+    from app.screener.funnel import Stage
+    assert set(_STAGE_LABEL.keys()) == set(Stage), \
+        "_STAGE_LABEL must have an entry for every Stage enum member"
