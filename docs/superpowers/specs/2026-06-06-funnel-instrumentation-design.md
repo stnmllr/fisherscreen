@@ -55,6 +55,13 @@ Jeder Code hat **genau eine** Emit-Stelle. Mapping 1:1 zum tatsächlichen
   Phase 1 trennt nur `DEGRADED_DICT` (sauber abgrenzbar, Regressions-Tripwire)
   vs. `UNRESOLVED`. `DELISTED` vs. `UNCLEAR` = eigenes Ticket (bräuchte
   zusätzlichen `get_historical`-Probe-Call) → bewusst nicht hier.
+  **Tripwire-Baseline (kalibriert am Gate-A-Cold-Run 2026-06-06):** `DEGRADED_DICT`
+  ist **nicht** ~0 — die 5 bekannten UNCLEAR (AMS.VI, RIGN.SW, ROL.L, SANO.HE,
+  SCHA.OL) scheitern technisch genau über den Degraded-Dict-Pfad und sind die
+  erwartete Baseline. Der Tripwire ist **mengen-basiert, nicht zähl-basiert**:
+  Alarm bei einem **neuen oder veränderten** Eintrag gegenüber dieser Baseline,
+  nicht bei `count > 0`. (Punkt 0a/0b dieses Folge-Tickets können die Baseline
+  verkleinern, sobald Symbolfehler bereinigt sind.)
 - Scoring: Gemini-Ausfall (`SCORE_NOT_SCORED`) ist strukturell vom niedrigen
   Score (`SCORE_BELOW_THRESHOLD`) getrennt — ein Ausfall darf nicht als
   „niedrige Qualität" maskieren.
@@ -162,7 +169,7 @@ sinnvolle Bruttomarge → ohne Ausschluss feuert REVIEW jeden Lauf deterministis
 | `GATE_GROSS_MARGIN` | `sector_wide` (s.u.) | REVIEW, sonst BENIGN |
 | `GATE_MARKET_CAP` | — | BENIGN (zu klein = erwartet) |
 | `GATE_GOING_CONCERN` / `GATE_ENFORCEMENT` / `GATE_RESTATEMENT` | — | BENIGN (gewollte Ausschlüsse) |
-| `RESOLUTION_DEGRADED_DICT` | immer | REVIEW (Regressions-Tripwire, muss ~0) |
+| `RESOLUTION_DEGRADED_DICT` | immer | REVIEW (Regressions-Tripwire; Baseline = 5 bekannte UNCLEAR, Alarm bei neuem/verändertem Eintrag — NICHT „count muss ~0") |
 | `RESOLUTION_UNRESOLVED` | — | BENIGN (Phase 2: REVIEW bei Major-Index-Mitglied) |
 | `SCORE_BELOW_THRESHOLD` | — | BENIGN |
 | `SCORE_NOT_SCORED` | immer | REVIEW (Scoring-Ausfall ≠ Qualitätsurteil) |
