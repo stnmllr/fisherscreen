@@ -464,8 +464,8 @@ def test_run_filter_preview_has_no_gemini_parameter():
     from app.screener.runner import run_filter_preview
 
     params = inspect.signature(run_filter_preview).parameters
-    assert "gemini" not in params
-    assert set(params) == {"tickers", "yfinance", "edgar"}
+    assert "gemini" not in params           # structurally cannot score — unchanged invariant
+    assert set(params) == {"tickers", "yfinance", "edgar", "output_dir", "run_month"}
 
 
 # --- run_screener ---
@@ -521,7 +521,25 @@ def test_run_screener_returns_records_run_record_and_paths(tmp_path):
 
     assert isinstance(records, list)
     assert isinstance(run_record, RunRecord)
-    assert len(paths) == 3
+    assert len(paths) == 5  # 3 markdown + funnel_summary.json + dropouts.csv
+
+
+def test_run_screener_writes_funnel_artifacts(tmp_path):
+    from app.screener.runner import run_screener
+    yfinance, edgar, gemini, tracker = _full_mock_suite()
+
+    _, _, paths = run_screener(
+        tickers=["AAPL"],
+        yfinance=yfinance,
+        edgar=edgar,
+        gemini=gemini,
+        run_tracker=tracker,
+        output_dir=tmp_path,
+    )
+
+    names = {p.name for p in paths}
+    assert "2026-05-funnel_summary.json" in names
+    assert "2026-05-dropouts.csv" in names
 
 
 def test_run_screener_creates_three_named_output_files(tmp_path):

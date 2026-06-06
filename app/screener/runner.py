@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -20,6 +22,17 @@ if TYPE_CHECKING:
     from app.services.yfinance_client import YFinanceClient
 
 logger = logging.getLogger(__name__)
+
+
+def _load_provenance() -> dict | None:
+    path = Path(__file__).parent.parent.parent / "data" / "universe_provenance.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        logger.warning("provenance: could not read %s", path)
+        return None
 
 
 @dataclass
@@ -149,9 +162,15 @@ def run_filter_preview(
     tickers: list[str],
     yfinance: YFinanceClient,
     edgar: EdgarClient,
+    *,
+    output_dir: Path | None = None,
+    run_month: str | None = None,
 ) -> FilterReport:
     """Free ($0) filters-only preview: basis + EDGAR filters, no Gemini, no
-    run-tracker, no output. Returns a FilterReport for dry-run visibility."""
+    run-tracker. Emits funnel artifacts (stages through EDGAR) when output_dir
+    is given — for cold-run visibility."""
+    from app.config import settings
+
     basis = run_basis_filter(tickers, yfinance)
     records = basis.passed
     _evaluate_edgar(records, edgar)
@@ -164,6 +183,17 @@ def run_filter_preview(
         len(report.going_concern_drops),
         report.total_skipped(),
     )
+    if output_dir is not None:
+        from app.output.funnel_artifacts import write_funnel_artifacts
+        from app.screener.funnel import build_funnel
+        month = run_month or datetime.now(timezone.utc).strftime("%Y-%m")
+        summary, dropouts = build_funnel(
+            universe=tickers, basis=basis, scored=None,
+            score_threshold=settings.crosshits_score_threshold,
+            crosshits_min_dimensions=settings.crosshits_min_dimensions,
+            provenance=_load_provenance(),
+        )
+        write_funnel_artifacts(summary, dropouts, output_dir, month)
     return report
 
 
@@ -189,16 +219,31 @@ def run_screener(
     min_dims = crosshits_min_dimensions if crosshits_min_dimensions is not None else settings.crosshits_min_dimensions
     cap = crosshits_cap if crosshits_cap is not None else settings.crosshits_cap
 
-    records = run_basis_filter(tickers, yfinance).passed
-    records = run_edgar_filter(records, edgar)
-    records = run_gemini_scoring(records, gemini, run_tracker)
+    from app.output.funnel_artifacts import write_funnel_artifacts
+    from app.output.report_header import render_header
+    from app.screener.funnel import build_funnel
+
+    basis = run_basis_filter(tickers, yfinance)
+    edgar_passed = run_edgar_filter(basis.passed, edgar)
+    scored = run_gemini_scoring(edgar_passed, gemini, run_tracker)
     run_record = run_tracker.finish()
+    run_month = run_record.run_id[:7]
+
+    summary, dropouts = build_funnel(
+        universe=tickers, basis=basis, scored=scored,
+        score_threshold=threshold, crosshits_min_dimensions=min_dims,
+        provenance=_load_provenance(),
+    )
+    funnel_paths = write_funnel_artifacts(summary, dropouts, output_dir, run_month)
+    header = render_header(summary, run_month)
 
     paths = [
-        generate_dimensions(records, run_record, output_dir, score_threshold=threshold, cap=cap),
-        generate_crosshits(records, run_record, output_dir, score_threshold=threshold, min_dimensions=min_dims, cap=cap),
-        generate_changes(records, run_record, output_dir, score_threshold=threshold, cap=cap),
+        generate_dimensions(scored, run_record, output_dir, score_threshold=threshold, cap=cap),
+        generate_crosshits(scored, run_record, output_dir, score_threshold=threshold,
+                           min_dimensions=min_dims, cap=cap, header=header),
+        generate_changes(scored, run_record, output_dir, score_threshold=threshold, cap=cap),
+        *funnel_paths,
     ]
 
-    logger.info("run_screener: complete — %d records, %d output files", len(records), len(paths))
-    return records, run_record, paths
+    logger.info("run_screener: complete — %d records, %d output files", len(scored), len(paths))
+    return scored, run_record, paths
