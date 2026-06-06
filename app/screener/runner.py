@@ -26,8 +26,10 @@ logger = logging.getLogger(__name__)
 class BasisFilterResult:
     """Result of the basis filter stage.
 
-    `passed` survived the basis filters. `resolved` are ALL records that yfinance
-    resolved (passed + gate-failed) — gate-failed ones carry filter_failed_reason.
+    `passed` survived the basis filters. `resolved` contains every record
+    successfully constructed from yfinance data (a subset of the input universe:
+    basis-passed + gate-failed); gate-failed ones carry filter_failed_reason.
+    Symbols that failed resolution are in `unresolved`, not here.
     `unresolved` are symbols yfinance could not resolve at all (the attrition
     signal); `degraded` is the subset of `unresolved` that raised DegradedDataError.
     """
