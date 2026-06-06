@@ -18,8 +18,8 @@ werden — die rehabilitierten Titel laufen dann auf **echten** Daten durch die 
 
 Gate-A-Cold-Dry-Run (`output/Universum/2026-06-dropouts.csv`): **29 Leer-`market_cap`-Drops**.
 5 = bekannte DEGRADED_DICT/UNCLEAR (AMS.VI, RIGN.SW, ROL.L, SANO.HE, SCHA.OL — Punkt 0a
-fasst sie **nicht** an). Die übrigen **24** sind maskierte `GATE_VOLUME`-BENIGN-Kontaminanten
-über **mehrere** Suffixe:
+fasst sie **nicht** an). Die übrigen **24** maskierten `GATE_VOLUME`-BENIGN-Drops =
+**23 Kontaminanten + 1 echte Leiche (SKY.L)** über **mehrere** Suffixe:
 
 | Suffix | Symbole (Leer-market_cap, GATE_VOLUME-BENIGN) |
 |---|---|
@@ -49,8 +49,10 @@ die Probe (Schritt 1), nicht vorab festgenagelt.
 
 Skript `scripts/diagnose_symbol_contaminants.py` (Diagnose-Probe, kein Produktiv-Code):
 
-1. **Enumerieren:** über **alle suffixierten (nicht-US) Symbole** aus `data/universe.json`
-   (US-S&P-Ticker durchlaufen keine Index→Suffix-Mappung → sauber) yfinance `.info` proben.
+1. **Enumerieren:** über das **ganze Universum inkl. US** aus `data/universe.json` yfinance
+   `.info` proben. US vorab rauszuscopen würde den FR-only-Fehler eine Ebene tiefer
+   wiederholen („US ist sauber" = unverifizierte Annahme). Die Probe ist $0 → den
+   US-sauber-Befund **bestätigen** statt annehmen (billige Versicherung).
 2. **Klassifizieren (Probe ist der Schiedsrichter, mit Robustheit — Punkt 3):**
    - `quoteType != "EQUITY"` (z. B. MUTUALFUND) → **bestätigter Kontaminant**.
    - `.info` leer/transient (yfinance-Schluckauf) → **INCONCLUSIVE**: Retry mit Backoff
@@ -58,16 +60,35 @@ Skript `scripts/diagnose_symbol_contaminants.py` (Diagnose-Probe, kein Produktiv
      markieren, **nicht** automatisch als Kontaminant in die Map backen.
    - EQUITY mit `marketCap` → sauber (kein Kontaminant; ein EQUITY mit echt fehlendem
      Volumen ist Punkt 1, nicht 0a).
-3. **Kandidat bestimmen — kuratiert/autoritativ, NICHT geraten (Punkt 2):** Das korrekte
-   Yahoo-Symbol kommt aus einer autoritativen Quelle — ISIN→Ticker via OpenFIGI (die
-   Index-/iShares-Holdings tragen ISINs) **oder** von Stephan kuratiert. Die Probe
-   **verifiziert** den Kandidaten nur: löst als `EQUITY` auf **und** `longName`/`shortName`
-   passt zur erwarteten Firma. Kein algorithmisches Raten aus dem Firmennamen.
+3. **Kandidat bestimmen — ISIN-verankert (Punkt 2, verbindlich):** Der **Anker ist die
+   ISIN**, nicht der Ticker-String — die ISIN (aus den iShares-/Index-Holdings) ist der
+   autoritative Schlüssel, auf den der Build eigentlich hätte joinen sollen. Vorgehen für
+   die ~23 Kontaminanten: ISIN des Kontaminanten in den Holdings nachschlagen → Yahoo-Symbol
+   mit **derselben ISIN** → Probe bestätigt **ISIN-Gleichheit**. „Kuriert" heißt
+   ISIN-nachgeschlagen, **nicht** „tippen, was man für das Symbol hält" (das wäre wieder
+   Raten wie DANO=Danaher).
+   - **Verifikations-Anker = ISIN-Gleichheit**, nicht Name. Wo yfinance die ISIN im `.info`
+     ausgibt, ist ISIN-Match der Schiedsrichter; `longName`/`shortName`-Match ist nur
+     **Fallback** (fuzzy: „Air Liquide" vs. „L'Air Liquide S.A.").
+   - **Werkzeug offen, Anker fest:** OpenFIGI ist für 0a **nicht** verbindlich (neue
+     Abhängigkeit + Mehrfach-Listing-Ambiguität + Symbol-Konstruktion bleibt; für einen
+     23-Posten-Einmal-Fix nicht gerechtfertigt). ISIN-Keying an der **Wurzel**
+     (`build_universe` joint künftig auf ISIN statt Ticker) ist der eigentliche
+     Root-Cause-Fix — **separat und größer, nicht 0a**.
 4. **Output:** verifizierte Tabelle `{kontaminiert → korrekt | DROP}` (DROP für echte
    Leichen ohne handelbares Äquivalent) + die INCONCLUSIVE-Liste → **Stephan zur Abnahme,
    bevor irgendetwas hartkodiert wird.** Begründung: die read-only-Voruntersuchung lag
    mehrfach daneben (DANO=Danone ≠ Danaher; AIRP=Air Liquide ≠ Airbus; SGOB=Saint-Gobain
-   ≠ SocGen) — die Probe + Stephans Abnahme sind der Schiedsrichter.
+   ≠ SocGen) — Probe + ISIN-Match + Stephans Abnahme sind der Schiedsrichter.
+
+### Schritt-1 → Schritt-2-Gate (blockierend)
+
+Übergang zu Schritt 2 **nur bei null ungelösten INCONCLUSIVEs**. Jedes Symbol ist am Ende
+von Schritt 1 entweder **korrigiert**, **gedroppt** oder **bewusst aufgeschoben und
+namentlich gelistet** (z. B. yfinance dauerhaft flakig). Ein nicht aufgelöstes INCONCLUSIVE
+bleibt unverändert im Universum → produziert weiter einen Leer-`market_cap`-Drop → würde die
+Acceptance „keine Leer-`market_cap`-Drops mehr" verletzen. Daher: die Acceptance-Formel nimmt
+die **namentlich gelisteten Aufgeschobenen** explizit aus (s. Acceptance).
 
 > Service-Layer-Regel (CLAUDE.md): Die Probe nutzt den `yfinance_client`-Wrapper, **oder**
 > ist explizit als Diagnose-Probe ausgenommen (wie `scripts/trigger_cold_dry_run.py`).
@@ -127,18 +148,26 @@ beide Pfade** (offline-Regenerierung + Live-Build).
 
 ## Acceptance (Funnel, $0-Cold-Dry-Run, vorher/nachher) — als Zahl, nicht vage
 
-Aus der verifizierten Schritt-1-Tabelle ergibt sich der **erwartete Delta** vor dem Lauf:
+Aus der verifizierten Schritt-1-Tabelle ergibt sich der **erwartete Delta** vor dem Lauf
+(alle Zahlen werden im Plan **nach Schritt 1** als exakte Werte eingetragen, nicht vage):
 
+- **Bookkeeping (sauber trennen):** Die 24 Nicht-DEGRADED-Leer-`market_cap`-Drops = **23
+  Kontaminanten + 1 echte Leiche (SKY.L)**. SKY zählt als **DROP**, nicht als Kontaminant —
+  sonst Doppelzählung in N.
 - **Universum-Count:** `1332 → 1332 − N`, mit `N = #Twin-Kollaps (remap auf bereits
-  vorhandenes Symbol) + #DROP`. Der konkrete Wert von N steht **nach Schritt 1 fest** und
-  wird im Plan/Acceptance als exakte Zahl notiert (nicht „sinkt um die Dubletten").
+  vorhandenes Symbol) + #DROP`. (Reine Remaps auf ein noch *nicht* vorhandenes Symbol senken
+  den Count nicht — sie ersetzen 1:1.)
+- **Survivor-Count (die eigentliche Erfolgsmetrik):** `687 → 687 + M`. Der Witz der Übung
+  ist, dass rehabilitierte Megacaps jetzt auf **echten** Daten durch die Gates laufen und
+  einige bis Scoring durchkommen — `M > 0` belegt, dass echte Kandidaten **zurückgeholt**
+  wurden, statt nur umetikettiert. M wird nach Schritt 1 prognostiziert und am Lauf geprüft.
 - **REVIEW-Count-Prognose:** Die maskierten Kontaminanten verschwinden aus
   `GATE_VOLUME`-BENIGN; ein Teil der rehabilitierten Titel landet **legitim** in REVIEW
   (großer Titel, echte Daten, scheitert an Volumen/rev_growth) — kein Bug, korrektes Signal.
-  Die ungefähre Vorher/Nachher-REVIEW-Verschiebung wird **nach Schritt 1 vorhergesagt** und
-  am Lauf gegengeprüft (macht es zu einem echten Gate).
-- **Keine** `.PA`/sonstigen Leer-`market_cap`-Drops mehr (außer den 5 DEGRADED_DICT und
-  `SKY.L`-Klasse-Leichen, falls noch im Universum — die sind separater Cleanup).
+  Vorher/Nachher-REVIEW-Verschiebung wird nach Schritt 1 vorhergesagt und am Lauf geprüft.
+- **Keine** Leer-`market_cap`-Drops mehr — **außer** den 5 DEGRADED_DICT, der `SKY.L`-Klasse
+  und den **namentlich gelisteten aufgeschobenen INCONCLUSIVEs** (Schritt-1-Gate). Diese
+  Ausnahmen sind explizit aufgezählt, nicht implizit.
 - **Reconciliation (Erhaltungssatz) hält** weiterhin: `|Universum| == Σ Drops + übrig`.
 
 ---
