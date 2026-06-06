@@ -79,7 +79,6 @@ def test_records_without_gemini_dimensions_are_excluded(tmp_path):
 
 
 def test_header_injected_after_title(tmp_path):
-    from app.output.crosshits_generator import generate
     records = []
     path = generate(records, _run_record(), tmp_path,
                     score_threshold=4.0, min_dimensions=2,

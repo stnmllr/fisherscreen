@@ -69,7 +69,7 @@ def _build_body(
 ) -> str:
     lines = [f"# Universum {run_month} — Crosshits", ""]
     if header:
-        lines += [header, ""]
+        lines += [header.rstrip("\n"), ""]
     lines += [
         f"*Schwelle: Score ≥{score_threshold} in ≥{min_dimensions} Dimensionen*",
         "",
