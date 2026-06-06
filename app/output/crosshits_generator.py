@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from app.screener.dimensions import DIMENSIONS
+from app.screener.dimensions import qualifying_dimensions
 
 if TYPE_CHECKING:
     from app.models.run_record import RunRecord
@@ -46,9 +46,9 @@ def _compute_crosshits(
 ) -> list[dict]:
     result = []
     for record in scored:
-        dims = record.gemini_dimensions or {}
-        qualifying = [d for d in DIMENSIONS if dims.get(d, 0) >= score_threshold]
+        qualifying = qualifying_dimensions(record, score_threshold)
         if len(qualifying) >= min_dimensions:
+            dims = record.gemini_dimensions or {}
             avg = sum(dims.get(d, 0) for d in qualifying) / len(qualifying)
             result.append({
                 "record": record,
