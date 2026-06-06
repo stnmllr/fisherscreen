@@ -457,6 +457,50 @@ def test_run_filter_preview_propagates_unresolved_into_report():
     assert payload["yfinance_unresolved"] == {"count": 1, "tickers": ["GHOST"]}
 
 
+def test_run_filter_preview_writes_funnel_artifacts_when_output_dir_given(tmp_path):
+    import json
+
+    from app.screener.runner import run_filter_preview
+
+    mock_yf = _make_yf_mock({**_PASSING_INFO, "sector": "Technology"})
+    mock_edgar = _clean_edgar_mock()
+    mock_edgar.get_cik.return_value = "0000320193"
+
+    run_filter_preview(
+        ["BIGC"], mock_yf, mock_edgar, output_dir=tmp_path, run_month="2026-06"
+    )
+
+    summary_path = tmp_path / "Universum" / "2026-06-funnel_summary.json"
+    dropouts_path = tmp_path / "Universum" / "2026-06-dropouts.csv"
+    assert summary_path.exists()
+    assert dropouts_path.exists()
+
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    stages = {s["stage"]: s for s in payload["stages"]}
+
+    assert "scoring" in stages
+    assert stages["scoring"]["ran"] is False  # dry-run: scored=None
+    assert "crosshits" in stages
+    assert stages["crosshits"]["ran"] is False
+
+
+def test_run_filter_preview_writes_nothing_without_output_dir(tmp_path):
+    from app.screener.filter_report import FilterReport
+    from app.screener.runner import run_filter_preview
+
+    mock_yf = _make_yf_mock({**_PASSING_INFO, "sector": "Technology"})
+    mock_edgar = _clean_edgar_mock()
+    mock_edgar.get_cik.return_value = "0000320193"
+
+    report = run_filter_preview(["BIGC"], mock_yf, mock_edgar)
+
+    assert isinstance(report, FilterReport)
+    # No output_dir → no funnel artifacts written anywhere under tmp_path.
+    assert not (tmp_path / "Universum").exists()
+    assert list(tmp_path.rglob("*-funnel_summary.json")) == []
+    assert list(tmp_path.rglob("*-dropouts.csv")) == []
+
+
 def test_run_filter_preview_has_no_gemini_parameter():
     # Structurally cannot score: the signature must not accept a gemini client.
     import inspect
