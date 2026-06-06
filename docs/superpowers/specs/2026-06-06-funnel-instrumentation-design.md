@@ -169,12 +169,48 @@ sinnvolle Bruttomarge → ohne Ausschluss feuert REVIEW jeden Lauf deterministis
 
 ### `sector_wide`-Logik (Verfeinerung B, sektor-bewusst)
 
+**Vorbedingung (verifiziert):** Basis-Gates short-circuiten — `_get_fail_reason`
+(`filters.py:41-50`) gibt beim ersten Fehler zurück, genau **ein**
+`filter_failed_reason` pro Record, Reihenfolge volume→market_cap→gross_margin
+→revenue_growth. Hielte das nicht (mehrere Gründe pro Record), wäre die
+Nenner-Herleitung falsch → STOP/BLOCKED. Hält.
+
+**Nenner-Korrektur:** Der Nenner ist **nicht** „alle aufgelösten Records im
+Sektor". Ein Titel, der schon an volume/market_cap scheitert, erreicht den
+gross_margin-Gate nie und kann nie als `GATE_GROSS_MARGIN`-Drop auftauchen —
+steckte er im Nenner, wäre der Anteil systematisch zu niedrig und `sector_wide`
+feuerte zu selten. Korrekter Nenner = Records im Sektor, die den Margin-Gate
+**erreicht** haben:
+
+```
+reached_margin(sektor) =
+    basis_passed-Records im Sektor
+  + Drops im Sektor mit reason_code ∈ {GATE_GROSS_MARGIN, GATE_REVENUE_GROWTH}
+```
+
+(revenue_growth liegt **nach** gross_margin → ein revenue_growth-Drop hat den
+Margin-Gate passiert. volume-/market_cap-Drops haben ihn nicht erreicht und
+fallen aus dem Nenner.)
+
 Für `GATE_GROSS_MARGIN`:
-- Wenn `gics_sector in SECTORS_WITHOUT_GROSS_MARGIN` → Drop bleibt **BENIGN**,
-  `sector_wide`-Flag wird **nicht** gesetzt (sonst Dauerrauschen).
-- Sonst: `sector_wide = True`, wenn im selben Sektor
-  `Anteil(gross_margin-Drops) >= SECTOR_WIDE_FRACTION` **und**
-  `Sektor-Größe (aufgelöste Records) >= SECTOR_WIDE_MIN_SIZE` → REVIEW.
+```python
+if gics_sector in SECTORS_WITHOUT_GROSS_MARGIN:
+    sector_wide = False                      # BENIGN, kein Rauschen
+else:
+    n = count(reached_margin im Sektor)
+    m = count(GATE_GROSS_MARGIN-Drops im Sektor)
+    sector_wide = (n >= SECTOR_WIDE_MIN_SIZE) and (n > 0) \
+                  and (m / n >= SECTOR_WIDE_FRACTION)
+```
+
+Division-Guard: `n == 0` → `sector_wide = False` (kein ZeroDivision).
+
+**Gewollter Nebeneffekt:** `SECTOR_WIDE_MIN_SIZE = 5` greift jetzt auf den
+reached-Gate-Nenner, nicht auf alle aufgelösten Records → der Floor schützt
+Sektoren, in denen fast alles schon vor dem Margin-Gate rausfiel, vor
+Rausch-REVIEW. MIN_SIZE ist damit wieder wirksam, nicht inert. Alles aus der
+vorhandenen `resolved`-Liste ableitbar; kein Gate angefasst, betroffen ist nur
+`severity_bucket`.
 
 > **STOP/BLOCKED — nicht in dieser Phase:** Die `GATE_GROSS_MARGIN` selbst läuft
 > weiterhin **unverändert auf alle Sektoren**. Ob sie für Financials/Real Estate
@@ -263,6 +299,33 @@ TDD, alle Unit-Tests offline (Fixtures/DI-Mocks, kein Netz):
   B) berührt ausschließlich `severity_bucket`.
 - `DegradedDataError`-Trennung: degraded → `DEGRADED_DICT`, sonst `UNRESOLVED`.
 - Header-Render, CSV-Format, `build_universe`-Provenienz-Sidecar.
+
+### Erhaltungssatz-Test (Reconciliation-Invariante) — wichtigster Test
+
+Garantiert „**kein Record zählt still als nichts**" — die Bug-Klasse, die
+`GATE_MARKET_CAP`/`GATE_RESTATEMENT` überhaupt erst nötig machte.
+
+Synthetisches Universum-Fixture mit bekanntem Endzustand jedes Tickers.
+Invariante über den `build_funnel`-Output, **stufen-bewusst** (reconciliert nur
+bis zur letzten tatsächlich gelaufenen Stufe; im Dry-Run `scored=None` →
+Scoring/Crosshit ausgeklammert):
+
+```
+|Universum| == Σ(Drops über alle gelaufenen Stufen)
+             + |am Ende noch passierende Records|
+               (Crosshits; im Dry-Run die am EDGAR-Ende Übrigen)
+```
+
+Zusätzliche Assertions:
+- Jeder `Dropout.ticker` ist Mitglied des Ausgangs-Universums.
+- Jeder Ticker hat **höchstens einen** Dropout (keine Doppelzählung).
+- `Menge(gedroppte) ∩ Menge(passierende) == ∅` (disjunkt).
+- Pass-Through-Records (`edgar_skipped`: `no_cik`/`data_source_error`) sind
+  **nicht** in der Drop-Menge und tauchen in der nachgelagerten „übrig"-Zahl auf.
+
+Empfehlung: parametrisierter/Property-Test, der bei jedem künftig **fehlenden**
+`reason_code`-Emitter automatisch bricht (Universum-Summe geht dann nicht mehr
+auf).
 
 Produktiv-Code an `backend-developer` / `qa-engineer`-Subagents delegiert;
 Claude Code orchestriert. Subagent-Commit-Hygiene: nach jedem Subagent
