@@ -47,8 +47,9 @@ def run_monthly(dry_run: bool = False) -> dict[str, Any]:
     edgar = build_edgar_pipeline()
 
     if dry_run:
-        report = run_filter_preview(tickers, yfinance, edgar)
-        logger.info("monthly run: free dry-run (filters only, $0) — no Gemini, no GitHub push")
+        output_dir = Path(settings.output_dir)
+        report = run_filter_preview(tickers, yfinance, edgar, output_dir=output_dir)
+        logger.info("monthly run: free dry-run (filters only, $0) — funnel artifacts written, no Gemini/GitHub")
         return {"dry_run": True, **report.to_dict()}
 
     gemini = build_gemini_pipeline()

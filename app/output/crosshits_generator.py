@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from app.screener.dimensions import DIMENSIONS
+from app.screener.dimensions import qualifying_dimensions
 
 if TYPE_CHECKING:
     from app.models.run_record import RunRecord
@@ -21,6 +21,7 @@ def generate(
     score_threshold: float = 4.0,
     min_dimensions: int = 2,
     cap: int = 50,
+    header: str | None = None,
 ) -> Path:
     output_dir = output_dir / "Universum"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -31,7 +32,7 @@ def generate(
     scored = [r for r in records if r.gemini_dimensions is not None]
     crosshits = _compute_crosshits(scored, score_threshold, min_dimensions, cap)
 
-    body = _build_body(crosshits, run_month, score_threshold, min_dimensions)
+    body = _build_body(crosshits, run_month, score_threshold, min_dimensions, header)
     out_path.write_text(body, encoding="utf-8")
 
     logger.info("crosshits: wrote %s (%d crosshits)", out_path.name, len(crosshits))
@@ -46,9 +47,9 @@ def _compute_crosshits(
 ) -> list[dict]:
     result = []
     for record in scored:
-        dims = record.gemini_dimensions or {}
-        qualifying = [d for d in DIMENSIONS if dims.get(d, 0) >= score_threshold]
+        qualifying = qualifying_dimensions(record, score_threshold)
         if len(qualifying) >= min_dimensions:
+            dims = record.gemini_dimensions or {}
             avg = sum(dims.get(d, 0) for d in qualifying) / len(qualifying)
             result.append({
                 "record": record,
@@ -64,10 +65,12 @@ def _build_body(
     run_month: str,
     score_threshold: float,
     min_dimensions: int,
+    header: str | None = None,
 ) -> str:
-    lines = [
-        f"# Universum {run_month} — Crosshits",
-        "",
+    lines = [f"# Universum {run_month} — Crosshits", ""]
+    if header:
+        lines += [header.rstrip("\n"), ""]
+    lines += [
         f"*Schwelle: Score ≥{score_threshold} in ≥{min_dimensions} Dimensionen*",
         "",
     ]

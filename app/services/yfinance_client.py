@@ -2,7 +2,7 @@ from typing import Any, Protocol
 
 import yfinance as yf
 
-from app.errors import DataSourceError
+from app.errors import DataSourceError, DegradedDataError
 from app.models.deep_dive_record import ForwardEstimates
 
 
@@ -56,7 +56,7 @@ class YFinanceClientImpl:
         # no identity/valuation). Treat "no name and no marketCap" as unresolved
         # so it surfaces as attrition instead of a generic missing-field drop.
         if not (data.get("shortName") or data.get("longName") or data.get("marketCap")):
-            raise DataSourceError(f"yfinance returned degraded info for {ticker}")
+            raise DegradedDataError(f"yfinance returned degraded info for {ticker}")
         return data
 
     def get_historical(self, ticker: str, period: str) -> Any:

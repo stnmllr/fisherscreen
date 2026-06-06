@@ -3,9 +3,22 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from app.errors import DataSourceError
+from app.errors import DataSourceError, DegradedDataError
 from app.models.deep_dive_record import ForwardEstimates
 from app.services.yfinance_client import YFinanceClientImpl
+
+
+def test_degraded_dict_raises_degraded_data_error():
+    client = YFinanceClientImpl()
+    with patch("app.services.yfinance_client.yf.Ticker") as mock_ticker:
+        mock_ticker.return_value.info = {"symbol": "ZZZZ", "exchange": "NMS"}
+        with pytest.raises(DegradedDataError):
+            client.get_ticker_info("ZZZZ")
+
+
+def test_degraded_data_error_is_data_source_error():
+    # Subclass invariant: all existing `except DataSourceError` must still catch it.
+    assert issubclass(DegradedDataError, DataSourceError)
 
 
 def _estimate_frame(growth_by_period):

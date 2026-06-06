@@ -76,3 +76,16 @@ def test_records_without_gemini_dimensions_are_excluded(tmp_path):
     ]
     path = generate(records, _run_record(), tmp_path, score_threshold=4.0, min_dimensions=2)
     assert "UNSCORED" not in path.read_text(encoding="utf-8")
+
+
+def test_header_injected_after_title(tmp_path):
+    records = []
+    path = generate(records, _run_record(), tmp_path,
+                    score_threshold=4.0, min_dimensions=2,
+                    header="## Lauf-Übersicht 2026-06\n\nHEADER_MARKER\n")
+    text = path.read_text("utf-8")
+    assert "HEADER_MARKER" in text
+    title_idx = text.index("# Universum")
+    header_idx = text.index("HEADER_MARKER")
+    schwelle_idx = text.index("*Schwelle")
+    assert title_idx < header_idx < schwelle_idx  # header between title and threshold note
