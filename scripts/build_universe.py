@@ -386,12 +386,14 @@ def _fetch_stoxx600_wikipedia() -> list[str]:
         return []
 
 
-def _fetch_stoxx600_ishares() -> list[str]:
+def _fetch_stoxx600_ishares() -> tuple[list[str], str] | None:
     """
     Attempt to fetch STOXX Europe 600 from iShares holdings CSV.
 
-    Tries the two known URL patterns in order.  Returns an empty list when
-    both fail or return too few rows (likely a login-wall redirect).
+    Tries the two known URL patterns in order.  On success returns
+    ``(tickers, tier)`` where tier is ``"ishares-b"`` or ``"ishares-c"``
+    depending on which option succeeded.  Returns ``None`` when both fail
+    or return too few rows (likely a login-wall redirect).
     """
     for option_idx, url in enumerate(ISHARES_URLS):
         label = chr(ord("B") + option_idx)  # "B", "C"
@@ -407,14 +409,14 @@ def _fetch_stoxx600_ishares() -> list[str]:
                 )
                 continue
             logger.info("STOXX 600 fetched via iShares Option %s: %d tickers", label, len(tickers))
-            return tickers
+            return tickers, f"ishares-{label.lower()}"
         except Exception as exc:  # noqa: BLE001
             logger.warning("Option %s failed: %s", label, exc)
 
-    return []
+    return None
 
 
-def fetch_stoxx600() -> list[str]:
+def fetch_stoxx600() -> tuple[list[str], str]:
     """
     Fetch STOXX Europe 600 tickers in yfinance format.
 
@@ -423,22 +425,25 @@ def fetch_stoxx600() -> list[str]:
       2. iShares holdings CSV, Option B then C (fallback)
       3. Hardcoded list of ~55 major components (last resort)
 
-    Logs which source was actually used.
+    Returns ``(tickers, tier)`` where tier reports which source actually
+    fired: ``"wikipedia"``, ``"ishares-b"``, ``"ishares-c"`` or
+    ``"hardcoded-fallback"``.
     """
     tickers = _fetch_stoxx600_wikipedia()
     if tickers:
-        return tickers
+        return tickers, "wikipedia"
 
-    tickers = _fetch_stoxx600_ishares()
-    if tickers:
-        return tickers
+    ishares = _fetch_stoxx600_ishares()
+    if ishares:
+        tickers, label = ishares
+        return tickers, label
 
     logger.warning(
         "All STOXX 600 sources failed. Using hardcoded fallback (%d tickers). "
         "Universe will cover only major European components.",
         len(STOXX_FALLBACK),
     )
-    return list(STOXX_FALLBACK)
+    return list(STOXX_FALLBACK), "hardcoded-fallback"
 
 
 # ---------------------------------------------------------------------------
@@ -448,20 +453,33 @@ def fetch_stoxx600() -> list[str]:
 def main() -> None:
     sp500 = fetch_sp500()
     sp400 = fetch_sp400()
-    stoxx = fetch_stoxx600()
+    stoxx, stoxx_tier = fetch_stoxx600()
 
     combined = sorted(set(sp500 + sp400 + stoxx))
 
     logger.info("--- Summary ---")
     logger.info("S&P 500:      %d tickers", len(sp500))
     logger.info("S&P 400:      %d tickers", len(sp400))
-    logger.info("STOXX 600:    %d tickers", len(stoxx))
+    logger.info("STOXX 600:    %d tickers (tier: %s)", len(stoxx), stoxx_tier)
     logger.info("Total unique: %d tickers", len(combined))
 
-    out_path = Path(__file__).parent.parent / "data" / "universe.json"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+    data_dir = Path(__file__).parent.parent / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    out_path = data_dir / "universe.json"
     out_path.write_text(json.dumps(combined, indent=2), encoding="utf-8")
     logger.info("Written to %s", out_path)
+
+    provenance = {
+        "stoxx_tier": stoxx_tier,
+        "sp500_count": len(sp500),
+        "sp400_count": len(sp400),
+        "stoxx600_count": len(stoxx),
+        "total_unique": len(combined),
+    }
+    prov_path = data_dir / "universe_provenance.json"
+    prov_path.write_text(json.dumps(provenance, indent=2), encoding="utf-8")
+    logger.info("Provenance written to %s", prov_path)
 
 
 if __name__ == "__main__":
