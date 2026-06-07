@@ -21,6 +21,20 @@ def test_degraded_data_error_is_data_source_error():
     assert issubclass(DegradedDataError, DataSourceError)
 
 
+def test_get_isin_returns_isin_string():
+    client = YFinanceClientImpl()
+    with patch("app.services.yfinance_client.yf.Ticker") as mock_ticker:
+        mock_ticker.return_value.isin = "FR0000131104"
+        assert client.get_isin("BNP.PA") == "FR0000131104"
+
+
+def test_get_isin_returns_none_when_absent_or_dash():
+    client = YFinanceClientImpl()
+    with patch("app.services.yfinance_client.yf.Ticker") as mock_ticker:
+        mock_ticker.return_value.isin = "-"   # yfinance sentinel for "no isin"
+        assert client.get_isin("ZZZZ") is None
+
+
 def _estimate_frame(growth_by_period):
     """Build a yfinance-shaped estimate DataFrame (index='period')."""
     rows = {
