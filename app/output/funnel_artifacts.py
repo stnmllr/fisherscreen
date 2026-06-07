@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 _CSV_FIELDS = [
     "ticker", "stage", "reason_code", "severity_bucket",
     "is_large_cap", "sector_wide", "market_cap_eur", "gics_sector",
+    "detail",
 ]
 
 
@@ -41,6 +42,7 @@ def write_funnel_artifacts(
                 "sector_wide": d.sector_wide,
                 "market_cap_eur": d.market_cap_eur,
                 "gics_sector": d.gics_sector,
+                "detail": d.detail,
             })
 
     logger.info("funnel: wrote %s (%d dropouts, %d review-flags)",

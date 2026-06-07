@@ -33,3 +33,15 @@ def test_writes_json_and_csv(tmp_path):
     assert rows[0]["reason_code"] == "GATE_VOLUME"
     assert rows[0]["severity_bucket"] == "REVIEW"
     assert rows[0]["is_large_cap"] == "True"
+
+
+def test_dropouts_csv_has_detail_column(tmp_path):
+    from app.screener.funnel import Dropout, Stage, ReasonCode, SeverityBucket
+    d = Dropout("NSD", Stage.RESOLUTION, ReasonCode.RESOLUTION_NO_SYMBOL_DATA,
+                SeverityBucket.REVIEW, False, False, None, "Technology", detail="NO_RAW_MC")
+    paths = write_funnel_artifacts(_summary(), [d], tmp_path, "2026-06")
+    import csv as _csv
+    rows = list(_csv.DictReader(
+        (tmp_path / "Universum" / "2026-06-dropouts.csv").read_text("utf-8").splitlines()))
+    assert "detail" in rows[0]
+    assert rows[0]["detail"] == "NO_RAW_MC"
