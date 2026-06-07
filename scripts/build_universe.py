@@ -169,6 +169,63 @@ STOXX_FALLBACK: list[str] = [
 ]
 
 
+# Verified, provenance-native symbol corrections from GATE 1 (Wikipedia-Company anchor;
+# docs/superpowers/audits/2026-06-06-0a-symbol-contaminants/correction_table.md).
+# RIC/contaminated symbol -> correct Yahoo symbol. 20 remaps, all live-verified
+# (EQUITY + Wikipedia-Company longName agreement + exchange).
+SYMBOL_CORRECTIONS: dict[str, str] = {
+    "AIRP.PA": "AI.PA",    # Air Liquide
+    "ATOS.PA": "ATO.PA",   # Atos
+    "BNPP.PA": "BNP.PA",   # BNP Paribas
+    "BOUY.PA": "EN.PA",    # Bouygues
+    "CAGR.PA": "ACA.PA",   # Credit Agricole
+    "CAPP.PA": "CAP.PA",   # Capgemini
+    "CARR.PA": "CA.PA",    # Carrefour (NOT Carrier US)
+    "CTS.DE": "EVD.DE",    # CTS Eventim
+    "DANO.PA": "BN.PA",    # Danone (NOT Danaher)
+    "ENX.AS": "ENX.PA",    # Euronext (wrong venue .AS -> .PA)
+    "MICP.PA": "ML.PA",    # Michelin
+    "OREP.PA": "OR.PA",    # L'Oreal
+    "PERP.PA": "RI.PA",    # Pernod Ricard
+    "RENA.PA": "RNO.PA",   # Renault
+    "SASY.PA": "SAN.PA",   # Sanofi
+    "SCHN.PA": "SU.PA",    # Schneider Electric
+    "SGEF.PA": "DG.PA",    # Vinci (ex-"Societe Generale d'Entreprises")
+    "SGOB.PA": "SGO.PA",   # Saint-Gobain
+    "SOGN.PA": "GLE.PA",   # Societe Generale
+    "FTI.L": "FTI",        # TechnipFMC (twin-collapse onto existing NYSE listing)
+}
+
+# Dead listings / unresolvable ambiguities — dropped, not remapped (drop-not-guess).
+SYMBOL_DROP: set[str] = {
+    "LII.L",   # Liberty Global (LII US = Lennox, different company; listing ambiguous)
+    "SKY.L",   # Sky Group (delisted 2018)
+}
+
+
+def _apply_symbol_corrections(
+    tickers: list[str],
+    corrections: dict[str, str] | None = None,
+    drop: set[str] | None = None,
+) -> list[str]:
+    """Remap contaminated symbols to their verified Yahoo equivalent and drop dead
+    listings. Pure: no dedup here (caller's sorted(set(...)) collapses remapped
+    twins). Instrumentation-visible: logs each remap/drop."""
+    corrections = SYMBOL_CORRECTIONS if corrections is None else corrections
+    drop = SYMBOL_DROP if drop is None else drop
+    out: list[str] = []
+    for t in tickers:
+        if t in drop:
+            logger.info("symbol_correction: drop %s", t)
+            continue
+        if t in corrections:
+            logger.info("symbol_correction: remap %s -> %s", t, corrections[t])
+            out.append(corrections[t])
+        else:
+            out.append(t)
+    return out
+
+
 # ---------------------------------------------------------------------------
 # HTTP helper
 # ---------------------------------------------------------------------------
