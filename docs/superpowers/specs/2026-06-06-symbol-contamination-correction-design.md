@@ -181,6 +181,27 @@ Aus der verifizierten Schritt-1-Tabelle ergibt sich der **erwartete Delta** vor 
   „S&P 500 + Russell 1000", `build_universe` nutzt real **S&P 500 + S&P 400** + STOXX 600.
   Separater Doku-Cleanup, außerhalb 0a.
 
+## GATE-1-Ergebnis & Methoden-Korrektur (2026-06-07, live festgestellt)
+
+Der in diesem Spec verankerte **ISIN-Anker erwies sich als nicht herstellbar** und wurde
+verworfen — dokumentiert für die ehrliche Aufzeichnung:
+- **iShares-Quelle tot** (beide Holdings-URLs 404) → kein autoritativer ISIN-Self-Join.
+- **yfinance liefert keine ISIN für die Kontaminanten** (alle `-`) und **falsche ISINs für
+  EU-Listings auf der Kandidaten-Seite** (Vinci→FI, LVMH→CA, Kering→JP) → ISIN-Gleichheit ist
+  auf **beiden** Seiten als Verifikationsanker tot. OpenFIGy/-FIGI hilft nicht (braucht eine
+  ISIN, die es nicht gibt).
+- **Tatsächliche Methode (A′): Wikipedia-Company-Anker** — provenienz-nativ. RIC→Company aus
+  der **Build-Revision** (Wikipedia STOXX_Europe_600 oldid 1349000963, Build-Datum 2026-05-16
+  / commit 921a50b) deckt alle 22 RICs ab (inkl. der 8 aus dem aktuellen Snapshot gedrifteten).
+  Verify pro Kandidat: `quoteType=EQUITY` + longName-Agreement (Legal-Suffixe gestrippt,
+  Akzente normalisiert) + Börsenplatz-Plausibilität. Mehrfach-Listings/echte Mehrdeutige:
+  **Drop statt Raten** (LII.L→DROP da `LII`=Lennox≠Liberty Global; SKY.L→DROP delistet).
+- **Abgenommene Tabelle:** `docs/superpowers/audits/2026-06-06-0a-symbol-contaminants/correction_table.md`
+  — 20 Remaps + 2 Drops, 0 INCONCLUSIVE. **N=10** (8 Twin-Kollaps + 2 Drop) → 1332→1322;
+  12 Rehab-Adds; Survivor-Prognose 687→687+M.
+- **Lehre:** Eine echte ISIN-gekeyte Quelle (build_universe joint auf ISIN statt Ticker) ist
+  der Root-Cause-Fix → **Gate-C-Umbau**, nicht 0a.
+
 ## Abhängigkeit zu 0b
 
 0a beseitigt die *heute bekannten* Kontaminanten. **0b** (eigener Spec) macht die Resolution
