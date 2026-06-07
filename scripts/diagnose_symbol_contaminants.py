@@ -10,6 +10,7 @@ import csv
 import json
 import sys
 import time
+from pathlib import Path
 from typing import Any
 
 from app.errors import DataSourceError, DegradedDataError
@@ -107,7 +108,14 @@ def main() -> None:
 
     client = YFinanceClientImpl()
     if args.mode == "enumerate":
-        tickers = json.loads(open(args.universe, encoding="utf-8").read())
+        if not Path(args.universe).is_file():
+            print(f"error: universe file not found: {args.universe}", file=sys.stderr)
+            raise SystemExit(2)
+        with open(args.universe, encoding="utf-8") as f:
+            tickers = json.load(f)
+        if not isinstance(tickers, list):
+            print("error: universe JSON must be a list of ticker strings", file=sys.stderr)
+            raise SystemExit(2)
         rows = _enumerate(client, tickers)
         if args.out:
             with open(args.out, "w", encoding="utf-8", newline="") as f:
@@ -116,8 +124,12 @@ def main() -> None:
                 w.writeheader()
                 w.writerows(rows)
             print(f"wrote {args.out}", file=sys.stderr)
-    else:
-        proposal = json.loads(open(args.proposal, encoding="utf-8").read())
+    else:  # verify
+        if not args.proposal or not Path(args.proposal).is_file():
+            print("error: verify mode requires --proposal <existing JSON file>", file=sys.stderr)
+            raise SystemExit(2)
+        with open(args.proposal, encoding="utf-8") as f:
+            proposal = json.load(f)
         _verify(client, proposal)
 
 
