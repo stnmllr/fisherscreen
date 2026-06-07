@@ -35,6 +35,14 @@ def test_get_isin_returns_none_when_absent_or_dash():
         assert client.get_isin("ZZZZ") is None
 
 
+def test_get_isin_raises_data_source_error_on_exception():
+    client = YFinanceClientImpl()
+    with patch("app.services.yfinance_client.yf.Ticker") as mock_ticker:
+        mock_ticker.side_effect = Exception("network error")
+        with pytest.raises(DataSourceError, match="yfinance isin failed"):
+            client.get_isin("BADTICKER")
+
+
 def _estimate_frame(growth_by_period):
     """Build a yfinance-shaped estimate DataFrame (index='period')."""
     rows = {
