@@ -25,6 +25,9 @@
 läuft auf cmd.exe. Mischbetrieb verursacht Fehler, weil Pfad-Quoting, Pipe-Verhalten und
 Quote-Escaping zwischen cmd und PowerShell unterschiedlich sind. Konsistenz > Eleganz.
 
+Kein `&`-Call-Operator, keine `;`-Verkettung im PowerShell-Stil, keine `@"..."@`-Here-Strings —
+das ist alles PowerShell und gehört hier nicht hin.
+
 ---
 
 ## Projektüberblick
@@ -34,7 +37,11 @@ FisherScreen ist ein persönliches Werkzeug, das Phil Fishers 15 Prinzipien aus
 **Pull statt Push:** Tool B läuft nur, wenn Stephan es aktiv auslöst.
 
 **Drei Töpfe:**
-- **Universum** — ~2.100 Titel (S&P 500 + Russell 1000 + STOXX Europe 600), Negativ-Filter → ~100
+- **Universum** — ~1.322 Titel (S&P 500 + S&P 400 + STOXX Europe 600), Negativ-Filter → ~100
+<!-- Count nach 0a-Dedup festgeschrieben (Cold-Dry-Run 2026-06-07: 1332 → 1322, RIC-/FR-
+     Kontaminanten korrigiert). Composition an Code-Realität angeglichen: build_universe.py
+     nutzt S&P 400, nicht das ursprünglich genannte Russell 1000 — ob S&P 400 oder Russell 1000
+     gewollt ist, ist eine separate Entscheidung (nicht 0a). -->
 - **Watchlist** — 5–15 Titel, manuell von Stephan
 - **Portfolio** — tatsächlich gehaltene Titel, Hold-Check
 
@@ -70,7 +77,14 @@ FisherScreen ist ein persönliches Werkzeug, das Phil Fishers 15 Prinzipien aus
 
 - **Betriebssystem:** Windows 11
 - **Shell:** `cmd.exe` (siehe Abschnitt oben)
-- **Python-Aufruf:** `python` (nicht `python3`)
+- **Python-Aufruf:** IMMER `uv run python -m <modul>` — **nie `python3`, nie nacktes `python`.**
+  - `python3` trifft auf dieser Maschine zuerst den WindowsApps-Store-Stub
+    (`…\WindowsApps\python3.exe`, *vor* dem echten Interpreter im PATH) und öffnet die
+    Microsoft-Store-Seite statt zu laufen. Es gibt kein venv-`python3`.
+  - Nacktes `python` zeigt nur bei *aktiver* venv auf den richtigen Interpreter, sonst auf das
+    globale `C:\Python314` → falsches Environment, lautlos.
+  - `uv run python -m` umgeht das PATH-Lotto komplett (uv löst Interpreter + venv selbst auf)
+    und dodgt zugleich die EPDR-.exe-Shim-Sperre (siehe SOPRA-EPDR).
 - **Lokaler Repo-Pfad:** `D:\programme\fisherscreen\`
 - **Python-Version:** 3.12, fixiert via `uv python pin 3.12` (`.python-version` im Repo-Root)
 
@@ -129,7 +143,7 @@ in Unit-Tests. Wer einen direkten `yfinance.download()`-Aufruf in Tool-A-Code si
 ### Tool A / Tool B Separation
 
 Tool A (Monthly Screener) verarbeitet das gesamte Universum
-(~2.100 Stocks) automatisiert. Tool B (Deep Dive) läuft manuell
+(~1.322 Stocks) automatisiert. Tool B (Deep Dive) läuft manuell
 auf einzelne Stocks.
 
 #### Kostenkontrolle Tool A
@@ -155,7 +169,7 @@ folgenden nicht-verhandelbaren Bedingungen:
    LLM-Modelle, jede API mit Per-Request-Kosten über $0.001.
 
 5. Logging-Pflicht: Jeder Run protokolliert in Firestore
-   (Collection screener_runs):
+   (Collection dev_screener_runs):
    - tickers_processed (int)
    - tokens_in_total (int)
    - tokens_out_total (int)
@@ -195,6 +209,10 @@ APIFY_MAX_RUNS_PER_DEEPDIVE = int(os.environ.get("FISHERSCREEN_APIFY_RUN_CAP", "
 
 ### Firestore Collections
 
+<!-- ⚠️ TODO: dev_edgar_cache fehlt in dieser Tabelle, wird aber im Funnel-Cold-Run gepurgt.
+     Falls Firestore-Collection → eintragen; falls lokaler File-Cache → "2 Collections" oben und
+     "keine weiteren Collections" unten sind dann irreführend, klarstellen.
+     Erledigt: dev_screener_runs ist jetzt auch im Kostenkontroll-Abschnitt konsistent benannt. -->
 | Collection | Zweck | Schlüssel |
 |---|---|---|
 | `universe_cache` | yfinance-Daten mit TTL | ticker |
@@ -374,6 +392,12 @@ aufrufen.
 | Integration-Tests | `uv run python -m pytest -m integration` | — |
 | Tool B CLI | `uv run python -m app.deepdive deepdive <TICKER>` | `uv run fisherscreen ...` |
 
+**Keine Heredocs, keine langen Inline-Skripte.** `python3 << 'EOF'` (Bash-Heredoc) läuft unter
+cmd.exe ohnehin nicht, und lange `-c "..."`-Blöcke sprengen zudem CCs Befehls-Parser (erzwingen
+manuelle Freigabe ab ~965 Byte). Diagnose- und Mehrzeilen-Skripte als `.py` unter `scripts/`
+ablegen und mit `uv run python scripts\<name>.py` ausführen — kürzer, parsebar, kanonische
+Invocation, und wiederverwendbare Checks werden so zu echten Tests statt Wegwerf-Kommandos.
+
 Die `[project.scripts]`-Deklaration in `pyproject.toml`
 (`fisherscreen = "app.deepdive.__main__:main"`) **bleibt** bestehen — sie gilt für
 CI, Container und andere Maschinen ohne EPDR. Lokal auf der SOPRA-Maschine ist die
@@ -423,6 +447,9 @@ Aufgaben-Briefings auf Englisch sind in Ordnung; Berichte an Stephan auf Deutsch
 
 ---
 
+<!-- ⚠️ TODO: Phasen-Framing veraltet. GICS vs. ICB ist faktisch entschieden (der Code nutzt
+     gics_sector). Tool A läuft seit Mitte Mai 2026 produktiv. Diesen Abschnitt + die
+     "drei Monate Produktiv-Betrieb"-Klausel unten reconcilen. -->
 ## Offene Punkte vor Phase 1
 
 Diese Punkte sind bewusst noch offen — vor dem jeweiligen Phasen-Start klären:
