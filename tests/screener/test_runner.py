@@ -3,7 +3,13 @@ from unittest.mock import MagicMock
 
 from app.errors import DataSourceError, DegradedDataError
 from app.models.run_record import RunRecord
-from app.screener.runner import BasisFilterResult, run_basis_filter
+from app.models.screener_record import ScreenerRecord
+from app.screener.runner import (
+    BasisFilterResult,
+    ResolveReason,
+    _resolve_market_cap_eur,
+    run_basis_filter,
+)
 from app.services.gemini_client import GeminiScoreResult
 
 _FX_USD_EUR = 0.92  # approximate USD → EUR rate for tests
@@ -121,6 +127,64 @@ def test_run_fails_ticker_when_fx_rate_unavailable():
     result = run_basis_filter(["BIGC"], mock_yf).passed
 
     assert result == []
+
+
+# --- 0b: resolution data-quality divert ---
+
+
+class _CfgYF:
+    """Configurable per-ticker yfinance fake for 0b divert tests."""
+    def __init__(self, infos):
+        self._infos = infos
+    def get_ticker_info(self, ticker):
+        return self._infos[ticker]
+    def get_fx_rate(self, currency):
+        if currency == "NOFX":
+            raise DataSourceError("fx down")
+        return 1.0
+
+
+def _info(**kw):
+    base = {"shortName": "X", "quoteType": "EQUITY", "marketCap": 5e9,
+            "averageVolume": 5e5, "currency": "EUR", "grossMargins": 0.5,
+            "revenueGrowth": 0.1, "sector": "Technology"}
+    base.update(kw)
+    return base
+
+
+def test_resolve_reason_branches():
+    fx = {}
+    r = ScreenerRecord.from_yfinance_info("OK", _info())
+    assert _resolve_market_cap_eur(r, _CfgYF({}), fx)[1] == ResolveReason.OK
+    r = ScreenerRecord.from_yfinance_info("Z", _info(marketCap=0))
+    assert _resolve_market_cap_eur(r, _CfgYF({}), fx)[1] == ResolveReason.NO_RAW_MC
+    r = ScreenerRecord.from_yfinance_info("Z", _info(currency=None))
+    assert _resolve_market_cap_eur(r, _CfgYF({}), fx)[1] == ResolveReason.NO_CURRENCY
+    r = ScreenerRecord.from_yfinance_info("Z", _info(currency="NOFX"))
+    assert _resolve_market_cap_eur(r, _CfgYF({}), {})[1] == ResolveReason.NO_FX
+
+
+def test_resolve_mc_first_precedence():
+    r = ScreenerRecord.from_yfinance_info("Z", _info(marketCap=None, currency=None))
+    assert _resolve_market_cap_eur(r, _CfgYF({}), {})[1] == ResolveReason.NO_RAW_MC
+
+
+def test_divert_no_symbol_data_and_fx():
+    infos = {
+        "OK":  _info(),
+        "ATO": _info(marketCap=7.28e8),
+        "NOMC": _info(marketCap=0),
+        "NOCUR": _info(currency=None),
+        "NOVOL": _info(averageVolume=0),
+        "NOFX": _info(currency="NOFX"),
+    }
+    res = run_basis_filter(list(infos), _CfgYF(infos))
+    nsd = {r.ticker: r.resolution_detail for r in res.no_symbol_data}
+    assert nsd == {"NOMC": "NO_RAW_MC", "NOCUR": "NO_CURRENCY", "NOVOL": "NO_VOLUME"}
+    assert [r.ticker for r in res.fx_unavailable] == ["NOFX"]
+    assert "ATO" in [r.ticker for r in res.resolved]
+    assert "ATO" not in [r.ticker for r in res.no_symbol_data]
+    assert "OK" in [r.ticker for r in res.resolved]
 
 
 # --- ITEM 2: yfinance resolution aggregate ---

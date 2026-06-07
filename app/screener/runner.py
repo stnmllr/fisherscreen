@@ -4,6 +4,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -24,6 +25,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class ResolveReason(str, Enum):
+    OK = "OK"
+    NO_RAW_MC = "NO_RAW_MC"      # raw market_cap missing or 0 (collapsed to None at construction)
+    NO_CURRENCY = "NO_CURRENCY"  # market_cap present but currency missing -> uninterpretable
+    NO_FX = "NO_FX"             # mc + currency present, FX rate unavailable (infra, systemic)
+
+
 def _load_provenance() -> dict | None:
     path = Path(__file__).parent.parent.parent / "data" / "universe_provenance.json"
     if not path.exists():
@@ -39,27 +47,29 @@ def _load_provenance() -> dict | None:
 class BasisFilterResult:
     """Result of the basis filter stage.
 
-    `passed` survived the basis filters. `resolved` contains every record
-    successfully constructed from yfinance data (a subset of the input universe:
-    basis-passed + gate-failed); gate-failed ones carry filter_failed_reason.
-    Symbols that failed resolution are in `unresolved`, not here.
-    `unresolved` are symbols yfinance could not resolve at all (the attrition
-    signal); `degraded` is the subset of `unresolved` that raised DegradedDataError.
+    `passed` survived the basis filters. `resolved` are the **gateable** records
+    (constructed AND with usable core data); diverted data-quality records are NOT
+    here. `unresolved`/`degraded` failed yfinance resolution. `no_symbol_data` and
+    `fx_unavailable` are records diverted in resolution (0b) before any gate.
     """
 
     passed: list[ScreenerRecord] = field(default_factory=list)
     unresolved: list[str] = field(default_factory=list)
     resolved: list[ScreenerRecord] = field(default_factory=list)
     degraded: list[str] = field(default_factory=list)
+    no_symbol_data: list[ScreenerRecord] = field(default_factory=list)
+    fx_unavailable: list[ScreenerRecord] = field(default_factory=list)
 
 
 def _resolve_market_cap_eur(
     record: ScreenerRecord,
     yfinance: YFinanceClient,
     fx_cache: dict[str, float],
-) -> float | None:
-    if record.market_cap is None or record.currency is None:
-        return None
+) -> tuple[float | None, ResolveReason]:
+    if record.market_cap is None:
+        return None, ResolveReason.NO_RAW_MC
+    if record.currency is None:
+        return None, ResolveReason.NO_CURRENCY
     currency = record.currency
     if currency not in fx_cache:
         try:
@@ -69,8 +79,8 @@ def _resolve_market_cap_eur(
             fx_cache[currency] = None  # type: ignore[assignment]
     rate = fx_cache[currency]
     if rate is None:
-        return None
-    return record.market_cap * rate
+        return None, ResolveReason.NO_FX
+    return record.market_cap * rate, ResolveReason.OK
 
 
 def run_basis_filter(
@@ -84,13 +94,29 @@ def run_basis_filter(
     records: list[ScreenerRecord] = []
     unresolved: list[str] = []
     degraded: list[str] = []
+    no_symbol_data: list[ScreenerRecord] = []
+    fx_unavailable: list[ScreenerRecord] = []
     fx_cache: dict[str, float] = {}
     for ticker in tickers:
         try:
             info = yfinance.get_ticker_info(ticker)
             record = ScreenerRecord.from_yfinance_info(ticker, info)
-            record.market_cap_eur = _resolve_market_cap_eur(record, yfinance, fx_cache)
-            records.append(record)
+            record.market_cap_eur, reason = _resolve_market_cap_eur(record, yfinance, fx_cache)
+            # 0b: divert unusable-data records out of the gate path (symbol-data first, then FX).
+            if reason == ResolveReason.NO_RAW_MC:
+                record.resolution_detail = "NO_RAW_MC"
+                no_symbol_data.append(record)
+            elif reason == ResolveReason.NO_CURRENCY:
+                record.resolution_detail = "NO_CURRENCY"
+                no_symbol_data.append(record)
+            elif record.avg_daily_volume is None:
+                record.resolution_detail = "NO_VOLUME"
+                no_symbol_data.append(record)
+            elif reason == ResolveReason.NO_FX:
+                record.resolution_detail = "NO_FX"
+                fx_unavailable.append(record)
+            else:
+                records.append(record)
         except DegradedDataError as exc:  # MUST precede DataSourceError (subclass)
             logger.warning("ticker=%s degraded dict: %s", ticker, exc)
             unresolved.append(ticker)
@@ -114,11 +140,19 @@ def run_basis_filter(
             unresolved,
         )
 
+    if no_symbol_data or fx_unavailable:
+        logger.warning(
+            "resolution data-quality: %d no_symbol_data, %d fx_unavailable (diverted to REVIEW)",
+            len(no_symbol_data), len(fx_unavailable),
+        )
+
     return BasisFilterResult(
         passed=apply_basis_filters(records),
         unresolved=unresolved,
         resolved=records,
         degraded=sorted(degraded),
+        no_symbol_data=no_symbol_data,
+        fx_unavailable=fx_unavailable,
     )
 
 
