@@ -45,3 +45,13 @@ def test_known_contaminants_resolved():
                 "CTS.DE", "SGEF.PA", "DANO.PA", "CARR.PA", "ATOS.PA", "FTI.L"]:
         assert bad in bu.SYMBOL_CORRECTIONS or bad in bu.SYMBOL_DROP, bad
     assert "LII.L" in bu.SYMBOL_DROP and "SKY.L" in bu.SYMBOL_DROP
+
+
+def test_combined_pipeline_drops_keys_and_dedups():
+    # Simulate main()'s combined list incl. a contaminant + its twin + a drop.
+    combined_raw = ["BNPP.PA", "BNP.PA", "SKY.L", "AAPL"]
+    corrected = sorted(set(bu._apply_symbol_corrections(combined_raw)))
+    # No correction KEY survives; the twin collapsed; the drop is gone.
+    assert not (set(bu.SYMBOL_CORRECTIONS) & set(corrected))
+    assert "SKY.L" not in corrected
+    assert "BNP.PA" in corrected and "AAPL" in corrected

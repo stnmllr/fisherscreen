@@ -512,7 +512,15 @@ def main() -> None:
     sp400 = fetch_sp400()
     stoxx, stoxx_tier = fetch_stoxx600()
 
-    combined = sorted(set(sp500 + sp400 + stoxx))
+    combined = sorted(set(_apply_symbol_corrections(sp500 + sp400 + stoxx)))
+    # Guard: no contaminated key may survive into the universe (fail loud).
+    surviving = set(SYMBOL_CORRECTIONS) & set(combined)
+    if surviving:
+        raise RuntimeError(
+            f"symbol_correction guard: contaminated keys survived: {sorted(surviving)}"
+        )
+    logger.info("symbol_correction: %d corrections, %d drops applied",
+                len(SYMBOL_CORRECTIONS), len(SYMBOL_DROP))
 
     logger.info("--- Summary ---")
     logger.info("S&P 500:      %d tickers", len(sp500))
