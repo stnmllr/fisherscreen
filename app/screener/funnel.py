@@ -94,7 +94,7 @@ class Dropout:
     sector_wide: bool
     market_cap_eur: float | None
     gics_sector: str | None
-    detail: str = ""
+    detail: str = ""  # 0b sub-reason for RESOLUTION_NO_SYMBOL_DATA (NO_RAW_MC|NO_CURRENCY|NO_VOLUME); else ""
 
 
 @dataclass(frozen=True)

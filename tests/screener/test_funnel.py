@@ -53,6 +53,8 @@ def test_diverts_do_not_shift_sector_wide():
                                      scored=None, score_threshold=4.0, crosshits_min_dimensions=2)
     margin = [d for d in dropouts if d.reason_code == ReasonCode.GATE_GROSS_MARGIN]
     assert len(margin) == 6 and all(d.sector_wide is True for d in margin)
+    nsd_drop = next(d for d in dropouts if d.ticker == "NSD")
+    assert nsd_drop.sector_wide is False
 
 
 def test_volume_threshold_decoupled_from_growth():
