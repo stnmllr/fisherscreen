@@ -17,6 +17,8 @@ SECTORS_WITHOUT_GROSS_MARGIN = {"Financial Services", "Real Estate"}  # yfinance
 class ReasonCode(str, Enum):
     RESOLUTION_DEGRADED_DICT = "RESOLUTION_DEGRADED_DICT"
     RESOLUTION_UNRESOLVED = "RESOLUTION_UNRESOLVED"
+    RESOLUTION_NO_SYMBOL_DATA = "RESOLUTION_NO_SYMBOL_DATA"
+    RESOLUTION_FX_UNAVAILABLE = "RESOLUTION_FX_UNAVAILABLE"
     GATE_VOLUME = "GATE_VOLUME"
     GATE_MARKET_CAP = "GATE_MARKET_CAP"
     GATE_GROSS_MARGIN = "GATE_GROSS_MARGIN"
@@ -55,7 +57,12 @@ _EDGAR_REASON: dict[str, ReasonCode] = {
     "enforcement": ReasonCode.GATE_ENFORCEMENT,
 }
 
-_ALWAYS_REVIEW = {ReasonCode.RESOLUTION_DEGRADED_DICT, ReasonCode.SCORE_NOT_SCORED}
+_ALWAYS_REVIEW = {
+    ReasonCode.RESOLUTION_DEGRADED_DICT,
+    ReasonCode.RESOLUTION_NO_SYMBOL_DATA,
+    ReasonCode.RESOLUTION_FX_UNAVAILABLE,
+    ReasonCode.SCORE_NOT_SCORED,
+}
 
 
 def _severity(
@@ -87,6 +94,7 @@ class Dropout:
     sector_wide: bool
     market_cap_eur: float | None
     gics_sector: str | None
+    detail: str = ""
 
 
 @dataclass(frozen=True)
@@ -160,7 +168,7 @@ def _compute_sector_wide(resolved: list[ScreenerRecord]) -> set[str]:
 
 
 def _make_dropout(record: ScreenerRecord, stage: Stage, reason_code: ReasonCode,
-                  sector_wide_sectors: set[str]) -> Dropout:
+                  sector_wide_sectors: set[str], detail: str = "") -> Dropout:
     sector_wide = (reason_code == ReasonCode.GATE_GROSS_MARGIN
                    and record.gics_sector in sector_wide_sectors)
     severity = _severity(reason_code, market_cap_eur=record.market_cap_eur,
@@ -169,7 +177,7 @@ def _make_dropout(record: ScreenerRecord, stage: Stage, reason_code: ReasonCode,
         ticker=record.ticker, stage=stage, reason_code=reason_code,
         severity_bucket=severity, is_large_cap=_is_large_cap(record.market_cap_eur),
         sector_wide=sector_wide, market_cap_eur=record.market_cap_eur,
-        gics_sector=record.gics_sector,
+        gics_sector=record.gics_sector, detail=detail,
     )
 
 
@@ -197,6 +205,12 @@ def build_funnel(
             continue
         dropouts.append(Dropout(t, Stage.RESOLUTION, ReasonCode.RESOLUTION_UNRESOLVED,
                                 SeverityBucket.BENIGN, False, False, None, None))
+    for r in basis.no_symbol_data:
+        dropouts.append(_make_dropout(r, Stage.RESOLUTION, ReasonCode.RESOLUTION_NO_SYMBOL_DATA,
+                                      sector_wide_sectors, detail=r.resolution_detail or ""))
+    for r in basis.fx_unavailable:
+        dropouts.append(_make_dropout(r, Stage.RESOLUTION, ReasonCode.RESOLUTION_FX_UNAVAILABLE,
+                                      sector_wide_sectors, detail=r.resolution_detail or ""))
     n_resolved = len(basis.resolved)
 
     # --- Basis gates ---
@@ -216,7 +230,9 @@ def build_funnel(
 
     stages = [
         FunnelStage(Stage.UNIVERSE, n_universe, 0, n_universe),
-        FunnelStage(Stage.RESOLUTION, n_universe, len(basis.unresolved), n_resolved),
+        FunnelStage(Stage.RESOLUTION, n_universe,
+                    len(basis.unresolved) + len(basis.no_symbol_data) + len(basis.fx_unavailable),
+                    n_resolved),
         FunnelStage(Stage.BASIS_GATES, n_resolved, len(basis_drops), n_basis_passed),
         FunnelStage(Stage.EDGAR_GATES, n_basis_passed, len(edgar_drops), n_edgar_remaining),
     ]

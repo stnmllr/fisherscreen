@@ -11,6 +11,50 @@ from app.screener.funnel import (
 from app.screener.runner import BasisFilterResult
 
 
+def test_resolution_data_quality_codes_always_review():
+    # mc=None must not trip is_large_cap/tripwire — severity path is None-safe.
+    for rc in (ReasonCode.RESOLUTION_NO_SYMBOL_DATA, ReasonCode.RESOLUTION_FX_UNAVAILABLE):
+        assert _severity(rc, market_cap_eur=None, sector_wide=False) == SeverityBucket.REVIEW
+
+
+def _dq_record(ticker, detail):
+    r = ScreenerRecord(ticker=ticker, gics_sector="Technology", market_cap_eur=None)
+    r.resolution_detail = detail
+    return r
+
+
+def test_funnel_diverts_count_as_resolution_review_and_reconcile():
+    vol = _resolved("VOL", basis_reason="avg_volume")
+    ok = _resolved("OK")
+    nsd = _dq_record("NSD", "NO_RAW_MC")
+    fxu = _dq_record("FXU", "NO_FX")
+    basis = BasisFilterResult(passed=[ok], unresolved=[], resolved=[vol, ok],
+                              degraded=[], no_symbol_data=[nsd], fx_unavailable=[fxu])
+    summary, dropouts = build_funnel(universe=["VOL", "OK", "NSD", "FXU"], basis=basis,
+                                     scored=None, score_threshold=4.0, crosshits_min_dimensions=2)
+    by = {d.ticker: d for d in dropouts}
+    assert by["NSD"].reason_code == ReasonCode.RESOLUTION_NO_SYMBOL_DATA
+    assert by["NSD"].severity_bucket == SeverityBucket.REVIEW
+    assert by["NSD"].detail == "NO_RAW_MC"
+    assert by["FXU"].reason_code == ReasonCode.RESOLUTION_FX_UNAVAILABLE
+    # Guardrail 1: basis_gates.entered derived from resolution.remaining (not independent)
+    assert summary.stage(Stage.BASIS_GATES).entered == summary.stage(Stage.RESOLUTION).remaining
+    assert summary.stage(Stage.RESOLUTION).dropped == 2  # NSD + FXU (unresolved empty)
+    assert len(dropouts) + summary.stage(Stage.EDGAR_GATES).remaining == 4
+
+
+def test_diverts_do_not_shift_sector_wide():
+    ind = [_resolved(f"I{i}", sector="Industrials", basis_reason="gross_margin") for i in range(6)]
+    nsd = _dq_record("NSD", "NO_RAW_MC")
+    nsd.gics_sector = "Industrials"
+    basis = BasisFilterResult(passed=[], unresolved=[], resolved=ind, degraded=[],
+                              no_symbol_data=[nsd], fx_unavailable=[])
+    summary, dropouts = build_funnel(universe=[r.ticker for r in ind] + ["NSD"], basis=basis,
+                                     scored=None, score_threshold=4.0, crosshits_min_dimensions=2)
+    margin = [d for d in dropouts if d.reason_code == ReasonCode.GATE_GROSS_MARGIN]
+    assert len(margin) == 6 and all(d.sector_wide is True for d in margin)
+
+
 def test_volume_threshold_decoupled_from_growth():
     # market cap between the two thresholds (3B..10B): REVIEW for volume, BENIGN for growth.
     mc = 5_000_000_000
