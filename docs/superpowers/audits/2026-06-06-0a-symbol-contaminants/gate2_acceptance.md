@@ -13,8 +13,8 @@ die die Gates passieren = M. Beobachtet: **M = 1 = ENX.PA (Euronext)**.
 | Symbol | Firma | Landing | Scope |
 |---|---|---|---|
 | ENX.PA | Euronext | **SURVIVED** (688) | ✓ rehabilitiert |
-| BNP.PA | BNP Paribas | gross_margin BENIGN | Punkt 2 (Bank) |
-| ACA.PA | Crédit Agricole | gross_margin BENIGN | Punkt 2 (Bank) |
+| BNP.PA | BNP Paribas | gross_margin BENIGN | **Bank: GM undefiniert → out-of-scope/eigene Kennzahl, NICHT Punkt 2** |
+| ACA.PA | Crédit Agricole | gross_margin BENIGN | **Bank: GM undefiniert → out-of-scope/eigene Kennzahl, NICHT Punkt 2** |
 | CAP.PA | Capgemini | gross_margin BENIGN | Punkt 2 |
 | CA.PA | Carrefour | gross_margin BENIGN | Punkt 2 (Retail, legitim) |
 | EVD.DE | CTS Eventim | gross_margin BENIGN | Punkt 2 |
@@ -52,6 +52,25 @@ als REVIEW klassifizieren (genau 0b). ML.PA (`marketCap=0` trotz Volumen) gehör
   existiert noch nicht (universe.json wurde hand-ediert, nie frisch gebaut). Korrekt befüllt wird er
   erst beim **Gate-C-Live-Build** (`build_universe`, der jetzt durch die 0a-Map die RICs selbst
   korrigiert). Bis dahin ist `null` ehrlich (kein Fake-Sidecar).
+
+## Korrektur (Review 2026-06-07): 0b-Invariante + Banken-Scope
+
+**0b muss weiter gefasst werden als „leeres Dict (mc UND vol fehlen)".** Beweis aus derselben CSV:
+- `RNL.PA`/`GLB.IR`: `market_cap=None` → leaken bis **GATE_VOLUME**, BENIGN-maskiert.
+- `ML.PA`: `market_cap=0` (Volumen vorhanden!) → stirbt schon an **GATE_MARKET_CAP**, BENIGN-maskiert,
+  **rutscht durch den AND-Test**.
+Dieselbe Pathologie (fehlender/Null-Wert still als realer Sub-Threshold-Wert behandelt → BENIGN),
+zwei Gates, inkonsistente None-vs-0-Behandlung. Ein volume-/AND-zentriertes 0b bräuchte ein 0c.
+→ **0b-Invariante:** jedes überlebende Symbol mit **fehlendem ODER null `market_cap` ODER
+fehlendem/null Volumen** wird als Daten-Qualitäts-REVIEW geführt, **in der Resolution vor jedem
+Gate** durchgesetzt — eine kohärente Regel statt drei Gate-Guards.
+
+**Banken ≠ Punkt 2.** Sektor-relativer gross_margin rehabilitiert real-aber-niedrigmargige
+**operative** Geschäfte (Carrefour, Renault, Capgemini, CTS Eventim). Für Banken/Versicherer/REITs
+ist gross_margin **undefiniert** (nicht nur sektor-niedrig) → „relativ zu anderen Banken mit
+bedeutungslosem GM" misst keine Fisher-Qualität. BNP/ACA kommen mit Punkt 2 **nicht** sinnvoll
+zurück → eigener Fix (explizit out-of-scope ODER eigene Kennzahl). Im Punkt-2-Brainstorm trennen;
+**kein** „M steigt mit Punkt 2" für Banken versprechen.
 
 ## Verdikt
 **GATE 2 bestanden.** 0a-Ziel erfüllt (22 Kontaminanten eliminiert, Reconciliation hält, reale
