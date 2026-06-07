@@ -24,8 +24,11 @@ def classify_info(info: dict[str, Any]) -> str:
 
 
 def isin_matches(a: str | None, b: str | None) -> bool:
-    """True iff both ISINs are present and equal (normalized). Missing -> False
-    (caller falls back to name-match + manual confirmation)."""
+    """True iff both ISINs are present and equal (normalized). Missing or
+    whitespace-only -> False (caller falls back to name-match + manual confirmation)."""
     if not a or not b:
         return False
-    return a.strip().upper() == b.strip().upper()
+    a_norm, b_norm = a.strip().upper(), b.strip().upper()
+    if not a_norm or not b_norm:
+        return False
+    return a_norm == b_norm

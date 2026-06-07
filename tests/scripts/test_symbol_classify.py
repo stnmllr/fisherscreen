@@ -23,3 +23,8 @@ def test_isin_matches_normalizes_and_compares():
 def test_isin_matches_false_when_either_missing():
     assert isin_matches(None, "FR0000131104") is False
     assert isin_matches("FR0000131104", None) is False
+
+
+def test_isin_matches_false_for_whitespace_only():
+    assert isin_matches("   ", "   ") is False
+    assert isin_matches("  ", "FR0000131104") is False
