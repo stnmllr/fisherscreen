@@ -54,7 +54,7 @@ class ScreenerRecord(BaseModel):
     filter_passed_basis: bool | None = None
     filter_passed_edgar: bool | None = None
     filter_failed_reason: str | None = None
-    resolution_detail: str | None = None  # 0b: sub-reason when diverted (NO_RAW_MC|NO_CURRENCY|NO_VOLUME|NO_FX)
+    resolution_detail: str | None = None  # 0b: sub-reason when diverted (NO_RAW_MC|NO_CURRENCY|NO_VOLUME|NO_PRICE|NO_FX)
 
     # Metadata
     screened_at: datetime = Field(
