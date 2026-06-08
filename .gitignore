@@ -33,3 +33,11 @@ service-account-*.json
 # OS
 Thumbs.db
 desktop.ini
+
+# Generated outputs (cold-runs, dossiers, watchlists)
+output/
+output-test/
+ 
+# Generated outputs (cold-runs, dossiers, watchlists) 
+output/ 
+output-test/ 
