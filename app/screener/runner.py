@@ -116,6 +116,7 @@ def run_basis_filter(
                 record.resolution_detail = "NO_FX"
                 fx_unavailable.append(record)
             else:
+                record.fx_rate = fx_cache.get(record.currency)
                 records.append(record)
         except DegradedDataError as exc:  # MUST precede DataSourceError (subclass)
             logger.warning("ticker=%s degraded dict: %s", ticker, exc)

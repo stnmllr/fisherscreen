@@ -187,6 +187,13 @@ def test_divert_no_symbol_data_and_fx():
     assert "OK" in [r.ticker for r in res.resolved]
 
 
+def test_fx_rate_carried_on_resolved_record():
+    infos = {"OK": _info(currency="USD")}
+    res = run_basis_filter(["OK"], _CfgYF(infos))
+    rec = res.resolved[0]
+    assert rec.fx_rate == 1.0
+
+
 # --- ITEM 2: yfinance resolution aggregate ---
 
 

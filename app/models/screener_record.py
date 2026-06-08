@@ -36,6 +36,7 @@ class ScreenerRecord(BaseModel):
 
     # FX-normalized market cap — computed in run_basis_filter, not from yfinance directly
     market_cap_eur: float | None = None
+    fx_rate: float | None = None  # currency->EUR rate, carried from resolution (Punkt 1: value-gate primitive)
 
     # EDGAR fields (populated in Phase 1.2)
     cik: str | None = None
