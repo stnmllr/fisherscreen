@@ -112,6 +112,9 @@ def run_basis_filter(
             elif record.avg_daily_volume is None:
                 record.resolution_detail = "NO_VOLUME"
                 no_symbol_data.append(record)
+            elif record.price is None:
+                record.resolution_detail = "NO_PRICE"
+                no_symbol_data.append(record)
             elif reason == ResolveReason.NO_FX:
                 record.resolution_detail = "NO_FX"
                 fx_unavailable.append(record)

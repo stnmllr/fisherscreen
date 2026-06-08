@@ -146,8 +146,8 @@ class _CfgYF:
 
 def _info(**kw):
     base = {"shortName": "X", "quoteType": "EQUITY", "marketCap": 5e9,
-            "averageVolume": 5e5, "currency": "EUR", "grossMargins": 0.5,
-            "revenueGrowth": 0.1, "sector": "Technology"}
+            "averageVolume": 5e5, "currentPrice": 100.0, "currency": "EUR",
+            "grossMargins": 0.5, "revenueGrowth": 0.1, "sector": "Technology"}
     base.update(kw)
     return base
 
@@ -192,6 +192,24 @@ def test_fx_rate_carried_on_resolved_record():
     res = run_basis_filter(["OK"], _CfgYF(infos))
     rec = res.resolved[0]
     assert rec.fx_rate == 1.0
+
+
+def test_divert_no_price():
+    infos = {
+        "NOPX": _info(currentPrice=0, regularMarketPrice=0),
+        "NOPX2": _info(currentPrice=None, regularMarketPrice=None),
+        "OK": _info(),
+    }
+    res = run_basis_filter(list(infos), _CfgYF(infos))
+    nsd = {r.ticker: r.resolution_detail for r in res.no_symbol_data}
+    assert nsd == {"NOPX": "NO_PRICE", "NOPX2": "NO_PRICE"}
+    assert "OK" in [r.ticker for r in res.resolved]
+
+
+def test_divert_precedence_volume_before_price():
+    infos = {"Z": _info(averageVolume=0, currentPrice=0, regularMarketPrice=0)}
+    res = run_basis_filter(["Z"], _CfgYF(infos))
+    assert res.no_symbol_data[0].resolution_detail == "NO_VOLUME"
 
 
 # --- ITEM 2: yfinance resolution aggregate ---
@@ -294,8 +312,8 @@ class _FunnelYF:
         if ticker == "GONE":
             raise DataSourceError("404")
         return {"shortName": ticker, "marketCap": 5e9, "averageVolume": 5e5,
-                "currency": "EUR", "grossMargins": 0.5, "revenueGrowth": 0.1,
-                "sector": "Technology"}
+                "currentPrice": 100.0, "currency": "EUR", "grossMargins": 0.5,
+                "revenueGrowth": 0.1, "sector": "Technology"}
     def get_fx_rate(self, currency):
         return 1.0
 
