@@ -6,9 +6,10 @@ from app.models.screener_record import ScreenerRecord
 logger = logging.getLogger(__name__)
 
 MIN_MARKET_CAP_EUR: float = 2_000_000_000
-# Fail-loud sentinel: None until the calibration gate sets the approved EUR value floor.
-# A real run with the sentinel RAISES (impossible to ship an uncalibrated guess).
-MIN_AVG_DAILY_VALUE_EUR: float | None = None
+# GATE-A-approved EUR daily-trading-value floor (2026-06-08). Structural anchor: the empty
+# 0.89M-2.45M band between broken/micro and the survivor population; absolute trading minimum,
+# not a relative gap. See docs/superpowers/audits/2026-06-08-1-value-floor/calibration.md.
+MIN_AVG_DAILY_VALUE_EUR: float | None = 1_000_000.0
 MIN_GROSS_MARGIN: float = 0.30
 MIN_REVENUE_GROWTH: float = 0.0
 

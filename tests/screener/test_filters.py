@@ -73,6 +73,19 @@ def test_missing_input_raises_not_silent_drop():
         passes_volume_filter(_rec(fx=None))
 
 
+def test_production_threshold_is_calibrated():
+    # Guards against shipping the sentinel. The production constant must be a real,
+    # calibrated value >= the broken-avgVol ceiling (so FER/1COV stay GATE_VOLUME REVIEW).
+    import importlib
+    import app.screener.filters as f
+    importlib.reload(f)
+    try:
+        assert f.MIN_AVG_DAILY_VALUE_EUR is not None
+        assert f.MIN_AVG_DAILY_VALUE_EUR >= 900_000
+    finally:
+        importlib.reload(f)
+
+
 # --- gross margin (V3: >= 0.30, decimal format — 0.30 = 30%) ---
 
 def test_gross_margin_passes_above_threshold():
