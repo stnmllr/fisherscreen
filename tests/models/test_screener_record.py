@@ -129,3 +129,25 @@ def test_gemini_dimensions_accepts_any_dict_values():
     # ScreenerRecord stores whatever is set — clamping/validation is GeminiClientImpl's job
     record = ScreenerRecord(ticker="TEST", gemini_dimensions={"growth": 99, "other": -1})
     assert record.gemini_dimensions == {"growth": 99, "other": -1}
+
+
+def test_gbp_pence_normalized_to_gbp_major_unit():
+    info = {"shortName": "Games Workshop", "currency": "GBp",
+            "currentPrice": 18980.0, "marketCap": 6_271_815_680, "averageVolume": 93552}
+    r = ScreenerRecord.from_yfinance_info("GAW.L", info)
+    assert r.currency == "GBP"
+    assert r.price == 189.80
+    assert r.market_cap == 6_271_815_680  # marketCap UNCHANGED (already GBP)
+
+
+def test_non_minor_unit_currency_untouched():
+    info = {"shortName": "X", "currency": "EUR", "currentPrice": 58.44,
+            "marketCap": 41_857_323_008, "averageVolume": 7309}
+    r = ScreenerRecord.from_yfinance_info("FER.AS", info)
+    assert r.currency == "EUR" and r.price == 58.44
+
+
+def test_price_zero_collapses_to_none():
+    info = {"shortName": "X", "currency": "EUR", "currentPrice": 0,
+            "regularMarketPrice": 0, "marketCap": 5e9, "averageVolume": 5e5}
+    assert ScreenerRecord.from_yfinance_info("Z", info).price is None
