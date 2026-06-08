@@ -66,15 +66,30 @@ elif record.price is None:            # 0->None schon bei Konstruktion -> fängt
     record.resolution_detail = "NO_PRICE"
     no_symbol_data.append(record)
 ```
-→ `RESOLUTION_NO_SYMBOL_DATA`, detail `NO_PRICE`, REVIEW. Kein 0c. **Notiz:** Das verhindert eine
-*künftige* Maskierung, keine aktuelle (der jetzige Stück-Floor nutzt price nicht). Tauchen am
-Cold-Run NO_PRICE-Diverts auf, ist das ein **Fund**, kein Defekt (Divert-Menge darf über 3 wachsen).
+→ `RESOLUTION_NO_SYMBOL_DATA`, detail `NO_PRICE`, REVIEW. Kein 0c. **Detail-Präzedenz
+deterministisch + getestet:** `NO_RAW_MC → NO_CURRENCY → NO_VOLUME → NO_PRICE` (price zuletzt, da
+separater `elif`). **Notiz:** Das verhindert eine *künftige* Maskierung, keine aktuelle (der jetzige
+Stück-Floor nutzt price nicht). Tauchen am Cold-Run NO_PRICE-Diverts auf, ist das ein **Fund**, kein
+Defekt (Divert-Menge darf über 3 wachsen).
 
 ### (D) Wert-Gate
 `passes_volume_filter` rechnet `avg_daily_value_eur = avg_daily_volume × price × fx_rate ≥
 MIN_AVG_DAILY_VALUE_EUR`. reason_code bleibt `GATE_VOLUME` (es ist weiter der Liquiditäts-Gate),
 Gate-Reihenfolge unverändert (zuerst). Records am Gate haben vol+price (sonst divertiert) und fx_rate
-(OK) → Wert berechenbar; defensiver Guard: fehlt eins, fail.
+(OK) → Wert berechenbar.
+
+**Schwelle = fail-loud Sentinel in der Bauphase:** `MIN_AVG_DAILY_VALUE_EUR: float | None = None`.
+Das Gate **raised** „threshold not calibrated", wenn es mit dem Sentinel in einem echten Lauf
+aufgerufen wird → eine unkalibrierte Zahl zu shippen ist **unmöglich** (genau die „Rateversuch
+maskiert sich als kalibriert"-Falle dieses Tickets). **Kein** plausibler Platzhalter (nicht
+`1_000_000`). Tests injizieren Fixture-Schwellen → TDD ist nicht blockiert. Das Kalibrierungs-Gate
+ersetzt den Sentinel durch die abgenommene Zahl.
+
+**Defensiver Guard RAISED, droppt NICHT still:** Ein Record am Wert-Gate ohne berechenbaren Wert
+(vol/price/fx_rate fehlt) ist **keine** Liquiditäts-Verfehlung, sondern eine **Invarianten-Verletzung**
+(0b+NO_PRICE garantieren alle drei → der Guard kann legitim nie feuern). → laut `raise`, **niemals**
+stiller BENIGN-Drop (das wäre exakt die Maskierungs-Hintertür, die 0a/0b geschlossen haben). Feuert
+er doch, ist es ein Bug, der schreien soll.
 
 ### (E) Severity folgt der Metrik — verifizieren
 `_severity(GATE_VOLUME)` keyt auf `market_cap_eur` (≥ LARGE_CAP_VOLUME_EUR → REVIEW), **unabhängig**
@@ -95,7 +110,16 @@ sauber), nicht auf meiner Vorab-Rechnung (Probe ist der Schiedsrichter, GATE-2-L
 - **Region ~€1M:** schließt nur echtes Micro aus (LANV €0,095M), bindet keinen Survivor (p10=€25M,
   25× drüber). €1M vs €2M = nur „DIA.MC rein/raus" (distressed Retailer, stirbt ohnehin am
   gross_margin) → nicht zerdenken; an der **unteren Kante der natürlichen Lücke** ansetzen, auf
-  sauberen Zahlen abgelesen. Schwelle = Gate-Artefakt, von Stephan abgenommen (wie die 0a-Tabelle).
+  sauberen Zahlen abgelesen. Die Konstante (Sentinel→Zahl) = Gate-Artefakt, von Stephan abgenommen
+  (wie die 0a-Tabelle).
+- **Gerettetes Set EXAKT am Gate nachzählen (nicht annehmen):** Das survivor-ändernde Delta umfasst
+  **auch die fälschlich-BENIGN-Gedroppten** (VCT/RCO/DIA), nicht nur die 22 REVIEW. Von den 5
+  GATE_VOLUME-BENIGN sind LANV und CTG.L per market_cap echte Micro-Caps (CTG.L's €1,34M ist zudem
+  pence-inflationiert → real Micro) → bleiben draußen. ⇒ **3 gerettet (VCT/RCO/DIA), DIA
+  schwellenwert-grenzwertig** (drin bei €1M, raus bei €2M) — **nicht** „4 von 5". Die Rescued-/
+  Stay-out-Mitgliedschaft wird am Kalibrierungs-Gate auf **sauberen (pence-gefixten) Zahlen exakt
+  enumeriert** (REVIEW/BENIGN/broken sauber getrennt), und die Survivor-Split-Prognose daraus gebaut —
+  sonst reconciled das Survivor-Delta nicht gegen die Prognose.
 
 ## Broken-avgVol — nur REVIEW-flaggen (Decision 2)
 
