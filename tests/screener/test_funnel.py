@@ -65,6 +65,12 @@ def test_volume_threshold_decoupled_from_growth():
     assert _severity(ReasonCode.GATE_REVENUE_GROWTH, market_cap_eur=mc, sector_wide=False) == SeverityBucket.BENIGN
 
 
+def test_large_cap_volume_drop_is_review_regardless_of_metric():
+    from app.screener.funnel import _severity, ReasonCode, SeverityBucket, LARGE_CAP_VOLUME_EUR
+    assert _severity(ReasonCode.GATE_VOLUME, market_cap_eur=LARGE_CAP_VOLUME_EUR + 1,
+                     sector_wide=False) == SeverityBucket.REVIEW
+
+
 def test_growth_review_above_growth_threshold():
     assert _severity(ReasonCode.GATE_REVENUE_GROWTH, market_cap_eur=20_000_000_000, sector_wide=False) == SeverityBucket.REVIEW
 

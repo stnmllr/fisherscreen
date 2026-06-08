@@ -1,3 +1,7 @@
+import pytest
+
+import app.screener.filters as filters
+from app.errors import FilterConfigError
 from app.models.screener_record import ScreenerRecord
 from app.screener.filters import (
     apply_basis_filters,
@@ -13,6 +17,8 @@ def _record(**kwargs) -> ScreenerRecord:
         "ticker": "TEST",
         "market_cap_eur": 5_000_000_000,  # 5B EUR — well above €2B threshold
         "avg_daily_volume": 200_000,
+        "price": 100.0,                   # value gate primitive (Punkt 1)
+        "fx_rate": 1.0,                   # value gate primitive (Punkt 1)
         "gross_margin": 0.45,             # 45% — above 30% threshold (decimal format)
         "revenue_growth_yoy": 0.05,       # 5% YoY growth — above 0%
     }
@@ -37,22 +43,34 @@ def test_market_cap_fails_when_none():
     assert passes_market_cap_filter(_record(market_cap_eur=None)) is False
 
 
-# --- volume (unchanged: >= 100k avg daily) ---
-
-def test_volume_passes_above_threshold():
-    assert passes_volume_filter(_record(avg_daily_volume=100_001)) is True
+# --- volume gate (Punkt 1: EUR daily-trading-value >= MIN_AVG_DAILY_VALUE_EUR) ---
 
 
-def test_volume_passes_at_exact_threshold():
-    assert passes_volume_filter(_record(avg_daily_volume=100_000)) is True
+def _rec(vol=500_000.0, price=100.0, fx=1.0):
+    return ScreenerRecord(ticker="X", avg_daily_volume=vol, price=price, fx_rate=fx)
 
 
-def test_volume_fails_below_threshold():
-    assert passes_volume_filter(_record(avg_daily_volume=99_999)) is False
+def test_value_floor_passes_high_value():
+    assert passes_volume_filter(_rec()) is True            # 500k x 100 x 1 = 50M >= 1M
 
 
-def test_volume_fails_when_none():
-    assert passes_volume_filter(_record(avg_daily_volume=None)) is False
+def test_value_floor_fails_low_value():
+    assert passes_volume_filter(_rec(vol=5_000)) is False  # 0.5M < 1M
+
+
+def test_lindt_class_few_shares_high_price_passes():
+    assert passes_volume_filter(_rec(vol=175, price=95_600, fx=1.07)) is True  # ~17.9M
+
+
+def test_uncalibrated_sentinel_raises(monkeypatch):
+    monkeypatch.setattr(filters, "MIN_AVG_DAILY_VALUE_EUR", None)
+    with pytest.raises(FilterConfigError, match="not calibrated"):
+        passes_volume_filter(_rec())
+
+
+def test_missing_input_raises_not_silent_drop():
+    with pytest.raises(FilterConfigError, match="value uncomputable"):
+        passes_volume_filter(_rec(fx=None))
 
 
 # --- gross margin (V3: >= 0.30, decimal format — 0.30 = 30%) ---
