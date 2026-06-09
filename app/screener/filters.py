@@ -3,6 +3,7 @@ import logging
 from app.errors import FilterConfigError
 from app.models.screener_record import ScreenerRecord
 from app.screener.metric_definedness import is_gross_margin_undefined_info_only
+from app.screener.sector_buckets import SectorMedianTable, bucket_median
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,8 @@ MIN_MARKET_CAP_EUR: float = 2_000_000_000
 MIN_AVG_DAILY_VALUE_EUR: float | None = 1_000_000.0
 MIN_GROSS_MARGIN: float = 0.30
 MIN_REVENUE_GROWTH: float = 0.0
+# Fail-loud-Sentinel bis Gate-A k setzt. None => relativer Arm feuert nicht (fail-safe).
+GROSS_MARGIN_RELATIVE_K: float | None = None
 
 
 def passes_market_cap_filter(record: ScreenerRecord) -> bool:
@@ -44,11 +47,27 @@ def passes_volume_filter(record: ScreenerRecord) -> bool:
     return value >= MIN_AVG_DAILY_VALUE_EUR
 
 
-def passes_gross_margin_filter(record: ScreenerRecord) -> bool:
-    if record.gross_margin is None:
+def _node_chain(record: ScreenerRecord) -> list[str]:
+    return [n for n in (record.gics_industry, record.gics_sector) if n]
+
+
+def passes_gross_margin_filter(
+    record: ScreenerRecord,
+    table: SectorMedianTable | None = None,
+    k: float | None = None,
+) -> bool:
+    gm = record.gross_margin
+    if gm is None:
         logger.warning("ticker=%s gross_margin missing", record.ticker)
         return False
-    return record.gross_margin >= MIN_GROSS_MARGIN
+    if gm >= MIN_GROSS_MARGIN:          # absolute arm
+        return True
+    if table is None or k is None:      # relative arm fail-safe: dormant
+        return False
+    median = bucket_median(_node_chain(record), table)
+    if median is None:                  # thin sector / no valid reference -> no rescue
+        return False
+    return gm >= k * median
 
 
 def passes_revenue_growth_filter(record: ScreenerRecord) -> bool:
@@ -58,24 +77,32 @@ def passes_revenue_growth_filter(record: ScreenerRecord) -> bool:
     return record.revenue_growth_yoy >= MIN_REVENUE_GROWTH
 
 
-def _get_fail_reason(record: ScreenerRecord) -> str | None:
+def _get_fail_reason(
+    record: ScreenerRecord,
+    table: SectorMedianTable | None = None,
+    k: float | None = None,
+) -> str | None:
     if not passes_volume_filter(record):
         return "avg_volume"
     if not passes_market_cap_filter(record):
         return "market_cap"
     if is_gross_margin_undefined_info_only(record):
         return "metric_na"
-    if not passes_gross_margin_filter(record):
+    if not passes_gross_margin_filter(record, table, k):
         return "gross_margin"
     if not passes_revenue_growth_filter(record):
         return "revenue_growth"
     return None
 
 
-def apply_basis_filters(records: list[ScreenerRecord]) -> list[ScreenerRecord]:
+def apply_basis_filters(
+    records: list[ScreenerRecord],
+    sector_table: SectorMedianTable | None = None,
+    relative_k: float | None = None,
+) -> list[ScreenerRecord]:
     passed = []
     for record in records:
-        reason = _get_fail_reason(record)
+        reason = _get_fail_reason(record, sector_table, relative_k)
         if reason:
             record.filter_failed_reason = reason
             record.filter_passed_basis = False

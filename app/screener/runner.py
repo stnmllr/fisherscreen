@@ -12,8 +12,11 @@ from pydantic import ValidationError
 
 from app.errors import DataSourceError, DegradedDataError
 from app.models.screener_record import ScreenerRecord
+from app.screener import filters as _filters
+from app.screener.compose import build_sector_median_table
 from app.screener.filter_report import FilterReport, build_filter_report
 from app.screener.filters import apply_basis_filters, apply_edgar_filters
+from app.screener.sector_buckets import SectorMedianTable
 
 if TYPE_CHECKING:
     from app.models.run_record import RunRecord
@@ -86,6 +89,7 @@ def _resolve_market_cap_eur(
 def run_basis_filter(
     tickers: list[str],
     yfinance: YFinanceClient,
+    sector_table: SectorMedianTable | None = None,
 ) -> BasisFilterResult:
     us_input = sum(1 for t in tickers if "." not in t)
     eu_input = len(tickers) - us_input
@@ -150,8 +154,13 @@ def run_basis_filter(
             len(no_symbol_data), len(fx_unavailable),
         )
 
+    table = sector_table if sector_table is not None else build_sector_median_table()
     return BasisFilterResult(
-        passed=apply_basis_filters(records),
+        passed=apply_basis_filters(
+            records,
+            sector_table=table,
+            relative_k=_filters.GROSS_MARGIN_RELATIVE_K,
+        ),
         unresolved=unresolved,
         resolved=records,
         degraded=sorted(degraded),

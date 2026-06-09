@@ -10,6 +10,7 @@ from app.screener.filters import (
     passes_revenue_growth_filter,
     passes_volume_filter,
 )
+from app.screener.sector_buckets import SectorMedianTable
 
 
 def _record(**kwargs) -> ScreenerRecord:
@@ -285,3 +286,60 @@ def test_low_but_defined_margin_still_fails_gross_margin():
     rec = _record(ticker="LOW", gross_margin=0.10)
     apply_basis_filters([rec])
     assert rec.filter_failed_reason == "gross_margin"
+
+
+# --- dual-arm sector-aware gross margin floor (Punkt 2 Mechanism 2 / C3) ---
+
+def test_absolute_arm_passes_high_margin():
+    assert passes_gross_margin_filter(_record(gross_margin=0.45), table=None) is True
+
+
+def test_no_table_relative_arm_dormant_below_30():
+    assert passes_gross_margin_filter(
+        _record(gross_margin=0.18, gics_sector="Consumer Discretionary"),
+        table=None,
+    ) is False
+
+
+def test_relative_arm_rescues_low_margin_in_low_margin_sector():
+    table = SectorMedianTable(
+        entries={"Consumer Discretionary": 0.20},
+        n_min=1,
+        counts={"Consumer Discretionary": 40},
+    )
+    rec = _record(gross_margin=0.18, gics_sector="Consumer Discretionary")
+    assert passes_gross_margin_filter(rec, table=table, k=0.5) is True
+
+
+def test_relative_arm_does_not_rescue_real_tail():
+    table = SectorMedianTable(
+        entries={"Consumer Discretionary": 0.20},
+        n_min=1,
+        counts={"Consumer Discretionary": 40},
+    )
+    rec = _record(gross_margin=0.05, gics_sector="Consumer Discretionary")
+    assert passes_gross_margin_filter(rec, table=table, k=0.5) is False
+
+
+def test_determinism_independent_of_peer_membership():
+    table = SectorMedianTable(
+        entries={"Consumer Discretionary": 0.20},
+        n_min=1,
+        counts={"Consumer Discretionary": 40},
+    )
+    rec = _record(gross_margin=0.18, gics_sector="Consumer Discretionary")
+    assert passes_gross_margin_filter(rec, table=table, k=0.5) is True
+
+
+# --- apply_basis_filters with sector table (Punkt 2 Mechanism 2 / C4) ---
+
+def test_apply_basis_filters_rescues_with_table():
+    table = SectorMedianTable(
+        entries={"Consumer Discretionary": 0.20},
+        n_min=1,
+        counts={"Consumer Discretionary": 40},
+    )
+    rec = _record(ticker="MAERSK", gross_margin=0.18, gics_sector="Consumer Discretionary")
+    result = filters.apply_basis_filters([rec], sector_table=table, relative_k=0.5)
+    assert rec.filter_passed_basis is True
+    assert result and result[0].ticker == "MAERSK"
