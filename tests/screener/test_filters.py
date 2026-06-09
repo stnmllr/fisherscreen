@@ -321,14 +321,29 @@ def test_relative_arm_does_not_rescue_real_tail():
     assert passes_gross_margin_filter(rec, table=table, k=0.5) is False
 
 
-def test_determinism_independent_of_peer_membership():
+def test_relative_arm_fails_safe_when_bucket_median_is_none():
+    # n_min=10 but the bucket has only 2 peers -> resolve_bucket returns None ->
+    # bucket_median None -> relative arm does not fire (thin-sector fail-safe, spec §4)
     table = SectorMedianTable(
         entries={"Consumer Discretionary": 0.20},
-        n_min=1,
-        counts={"Consumer Discretionary": 40},
+        n_min=10,
+        counts={"Consumer Discretionary": 2},
     )
     rec = _record(gross_margin=0.18, gics_sector="Consumer Discretionary")
-    assert passes_gross_margin_filter(rec, table=table, k=0.5) is True
+    assert passes_gross_margin_filter(rec, table=table, k=0.5) is False
+
+
+def test_determinism_independent_of_peer_membership():
+    # The verdict is a fixed function of the record's gm and the PINNED median, not of
+    # peer membership: the same record passes under one pinned table and fails under another.
+    rec = _record(gross_margin=0.18, gics_sector="Consumer Discretionary")
+    lenient = SectorMedianTable(entries={"Consumer Discretionary": 0.20}, n_min=1,
+                                counts={"Consumer Discretionary": 40})
+    strict = SectorMedianTable(entries={"Consumer Discretionary": 0.50}, n_min=1,
+                               counts={"Consumer Discretionary": 40})
+    # k=0.5: lenient bar = 0.10 (0.18 passes); strict bar = 0.25 (0.18 fails)
+    assert passes_gross_margin_filter(rec, table=lenient, k=0.5) is True
+    assert passes_gross_margin_filter(rec, table=strict, k=0.5) is False
 
 
 # --- apply_basis_filters with sector table (Punkt 2 Mechanism 2 / C4) ---

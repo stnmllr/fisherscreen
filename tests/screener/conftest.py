@@ -21,3 +21,4 @@ def _dormant_gross_margin_relative_arm(monkeypatch):
     passes_gross_margin_filter — the runner path is also guarded via compose."""
     monkeypatch.setattr(filters, "GROSS_MARGIN_RELATIVE_K", None)
     monkeypatch.setattr(compose, "build_sector_median_table", lambda: None)
+    monkeypatch.setattr("app.screener.runner.build_sector_median_table", lambda: None)
