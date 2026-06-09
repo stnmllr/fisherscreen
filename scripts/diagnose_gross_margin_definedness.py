@@ -83,12 +83,20 @@ def main() -> None:
         "includes the ~29 Financials with positive .info gm)"
     )
 
+    total = len(basket)
+    print(
+        f"\nNOTE: now fetching {total} live income_stmt calls via yfinance — "
+        "this takes a few minutes. Per-ticker progress lines follow.\n"
+        "yfinance may emit HTTP-error lines for delisted/odd symbols — those are harmless noise.",
+        flush=True,
+    )
+
     # Per-basket ticker: fetch income_stmt, classify waterfall, tally edges
     null_edge: list[tuple[str, str, float | None, WaterfallVerdict]] = []  # gm<=0, classified DEFINED_NEGATIVE
     positive_edge: list[tuple[str, str, float | None, WaterfallVerdict]] = []  # gm>0 Financial, classified UNDEFINED
     rows: list[dict] = []
 
-    for rec in sorted(basket, key=lambda r: r.ticker):
+    for i, rec in enumerate(sorted(basket, key=lambda r: r.ticker), start=1):
         t = rec.ticker
         revenue: float | None = None
         cor: float | None = None
@@ -103,8 +111,8 @@ def main() -> None:
             revenue = _first_col_value(income_stmt, "Total Revenue")
             cor = _first_col_value(income_stmt, "Cost Of Revenue")
             gp = _first_col_value(income_stmt, "Gross Profit")
-        except DataSourceError as exc:
-            fetch_error = str(exc)
+        except Exception as exc:
+            fetch_error = str(exc) or type(exc).__name__
 
         if fetch_error:
             verdict_str = f"FETCH_ERROR: {fetch_error[:80]}"
@@ -117,9 +125,11 @@ def main() -> None:
                 "gp": None,
                 "verdict": verdict_str,
             })
+            print(f"[{i}/{total}] {t:<14} FETCH_ERROR", flush=True)
             continue
 
         verdict = classify_waterfall(revenue, cor, gp, cor_present)
+        print(f"[{i}/{total}] {t:<14} {verdict.value}", flush=True)
 
         rows.append({
             "ticker": t,
@@ -139,6 +149,10 @@ def main() -> None:
         # POSITIVE edge: a Financial/REIT with positive .info gm that waterfall classifies UNDEFINED
         if _is_financial_or_reit(rec) and (gm is not None and gm > 0) and verdict == WaterfallVerdict.UNDEFINED:
             positive_edge.append((t, rec.gics_sector or "", gm, verdict))
+
+    # Error summary (coverage check before writing METRIK_NA)
+    fetch_error_count = sum(1 for row in rows if str(row["verdict"]).startswith("FETCH_ERROR"))
+    print(f"\nFetch errors: {fetch_error_count}/{total} tickers", flush=True)
 
     # Print the table
     print(
