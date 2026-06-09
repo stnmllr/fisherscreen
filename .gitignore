@@ -34,10 +34,8 @@ service-account-*.json
 Thumbs.db
 desktop.ini
 
-# Generated outputs (cold-runs, dossiers, watchlists)
-output/
-output-test/
- 
-# Generated outputs (cold-runs, dossiers, watchlists) 
-output/ 
-output-test/ 
+# Generated outputs (cold-runs, dossiers, watchlists) — root-anchored so the pattern
+# cannot also match the app/output/ source package. An unanchored `output/` excluded
+# app/output/ from the Cloud Build context -> ModuleNotFoundError 'app.output' in prod (2026-06-09).
+/output/
+/output-test/
