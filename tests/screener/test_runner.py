@@ -1,7 +1,10 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pandas as pd
+
 from app.errors import DataSourceError, DegradedDataError
+from app.models.definedness import DefinednessOutcome
 from app.models.run_record import RunRecord
 from app.models.screener_record import ScreenerRecord
 from app.screener.runner import (
@@ -692,3 +695,147 @@ def test_run_screener_creates_three_named_output_files(tmp_path):
     assert "2026-05-Dimensions.md" in names
     assert "2026-05-Crosshits.md" in names
     assert "2026-05-Changes.md" in names
+
+
+# --- CT-A definedness pre-pass ---
+
+
+def _make_income_stmt(
+    total_revenue: float | None,
+    cost_of_revenue: float | None,
+    gross_profit: float | None,
+) -> "pd.DataFrame":
+    """Minimal income_stmt fixture with one date column."""
+    data: dict = {}
+    if total_revenue is not None:
+        data["Total Revenue"] = total_revenue
+    if cost_of_revenue is not None:
+        data["Cost Of Revenue"] = cost_of_revenue
+    if gross_profit is not None:
+        data["Gross Profit"] = gross_profit
+    return pd.DataFrame({"2024": data})
+
+
+def _suspect_info(**overrides) -> dict:
+    """Base info for a suspect (Financial sector) ticker that passes volume+cap."""
+    base = {
+        "shortName": "Financial Corp",
+        "currency": "EUR",
+        "marketCap": 5_000_000_000,
+        "averageVolume": 500_000,
+        "currentPrice": 100.0,
+        "grossMargins": None,         # None -> suspect basket
+        "revenueGrowth": 0.05,
+        "sector": "Financial Services",
+        "industry": "Banks - Diversified",
+    }
+    base.update(overrides)
+    return base
+
+
+def _non_suspect_info(**overrides) -> dict:
+    """Base info for a non-suspect (Technology, positive gm) ticker."""
+    base = {
+        "shortName": "Tech Corp",
+        "currency": "EUR",
+        "marketCap": 5_000_000_000,
+        "averageVolume": 500_000,
+        "currentPrice": 100.0,
+        "grossMargins": 0.60,
+        "revenueGrowth": 0.10,
+        "sector": "Technology",
+        "industry": "Software",
+    }
+    base.update(overrides)
+    return base
+
+
+def _make_full_yf_mock(infos: dict, stmts: dict | None = None) -> MagicMock:
+    """YFinance mock supporting get_ticker_info, get_fx_rate, get_annual_statements."""
+    mock = MagicMock()
+    mock.get_ticker_info.side_effect = lambda t: infos[t]
+    mock.get_fx_rate.return_value = 1.0
+    if stmts is not None:
+        mock.get_annual_statements.side_effect = lambda t: (stmts.get(t), None, None)
+    else:
+        mock.get_annual_statements.side_effect = DataSourceError("no stmt")
+    return mock
+
+
+def test_prepass_sets_defined_for_bank_with_real_waterfall():
+    """A bank with a genuine income_stmt waterfall -> DEFINED (continues to gross_margin gate)."""
+    stmt = _make_income_stmt(1_000.0, 300.0, 700.0)
+    infos = {"BANK": _suspect_info()}
+    yf = _make_full_yf_mock(infos, stmts={"BANK": stmt})
+
+    result = run_basis_filter(["BANK"], yf)
+    rec = result.resolved[0]
+    # waterfall is DEFINED; gross_margin=None -> fails gross_margin gate, not metric_na
+    assert rec.definedness is DefinednessOutcome.DEFINED
+    assert rec.filter_failed_reason != "metric_na"
+
+
+def test_prepass_sets_metrik_na_for_bank_without_cogs():
+    """A bank with no Cost Of Revenue row -> waterfall UNDEFINED -> METRIK_NA."""
+    stmt = _make_income_stmt(1_000.0, None, None)
+    infos = {"BANK": _suspect_info()}
+    yf = _make_full_yf_mock(infos, stmts={"BANK": stmt})
+
+    result = run_basis_filter(["BANK"], yf)
+    rec = result.resolved[0]
+    assert rec.definedness is DefinednessOutcome.METRIK_NA
+    assert rec.filter_failed_reason == "metric_na"
+
+
+def test_prepass_sets_unassessable_on_fetch_failure():
+    """Income statement fetch failure -> UNASSESSABLE -> 'statement_unavailable' reason."""
+    infos = {"BANK": _suspect_info()}
+    mock = MagicMock()
+    mock.get_ticker_info.side_effect = lambda t: infos[t]
+    mock.get_fx_rate.return_value = 1.0
+    mock.get_annual_statements.side_effect = DataSourceError("timeout")
+
+    result = run_basis_filter(["BANK"], mock)
+    rec = result.resolved[0]
+    assert rec.definedness is DefinednessOutcome.UNASSESSABLE
+    assert rec.filter_failed_reason == "statement_unavailable"
+
+
+def test_prepass_leaves_non_suspect_at_none():
+    """A non-suspect (Technology, positive gm) record must NOT be assessed -> None."""
+    infos = {"TECH": _non_suspect_info()}
+    mock = MagicMock()
+    mock.get_ticker_info.side_effect = lambda t: infos[t]
+    mock.get_fx_rate.return_value = 1.0
+
+    result = run_basis_filter(["TECH"], mock)
+    rec = result.resolved[0]
+    assert rec.definedness is None
+    # get_annual_statements must NOT have been called for non-suspect records
+    mock.get_annual_statements.assert_not_called()
+
+
+def test_prepass_reit_shortcircuit_no_fetch():
+    """REIT in gics_industry -> METRIK_NA without fetching the income statement."""
+    infos = {"REI": _suspect_info(sector="Real Estate", industry="REIT - Retail")}
+    mock = MagicMock()
+    mock.get_ticker_info.side_effect = lambda t: infos[t]
+    mock.get_fx_rate.return_value = 1.0
+
+    result = run_basis_filter(["REI"], mock)
+    rec = result.resolved[0]
+    assert rec.definedness is DefinednessOutcome.METRIK_NA
+    mock.get_annual_statements.assert_not_called()
+
+
+def test_prepass_volume_failer_skipped_no_fetch():
+    """Volume-failing record is not in the suspect basket ∩ cap+vol survivors -> no fetch."""
+    infos = {"ILLIQUID": _suspect_info(averageVolume=1)}  # fails volume gate
+    mock = MagicMock()
+    mock.get_ticker_info.side_effect = lambda t: infos[t]
+    mock.get_fx_rate.return_value = 1.0
+
+    result = run_basis_filter(["ILLIQUID"], mock)
+    rec = result.resolved[0]
+    assert rec.definedness is None
+    mock.get_annual_statements.assert_not_called()

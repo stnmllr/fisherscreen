@@ -5,6 +5,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.models.definedness import DefinednessOutcome
+
 
 # Minor-unit quote normalization: some exchanges quote price in a minor unit while
 # marketCap is in the major unit. London (GBp = pence) is the live case; ZAc (SA cents),
@@ -55,6 +57,9 @@ class ScreenerRecord(BaseModel):
     filter_passed_edgar: bool | None = None
     filter_failed_reason: str | None = None
     resolution_detail: str | None = None  # 0b: sub-reason when diverted (NO_RAW_MC|NO_CURRENCY|NO_VOLUME|NO_PRICE|NO_FX)
+    # CT-A: definedness verdict from the basis-stage income-statement pre-pass.
+    # None = not assessed (non-suspect, or record did not reach the assessment).
+    definedness: DefinednessOutcome | None = None
 
     # Metadata
     screened_at: datetime = Field(

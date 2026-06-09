@@ -190,6 +190,37 @@ def test_metrik_na_maps_to_framework_bucket():
     assert _BASIS_REASON["metric_na"] is ReasonCode.FRAMEWORK_METRIK_NA
 
 
+def test_statement_unavailable_maps_to_framework_statement_unavailable():
+    from app.screener.funnel import _BASIS_REASON, ReasonCode
+    assert _BASIS_REASON["statement_unavailable"] is ReasonCode.FRAMEWORK_STATEMENT_UNAVAILABLE
+
+
+def test_statement_unavailable_dropout_is_review_and_reconciles():
+    """FRAMEWORK_STATEMENT_UNAVAILABLE is REVIEW (transient) and reconciliation holds."""
+    unavail = _resolved("FETCH_ERR", sector="Financial Services", basis_reason="statement_unavailable")
+    hit = _resolved("HIT", dims={"growth": 4, "profitability": 4})
+    basis = BasisFilterResult(
+        passed=[hit],
+        unresolved=[],
+        resolved=[unavail, hit],
+        degraded=[],
+    )
+    summary, dropouts = build_funnel(
+        universe=["FETCH_ERR", "HIT"],
+        basis=basis,
+        scored=[hit],
+        score_threshold=4.0,
+        crosshits_min_dimensions=2,
+    )
+    codes = [d.reason_code for d in dropouts]
+    assert ReasonCode.FRAMEWORK_STATEMENT_UNAVAILABLE in codes
+    unavail_drop = next(d for d in dropouts if d.ticker == "FETCH_ERR")
+    assert unavail_drop.stage == Stage.BASIS_GATES
+    assert unavail_drop.severity_bucket == SeverityBucket.REVIEW
+    # Reconciliation: every universe ticker is a dropout or in the final stage
+    assert len(dropouts) + summary.stage(Stage.CROSSHITS).remaining == 2
+
+
 def test_metrik_na_dropout_is_own_bucket_and_reconciles():
     """FRAMEWORK_METRIK_NA surfaces as a distinct basis-gates dropout and reconciliation holds."""
     bank = _resolved("BANK", sector="Financials", basis_reason="metric_na")

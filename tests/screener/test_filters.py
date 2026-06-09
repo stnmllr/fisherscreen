@@ -2,8 +2,10 @@ import pytest
 
 import app.screener.filters as filters
 from app.errors import FilterConfigError
+from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
 from app.screener.filters import (
+    _get_fail_reason,
     apply_basis_filters,
     passes_gross_margin_filter,
     passes_market_cap_filter,
@@ -268,24 +270,61 @@ def test_apply_edgar_filters_returns_empty_for_empty_input():
     assert apply_edgar_filters([]) == []
 
 
-# --- metric_na divert (Punkt 2 Mechanism 1) ---
+# --- metric_na / statement_unavailable divert (Punkt 2 CT-A) ---
+# The runner pre-pass sets record.definedness; filters.py reads the pre-computed field.
 
-def test_undefined_margin_diverts_to_metric_na_not_gross_margin():
-    rec = _record(ticker="BANK", gross_margin=0.0)
+def test_definedness_metrik_na_diverts_to_metric_na():
+    """Pre-computed METRIK_NA on a volume+cap-passing record -> reason 'metric_na'."""
+    rec = _record(ticker="BANK", gross_margin=0.0, definedness=DefinednessOutcome.METRIK_NA)
     apply_basis_filters([rec])
     assert rec.filter_failed_reason == "metric_na"
 
 
-def test_negative_margin_diverts_to_metric_na_info_only():
-    rec = _record(ticker="X", gross_margin=-0.1)
+def test_definedness_unassessable_diverts_to_statement_unavailable():
+    """Pre-computed UNASSESSABLE (fetch failed) -> reason 'statement_unavailable'."""
+    rec = _record(ticker="X", gross_margin=None, definedness=DefinednessOutcome.UNASSESSABLE)
     apply_basis_filters([rec])
-    assert rec.filter_failed_reason == "metric_na"
+    assert rec.filter_failed_reason == "statement_unavailable"
 
 
-def test_low_but_defined_margin_still_fails_gross_margin():
-    rec = _record(ticker="LOW", gross_margin=0.10)
+def test_definedness_defined_continues_to_gross_margin_gate():
+    """DEFINED -> continues; with passing gross_margin the record passes basis."""
+    rec = _record(ticker="LOW", gross_margin=0.45, definedness=DefinednessOutcome.DEFINED)
+    result = apply_basis_filters([rec])
+    assert rec.filter_passed_basis is True
+    assert len(result) == 1
+
+
+def test_definedness_none_continues_to_gross_margin_gate():
+    """None (non-suspect, not assessed) -> continues; treated as DEFINED via None."""
+    rec = _record(ticker="NORM", gross_margin=0.45, definedness=None)
+    result = apply_basis_filters([rec])
+    assert rec.filter_passed_basis is True
+    assert len(result) == 1
+
+
+def test_definedness_defined_low_margin_still_fails_gross_margin():
+    """DEFINED with low margin -> continues past metric_na, fails gross_margin gate."""
+    rec = _record(ticker="LOW", gross_margin=0.10, definedness=DefinednessOutcome.DEFINED)
     apply_basis_filters([rec])
     assert rec.filter_failed_reason == "gross_margin"
+
+
+def test_volume_failer_with_unassessable_still_returns_avg_volume():
+    """volume gate fires BEFORE definedness check — order must be preserved."""
+    rec = _record(
+        ticker="ILLIQUID",
+        avg_daily_volume=10,       # fails volume gate
+        definedness=DefinednessOutcome.UNASSESSABLE,
+    )
+    apply_basis_filters([rec])
+    assert rec.filter_failed_reason == "avg_volume"
+
+
+def test_get_fail_reason_order_volume_before_definedness():
+    """Direct _get_fail_reason: UNASSESSABLE does not override a volume failure."""
+    rec = _record(ticker="Z", avg_daily_volume=10, definedness=DefinednessOutcome.UNASSESSABLE)
+    assert _get_fail_reason(rec) == "avg_volume"
 
 
 # --- dual-arm sector-aware gross margin floor (Punkt 2 Mechanism 2 / C3) ---

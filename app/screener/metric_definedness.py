@@ -1,31 +1,18 @@
 """Metric-definedness predicate + waterfall-shape discriminator for the
-gross_margin gate (Punkt 2). The .info-only predicate is the runtime DEFAULT;
-the waterfall classifier is used by the Gate-A calibration probe and becomes the
-runtime predicate only if Gate-A finds a non-empty edge (spec §6 Property A)."""
+gross_margin gate (Punkt 2). The waterfall classifier and assess_definedness are
+the runtime predicates wired by the basis-stage pre-pass (CT-A).
+"""
 from __future__ import annotations
 
 from enum import Enum
 
-from app.models.screener_record import ScreenerRecord
-
-
-def is_gross_margin_undefined_info_only(record: ScreenerRecord) -> bool:
-    """Runtime DEFAULT definedness predicate (.info-only, no fetch).
-    gm is None or <= 0 => treat as structurally undefined => METRIK_NA."""
-    gm = record.gross_margin
-    return gm is None or gm <= 0.0
+from app.models.definedness import DefinednessOutcome  # noqa: F401 — re-export for callers
 
 
 class WaterfallVerdict(str, Enum):
     DEFINED = "DEFINED"                     # real revenue->COGS->gross-profit waterfall
     UNDEFINED = "UNDEFINED"                 # no real COGS structure -> METRIK_NA
     DEFINED_NEGATIVE = "DEFINED_NEGATIVE"   # real waterfall, COGS>revenue -> FAIL (not NA)
-
-
-class DefinednessOutcome(str, Enum):
-    METRIK_NA = "METRIK_NA"        # Fisher framework not applicable -> set record.metric_na, drop
-    DEFINED = "DEFINED"            # has a real margin metric -> continue to the gross_margin gate
-    UNASSESSABLE = "UNASSESSABLE"  # statement could not be fetched/assessed -> resolution divert
 
 
 # Relative tolerance for the consistency check gp == revenue - cost_of_revenue.

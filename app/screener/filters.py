@@ -1,8 +1,8 @@
 import logging
 
 from app.errors import FilterConfigError
+from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
-from app.screener.metric_definedness import is_gross_margin_undefined_info_only
 from app.screener.sector_buckets import SectorMedianTable, bucket_median
 
 logger = logging.getLogger(__name__)
@@ -86,7 +86,12 @@ def _get_fail_reason(
         return "avg_volume"
     if not passes_market_cap_filter(record):
         return "market_cap"
-    if is_gross_margin_undefined_info_only(record):
+    # CT-A: read the pre-computed definedness verdict from the runner pre-pass.
+    # UNASSESSABLE = transient fetch failure (retryable); METRIK_NA = structurally undefined.
+    # DEFINED or None (non-suspect / not assessed) -> continue to the gross_margin gate.
+    if record.definedness is DefinednessOutcome.UNASSESSABLE:
+        return "statement_unavailable"
+    if record.definedness is DefinednessOutcome.METRIK_NA:
         return "metric_na"
     if not passes_gross_margin_filter(record, table, k):
         return "gross_margin"

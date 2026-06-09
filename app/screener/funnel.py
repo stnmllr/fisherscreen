@@ -22,6 +22,8 @@ class ReasonCode(str, Enum):
     GATE_VOLUME = "GATE_VOLUME"
     GATE_MARKET_CAP = "GATE_MARKET_CAP"
     FRAMEWORK_METRIK_NA = "FRAMEWORK_METRIK_NA"  # Fisher-Raster nicht anwendbar (gm strukturell undefiniert)
+    # Transient/retryable: income-statement could not be fetched this run — not a quality-fail.
+    FRAMEWORK_STATEMENT_UNAVAILABLE = "FRAMEWORK_STATEMENT_UNAVAILABLE"
     GATE_GROSS_MARGIN = "GATE_GROSS_MARGIN"
     GATE_REVENUE_GROWTH = "GATE_REVENUE_GROWTH"
     GATE_RESTATEMENT = "GATE_RESTATEMENT"
@@ -50,6 +52,7 @@ _BASIS_REASON: dict[str, ReasonCode] = {
     "avg_volume": ReasonCode.GATE_VOLUME,
     "market_cap": ReasonCode.GATE_MARKET_CAP,
     "metric_na": ReasonCode.FRAMEWORK_METRIK_NA,
+    "statement_unavailable": ReasonCode.FRAMEWORK_STATEMENT_UNAVAILABLE,
     "gross_margin": ReasonCode.GATE_GROSS_MARGIN,
     "revenue_growth": ReasonCode.GATE_REVENUE_GROWTH,
 }
@@ -63,6 +66,7 @@ _ALWAYS_REVIEW = {
     ReasonCode.RESOLUTION_DEGRADED_DICT,
     ReasonCode.RESOLUTION_NO_SYMBOL_DATA,
     ReasonCode.RESOLUTION_FX_UNAVAILABLE,
+    ReasonCode.FRAMEWORK_STATEMENT_UNAVAILABLE,  # transient/retryable — must not silently disappear
     ReasonCode.SCORE_NOT_SCORED,
 }
 
