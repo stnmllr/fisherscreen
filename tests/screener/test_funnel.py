@@ -188,3 +188,29 @@ def test_sector_wide_denominator_excludes_pre_margin_drops():
 def test_metrik_na_maps_to_framework_bucket():
     from app.screener.funnel import _BASIS_REASON, ReasonCode
     assert _BASIS_REASON["metric_na"] is ReasonCode.FRAMEWORK_METRIK_NA
+
+
+def test_metrik_na_dropout_is_own_bucket_and_reconciles():
+    """FRAMEWORK_METRIK_NA surfaces as a distinct basis-gates dropout and reconciliation holds."""
+    bank = _resolved("BANK", sector="Financials", basis_reason="metric_na")
+    hit = _resolved("HIT", dims={"growth": 4, "profitability": 4})
+    basis = BasisFilterResult(
+        passed=[hit],
+        unresolved=[],
+        resolved=[bank, hit],
+        degraded=[],
+    )
+    summary, dropouts = build_funnel(
+        universe=["BANK", "HIT"],
+        basis=basis,
+        scored=[hit],
+        score_threshold=4.0,
+        crosshits_min_dimensions=2,
+    )
+    codes = [d.reason_code for d in dropouts]
+    assert ReasonCode.FRAMEWORK_METRIK_NA in codes
+    bank_drop = next(d for d in dropouts if d.ticker == "BANK")
+    assert bank_drop.stage == Stage.BASIS_GATES
+    assert bank_drop.reason_code == ReasonCode.FRAMEWORK_METRIK_NA
+    # Reconciliation: every universe ticker is either a dropout or in the final stage
+    assert len(dropouts) + summary.stage(Stage.CROSSHITS).remaining == 2
