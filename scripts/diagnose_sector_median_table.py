@@ -26,6 +26,7 @@ from pathlib import Path
 from app.errors import DataSourceError, DegradedDataError
 from app.models.screener_record import ScreenerRecord
 from app.screener.compose import build_screener_pipeline
+from app.screener.filters import _node_chain
 from app.screener.sector_buckets import resolve_bucket
 
 UNIVERSE = Path("data/universe.json")
@@ -52,11 +53,6 @@ def _is_excluded(rec: ScreenerRecord) -> bool:
     if "Financ" in sector or "Real Estate" in sector:
         return True
     return False
-
-
-def _node_chain(rec: ScreenerRecord) -> list[str]:
-    """Finest -> coarsest GICS node chain, mirroring filters._node_chain."""
-    return [n for n in (rec.gics_industry, rec.gics_sector) if n]
 
 
 def main() -> None:

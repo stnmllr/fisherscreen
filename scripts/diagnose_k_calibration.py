@@ -45,26 +45,28 @@ def _is_excluded_proxy(rec: ScreenerRecord) -> bool:
     return False
 
 
-def _load_candidate_table() -> SectorMedianTable:
-    """Load the A2 candidate JSON into a SectorMedianTable for bucket_median calls."""
+def _load_candidate_table() -> tuple[SectorMedianTable, str]:
+    """Load the A2 candidate JSON; return (SectorMedianTable, vintage string)."""
     if not CANDIDATE_JSON.exists():
         raise FileNotFoundError(
             f"Candidate table not found at {CANDIDATE_JSON}. "
             "Run A2 (diagnose_sector_median_table.py) first."
         )
     data = json.loads(CANDIDATE_JSON.read_text(encoding="utf-8"))
-    return SectorMedianTable(
+    table = SectorMedianTable(
         entries={k: float(v) for k, v in data["entries"].items()},
         n_min=int(data["n_min"]),
         counts={k: int(v) for k, v in data["counts"].items()},
     )
+    vintage: str = data.get("vintage", "")
+    return table, vintage
 
 
 def main() -> None:
-    table = _load_candidate_table()
+    table, vintage = _load_candidate_table()
     print(
         f"Candidate table loaded: {len(table.entries)} buckets, "
-        f"n_min={table.n_min}, vintage={json.loads(CANDIDATE_JSON.read_text(encoding='utf-8')).get('vintage')}"
+        f"n_min={table.n_min}, vintage={vintage}"
     )
 
     tickers: list[str] = json.loads(UNIVERSE.read_text(encoding="utf-8"))
