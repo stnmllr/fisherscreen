@@ -22,6 +22,12 @@ class WaterfallVerdict(str, Enum):
     DEFINED_NEGATIVE = "DEFINED_NEGATIVE"   # real waterfall, COGS>revenue -> FAIL (not NA)
 
 
+class DefinednessOutcome(str, Enum):
+    METRIK_NA = "METRIK_NA"        # Fisher framework not applicable -> set record.metric_na, drop
+    DEFINED = "DEFINED"            # has a real margin metric -> continue to the gross_margin gate
+    UNASSESSABLE = "UNASSESSABLE"  # statement could not be fetched/assessed -> resolution divert
+
+
 # Relative tolerance for the consistency check gp == revenue - cost_of_revenue.
 _WATERFALL_REL_TOL = 0.02
 # A cost-of-revenue this small relative to revenue means there is no genuine COGS
@@ -54,27 +60,31 @@ def classify_waterfall(
     return WaterfallVerdict.DEFINED
 
 
-def is_metric_na(
+def assess_definedness(
     industry: str | None,
+    statement_available: bool,
     total_revenue: float | None,
     cost_of_revenue: float | None,
     gross_profit: float | None,
     cost_of_revenue_present: bool,
-) -> bool:
-    """Runtime definedness decision (CT-A): True => METRIK_NA (Fisher framework not applicable).
+) -> DefinednessOutcome:
+    """Runtime 3-state definedness decision (CT-A).
 
-    REIT positive-edge cross-check (Property C) takes precedence: any REIT-labelled industry
-    is METRIK_NA regardless of waterfall shape — rent minus property-opex satisfies the
-    waterfall, but Fisher's gross-margin framework does not apply to property rental.
-    Real-estate SERVICES (e.g. "Real Estate Services", CBRE/JLL) carry no "REIT" substring
-    and are evaluated normally.
-
-    Otherwise METRIK_NA iff the income-statement waterfall is UNDEFINED. DEFINED and
-    DEFINED_NEGATIVE are NOT METRIK_NA — DEFINED_NEGATIVE is a real negative margin and must
-    fail the gross_margin gate downstream rather than be excluded as framework-n/a."""
+    - REIT positive-edge cross-check (Property C) wins FIRST and needs no statement:
+      any "REIT"-labelled industry is METRIK_NA (rent - property-opex satisfies the
+      waterfall, but Fisher's margin framework does not apply to property rental).
+    - A failed/unavailable statement (statement_available is False, or revenue is None)
+      is UNASSESSABLE -> the caller diverts it to the resolution path. This is structurally
+      distinct from a genuine UNDEFINED waterfall: do NOT let a fetch failure masquerade as
+      a definedness verdict (distinguish-failure-from-empty-result).
+    - Otherwise classify the waterfall: UNDEFINED -> METRIK_NA; DEFINED / DEFINED_NEGATIVE
+      -> DEFINED (DEFINED_NEGATIVE is a real negative margin and must fail the gross_margin
+      gate downstream, not be excluded as framework-n/a)."""
     if "REIT" in (industry or ""):
-        return True
-    return (
-        classify_waterfall(total_revenue, cost_of_revenue, gross_profit, cost_of_revenue_present)
-        is WaterfallVerdict.UNDEFINED
-    )
+        return DefinednessOutcome.METRIK_NA
+    if not statement_available or total_revenue is None:
+        return DefinednessOutcome.UNASSESSABLE
+    verdict = classify_waterfall(total_revenue, cost_of_revenue, gross_profit, cost_of_revenue_present)
+    if verdict is WaterfallVerdict.UNDEFINED:
+        return DefinednessOutcome.METRIK_NA
+    return DefinednessOutcome.DEFINED

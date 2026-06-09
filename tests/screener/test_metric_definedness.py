@@ -1,6 +1,8 @@
 from app.models.screener_record import ScreenerRecord
 from app.screener.metric_definedness import (
+    DefinednessOutcome,
     WaterfallVerdict,
+    assess_definedness,
     classify_waterfall,
     is_gross_margin_undefined_info_only,
 )
@@ -75,43 +77,49 @@ def test_present_flag_true_cor_set_gross_profit_none_is_undefined():
     assert v is WaterfallVerdict.UNDEFINED
 
 
-from app.screener.metric_definedness import is_metric_na
+def test_assess_reit_is_metrik_na_without_statement():
+    # REIT cross-check wins, no fetch needed -> METRIK_NA even if statement unavailable
+    assert assess_definedness("REIT - Residential", statement_available=False,
+                              total_revenue=None, cost_of_revenue=None, gross_profit=None,
+                              cost_of_revenue_present=False) is DefinednessOutcome.METRIK_NA
 
 
-def test_reit_industry_is_metric_na_even_if_waterfall_defined():
-    # pure equity REIT: rent - opex satisfies the waterfall, but Fisher framework n/a
-    assert is_metric_na("REIT - Residential", total_revenue=1000.0, cost_of_revenue=400.0,
-                        gross_profit=600.0, cost_of_revenue_present=True) is True
+def test_assess_fetch_failed_is_unassessable_not_metrik_na():
+    # non-REIT, statement could not be fetched -> UNASSESSABLE (divert), NOT METRIK_NA
+    assert assess_definedness("Real Estate Services", statement_available=False,
+                              total_revenue=None, cost_of_revenue=None, gross_profit=None,
+                              cost_of_revenue_present=False) is DefinednessOutcome.UNASSESSABLE
 
 
-def test_real_estate_services_not_metric_na_when_waterfall_defined():
-    # CBRE/JLL style: real brokerage COGS, no "REIT" in industry -> evaluated normally
-    assert is_metric_na("Real Estate Services", total_revenue=1000.0, cost_of_revenue=400.0,
-                        gross_profit=600.0, cost_of_revenue_present=True) is False
+def test_assess_statement_present_but_no_revenue_is_unassessable():
+    assert assess_definedness("Banks - Diversified", statement_available=True,
+                              total_revenue=None, cost_of_revenue=None, gross_profit=None,
+                              cost_of_revenue_present=False) is DefinednessOutcome.UNASSESSABLE
 
 
-def test_undefined_waterfall_is_metric_na():
-    # bank/insurer: no genuine COGS -> METRIK_NA
-    assert is_metric_na("Banks - Diversified", total_revenue=1000.0, cost_of_revenue=None,
-                        gross_profit=None, cost_of_revenue_present=False) is True
+def test_assess_bank_no_cogs_is_metrik_na():
+    # statement present, revenue present, no genuine COGS row -> real UNDEFINED -> METRIK_NA
+    # (distinct from the fetch-failure case above)
+    assert assess_definedness("Banks - Diversified", statement_available=True,
+                              total_revenue=1000.0, cost_of_revenue=None, gross_profit=None,
+                              cost_of_revenue_present=False) is DefinednessOutcome.METRIK_NA
 
 
-def test_defined_waterfall_not_metric_na():
-    assert is_metric_na("Specialty Chemicals", total_revenue=1000.0, cost_of_revenue=700.0,
-                        gross_profit=300.0, cost_of_revenue_present=True) is False
+def test_assess_real_waterfall_is_defined():
+    assert assess_definedness("Specialty Chemicals", statement_available=True,
+                              total_revenue=1000.0, cost_of_revenue=700.0, gross_profit=300.0,
+                              cost_of_revenue_present=True) is DefinednessOutcome.DEFINED
 
 
-def test_defined_negative_not_metric_na():
-    # real negative margin (cor>rev): NOT METRIK_NA -> must fail gross_margin downstream
-    assert is_metric_na("Steel", total_revenue=1000.0, cost_of_revenue=1100.0,
-                        gross_profit=-100.0, cost_of_revenue_present=True) is False
+def test_assess_defined_negative_is_defined_not_metrik_na():
+    # real negative margin -> DEFINED (must fail gross_margin downstream, not be excluded)
+    assert assess_definedness("Steel", statement_available=True,
+                              total_revenue=1000.0, cost_of_revenue=1100.0, gross_profit=-100.0,
+                              cost_of_revenue_present=True) is DefinednessOutcome.DEFINED
 
 
-def test_reit_industry_with_undefined_waterfall_is_metric_na():
-    assert is_metric_na("REIT - Specialty", total_revenue=1000.0, cost_of_revenue=None,
-                        gross_profit=None, cost_of_revenue_present=False) is True
-
-
-def test_none_industry_falls_back_to_waterfall():
-    assert is_metric_na(None, total_revenue=1000.0, cost_of_revenue=700.0,
-                        gross_profit=300.0, cost_of_revenue_present=True) is False
+def test_assess_real_estate_services_with_real_cogs_is_defined():
+    # CBRE/JLL: no "REIT" substring, real brokerage COGS -> DEFINED
+    assert assess_definedness("Real Estate Services", statement_available=True,
+                              total_revenue=1000.0, cost_of_revenue=600.0, gross_profit=400.0,
+                              cost_of_revenue_present=True) is DefinednessOutcome.DEFINED
