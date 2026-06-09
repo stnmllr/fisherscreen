@@ -37,7 +37,8 @@ def load_sector_median_table(path: Path | None = None) -> SectorMedianTable | No
     entries = data["entries"]
     counts = data.get("counts", {})
     n_min = data.get("n_min")
-    if not isinstance(entries, dict) or not isinstance(counts, dict) or not isinstance(n_min, int):
+    if (not isinstance(entries, dict) or not isinstance(counts, dict)
+            or not isinstance(n_min, int) or isinstance(n_min, bool)):
         raise FilterConfigError("sector_median_table: bad entries/counts/n_min types")
     for node, med in entries.items():
         if not isinstance(med, (int, float)) or isinstance(med, bool):

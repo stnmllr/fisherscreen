@@ -44,3 +44,37 @@ def test_entries_key_absent_from_counts_raises(tmp_path):
                           "n_min": 8, "entries": {"Retailing": 0.27}, "counts": {}})
     with pytest.raises(FilterConfigError):
         load_sector_median_table(p)
+
+
+def test_invalid_json_raises(tmp_path):
+    p = tmp_path / "sector_median_table.json"
+    p.write_text("not valid json {{{", encoding="utf-8")
+    with pytest.raises(FilterConfigError, match="unreadable"):
+        load_sector_median_table(p)
+
+
+def test_top_level_not_dict_raises(tmp_path):
+    p = tmp_path / "sector_median_table.json"
+    p.write_text(json.dumps([1, 2, 3]), encoding="utf-8")
+    with pytest.raises(FilterConfigError, match="missing 'entries'"):
+        load_sector_median_table(p)
+
+
+def test_missing_entries_key_raises(tmp_path):
+    p = _write(tmp_path, {"schema_version": SECTOR_TABLE_SCHEMA_VERSION, "n_min": 5, "counts": {}})
+    with pytest.raises(FilterConfigError, match="missing 'entries'"):
+        load_sector_median_table(p)
+
+
+def test_bad_n_min_type_raises(tmp_path):
+    p = _write(tmp_path, {"schema_version": SECTOR_TABLE_SCHEMA_VERSION, "n_min": "five",
+                          "entries": {}, "counts": {}})
+    with pytest.raises(FilterConfigError, match="bad entries/counts/n_min types"):
+        load_sector_median_table(p)
+
+
+def test_bool_n_min_rejected(tmp_path):
+    p = _write(tmp_path, {"schema_version": SECTOR_TABLE_SCHEMA_VERSION, "n_min": True,
+                          "entries": {}, "counts": {}})
+    with pytest.raises(FilterConfigError, match="bad entries/counts/n_min types"):
+        load_sector_median_table(p)
