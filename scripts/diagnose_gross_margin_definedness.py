@@ -4,8 +4,9 @@ exclusion set used by A2 for clean-universe median computation.
 
 Run: uv run python scripts\\diagnose_gross_margin_definedness.py
 
-Chain position: A1 -> A2 -> A3. A2 MUST run after A1; A1's METRIK_NA finding
-is re-derived in A2 via the same .info-only proxy so no handoff file is needed.
+Chain position: A1 -> A2 -> A3. A2 MUST run after A1; A1 writes the METRIK_NA set
+to docs/superpowers/audits/2026-06-09-2-gross-margin-floor/metrik_na_tickers.json
+and A2 loads that file — no re-derivation in A2.
 """
 from __future__ import annotations
 
@@ -19,6 +20,8 @@ from app.screener.metric_definedness import WaterfallVerdict, classify_waterfall
 from app.services.yfinance_client import YFinanceClientImpl
 
 UNIVERSE = Path("data/universe.json")
+AUDIT_DIR = Path("docs/superpowers/audits/2026-06-09-2-gross-margin-floor")
+METRIK_NA_JSON = AUDIT_DIR / "metrik_na_tickers.json"
 
 
 def _is_financial_or_reit(record: ScreenerRecord) -> bool:
@@ -182,10 +185,18 @@ def main() -> None:
     print(f"  Waterfall-based (full): {len(metrik_na_waterfall)} tickers")
     print(f"  .info-only proxy (gm is None or gm<=0): {len(metrik_na_info_proxy)} tickers")
     print(
-        "  Note: A2 uses the .info-only proxy plus sector exclusion "
-        "(Financials/REITs with non-positive or missing waterfall) "
-        "to stay $0 (no extra income_stmt fetches)."
+        "  A2 consumes the waterfall-based set from metrik_na_tickers.json "
+        "(written below). DEFINED_NEGATIVE tickers stay in the universe; "
+        "the median is robust to occasional negative outliers."
     )
+
+    # Emit METRIK_NA set for A2 consumption (waterfall-based, not info-only proxy)
+    METRIK_NA_JSON.parent.mkdir(parents=True, exist_ok=True)
+    METRIK_NA_JSON.write_text(
+        json.dumps({"metrik_na": sorted(metrik_na_waterfall)}, indent=2),
+        encoding="utf-8",
+    )
+    print(f"\nWrote {len(metrik_na_waterfall)} METRIK_NA tickers -> {METRIK_NA_JSON}")
 
     # Decision note
     both_empty = len(null_edge) == 0 and len(positive_edge) == 0
