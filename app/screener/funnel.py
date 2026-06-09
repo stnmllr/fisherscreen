@@ -21,6 +21,7 @@ class ReasonCode(str, Enum):
     RESOLUTION_FX_UNAVAILABLE = "RESOLUTION_FX_UNAVAILABLE"
     GATE_VOLUME = "GATE_VOLUME"
     GATE_MARKET_CAP = "GATE_MARKET_CAP"
+    FRAMEWORK_METRIK_NA = "FRAMEWORK_METRIK_NA"  # Fisher-Raster nicht anwendbar (gm strukturell undefiniert)
     GATE_GROSS_MARGIN = "GATE_GROSS_MARGIN"
     GATE_REVENUE_GROWTH = "GATE_REVENUE_GROWTH"
     GATE_RESTATEMENT = "GATE_RESTATEMENT"
@@ -48,6 +49,7 @@ class Stage(str, Enum):
 _BASIS_REASON: dict[str, ReasonCode] = {
     "avg_volume": ReasonCode.GATE_VOLUME,
     "market_cap": ReasonCode.GATE_MARKET_CAP,
+    "metric_na": ReasonCode.FRAMEWORK_METRIK_NA,
     "gross_margin": ReasonCode.GATE_GROSS_MARGIN,
     "revenue_growth": ReasonCode.GATE_REVENUE_GROWTH,
 }

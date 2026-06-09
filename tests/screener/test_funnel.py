@@ -183,3 +183,8 @@ def test_sector_wide_denominator_excludes_pre_margin_drops():
                                      scored=None, score_threshold=4.0, crosshits_min_dimensions=2)
     margin_drop = next(d for d in dropouts if d.ticker == "M0")
     assert margin_drop.sector_wide is False
+
+
+def test_metrik_na_maps_to_framework_bucket():
+    from app.screener.funnel import _BASIS_REASON, ReasonCode
+    assert _BASIS_REASON["metric_na"] is ReasonCode.FRAMEWORK_METRIK_NA

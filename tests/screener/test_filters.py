@@ -265,3 +265,23 @@ def test_apply_edgar_filters_checks_restatement_before_going_concern():
 def test_apply_edgar_filters_returns_empty_for_empty_input():
     from app.screener.filters import apply_edgar_filters
     assert apply_edgar_filters([]) == []
+
+
+# --- metric_na divert (Punkt 2 Mechanism 1) ---
+
+def test_undefined_margin_diverts_to_metric_na_not_gross_margin():
+    rec = _record(ticker="BANK", gross_margin=0.0)
+    apply_basis_filters([rec])
+    assert rec.filter_failed_reason == "metric_na"
+
+
+def test_negative_margin_diverts_to_metric_na_info_only():
+    rec = _record(ticker="X", gross_margin=-0.1)
+    apply_basis_filters([rec])
+    assert rec.filter_failed_reason == "metric_na"
+
+
+def test_low_but_defined_margin_still_fails_gross_margin():
+    rec = _record(ticker="LOW", gross_margin=0.10)
+    apply_basis_filters([rec])
+    assert rec.filter_failed_reason == "gross_margin"

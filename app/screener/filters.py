@@ -2,6 +2,7 @@ import logging
 
 from app.errors import FilterConfigError
 from app.models.screener_record import ScreenerRecord
+from app.screener.metric_definedness import is_gross_margin_undefined_info_only
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,8 @@ def _get_fail_reason(record: ScreenerRecord) -> str | None:
         return "avg_volume"
     if not passes_market_cap_filter(record):
         return "market_cap"
+    if is_gross_margin_undefined_info_only(record):
+        return "metric_na"
     if not passes_gross_margin_filter(record):
         return "gross_margin"
     if not passes_revenue_growth_filter(record):
