@@ -5,6 +5,36 @@
 > `diagnose_k_calibration.py` (A3). Roh-Output: `k_calibration.txt`, `metrik_na_tickers.json`,
 > `sector_median_table.candidate.json` (dieser Ordner).
 
+## ⚠️ KORREKTUR (Stephan-Review 2026-06-09) — supersedes A2/A3 unten
+
+Die untenstehende A2/A3-Erstlesung („CT-B deferred", „k=0,30") ist **widerlegt** und NICHT bindend.
+Bindend ist dieser Abschnitt:
+
+- **Der Kandidat-Table ist flächig kontaminiert.** Smoking Gun: **byte-identische `bucket_median` über
+  distinkte Industries** = Sektor-Catch-all-Median. `0.3508` (Industrials-Sektor) steht bei Marine Shipping,
+  Staffing, Consulting, Rental&Leasing, Security, Metal Fabrication, Trucking, Railroads, Waste Mgmt,
+  Conglomerates; `0.3387` (Basic Materials) bei Chemicals, Other Metals, Ag Inputs, Aluminum, Paper, Lumber.
+  Diese Industries sind im Universum dünn (< n_min=8) und rollen auf den **multimodalen Sektor** hoch →
+  der relative Arm feuert für sie auf einem bedeutungslosen Blend (Maersk gegen 0,3508 statt Shipping ~0,16).
+- **k=0,30 war maskierend, nicht kalibriert.** Bei nur 34/305 Fails ist „Sub-k-Band broken-dominiert"
+  trivial erfüllt, weil fast nichts failt; die 0,3×Median-Latte überdeckt die aufgeblähten Blends UND die
+  Within-Bucket-Heterogenität (Grocery mischt US ~25 % mit UK-Tesco 7,6 %/Sainsbury 6,75 % — zwei
+  Accounting-Regime). Nicht attribuierbar (rettet k=0,3 das Richtige oder nur den Table?) und fragil
+  (k≥0,5 → Maersk/Dell/HP false-rejected). Wahrscheinlich ist k zu niedrig: auf sauberen Buckets hielte
+  k=0,5–0,7 normale-für-Sektor-Titel ohne false-rejects.
+- **REIT-Positiv-Kante (Property C):** A1 lässt reine Equity-REITs als DEFINED durch (AvalonBay/BXP/Brixmor/
+  Alexandria — Miete − Property-Opex erfüllt die Wasserfall-Konsistenz), aber Spec-Intent ist REIT = METRIK_NA.
+  → Property-C-Cross-Check muss feuern (`"REIT" in industry` → METRIK_NA), sonst landen REITs im Fisher-Scoring.
+  RE-Services mit echtem COGS (CBRE/JLL, kein „REIT" im Industry-Label) bleiben DEFINED.
+
+**Korrigierte Entscheidungen:** CT-A bauen (inkl. REIT-Property-C-Cross-Check); **CT-B von deferred auf REQUIRED
+gehoben** (Industry→Industry-Group-Mapping statt Sektor-Catch-all); A1/A2/A3 neu fahren auf sauberen Medianen;
+**k erst gegen den sauberen Table benennen** (Erwartung höher/schärfer als 0,3). Phase E wartet auf den sauberen Table.
+**Audit-Detektionsregel:** jeder Median, der wortgleich über mehrere distinkte Industries steht, ist ein
+Catch-all → diese Industries haben keinen echten Bucket.
+
+---
+
 ## A1 — Definiertheit: CT-A ERZWUNGEN
 
 Korb 287 (Financials/REITs ∪ gm≤0 ∪ ~29), 0 Fetch-Errors. Wasserfall-Form-Klassifikation:
@@ -60,14 +90,14 @@ Gate = Viabilitäts-Floor, Qualität = Scorer.
 **Bewusste Konsequenz:** k=0,3 rettet 270/305 → Funnel vor dem Scoring deutlich breiter (alter 30%-Flat droppte
 alle 305). Nachgelagerte Gates (revenue_growth/Punkt 3, EDGAR, Wert-Gate) + Gemini-Cost-Cap fangen das Volumen ab.
 
-## Entscheidungen
+## Entscheidungen (korrigiert — s. KORREKTUR oben)
 
 | # | Entscheidung | Wert |
 |---|---|---|
-| 1 | CT-A Wasserfall-Prädikat im Runtime | **Bauen** (erzwungen; bounded auf Verdachts-Korb-Fetch; koppelt Punkt 2 an income_stmt/Punkt-3-Datenquelle) |
-| 2 | k (relativer Arm) | **0,30** |
-| 3 | n_min | **8** |
-| 4 | CT-B GICS-Mapping-Layer | **Deferred** (k=0,3 macht Fallback-Latte vergebend; eigenes Ticket falls Thin-Industry-Misses real stören) |
+| 1 | CT-A Wasserfall-Prädikat im Runtime **+ REIT-Property-C-Cross-Check** | **Bauen** (erzwungen; bounded auf Verdachts-Korb-Fetch; koppelt Punkt 2 an income_stmt/Punkt-3-Datenquelle) |
+| 2 | CT-B Industry→Industry-Group-Mapping (statt Sektor-Catch-all) | **REQUIRED** (war fälschlich deferred; Table flächig kontaminiert) |
+| 3 | n_min | **8** (gegen sauberen Table re-validieren) |
+| 4 | k (relativer Arm) | **NOCH NICHT benannt** — erst gegen den sauberen Table re-sweepen (Erwartung höher/schärfer als 0,3) |
 
 ## Reversibilitäts-Trigger (Future-Stef, nicht wegrationalisieren)
 
