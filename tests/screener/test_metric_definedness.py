@@ -1,5 +1,9 @@
 from app.models.screener_record import ScreenerRecord
-from app.screener.metric_definedness import is_gross_margin_undefined_info_only
+from app.screener.metric_definedness import (
+    WaterfallVerdict,
+    classify_waterfall,
+    is_gross_margin_undefined_info_only,
+)
 
 
 def _rec(gm):
@@ -22,9 +26,6 @@ def test_negative_margin_is_undefined_info_only():
 
 def test_positive_margin_is_defined():
     assert is_gross_margin_undefined_info_only(_rec(0.20)) is False
-
-
-from app.screener.metric_definedness import classify_waterfall, WaterfallVerdict
 
 
 def test_real_waterfall_is_defined():
@@ -59,4 +60,16 @@ def test_inconsistent_waterfall_is_undefined():
     # gp weicht stark von rev-cor ab -> Struktur nicht vertrauenswürdig -> UNDEFINED
     v = classify_waterfall(total_revenue=1000.0, cost_of_revenue=300.0,
                            gross_profit=200.0, cost_of_revenue_present=True)
+    assert v is WaterfallVerdict.UNDEFINED
+
+
+def test_present_flag_true_but_cor_value_is_none_is_undefined():
+    v = classify_waterfall(total_revenue=1000.0, cost_of_revenue=None,
+                           gross_profit=700.0, cost_of_revenue_present=True)
+    assert v is WaterfallVerdict.UNDEFINED
+
+
+def test_present_flag_true_cor_set_gross_profit_none_is_undefined():
+    v = classify_waterfall(total_revenue=1000.0, cost_of_revenue=300.0,
+                           gross_profit=None, cost_of_revenue_present=True)
     assert v is WaterfallVerdict.UNDEFINED
