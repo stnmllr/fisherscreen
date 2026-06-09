@@ -23,3 +23,22 @@ def test_returns_none_when_even_sector_too_thin():
 
 def test_empty_chain_returns_none():
     assert resolve_bucket([], {}, n_min=5) is None
+
+
+def test_sector_median_lookup_resolves_then_reads():
+    from app.screener.sector_buckets import SectorMedianTable, bucket_median
+
+    table = SectorMedianTable(
+        entries={"Retailing": 0.27},
+        n_min=5,
+        counts={"Apparel Retail": 1, "Retailing": 9},
+    )
+    chain = ["Apparel Retail", "Retailing", "Consumer Discretionary"]
+    assert bucket_median(chain, table) == 0.27
+
+
+def test_sector_median_none_when_no_bucket():
+    from app.screener.sector_buckets import SectorMedianTable, bucket_median
+
+    table = SectorMedianTable(entries={}, n_min=5, counts={})
+    assert bucket_median([], table) is None
