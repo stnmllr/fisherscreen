@@ -73,3 +73,45 @@ def test_present_flag_true_cor_set_gross_profit_none_is_undefined():
     v = classify_waterfall(total_revenue=1000.0, cost_of_revenue=300.0,
                            gross_profit=None, cost_of_revenue_present=True)
     assert v is WaterfallVerdict.UNDEFINED
+
+
+from app.screener.metric_definedness import is_metric_na
+
+
+def test_reit_industry_is_metric_na_even_if_waterfall_defined():
+    # pure equity REIT: rent - opex satisfies the waterfall, but Fisher framework n/a
+    assert is_metric_na("REIT - Residential", total_revenue=1000.0, cost_of_revenue=400.0,
+                        gross_profit=600.0, cost_of_revenue_present=True) is True
+
+
+def test_real_estate_services_not_metric_na_when_waterfall_defined():
+    # CBRE/JLL style: real brokerage COGS, no "REIT" in industry -> evaluated normally
+    assert is_metric_na("Real Estate Services", total_revenue=1000.0, cost_of_revenue=400.0,
+                        gross_profit=600.0, cost_of_revenue_present=True) is False
+
+
+def test_undefined_waterfall_is_metric_na():
+    # bank/insurer: no genuine COGS -> METRIK_NA
+    assert is_metric_na("Banks - Diversified", total_revenue=1000.0, cost_of_revenue=None,
+                        gross_profit=None, cost_of_revenue_present=False) is True
+
+
+def test_defined_waterfall_not_metric_na():
+    assert is_metric_na("Specialty Chemicals", total_revenue=1000.0, cost_of_revenue=700.0,
+                        gross_profit=300.0, cost_of_revenue_present=True) is False
+
+
+def test_defined_negative_not_metric_na():
+    # real negative margin (cor>rev): NOT METRIK_NA -> must fail gross_margin downstream
+    assert is_metric_na("Steel", total_revenue=1000.0, cost_of_revenue=1100.0,
+                        gross_profit=-100.0, cost_of_revenue_present=True) is False
+
+
+def test_reit_industry_with_undefined_waterfall_is_metric_na():
+    assert is_metric_na("REIT - Specialty", total_revenue=1000.0, cost_of_revenue=None,
+                        gross_profit=None, cost_of_revenue_present=False) is True
+
+
+def test_none_industry_falls_back_to_waterfall():
+    assert is_metric_na(None, total_revenue=1000.0, cost_of_revenue=700.0,
+                        gross_profit=300.0, cost_of_revenue_present=True) is False

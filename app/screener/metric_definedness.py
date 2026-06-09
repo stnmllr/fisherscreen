@@ -52,3 +52,29 @@ def classify_waterfall(
     if gross_profit <= 0:
         return WaterfallVerdict.DEFINED_NEGATIVE
     return WaterfallVerdict.DEFINED
+
+
+def is_metric_na(
+    industry: str | None,
+    total_revenue: float | None,
+    cost_of_revenue: float | None,
+    gross_profit: float | None,
+    cost_of_revenue_present: bool,
+) -> bool:
+    """Runtime definedness decision (CT-A): True => METRIK_NA (Fisher framework not applicable).
+
+    REIT positive-edge cross-check (Property C) takes precedence: any REIT-labelled industry
+    is METRIK_NA regardless of waterfall shape — rent minus property-opex satisfies the
+    waterfall, but Fisher's gross-margin framework does not apply to property rental.
+    Real-estate SERVICES (e.g. "Real Estate Services", CBRE/JLL) carry no "REIT" substring
+    and are evaluated normally.
+
+    Otherwise METRIK_NA iff the income-statement waterfall is UNDEFINED. DEFINED and
+    DEFINED_NEGATIVE are NOT METRIK_NA — DEFINED_NEGATIVE is a real negative margin and must
+    fail the gross_margin gate downstream rather than be excluded as framework-n/a."""
+    if "REIT" in (industry or ""):
+        return True
+    return (
+        classify_waterfall(total_revenue, cost_of_revenue, gross_profit, cost_of_revenue_present)
+        is WaterfallVerdict.UNDEFINED
+    )
