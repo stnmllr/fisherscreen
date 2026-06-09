@@ -1,0 +1,56 @@
+# .gcloudignore — controls the Cloud Build upload context for `gcloud builds submit`
+# (deploy.yml) INDEPENDENTLY of .gitignore.
+#
+# Why this file exists (defense-in-depth, 2026-06-09):
+# When no .gcloudignore is present, gcloud derives the build context from .gitignore.
+# An unanchored `output/` in .gitignore therefore excluded app/output/ from the build
+# context -> ModuleNotFoundError 'app.output' in prod (caught only by a smoke test, fixed
+# in PR #27). This file deliberately does NOT `#!include:.gitignore`, so no .gitignore
+# pattern can ever reach the build context again.
+#
+# INVARIANT: the Dockerfile COPYs app/, data/, pyproject.toml, uv.lock — none of those
+# may ever be ignored here. Only artifacts, secrets, generated output and caches are
+# excluded. Generated-output / cache patterns are root-anchored so they can never match
+# a source package under app/.
+
+# VCS / CI metadata (not needed in the image)
+.git/
+.gitignore
+.gcloudignore
+.github/
+
+# Python bytecode / build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+
+# uv / venv
+.venv/
+
+# Environment — never ship secrets into the build context
+.env
+*.env.local
+*-credentials.json
+service-account-*.json
+*-sa-key.json
+
+# Editor / OS
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+desktop.ini
+
+# Claude Code
+.claude/
+
+# Filing cache (ADR-4) — root-anchored, must never match app/cache/
+/cache/
+
+# Generated outputs — root-anchored, must never match app/output/
+/output/
+/output-test/

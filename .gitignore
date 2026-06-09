@@ -14,8 +14,11 @@ dist/
 .env
 *.env.local
 
-# Filing-Cache (ADR-4, Tool B Deep Dive — never commit cached EDGAR filings)
-cache/
+# Filing-Cache (ADR-4, Tool B Deep Dive — never commit cached EDGAR filings).
+# Root-anchored so the pattern cannot also match a future app/cache/ source package
+# and exclude it from the Cloud Build context (same failure class that hit /output/,
+# see below + PR #27, 2026-06-09). The real cache lives at repo-root cache/filings/.
+/cache/
 
 # GCP service account keys only (not all JSON)
 *-credentials.json
