@@ -42,3 +42,11 @@ def test_sector_median_none_when_no_bucket():
 
     table = SectorMedianTable(entries={}, n_min=5, counts={})
     assert bucket_median([], table) is None
+
+
+def test_bucket_median_none_when_resolved_bucket_absent_from_entries():
+    from app.screener.sector_buckets import SectorMedianTable, bucket_median
+
+    # bucket resolves (Retailing clears n_min) but has no pinned median -> fail-safe None
+    table = SectorMedianTable(entries={}, n_min=5, counts={"Retailing": 9})
+    assert bucket_median(["Retailing"], table) is None
