@@ -55,28 +55,43 @@ sondern verhindert, dass sie mit bedeutungslosen Scores in den Dimensions-Listen
 
 - **Schlüssel = Metrik-Definiertheit, NICHT Sektor.** Undefinierte gm → eigener, **sichtbarer**
   Funnel-ReasonCode `FRAMEWORK/METRIK_NA`, sektor-unabhängig. Kein getarnter gross_margin-Drop.
-- **Sektor-listen-frei (unbedingt robust).** Ein Definiertheits-Schlüssel fängt Banken UND
-  REITs/Real Estate (eigener GICS-Sektor seit 2016, gleiche undefinierte-Marge-Krankheit) gratis mit.
-  Auch der COGS-Fallback (s. u.) ist sektor-agnostisch → **nie eine gepflegte Bank-/Financials-Liste.**
-- **Zwei symmetrische Kanten, ein Test.** „gm undefiniert" hat zwei Erscheinungsformen, die `.info`
-  allein nicht von echten Signalen trennt:
+- **Sektor-listen-frei (robust für die Null-Kante, kontingent für die Positiv-Kante).** Der
+  Definiertheits-Schlüssel fängt Banken UND REITs/Real Estate (eigener GICS-Sektor seit 2016, gleiche
+  undefinierte-Marge-Krankheit) gratis mit. Für die via-Null-Kante und den gm≤0-Fang ist er
+  **unbedingt** sektor-frei. Für die Positiv-Kante (s. u.) gilt das nur, falls der Wasserfall-Form-
+  Diskriminator rein strukturell trägt; sonst braucht es dort einen schmalen Sub-Industry-Cross-Check
+  (siehe §6 Property C) — **nie** aber eine gepflegte Bank-/Financials-Liste.
+- **Zwei Kanten, ein Test — aber NICHT in der Zeilen-Präsenz-Form.** „gm undefiniert" hat zwei
+  Erscheinungsformen, die `.info` allein nicht von echten Signalen trennt:
   - *undefiniert-via-Null:* gm=0/≤0. Konflation mit einem **realen** Industrie-Negativmarger
     (real unter Selbstkosten → echtes Negativsignal, gehört zu FAIL, nicht METRIK_NA).
-  - *undefiniert-via-spuriös-positiv:* yfinance verrechnet claims/benefits als „cost of revenue" und
-    meldet einem Versicherer/REIT eine plausible, aber bedeutungslose gm>0 → rutscht durch ein
-    Null-Prädikat, besteht den 30%-Arm, landet doch im Fisher-Scoring.
-  - **Beide löst derselbe Test:** „gibt es im `income_stmt` eine echte *Cost-of-Revenue*-Zeile?"
-    Ein Daten-/Indexhaus hat eine (Fisher-tauglich); eine Bank/ein REIT hat keine (METRIK_NA,
-    egal welche Zahl `.info` meldet). Das ist exakt das `[[distinguish-failure-from-empty-result]]`-
-    Muster auf Metrik-Ebene: undefiniert und real-schlecht dürfen nicht dieselbe Form haben.
+  - *undefiniert-via-spuriös-positiv:* yfinance bucht claims/benefits bzw. Property-Opex in den
+    *Cost-of-Revenue*-Slot und meldet einem Versicherer/REIT eine plausible, aber bedeutungslose
+    gm>0 → rutscht durch ein Null-Prädikat, besteht den 30%-Arm, landet doch im Fisher-Scoring.
+  - **Asymmetrie der Fehlerrichtungen — die Positiv-Kante ist die gefährlichere:** ein via-Null-Fehler
+    labelt einen realen Negativmarger fälschlich als METRIK_NA → er wird ausgeschlossen statt gefailt
+    (verschlucktes Negativsignal, aber **kein schlechter Titel im Output**). Ein via-positiv-Fehler
+    lässt einen strukturell-untauglichen Financial **ins Scoring** — exakt die BNP/ACA-Sorge, die dieser
+    §3 zu schließen beansprucht. Die gefährlichere Richtung trifft die Kante, an der ein naiver
+    Eintest am schwächsten ist.
+  - **Diskriminator = Wasserfall-FORM, nicht Zeilen-PRÄSENZ.** Ein Zeilen-Präsenz-Test („gibt es eine
+    Cost-of-Revenue-Zeile?") löst NUR die Null-Kante (Bank: keine Zeile → METRIK_NA; realer
+    Negativmarger: Zeile da, nur > Umsatz → FAIL). An der Positiv-Kante **kippt** er ins Gegenteil:
+    der Versicherer/REIT meldet gm>0 *gerade weil* Müll im COGS-Slot steht → die Zeile existiert, und
+    ein Präsenz-Test bestätigt fälschlich „Fisher-tauglich". Der Diskriminator muss daher die **Form
+    des Wasserfalls** lesen: echter Umsatz→COGS→Gross-Profit-Wasserfall (Daten-/Indexhaus,
+    Fisher-tauglich) vs. Zins-/Claims-/Mietertrags-Struktur (Bank/Versicherer/REIT → METRIK_NA, egal
+    welche Zahl im COGS-Slot steht). Das ist exakt das `[[distinguish-failure-from-empty-result]]`-
+    Muster auf Metrik-Ebene: undefiniert und definiert dürfen nicht dieselbe Form haben — und „Form"
+    heißt hier Wasserfall-Struktur, nicht Slot-Befüllung.
 
 ### Prädikat — Default-Lean, kontingent (s. §6, Property A)
 
 Default-Prädikat = **`.info`-only** (`grossMargins` null/≤0 → METRIK_NA), KEIN neuer Fetch.
 Gültig im Runtime **nur, wenn die Gate-A-Probe beide Kanten empirisch leer findet** (kein €2-Mrd-
 Industrie-Negativmarger bei gm≤0; kein spuriös-positiver Financial/REIT). Findet die Probe reale
-Fälle, kippt das Prädikat auf den **COGS-Struktur-Test** und wandert damit in den Produktionspfad
-(income_stmt-Fetch) — siehe §6.
+Fälle, kippt das Prädikat auf den **Wasserfall-Form-Diskriminator** (§3, Form nicht Präsenz) und
+wandert damit in den Produktionspfad (income_stmt-Fetch) — siehe §6 Property A.
 
 ### Downstream
 
@@ -120,8 +135,17 @@ Für Titel mit realer positiver gm.
   (Table-Zeilen sind bei gepinnt billig). Begründung: GICS-Sektor (11) ist multimodal
   (Consumer Discretionary = Luxus+Auto+Retail; IT = Software ~70 % vs. Hardware ~40 %) → der
   Sektor-Median wäre bedeutungslos; schon ein, zwei Stufen tiefer trennt GICS das auf.
-  Datenfelder vorhanden: `gics_sector`, `gics_industry` (`screener_record.py:27-28`). Feinere
-  GICS-Knoten (Industry-Group, Sub-Industry) ggf. aus `.info` ergänzen (Gate-A klärt Verfügbarkeit).
+  Datenfelder vorhanden: `gics_sector`, `gics_industry` (`screener_record.py:27-28`).
+  - **VORBEDINGUNG (Gate-A Schritt 2 prüft, nicht jetzt angenommen):** Die Roll-up-Regel setzt einen
+    echten **verschachtelten** GICS-Baum voraus, nicht nur „Felder vorhanden". yfinance liefert oft
+    Yahoos *eigene* Taxonomie, deren `industry`→`sector` KEIN sauberes GICS-4-Ebenen-Nest ist — die
+    Industry-Group-Stufe (die Consumer Discretionary entwirrt) fehlt dort ganz. „Roll up zum Parent"
+    braucht einen wohldefinierten Parent. Gate-A muss daher die **Nest-Struktur** prüfen, nicht nur die
+    Feld-Verfügbarkeit. Trägt der Nest nicht (Yahoo-Flach-Taxonomie, kein verlässlicher GICS-Code),
+    landet man faktisch immer auf Sektor-Ebene — dem multimodalen Fall, den die Regel vermeiden soll;
+    der Granularitäts-Nutzen verdampft dann **lautlos** (fail-safe bleibt es, aber wertlos). Dann ist
+    ein echter GICS-Klassifikations-Layer (Mapping-Tabelle Ticker→GICS-Knoten) erforderlich — Gate-A
+    macht das zur sichtbaren Entscheidung, nicht zum stillen Default.
 - **Dünn-Sektor-Fallback = fail-safe by construction.** Klärt ein Bucket selbst auf Sektor-Ebene
   kein n_min (oder ist die Referenz nicht vertrauenswürdig), feuert der relative Arm einfach **nicht**
   → der Ticker wird am absoluten 30%-Arm allein gemessen. Weil der relative Arm ein Rettungs-Pfad ist,
@@ -135,12 +159,21 @@ Für Titel mit realer positiver gm.
 Ein Probe-Schritt (analog Punkt-1-Kalibrierung, `scripts/`-Diagnose, kein Gemini) liefert in einem Zug
 alle nicht jetzt-blind-setzbaren Werte:
 
-1. **COGS-Struktur-Probe über die Financials/REITs + den gm≤0-Korb + die ~29 real-gm-Financials.**
-   Klassifiziert beide Kanten aus §3 → fixiert das Definiertheits-Prädikat (`.info`-only vs.
-   COGS-Struktur). Akzeptanz-Erwartung: gm≤0-Korb dominiert von Financials/REITs; die ~29 dominiert
-   von Capital-Markets-Compoundern.
+1. **Wasserfall-Form-Probe über die Financials/REITs + den gm≤0-Korb + die ~29 real-gm-Financials.**
+   Klassifiziert **beide** Kanten aus §3 → fixiert das Definiertheits-Prädikat (`.info`-only vs.
+   Wasserfall-Form-Diskriminator). **Operationalisierung (nicht Zeilen-Präsenz):** prüft, ob der
+   `income_stmt` einen echten Umsatz→Cost-of-Revenue→Gross-Profit-Wasserfall trägt (Daten-/Indexhaus,
+   Fisher-tauglich) oder eine Zins-/Claims-/Mietertrags-Struktur (Bank/Versicherer/REIT → METRIK_NA,
+   egal welche Zahl im COGS-Slot steht). Die Positiv-Kante (spuriös-positiv-gm) ist der eigentliche
+   Test-Schärfe-Punkt — ein bloßer Präsenz-Test würde sie durchlassen. Akzeptanz-Erwartung: gm≤0-Korb
+   dominiert von Financials/REITs; die ~29 dominiert von Capital-Markets-Compoundern mit echtem
+   Wasserfall. Findet die Probe an der Positiv-Kante Fälle, die die Wasserfall-Form NICHT rein
+   strukturell trennt, → schmaler Sub-Industry-Cross-Check an genau dieser Kante (§6 Property C).
 2. **Bau des gepinnten Sektor-Median-Tables** (Vintage-gestempelt) inkl. Level-Wahl + n_min,
-   sanity-gecheckt an Within-Bucket-Streuung/Multimodalität.
+   sanity-gecheckt an Within-Bucket-Streuung/Multimodalität. **Zuerst die Nest-Struktur-Vorbedingung
+   aus §4 prüfen:** trägt die yfinance-Taxonomie einen echten verschachtelten GICS-Baum, oder ist ein
+   Ticker→GICS-Knoten-Mapping-Layer nötig? Ergebnis ist eine sichtbare Gate-A-Entscheidung — ohne
+   verlässlichen Nest landet die Granularität still auf Sektor-Ebene (multimodal, wertlos).
 3. **Kalibrierung von k.** Akzeptanzkriterium gespiegelt von Mechanismus 1: **das Sub-k-Band muss
    von echten Kaputt-Margern dominiert und in gesunden Sektoren nahezu leer sein — ist es das nicht,
    ist k falsch.**
@@ -157,9 +190,9 @@ alle Fisher-tauglich". Der Spec weist sie ehrlich als **kontingent** aus, nicht 
 
 | # | Property | Default-Lean (X) | Kippt nach (Y), wenn Gate-A … |
 |---|---|---|---|
-| A | Datenkopplung | `.info`-only, **kein** neuer Fetch; Punkt 2 von Punkt 3 entkoppelt | … eine Kante real findet → COGS-Struktur-Test in den Produktionspfad → income_stmt-Fetch → Punkt 2 koppelt an Punkt 3. (War ein tragender Grund für „Punkt 2 zuerst" — daher als Bedingung schreiben.) |
+| A | Datenkopplung | `.info`-only, **kein** neuer Fetch; Punkt 2 von Punkt 3 entkoppelt | … eine Kante real findet → Wasserfall-Form-Diskriminator in den Produktionspfad → income_stmt-Fetch → Punkt 2 koppelt an Punkt 3. (War ein tragender Grund für „Punkt 2 zuerst" — daher als Bedingung schreiben.) |
 | B | Survivor-Delta | **rein additiv**: Mechanismus 2 isoliert additiv (absoluter Arm); Mechanismus 1 droppt keinen aktuellen Survivor, weil die gm≤0-Financials heute schon vom 30%-Floor draußen sind (= Relabeling) | … ein **defined-positive-gm-Financial** nach METRIK_NA umklassifiziert wird → ein kleiner, **expliziter** Drop-Satz (diese Financials raus, mit Grund), kein vermischtes Ledger im „additiv"-Gewand. |
-| C | Sektor-Hardcoding | **sektor-listen-frei** — auch der COGS-Fallback ist sektor-agnostisch | **unbedingt robust** — kippt NICHT. Nur A ist kontingent, nie C. |
+| C | Sektor-Hardcoding | **sektor-listen-frei** für die via-Null-Kante und den gm≤0-Fang — unbedingt robust | … der Wasserfall-Form-Diskriminator die **Positiv-Kante** nicht rein strukturell trennt → ein **schmaler Sub-Industry-Cross-Check** an genau dieser Kante. C ist „robust, außer ein enger Positiv-Kanten-Fall", **nicht** „kippt nie". Niemals aber eine gepflegte Bank-/Financials-Liste. |
 
 ---
 
@@ -188,9 +221,12 @@ Artefakt: `docs/superpowers/audits/2026-06-09-2-gross-margin-floor/gateB_accepta
 - Sektor-Median-Referenz-Table — neues versions-kontrolliertes Datenartefakt (Vintage-gestempelt),
   geladen + validiert wie die ADR-Tabelle (statischer Loader).
 - Tests (pytest, DI-Mocks): Dual-Arm-Trennschärfe (absolut-pass / relativ-pass / beide-fail);
-  METRIK_NA-Divert (gm≤0 → NA; spuriös-positiv → NA via COGS-Test, falls aktiv); Dünn-Sektor-Fallback
-  (kein n_min → relativer Arm feuert nicht → absoluter Arm allein); Pin-Determinismus (gleicher Ticker,
-  gleiche Latte unabhängig von Peer-Membership).
+  METRIK_NA-Divert — **die Positiv-Kante ist der Pin-Test:** gm≤0-Bank → NA; realer Industrie-
+  Negativmarger (Wasserfall da, COGS>Umsatz) → FAIL (nicht NA); spuriös-positiv-Financial
+  (gm>0, aber Zins-/Claims-/Mietertrags-Struktur statt Umsatz→COGS-Wasserfall) → NA. Geprüft wird die
+  **Wasserfall-FORM**, nicht die Zeilen-PRÄSENZ (ein Präsenz-Test würde den spuriös-positiven Fall
+  fälschlich durchlassen). Dünn-Sektor-Fallback (kein n_min → relativer Arm feuert nicht → absoluter
+  Arm allein); Pin-Determinismus (gleicher Ticker, gleiche Latte unabhängig von Peer-Membership).
 
 ---
 
