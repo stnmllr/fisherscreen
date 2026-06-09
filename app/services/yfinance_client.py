@@ -2,7 +2,7 @@ from typing import Any, Protocol
 
 import yfinance as yf
 
-from app.errors import DataSourceError
+from app.errors import DataSourceError, DegradedDataError
 from app.models.deep_dive_record import ForwardEstimates
 
 
@@ -42,6 +42,7 @@ class YFinanceClient(Protocol):
     ) -> ForwardEstimates | None: ...
     def get_weekly_close_5y(self, ticker: str) -> list[tuple[Any, float]]: ...
     def get_splits(self, ticker: str) -> list[tuple[Any, float]]: ...
+    def get_isin(self, ticker: str) -> str | None: ...
 
 
 class YFinanceClientImpl:
@@ -56,7 +57,7 @@ class YFinanceClientImpl:
         # no identity/valuation). Treat "no name and no marketCap" as unresolved
         # so it surfaces as attrition instead of a generic missing-field drop.
         if not (data.get("shortName") or data.get("longName") or data.get("marketCap")):
-            raise DataSourceError(f"yfinance returned degraded info for {ticker}")
+            raise DegradedDataError(f"yfinance returned degraded info for {ticker}")
         return data
 
     def get_historical(self, ticker: str, period: str) -> Any:
@@ -108,6 +109,17 @@ class YFinanceClientImpl:
         if s is None or len(s) == 0:
             return []
         return [(idx.date(), float(v)) for idx, v in s.items()]
+
+    def get_isin(self, ticker: str) -> str | None:
+        """Best-effort ISIN from yfinance. Returns None when absent ('-' sentinel)
+        or on missing value — ISIN is a verification aid, never load-bearing alone."""
+        try:
+            isin = yf.Ticker(ticker).isin
+        except Exception as exc:
+            raise DataSourceError(f"yfinance isin failed for {ticker}: {exc}") from exc
+        if not isin or isin == "-":
+            return None
+        return str(isin).strip().upper()
 
     def get_forward_estimates(self, ticker: str) -> ForwardEstimates | None:
         """Best-effort forward-consensus growth (fractions). Hard yfinance

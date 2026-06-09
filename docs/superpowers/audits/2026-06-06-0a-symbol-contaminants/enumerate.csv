@@ -1,0 +1,1333 @@
+ticker,status,quoteType,isin,shortName,longName
+1COV.DE,EQUITY,EQUITY,,Covestro AG                   I,Covestro AG
+8TRA.DE,EQUITY,EQUITY,,TRATON SE                     I,Traton SE
+A,EQUITY,EQUITY,US00846U1016,"Agilent Technologies, Inc.","Agilent Technologies, Inc."
+AA,EQUITY,EQUITY,AU0000339426,Alcoa Corporation,Alcoa Corporation
+AAL,EQUITY,EQUITY,,"American Airlines Group, Inc.",American Airlines Group Inc.
+AAL.L,EQUITY,EQUITY,,ANGLO AMERICAN PLC ORD USD0.623,Anglo American plc
+AAON,EQUITY,EQUITY,US0003602069,"AAON, Inc.","AAON, Inc."
+AAPL,EQUITY,EQUITY,US0378331005,Apple Inc.,Apple Inc.
+ABBN.SW,EQUITY,EQUITY,,ABB LTD N,ABB Ltd
+ABBV,EQUITY,EQUITY,US00287Y1091,AbbVie Inc.,AbbVie Inc.
+ABF.L,EQUITY,EQUITY,,ASSOCIATED BRITISH FOODS PLC OR,Associated British Foods plc
+ABI.BR,EQUITY,EQUITY,,AB INBEV,Anheuser-Busch InBev SA/NV
+ABN.AS,EQUITY,EQUITY,,ABN AMRO BANK N.V.,ABN AMRO Bank N.V.
+ABNB,EQUITY,EQUITY,,"Airbnb, Inc.","Airbnb, Inc."
+ABT,EQUITY,EQUITY,US0028241000,Abbott Laboratories,Abbott Laboratories
+AC.PA,EQUITY,EQUITY,FR0014003PZ3,ACCOR,Accor SA
+ACGL,EQUITY,EQUITY,BMG0450A1053,Arch Capital Group Ltd.,Arch Capital Group Ltd.
+ACI,EQUITY,EQUITY,US0130911037,"Albertsons Companies, Inc.","Albertsons Companies, Inc."
+ACM,EQUITY,EQUITY,US00766T1007,AECOM,AECOM
+ACN,EQUITY,EQUITY,IE00B4BNMY34,Accenture plc,Accenture plc
+ACS.MC,EQUITY,EQUITY,,"ACS,ACTIVIDADES DE CONSTRUCCION","ACS, Actividades de Construcción y Servicios, S.A."
+ACX.MC,EQUITY,EQUITY,,"ACERINOX, S.A.","Acerinox, S.A."
+ADBE,EQUITY,EQUITY,US00724F1012,Adobe Inc.,Adobe Inc.
+ADC,EQUITY,EQUITY,,Agree Realty Corporation,Agree Realty Corporation
+ADEN.SW,EQUITY,EQUITY,,ADECCO N,Adecco Group AG
+ADI,EQUITY,EQUITY,US0326541051,"Analog Devices, Inc.","Analog Devices, Inc."
+ADM,EQUITY,EQUITY,,Archer-Daniels-Midland Company,Archer-Daniels-Midland Company
+ADM.L,EQUITY,EQUITY,,ADMIRAL GROUP PLC ORD 0.1P,Admiral Group plc
+ADP,EQUITY,EQUITY,US0530151036,"Automatic Data Processing, Inc.","Automatic Data Processing, Inc."
+ADS.DE,EQUITY,EQUITY,,adidas AG                     N,adidas AG
+ADSK,EQUITY,EQUITY,US0527691069,"Autodesk, Inc.","Autodesk, Inc."
+ADYEN.AS,EQUITY,EQUITY,JP3122380003,ADYEN,Adyen N.V.
+AEE,EQUITY,EQUITY,,Ameren Corporation,Ameren Corporation
+AEIS,EQUITY,EQUITY,US0079731008,"Advanced Energy Industries, Inc","Advanced Energy Industries, Inc."
+AENA.MC,EQUITY,EQUITY,,"AENA, S.M.E., S.A.","Aena S.M.E., S.A."
+AEP,EQUITY,EQUITY,,American Electric Power Company,"American Electric Power Company, Inc."
+AES,EQUITY,EQUITY,US00130H1059,The AES Corporation,The AES Corporation
+AF.PA,EQUITY,EQUITY,,AIR FRANCE -KLM,Air France-KLM SA
+AFG,EQUITY,EQUITY,US0259321042,"American Financial Group, Inc.","American Financial Group, Inc."
+AFL,EQUITY,EQUITY,,AFLAC Incorporated,Aflac Incorporated
+AFX.DE,EQUITY,EQUITY,,Carl Zeiss Meditec AG         I,Carl Zeiss Meditec AG
+AGCO,EQUITY,EQUITY,US0010841023,AGCO Corporation,AGCO Corporation
+AGS.BR,EQUITY,EQUITY,CL0000000035,AGEAS,ageas SA/NV
+AHR,EQUITY,EQUITY,US3981823038,"American Healthcare REIT, Inc.","American Healthcare REIT, Inc."
+AIG,EQUITY,EQUITY,US0268747849,"American International Group, I","American International Group, Inc."
+AIR.PA,EQUITY,EQUITY,,AIRBUS SE,Airbus SE
+AIRP.PA,CONTAMINANT,MUTUALFUND,,369066,
+AIT,EQUITY,EQUITY,US03820C1053,Applied Industrial Technologies,"Applied Industrial Technologies, Inc."
+AIXA.DE,EQUITY,EQUITY,,AIXTRON SE                    N,AIXTRON SE
+AIZ,EQUITY,EQUITY,US04621X1081,"Assurant, Inc.","Assurant, Inc."
+AJG,EQUITY,EQUITY,US3635761097,Arthur J. Gallagher & Co.,Arthur J. Gallagher & Co.
+AKAM,EQUITY,EQUITY,,"Akamai Technologies, Inc.","Akamai Technologies, Inc."
+AKE.PA,EQUITY,EQUITY,,ARKEMA,Arkema S.A.
+AKRBP.OL,EQUITY,EQUITY,,AKER BP,Aker BP ASA
+AKZA.AS,EQUITY,EQUITY,,AKZO NOBEL,Akzo Nobel N.V.
+ALB,EQUITY,EQUITY,,Albemarle Corporation,Albemarle Corporation
+ALC.SW,EQUITY,EQUITY,,ALCON N,Alcon Inc.
+ALFA.ST,EQUITY,EQUITY,,Alfa Laval AB,Alfa Laval AB (publ)
+ALGM,EQUITY,EQUITY,US01749D1054,"Allegro MicroSystems, Inc.","Allegro MicroSystems, Inc."
+ALGN,EQUITY,EQUITY,US0162551016,"Align Technology, Inc.","Align Technology, Inc."
+ALK,EQUITY,EQUITY,US0116591092,"Alaska Air Group, Inc.","Alaska Air Group, Inc."
+ALL,EQUITY,EQUITY,,Allstate Corporation (The),The Allstate Corporation
+ALLE,EQUITY,EQUITY,IE00BFRT3W74,Allegion plc,Allegion plc
+ALLFG.AS,EQUITY,EQUITY,GB00BNTJ3546,ALLFUNDS GROUP PLC,Allfunds Group plc
+ALLY,EQUITY,EQUITY,US02005N1000,Ally Financial Inc.,Ally Financial Inc.
+ALO.PA,EQUITY,EQUITY,INE184S01024,ALSTOM,Alstom SA
+ALV,EQUITY,EQUITY,US0528001094,"Autoliv, Inc.","Autoliv, Inc."
+ALV.DE,EQUITY,EQUITY,,Allianz SE                    v,Allianz SE
+AM,EQUITY,EQUITY,US03676B1026,Antero Midstream Corporation,Antero Midstream Corporation
+AMAT,EQUITY,EQUITY,US0382221051,"Applied Materials, Inc.","Applied Materials, Inc."
+AMBU-B.CO,EQUITY,EQUITY,,Ambu A/S,Ambu A/S
+AMCR,EQUITY,EQUITY,JE00BV7DQ550,Amcor plc,Amcor plc
+AMD,EQUITY,EQUITY,US0079031078,"Advanced Micro Devices, Inc.","Advanced Micro Devices, Inc."
+AME,EQUITY,EQUITY,US0311001004,"AMETEK, Inc.","AMETEK, Inc."
+AMG,EQUITY,EQUITY,US0082521081,"Affiliated Managers Group, Inc.","Affiliated Managers Group, Inc."
+AMGN,EQUITY,EQUITY,US0311621009,Amgen Inc.,Amgen Inc.
+AMH,EQUITY,EQUITY,US02665T3068,American Homes 4 Rent,American Homes 4 Rent
+AMKR,EQUITY,EQUITY,US0316521006,"Amkor Technology, Inc.","Amkor Technology, Inc."
+AML.L,EQUITY,EQUITY,,ASTON MARTIN LAGONDA GLOBAL HOL,Aston Martin Lagonda Global Holdings plc
+AMP,EQUITY,EQUITY,US03076C1062,"Ameriprise Financial, Inc.","Ameriprise Financial, Inc."
+AMS.VI,DEGRADED,,,,
+AMT,EQUITY,EQUITY,,American Tower Corporation (REI,American Tower Corporation
+AMZN,EQUITY,EQUITY,,"Amazon.com, Inc.","Amazon.com, Inc."
+AN,EQUITY,EQUITY,US05329W1027,"AutoNation, Inc.","AutoNation, Inc."
+ANA.MC,EQUITY,EQUITY,,"ACCIONA, S.A.","Acciona, S.A."
+ANE.MC,EQUITY,EQUITY,,CORPORACI...N ACCIONA ENERG...A,"Corporación Acciona Energías Renovables, S.A."
+ANET,EQUITY,EQUITY,US0404132054,"Arista Networks, Inc.","Arista Networks, Inc."
+ANF,EQUITY,EQUITY,,Abercrombie & Fitch Company,Abercrombie & Fitch Co.
+ANTO.L,EQUITY,EQUITY,,ANTOFAGASTA PLC ORD 5P,Antofagasta plc
+AON,EQUITY,EQUITY,IE00BLP1HW54,Aon plc,Aon plc
+AOS,EQUITY,EQUITY,,A.O. Smith Corporation,A. O. Smith Corporation
+APA,EQUITY,EQUITY,US03743Q1085,APA Corporation,APA Corporation
+APD,EQUITY,EQUITY,US0091581068,"Air Products and Chemicals, Inc","Air Products and Chemicals, Inc."
+APG,EQUITY,EQUITY,US00187Y1001,APi Group Corporation,APi Group Corporation
+APH,EQUITY,EQUITY,CA03209E1025,Amphenol Corporation,Amphenol Corporation
+APO,EQUITY,EQUITY,US03769M1062,"Apollo Global Management, Inc. ","Apollo Global Management, Inc."
+APP,EQUITY,EQUITY,,Applovin Corporation,AppLovin Corporation
+APPF,EQUITY,EQUITY,US03783C1009,"AppFolio, Inc.","AppFolio, Inc."
+APTV,EQUITY,EQUITY,JE00BTDN8H13,Aptiv PLC,Aptiv PLC
+AR,EQUITY,EQUITY,US03674X1063,Antero Resources Corporation,Antero Resources Corporation
+ARE,EQUITY,EQUITY,US0152711091,Alexandria Real Estate Equities,"Alexandria Real Estate Equities, Inc."
+ARES,EQUITY,EQUITY,US03990B1017,Ares Management Corporation,Ares Management Corporation
+ARGX.BR,EQUITY,EQUITY,,ARGENX SE,argenx SE
+ARMK,EQUITY,EQUITY,US03852U1060,Aramark,Aramark
+ARW,EQUITY,EQUITY,US0427351004,"Arrow Electronics, Inc.","Arrow Electronics, Inc."
+ARWR,EQUITY,EQUITY,US04280A1007,"Arrowhead Pharmaceuticals, Inc.","Arrowhead Pharmaceuticals, Inc."
+ASB,EQUITY,EQUITY,US0454871056,Associated Banc-Corp,Associated Banc-Corp
+ASH,EQUITY,EQUITY,US0441861046,Ashland Inc.,Ashland Inc.
+ASM.AS,EQUITY,EQUITY,,ASM International N.V.,ASM International NV
+ASML.AS,EQUITY,EQUITY,AR0725224551,ASML HOLDING,ASML Holding N.V.
+ASSA-B.ST,EQUITY,EQUITY,,ASSA ABLOY AB ser. B,ASSA ABLOY AB (publ)
+AT1.DE,EQUITY,EQUITY,,Aroundtown SA                 B,Aroundtown SA
+ATCO-A.ST,EQUITY,EQUITY,,Atlas Copco AB ser. A,Atlas Copco AB (publ)
+ATI,EQUITY,EQUITY,US01741R1023,ATI Inc.,ATI Inc.
+ATO,EQUITY,EQUITY,,Atmos Energy Corporation,Atmos Energy Corporation
+ATOS.PA,CONTAMINANT,MUTUALFUND,,391877,
+ATR,EQUITY,EQUITY,,"AptarGroup, Inc.","AptarGroup, Inc."
+AUTO.L,EQUITY,EQUITY,,AUTOTRADER GROUP PLC ORD 1P,Autotrader Group plc
+AV.L,EQUITY,EQUITY,,AVIVA PLC ORD 32 17/19P,Aviva plc
+AVAV,EQUITY,EQUITY,US0080731088,"AeroVironment, Inc.","AeroVironment, Inc."
+AVB,EQUITY,EQUITY,US0534841012,"AvalonBay Communities, Inc.","AvalonBay Communities, Inc."
+AVGO,EQUITY,EQUITY,CA11134P1009,Broadcom Inc.,Broadcom Inc.
+AVNT,EQUITY,EQUITY,,Avient Corporation,Avient Corporation
+AVT,EQUITY,EQUITY,US0538071038,"Avnet, Inc.","Avnet, Inc."
+AVTR,EQUITY,EQUITY,US05352A1007,"Avantor, Inc.","Avantor, Inc."
+AVY,EQUITY,EQUITY,,Avery Dennison Corporation,Avery Dennison Corporation
+AWK,EQUITY,EQUITY,,"American Water Works Company, I","American Water Works Company, Inc."
+AXON,EQUITY,EQUITY,US05464C1018,"Axon Enterprise, Inc.","Axon Enterprise, Inc."
+AXP,EQUITY,EQUITY,,American Express Company,American Express Company
+AXTA,EQUITY,EQUITY,BMG0750C1082,Axalta Coating Systems Ltd.,Axalta Coating Systems Ltd.
+AYI,EQUITY,EQUITY,US00508Y1029,Acuity Inc.,Acuity Inc.
+AZE.BR,EQUITY,EQUITY,,AZELIS GROUP NV,Azelis Group NV
+AZN.L,EQUITY,EQUITY,,ASTRAZENECA PLC ORD SHS $0.25,AstraZeneca PLC
+AZO,EQUITY,EQUITY,US0533321024,"AutoZone, Inc.","AutoZone, Inc."
+BA,EQUITY,EQUITY,,Boeing Company (The),The Boeing Company
+BA.L,EQUITY,EQUITY,,BAE SYSTEMS PLC ORD 2.5P,BAE Systems plc
+BAC,EQUITY,EQUITY,,Bank of America Corporation,Bank of America Corporation
+BAER.SW,EQUITY,EQUITY,,JULIUS BAER N,Julius Bär Gruppe AG
+BAH,EQUITY,EQUITY,US0995021062,Booz Allen Hamilton Holding Cor,Booz Allen Hamilton Holding Corporation
+BALD-B.ST,EQUITY,EQUITY,,Fastighets AB Balder ser. B,Fastighets AB Balder (publ)
+BALL,EQUITY,EQUITY,US0584981064,Ball Corporation,Ball Corporation
+BARC.L,EQUITY,EQUITY,,BARCLAYS PLC ORD 25P,Barclays PLC
+BARN.SW,EQUITY,EQUITY,,BARRY CALLEBAUT N,Barry Callebaut AG
+BAS.DE,EQUITY,EQUITY,,BASF SE                       N,BASF SE
+BATS.L,EQUITY,EQUITY,,BRITISH AMERICAN TOBACCO PLC OR,British American Tobacco p.l.c.
+BAX,EQUITY,EQUITY,US0718131099,Baxter International Inc.,Baxter International Inc.
+BAYN.DE,EQUITY,EQUITY,,Bayer AG                      N,Bayer Aktiengesellschaft
+BBVA.MC,EQUITY,EQUITY,COB13PA00019,BANCO BILBAO VIZCAYA ARGENTARIA,"Banco Bilbao Vizcaya Argentaria, S.A."
+BBWI,EQUITY,EQUITY,,"Bath & Body Works, Inc.","Bath & Body Works, Inc."
+BBY,EQUITY,EQUITY,US0865161014,"Best Buy Co., Inc.","Best Buy Co., Inc."
+BBY.L,EQUITY,EQUITY,,BALFOUR BEATTY PLC ORD 50P,Balfour Beatty plc
+BC,EQUITY,EQUITY,,Brunswick Corporation,Brunswick Corporation
+BC.MI,EQUITY,EQUITY,,BRUNELLO CUCINELLI,Brunello Cucinelli S.p.A.
+BCO,EQUITY,EQUITY,US1096961040,Brinks Company (The),The Brink's Company
+BDC,EQUITY,EQUITY,US0774541066,Belden Inc,Belden Inc.
+BDX,EQUITY,EQUITY,,"Becton, Dickinson and Company","Becton, Dickinson and Company"
+BEI.DE,EQUITY,EQUITY,,BEIERSDORF AG                 I,Beiersdorf Aktiengesellschaft
+BEN,EQUITY,EQUITY,US3546131018,"Franklin Resources, Inc.","Franklin Resources, Inc."
+BEZ.L,EQUITY,EQUITY,,BEAZLEY PLC ORD 5P,Beazley plc
+BF-B,EQUITY,EQUITY,,Brown Forman Inc,Brown-Forman Corporation
+BG,EQUITY,EQUITY,,Bunge Limited,Bunge Global SA
+BHF,EQUITY,EQUITY,US10922N1037,"Brighthouse Financial, Inc.","Brighthouse Financial, Inc."
+BIIB,EQUITY,EQUITY,US09062X1037,Biogen Inc.,Biogen Inc.
+BILL,EQUITY,EQUITY,US0900431000,"BILL Holdings, Inc.","BILL Holdings, Inc."
+BIO,EQUITY,EQUITY,US0905722072,"Bio-Rad Laboratories, Inc.","Bio-Rad Laboratories, Inc."
+BJ,EQUITY,EQUITY,US05550J1016,"BJ's Wholesale Club Holdings, I","BJ's Wholesale Club Holdings, Inc."
+BK,EQUITY,EQUITY,,The Bank of New York Mellon Cor,Bank of New York Mellon Corp
+BKG.L,EQUITY,EQUITY,,BERKELEY GROUP HOLDINGS (THE) P,The Berkeley Group Holdings plc
+BKH,EQUITY,EQUITY,,Black Hills Corporation,Black Hills Corporation
+BKNG,EQUITY,EQUITY,,Booking Holdings Inc. Common St,Booking Holdings Inc.
+BKR,EQUITY,EQUITY,AR0302010498,Baker Hughes Company,Baker Hughes Company
+BKT.MC,EQUITY,EQUITY,,"BANKINTER, S.A.","Bankinter, S.A."
+BLD,EQUITY,EQUITY,US89055F1030,TopBuild Corp.,TopBuild Corp.
+BLDR,EQUITY,EQUITY,US12008R1077,"Builders FirstSource, Inc.","Builders FirstSource, Inc."
+BLK,EQUITY,EQUITY,US09290D1019,"BlackRock, Inc.","BlackRock, Inc."
+BLKB,EQUITY,EQUITY,US09227Q1004,"Blackbaud, Inc.","Blackbaud, Inc."
+BME.L,EQUITY,EQUITY,,B&M EUROPEAN VALUE RETAIL PLC O,B&M European Value Retail plc
+BMRN,EQUITY,EQUITY,US09061G1013,BioMarin Pharmaceutical Inc.,BioMarin Pharmaceutical Inc.
+BMW.DE,EQUITY,EQUITY,,BAYERISCHE MOTOREN WERKE AG   S,Bayerische Motoren Werke Aktiengesellschaft
+BMY,EQUITY,EQUITY,,Bristol-Myers Squibb Company,Bristol-Myers Squibb Company
+BNPP.PA,CONTAMINANT,MUTUALFUND,,3734810,
+BNR.DE,EQUITY,EQUITY,,Brenntag SE                   N,Brenntag SE
+BNZL.L,EQUITY,EQUITY,,BUNZL PLC ORD 32 1/7P,Bunzl plc
+BOL.PA,EQUITY,EQUITY,FR001400XP40,BOLLORE SE,Bolloré SE
+BOL.ST,EQUITY,EQUITY,,Boliden AB,Boliden AB (publ)
+BOSS.DE,EQUITY,EQUITY,,HUGO BOSS AG                  N,Hugo Boss AG
+BOUY.PA,CONTAMINANT,MUTUALFUND,,1081128,
+BP.L,EQUITY,EQUITY,,BP PLC $0.25,BP p.l.c.
+BPOST.BR,EQUITY,EQUITY,FR00140153G5,BPOST,bpost NV/SA
+BR,EQUITY,EQUITY,US11133T1034,"Broadridge Financial Solutions,","Broadridge Financial Solutions, Inc."
+BRBR,EQUITY,EQUITY,US07831C1036,"BellRing Brands, Inc.","BellRing Brands, Inc."
+BRBY.L,EQUITY,EQUITY,,BURBERRY GROUP PLC ORD 0.05P,Burberry Group plc
+BRK-B,EQUITY,EQUITY,,Berkshire Hathaway Inc. New,Berkshire Hathaway Inc.
+BRKR,EQUITY,EQUITY,,Bruker Corporation,Bruker Corporation
+BRO,EQUITY,EQUITY,US1152361010,"Brown & Brown, Inc.","Brown & Brown, Inc."
+BROS,EQUITY,EQUITY,US26701L1008,Dutch Bros Inc.,Dutch Bros Inc.
+BRX,EQUITY,EQUITY,US11120U1051,Brixmor Property Group Inc.,Brixmor Property Group Inc.
+BSX,EQUITY,EQUITY,,Boston Scientific Corporation,Boston Scientific Corporation
+BSY,EQUITY,EQUITY,,"Bentley Systems, Incorporated","Bentley Systems, Incorporated"
+BT-A.L,EQUITY,EQUITY,,BT GROUP PLC ORD 5P,BT Group plc
+BTRW.L,EQUITY,EQUITY,,BARRATT REDROW PLC ORD 10P,Barratt Redrow plc
+BURL,EQUITY,EQUITY,US1220171060,"Burlington Stores, Inc.","Burlington Stores, Inc."
+BVI.PA,EQUITY,EQUITY,,BUREAU VERITAS,Bureau Veritas SA
+BWA,EQUITY,EQUITY,US0997241064,BorgWarner Inc.,BorgWarner Inc.
+BWXT,EQUITY,EQUITY,US05605H1005,"BWX Technologies, Inc.","BWX Technologies, Inc."
+BX,EQUITY,EQUITY,,Blackstone Inc.,Blackstone Inc.
+BXP,EQUITY,EQUITY,US1011211018,"BXP, Inc.","BXP, Inc."
+BYD,EQUITY,EQUITY,,Boyd Gaming Corporation,Boyd Gaming Corporation
+BYG.L,EQUITY,EQUITY,,BIG YELLOW GROUP PLC ORD 10P,Big Yellow Group Plc
+C,EQUITY,EQUITY,US1729674242,"Citigroup, Inc.",Citigroup Inc.
+CABK.MC,EQUITY,EQUITY,,"CAIXABANK, S.A.","CaixaBank, S.A."
+CACI,EQUITY,EQUITY,US1271903049,"CACI International, Inc.",CACI International Inc
+CAG,EQUITY,EQUITY,,"ConAgra Brands, Inc.","Conagra Brands, Inc."
+CAGR.PA,CONTAMINANT,MUTUALFUND,,4152883,
+CAH,EQUITY,EQUITY,US14149Y1082,"Cardinal Health, Inc.","Cardinal Health, Inc."
+CAPP.PA,CONTAMINANT,MUTUALFUND,,1682152,
+CAR,EQUITY,EQUITY,US0537741052,"Avis Budget Group, Inc.","Avis Budget Group, Inc."
+CARR,EQUITY,EQUITY,US14448C1045,Carrier Global Corporation,Carrier Global Corporation
+CARR.PA,CONTAMINANT,MUTUALFUND,,2387079,
+CART,EQUITY,EQUITY,,Maplebear Inc.,Maplebear Inc.
+CAST.ST,EQUITY,EQUITY,SE0020202745,Castellum AB,Castellum AB (publ)
+CASY,EQUITY,EQUITY,US1475281036,"Caseys General Stores, Inc.","Casey's General Stores, Inc."
+CAT,EQUITY,EQUITY,US1491231015,"Caterpillar, Inc.",Caterpillar Inc.
+CAVA,EQUITY,EQUITY,US1489291021,"CAVA Group, Inc.","CAVA Group, Inc."
+CB,EQUITY,EQUITY,,Chubb Limited,Chubb Limited
+CBK.DE,EQUITY,EQUITY,,Commerzbank AG                I,Commerzbank AG
+CBOE,EQUITY,EQUITY,US12503M1080,"Cboe Global Markets, Inc.","Cboe Global Markets, Inc."
+CBRE,EQUITY,EQUITY,US12504L1098,CBRE Group Inc,"CBRE Group, Inc."
+CBSH,EQUITY,EQUITY,US2005251036,"Commerce Bancshares, Inc.","Commerce Bancshares, Inc."
+CBT,EQUITY,EQUITY,,Cabot Corporation,Cabot Corporation
+CCH.L,EQUITY,EQUITY,,COCA-COLA HBC AG ORD CHF6.70 (C,Coca-Cola HBC AG
+CCI,EQUITY,EQUITY,,Crown Castle Inc.,Crown Castle Inc.
+CCK,EQUITY,EQUITY,US2283681060,"Crown Holdings, Inc.","Crown Holdings, Inc."
+CCL,EQUITY,EQUITY,BMG2004J1036,Carnival Corporation Ltd.,Carnival Corporation Ltd.
+CDNS,EQUITY,EQUITY,US1273871087,"Cadence Design Systems, Inc.","Cadence Design Systems, Inc."
+CDP,EQUITY,EQUITY,,COPT Defense Properties,COPT Defense Properties
+CDR.WA,EQUITY,EQUITY,,CDPROJEKT,CD Projekt S.A.
+CDW,EQUITY,EQUITY,US12514G1085,CDW Corporation,CDW Corporation
+CEG,EQUITY,EQUITY,,Constellation Energy Corporatio,Constellation Energy Corporation
+CELH,EQUITY,EQUITY,US15118V2079,"Celsius Holdings, Inc.","Celsius Holdings, Inc."
+CF,EQUITY,EQUITY,US1252691001,"CF Industries Holdings, Inc.","CF Industries Holdings, Inc."
+CFG,EQUITY,EQUITY,US1746101054,"Citizens Financial Group, Inc.","Citizens Financial Group, Inc."
+CFR,EQUITY,EQUITY,US2298991090,"Cullen/Frost Bankers, Inc.","Cullen/Frost Bankers, Inc."
+CFR.SW,EQUITY,EQUITY,,RICHEMONT N,Compagnie Financière Richemont SA
+CG,EQUITY,EQUITY,,The Carlyle Group Inc.,The Carlyle Group Inc.
+CGNX,EQUITY,EQUITY,,Cognex Corporation,Cognex Corporation
+CHD,EQUITY,EQUITY,,"Church & Dwight Company, Inc.","Church & Dwight Co., Inc."
+CHDN,EQUITY,EQUITY,,"Churchill Downs, Incorporated",Churchill Downs Incorporated
+CHE,EQUITY,EQUITY,US16359R1032,Chemed Corp,Chemed Corporation
+CHH,EQUITY,EQUITY,US1699051066,"Choice Hotels International, In","Choice Hotels International, Inc."
+CHRD,EQUITY,EQUITY,US6742152076,Chord Energy Corporation,Chord Energy Corporation
+CHRW,EQUITY,EQUITY,US12541W2098,"C.H. Robinson Worldwide, Inc.","C.H. Robinson Worldwide, Inc."
+CHTR,EQUITY,EQUITY,US16119P1084,"Charter Communications, Inc.","Charter Communications, Inc."
+CHWY,EQUITY,EQUITY,US16679L1098,"Chewy, Inc.","Chewy, Inc."
+CI,EQUITY,EQUITY,US1255231003,The Cigna Group,The Cigna Group
+CIEN,EQUITY,EQUITY,,Ciena Corporation,Ciena Corporation
+CINF,EQUITY,EQUITY,,Cincinnati Financial Corporatio,Cincinnati Financial Corporation
+CL,EQUITY,EQUITY,,Colgate-Palmolive Company,Colgate-Palmolive Company
+CLF,EQUITY,EQUITY,US1858991011,Cleveland-Cliffs Inc.,Cleveland-Cliffs Inc.
+CLH,EQUITY,EQUITY,US1844961078,"Clean Harbors, Inc.","Clean Harbors, Inc."
+CLN.SW,EQUITY,EQUITY,,CLARIANT N,Clariant AG
+CLX,EQUITY,EQUITY,,Clorox Company (The),The Clorox Company
+CMC,EQUITY,EQUITY,,Commercial Metals Company,Commercial Metals Company
+CMCSA,EQUITY,EQUITY,,Comcast Corporation,Comcast Corporation
+CME,EQUITY,EQUITY,US12572Q1058,CME Group Inc.,CME Group Inc.
+CMG,EQUITY,EQUITY,US1696561059,"Chipotle Mexican Grill, Inc.","Chipotle Mexican Grill, Inc."
+CMI,EQUITY,EQUITY,US2310211063,Cummins Inc.,Cummins Inc.
+CMS,EQUITY,EQUITY,US1258961002,CMS Energy Corporation,CMS Energy Corporation
+CNA.L,EQUITY,EQUITY,,CENTRICA PLC ORD 6 14/81P,Centrica plc
+CNC,EQUITY,EQUITY,,Centene Corporation,Centene Corporation
+CNH,EQUITY,EQUITY,NL0010545661,CNH Industrial N.V.,CNH Industrial N.V.
+CNM,EQUITY,EQUITY,US21874C1027,"Core & Main, Inc.","Core & Main, Inc."
+CNO,EQUITY,EQUITY,US12621E1038,"CNO Financial Group, Inc.","CNO Financial Group, Inc."
+CNP,EQUITY,EQUITY,,"CenterPoint Energy, Inc (Holdin","CenterPoint Energy, Inc."
+CNX,EQUITY,EQUITY,US12653C1080,CNX Resources Corporation,CNX Resources Corporation
+CNXC,EQUITY,EQUITY,US20602D1019,Concentrix Corporation,Concentrix Corporation
+COF,EQUITY,EQUITY,,Capital One Financial Corporati,Capital One Financial Corporation
+COHR,EQUITY,EQUITY,US19247G1076,Coherent Corp.,Coherent Corp.
+COIN,EQUITY,EQUITY,,"Coinbase Global, Inc.","Coinbase Global, Inc."
+COKE,EQUITY,EQUITY,,"Coca-Cola Consolidated, Inc.","Coca-Cola Consolidated, Inc."
+COLB,EQUITY,EQUITY,US1972361026,"Columbia Banking System, Inc.","Columbia Banking System, Inc."
+COLM,EQUITY,EQUITY,,Columbia Sportswear Company,Columbia Sportswear Company
+COLR.BR,EQUITY,EQUITY,,Colruyt Group N.V.,Colruyt Group N.V.
+CON.DE,EQUITY,EQUITY,,CONTINENTAL AG                I,Continental Aktiengesellschaft
+COO,EQUITY,EQUITY,,"The Cooper Companies, Inc.","The Cooper Companies, Inc."
+COP,EQUITY,EQUITY,US20825C1045,ConocoPhillips,ConocoPhillips
+COR,EQUITY,EQUITY,,"Cencora, Inc.","Cencora, Inc."
+COST,EQUITY,EQUITY,,Costco Wholesale Corporation,Costco Wholesale Corporation
+COTY,EQUITY,EQUITY,US2220702037,Coty Inc.,Coty Inc.
+CPAY,EQUITY,EQUITY,,"Corpay, Inc.","Corpay, Inc."
+CPB,EQUITY,EQUITY,,The Campbell's Company,The Campbell's Company
+CPG.L,EQUITY,EQUITY,,COMPASS GROUP PLC ORD 11 1/20P,Compass Group PLC
+CPR.MI,EQUITY,EQUITY,,CAMPARI,Davide Campari-Milano N.V.
+CPRI,EQUITY,EQUITY,,Capri Holdings Limited,Capri Holdings Limited
+CPRT,EQUITY,EQUITY,US2172041061,"Copart, Inc.","Copart, Inc."
+CPT,EQUITY,EQUITY,US1331311027,Camden Property Trust,Camden Property Trust
+CR,EQUITY,EQUITY,,Crane Company,Crane Company
+CRBG,EQUITY,EQUITY,,Corebridge Financial Inc.,"Corebridge Financial, Inc."
+CRDA.L,EQUITY,EQUITY,,CRODA INTERNATIONAL PLC ORD 10.,Croda International Plc
+CRH,EQUITY,EQUITY,IE0001827041,CRH PLC,CRH plc
+CRL,EQUITY,EQUITY,US1598641074,Charles River Laboratories Inte,"Charles River Laboratories International, Inc."
+CRM,EQUITY,EQUITY,,"Salesforce, Inc.","Salesforce, Inc."
+CROX,EQUITY,EQUITY,US2270461096,"Crocs, Inc.","Crocs, Inc."
+CRS,EQUITY,EQUITY,,Carpenter Technology Corporatio,Carpenter Technology Corporation
+CRUS,EQUITY,EQUITY,US1727551004,"Cirrus Logic, Inc.","Cirrus Logic, Inc."
+CRWD,EQUITY,EQUITY,,"CrowdStrike Holdings, Inc.","CrowdStrike Holdings, Inc."
+CS.PA,EQUITY,EQUITY,FR001400UEZ6,AXA,AXA SA
+CSCO,EQUITY,EQUITY,,"Cisco Systems, Inc.","Cisco Systems, Inc."
+CSGP,EQUITY,EQUITY,US22160N1090,"CoStar Group, Inc.","CoStar Group, Inc."
+CSL,EQUITY,EQUITY,,Carlisle Companies Incorporated,Carlisle Companies Incorporated
+CSX,EQUITY,EQUITY,US1264081035,CSX Corporation,CSX Corporation
+CTAS,EQUITY,EQUITY,,Cintas Corporation,Cintas Corporation
+CTEC.L,EQUITY,EQUITY,,CONVATEC GROUP PLC ORD 10P,Convatec Group PLC
+CTG.L,EQUITY,EQUITY,,CHRISTIE GROUP PLC ORD 2P,Christie Group plc
+CTRE,EQUITY,EQUITY,US14174T1079,"CareTrust REIT, Inc.","CareTrust REIT, Inc."
+CTS.DE,CONTAMINANT,MUTUALFUND,,,AVIC International Holdings Limited
+CTSH,EQUITY,EQUITY,,Cognizant Technology Solutions ,Cognizant Technology Solutions Corporation
+CTVA,EQUITY,EQUITY,US22052L1044,"Corteva, Inc.","Corteva, Inc."
+CUBE,EQUITY,EQUITY,US2296631094,CubeSmart,CubeSmart
+CUZ,EQUITY,EQUITY,,Cousins Properties Incorporated,Cousins Properties Incorporated
+CVLT,EQUITY,EQUITY,US2041661024,"Commvault Systems, Inc.","Commvault Systems, Inc."
+CVNA,EQUITY,EQUITY,US1468691027,Carvana Co.,Carvana Co.
+CVS,EQUITY,EQUITY,US1266501006,CVS Health Corporation,CVS Health Corporation
+CVX,EQUITY,EQUITY,ARDEUT110087,Chevron Corporation,Chevron Corporation
+CW,EQUITY,EQUITY,,Curtiss-Wright Corporation,Curtiss-Wright Corporation
+CXT,EQUITY,EQUITY,,"Crane NXT, Co.","Crane NXT, Co."
+CYTK,EQUITY,EQUITY,,"Cytokinetics, Incorporated","Cytokinetics, Incorporated"
+D,EQUITY,EQUITY,US25746U1097,"Dominion Energy, Inc.","Dominion Energy, Inc."
+DAL,EQUITY,EQUITY,US2473617023,"Delta Air Lines, Inc.","Delta Air Lines, Inc."
+DANO.PA,CONTAMINANT,MUTUALFUND,,1098699,
+DAR,EQUITY,EQUITY,US2372661015,Darling Ingredients Inc.,Darling Ingredients Inc.
+DASH,EQUITY,EQUITY,,"DoorDash, Inc.","DoorDash, Inc."
+DB1.DE,EQUITY,EQUITY,,DEUTSCHE BOERSE AG            N,Deutsche Börse AG
+DBX,EQUITY,EQUITY,,"Dropbox, Inc.","Dropbox, Inc."
+DCI,EQUITY,EQUITY,,"Donaldson Company, Inc.","Donaldson Company, Inc."
+DD,EQUITY,EQUITY,,"DuPont de Nemours, Inc.","DuPont de Nemours, Inc."
+DDOG,EQUITY,EQUITY,US23804L1035,"Datadog, Inc.","Datadog, Inc."
+DE,EQUITY,EQUITY,,Deere & Company,Deere & Company
+DECK,EQUITY,EQUITY,,Deckers Outdoor Corporation,Deckers Outdoor Corporation
+DELL,EQUITY,EQUITY,US24703L2025,Dell Technologies Inc.,Dell Technologies Inc.
+DEMANT.CO,EQUITY,EQUITY,,Demant A/S,Demant A/S
+DG,EQUITY,EQUITY,US2566771059,Dollar General Corporation,Dollar General Corporation
+DG.PA,EQUITY,EQUITY,FI4000185533,VINCI,Vinci SA
+DGE.L,EQUITY,EQUITY,,DIAGEO PLC ORD 28 101/108P,Diageo plc
+DGX,EQUITY,EQUITY,,Quest Diagnostics Incorporated,Quest Diagnostics Incorporated
+DHER.DE,EQUITY,EQUITY,,Delivery Hero SE              N,Delivery Hero SE
+DHI,EQUITY,EQUITY,US23331A1097,"D.R. Horton, Inc.","D.R. Horton, Inc."
+DHL.DE,EQUITY,EQUITY,,DEUTSCHE POST AG              N,Deutsche Post AG
+DHR,EQUITY,EQUITY,,Danaher Corporation,Danaher Corporation
+DIA.MC,EQUITY,EQUITY,DE0005146807,DISTRIBUIDORA INTERNACIONAL DE ,"Distribuidora Internacional de Alimentación, S.A."
+DIE.BR,EQUITY,EQUITY,,D'IETEREN GROUP,D'Ieteren Group SA
+DINO,EQUITY,EQUITY,US4039491000,HF Sinclair Corporation,HF Sinclair Corporation
+DIS,EQUITY,EQUITY,,Walt Disney Company (The),The Walt Disney Company
+DKS,EQUITY,EQUITY,US2533931026,Dick's Sporting Goods Inc,"DICK'S Sporting Goods, Inc."
+DLB,EQUITY,EQUITY,US25659T1079,Dolby Laboratories,"Dolby Laboratories, Inc."
+DLN.L,EQUITY,EQUITY,,DERWENT LONDON PLC ORD 5P,Derwent London Plc
+DLR,EQUITY,EQUITY,US2538681030,"Digital Realty Trust, Inc.","Digital Realty Trust, Inc."
+DLTR,EQUITY,EQUITY,US2567461080,"Dollar Tree, Inc.","Dollar Tree, Inc."
+DOC,EQUITY,EQUITY,US42250P1030,"Healthpeak Properties, Inc.","Healthpeak Properties, Inc."
+DOCM.SW,EQUITY,EQUITY,,DOCMORRIS N,DocMorris AG
+DOCN,EQUITY,EQUITY,,"DigitalOcean Holdings, Inc.","DigitalOcean Holdings, Inc."
+DOCS,EQUITY,EQUITY,US26622P1075,"Doximity, Inc.","Doximity, Inc."
+DOCU,EQUITY,EQUITY,US2561631068,"DocuSign, Inc.","DocuSign, Inc."
+DOV,EQUITY,EQUITY,,Dover Corporation,Dover Corporation
+DOW,EQUITY,EQUITY,US2605571031,Dow Inc.,Dow Inc.
+DPLM.L,EQUITY,EQUITY,,DIPLOMA PLC ORD 5P,Diploma PLC
+DPZ,EQUITY,EQUITY,US25754A2015,Domino's Pizza Inc,"Domino's Pizza, Inc."
+DRI,EQUITY,EQUITY,US2371941053,"Darden Restaurants, Inc.","Darden Restaurants, Inc."
+DSFIR.AS,EQUITY,EQUITY,,DSM FIRMENICH AG,DSM-Firmenich AG
+DT,EQUITY,EQUITY,US2681501092,"Dynatrace, Inc.","Dynatrace, Inc."
+DTE,EQUITY,EQUITY,US2333311072,DTE Energy Company,DTE Energy Company
+DTE.DE,EQUITY,EQUITY,,DEUTSCHE TELEKOM AG           N,Deutsche Telekom AG
+DTG.DE,EQUITY,EQUITY,,Daimler Truck Holding AG      N,Daimler Truck Holding AG
+DTM,EQUITY,EQUITY,US23345M1071,"DT Midstream, Inc.","DT Midstream, Inc."
+DUK,EQUITY,EQUITY,,Duke Energy Corporation (Holdin,Duke Energy Corporation
+DUOL,EQUITY,EQUITY,US26603R1068,"Duolingo, Inc.","Duolingo, Inc."
+DVA,EQUITY,EQUITY,US23918K1088,DaVita Inc.,DaVita Inc.
+DVN,EQUITY,EQUITY,,Devon Energy Corporation,Devon Energy Corporation
+DXCM,EQUITY,EQUITY,US2521311074,"DexCom, Inc.","DexCom, Inc."
+DY,EQUITY,EQUITY,US2674751019,"Dycom Industries, Inc.","Dycom Industries, Inc."
+EA,EQUITY,EQUITY,US2855121099,Electronic Arts Inc.,Electronic Arts Inc.
+EBAY,EQUITY,EQUITY,US2786421030,eBay Inc.,eBay Inc.
+EBS.VI,EQUITY,EQUITY,,Erste Group Bank AG,Erste Group Bank AG
+ECL,EQUITY,EQUITY,US2788651006,Ecolab Inc.,Ecolab Inc.
+ED,EQUITY,EQUITY,US2091151041,"Consolidated Edison, Inc.","Consolidated Edison, Inc."
+EDEN.PA,EQUITY,EQUITY,,EDENRED,Edenred SE
+EDP.LS,EQUITY,EQUITY,,"EDP, SA","EDP, S.A."
+EDPR.LS,EQUITY,EQUITY,,"EDP RENEWABLES, SA","EDP Renewables, S.A."
+EDV.L,EQUITY,EQUITY,,ENDEAVOUR MINING PLC ORD USD0.0,Endeavour Mining plc
+EEFT,EQUITY,EQUITY,US2987361092,"Euronet Worldwide, Inc.","Euronet Worldwide, Inc."
+EFGN.SW,EQUITY,EQUITY,,EFG INTERNATIONAL N,EFG International AG
+EFX,EQUITY,EQUITY,US2944291051,"Equifax, Inc.",Equifax Inc.
+EG,EQUITY,EQUITY,BMG3223R1088,"Everest Group, Ltd.","Everest Group, Ltd."
+EGP,EQUITY,EQUITY,,"EastGroup Properties, Inc.","EastGroup Properties, Inc."
+EHC,EQUITY,EQUITY,,Encompass Health Corporation,Encompass Health Corporation
+EIX,EQUITY,EQUITY,US2810201077,Edison International,Edison International
+EL,EQUITY,EQUITY,US5184391044,"Estee Lauder Companies, Inc. (T",The Estée Lauder Companies Inc.
+EL.PA,EQUITY,EQUITY,FR001400EFS2,ESSILORLUXOTTICA,EssilorLuxottica Société anonyme
+ELAN,EQUITY,EQUITY,,Elanco Animal Health Incorporat,Elanco Animal Health Incorporated
+ELF,EQUITY,EQUITY,,"e.l.f. Beauty, Inc.","e.l.f. Beauty, Inc."
+ELISA.HE,EQUITY,EQUITY,,Elisa Corporation,Elisa Oyj
+ELS,EQUITY,EQUITY,US29472R1086,"Equity Lifestyle Properties, In","Equity LifeStyle Properties, Inc."
+ELUX-B.ST,EQUITY,EQUITY,,"Electrolux, AB ser. B",AB Electrolux (publ)
+ELV,EQUITY,EQUITY,US0367521038,"Elevance Health, Inc.","Elevance Health, Inc."
+EME,EQUITY,EQUITY,US29084Q1004,"EMCOR Group, Inc.","EMCOR Group, Inc."
+EMR,EQUITY,EQUITY,,Emerson Electric Company,Emerson Electric Co.
+EMSN.SW,EQUITY,EQUITY,,EMS-CHEMIE N,EMS-CHEMIE HOLDING AG
+EN.PA,EQUITY,EQUITY,FR001400UJU6,BOUYGUES,Bouygues SA
+ENEL.MI,EQUITY,EQUITY,CL0002266774,ENEL,Enel SpA
+ENG.MC,EQUITY,EQUITY,,"ENAGAS,S.A.","Enagás, S.A."
+ENGI.PA,EQUITY,EQUITY,FR0013215407,ENGIE,Engie SA
+ENI.MI,EQUITY,EQUITY,NET000PLEN01,ENI,Eni S.p.A.
+ENS,EQUITY,EQUITY,US29275Y1029,EnerSys,EnerSys
+ENSG,EQUITY,EQUITY,,"The Ensign Group, Inc.","The Ensign Group, Inc."
+ENT.L,EQUITY,EQUITY,,ENTAIN PLC ORD EUR0.01,Entain Plc
+ENTG,EQUITY,EQUITY,US29362U1043,"Entegris, Inc.","Entegris, Inc."
+ENX.AS,CONTAMINANT,MUTUALFUND,,,Euronext NV
+EOAN.DE,EQUITY,EQUITY,,E.ON SE                       N,E.ON SE
+EOG,EQUITY,EQUITY,US26875P1012,"EOG Resources, Inc.","EOG Resources, Inc."
+EPAM,EQUITY,EQUITY,US29414B1044,"EPAM Systems, Inc.","EPAM Systems, Inc."
+EPI-A.ST,EQUITY,EQUITY,,Epiroc AB ser. A,Epiroc AB (publ)
+EPR,EQUITY,EQUITY,US26884U1097,EPR Properties,EPR Properties
+EQH,EQUITY,EQUITY,,"Equitable Holdings, Inc.","Equitable Holdings, Inc."
+EQIX,EQUITY,EQUITY,US29444U7000,"Equinix, Inc.","Equinix, Inc."
+EQR,EQUITY,EQUITY,US29476L1070,Equity Residential,Equity Residential
+EQT,EQUITY,EQUITY,US26884L1098,EQT Corporation,EQT Corporation
+ERIC-B.ST,EQUITY,EQUITY,,"Ericsson, Telefonab. L M ser. B",Telefonaktiebolaget LM Ericsson (publ)
+ERIE,EQUITY,EQUITY,US29530P1021,Erie Indemnity Company,Erie Indemnity Company
+ES,EQUITY,EQUITY,,Eversource Energy (D/B/A),Eversource Energy
+ESAB,EQUITY,EQUITY,US29605J1060,ESAB Corporation,ESAB Corporation
+ESNT,EQUITY,EQUITY,BMG3198U1027,Essent Group Ltd.,Essent Group Ltd.
+ESS,EQUITY,EQUITY,,"Essex Property Trust, Inc.","Essex Property Trust, Inc."
+ETN,EQUITY,EQUITY,,"Eaton Corporation, PLC",Eaton Corporation plc
+ETR,EQUITY,EQUITY,,Entergy Corporation,Entergy Corporation
+EVK.DE,EQUITY,EQUITY,,Evonik Industries AG          N,Evonik Industries AG
+EVR,EQUITY,EQUITY,US29977A1051,Evercore Inc.,Evercore Inc.
+EVRG,EQUITY,EQUITY,US30034W1062,"Evergy, Inc.","Evergy, Inc."
+EVT.DE,EQUITY,EQUITY,,Evotec SE                     I,Evotec SE
+EW,EQUITY,EQUITY,,Edwards Lifesciences Corporatio,Edwards Lifesciences Corporation
+EWBC,EQUITY,EQUITY,US27579R1041,"East West Bancorp, Inc.","East West Bancorp, Inc."
+EXC,EQUITY,EQUITY,,Exelon Corporation,Exelon Corporation
+EXE,EQUITY,EQUITY,,Expand Energy Corporation,Expand Energy Corporation
+EXEL,EQUITY,EQUITY,US30161Q1040,"Exelixis, Inc.","Exelixis, Inc."
+EXLS,EQUITY,EQUITY,US3020811044,"ExlService Holdings, Inc.","ExlService Holdings, Inc."
+EXO.AS,EQUITY,EQUITY,CH1159308571,EXOR,Exor N.V.
+EXP,EQUITY,EQUITY,US26969P1084,Eagle Materials Inc,Eagle Materials Inc.
+EXPD,EQUITY,EQUITY,US3021301094,Expeditors International of Was,"Expeditors International of Washington, Inc."
+EXPE,EQUITY,EQUITY,,"Expedia Group, Inc.","Expedia Group, Inc."
+EXPN.L,EQUITY,EQUITY,,EXPERIAN PLC ORD USD0.10,Experian plc
+EXPO,EQUITY,EQUITY,US30214U1025,"Exponent, Inc.","Exponent, Inc."
+EXR,EQUITY,EQUITY,US30225T1025,Extra Space Storage Inc,Extra Space Storage Inc.
+EZJ.L,EQUITY,EQUITY,,EASYJET PLC ORD 27 2/7P,easyJet plc
+F,EQUITY,EQUITY,,Ford Motor Company,Ford Motor Company
+FAF,EQUITY,EQUITY,,First American Corporation (New,First American Financial Corporation
+FANG,EQUITY,EQUITY,US25278X1090,"Diamondback Energy, Inc.","Diamondback Energy, Inc."
+FAST,EQUITY,EQUITY,,Fastenal Company,Fastenal Company
+FBIN,EQUITY,EQUITY,,"Fortune Brands Innovations, Inc","Fortune Brands Innovations, Inc."
+FCFS,EQUITY,EQUITY,US33768G1076,"FirstCash Holdings, Inc.","FirstCash Holdings, Inc."
+FCN,EQUITY,EQUITY,US3029411093,"FTI Consulting, Inc.","FTI Consulting, Inc."
+FCX,EQUITY,EQUITY,US35671D8570,"Freeport-McMoRan, Inc.",Freeport-McMoRan Inc.
+FDS,EQUITY,EQUITY,US3030751057,FactSet Research Systems Inc.,FactSet Research Systems Inc.
+FDX,EQUITY,EQUITY,,FedEx Corporation,FedEx Corporation
+FE,EQUITY,EQUITY,US3379321074,FirstEnergy Corp.,FirstEnergy Corp.
+FER.AS,EQUITY,EQUITY,,Ferrovial N.V.,Ferrovial N.V.
+FFIN,EQUITY,EQUITY,US32020R1095,"First Financial Bankshares, Inc","First Financial Bankshares, Inc."
+FFIV,EQUITY,EQUITY,US3156161024,"F5, Inc.","F5, Inc."
+FHI,EQUITY,EQUITY,,"Federated Hermes, Inc.","Federated Hermes, Inc."
+FHN,EQUITY,EQUITY,,First Horizon Corporation,First Horizon Corporation
+FICO,EQUITY,EQUITY,,Fair Isaac Corporation,Fair Isaac Corporation
+FIS,EQUITY,EQUITY,US31620M1062,Fidelity National Information S,"Fidelity National Information Services, Inc."
+FISV,EQUITY,EQUITY,US3377381088,"Fiserv, Inc.","Fiserv, Inc."
+FITB,EQUITY,EQUITY,US3167731005,Fifth Third Bancorp,Fifth Third Bancorp
+FIVE,EQUITY,EQUITY,US33829M1018,"Five Below, Inc.","Five Below, Inc."
+FIX,EQUITY,EQUITY,US1999081045,"Comfort Systems USA, Inc.","Comfort Systems USA, Inc."
+FLEX,EQUITY,EQUITY,SG9999000020,Flex Ltd.,Flex Ltd.
+FLG,EQUITY,EQUITY,,"Flagstar Bank, N.A.","Flagstar Bank, National Association"
+FLO,EQUITY,EQUITY,US3434981011,"Flowers Foods, Inc.","Flowers Foods, Inc."
+FLOW.AS,EQUITY,EQUITY,,FLOW TRADERS,Flow Traders Ltd.
+FLR,EQUITY,EQUITY,,Fluor Corporation,Fluor Corporation
+FLS,EQUITY,EQUITY,,Flowserve Corporation,Flowserve Corporation
+FLTR.L,EQUITY,EQUITY,,FLUTTER ENTERTAINMENT PLC ORD E,Flutter Entertainment plc
+FME.DE,EQUITY,EQUITY,,Fresenius Medical Care AG     I,Fresenius Medical Care AG
+FN,EQUITY,EQUITY,KYG3323L1005,Fabrinet,Fabrinet
+FNB,EQUITY,EQUITY,,F.N.B. Corporation,F.N.B. Corporation
+FND,EQUITY,EQUITY,US3397501012,"Floor & Decor Holdings, Inc.","Floor & Decor Holdings, Inc."
+FNF,EQUITY,EQUITY,US31620R3030,"Fidelity National Financial, In","Fidelity National Financial, Inc."
+FNTN.DE,EQUITY,EQUITY,,freenet AG                    N,freenet AG
+FORTUM.HE,EQUITY,EQUITY,,Fortum Corporation,Fortum Oyj
+FOUR,EQUITY,EQUITY,US82452J1097,"Shift4 Payments, Inc.","Shift4 Payments, Inc."
+FOX,EQUITY,EQUITY,,Fox Corporation,Fox Corporation
+FOXA,EQUITY,EQUITY,,Fox Corporation,Fox Corporation
+FR,EQUITY,EQUITY,US32054K1034,"First Industrial Realty Trust, ","First Industrial Realty Trust, Inc."
+FR.PA,EQUITY,EQUITY,NET000KLEON1,VALEO,Valeo SE
+FRA.DE,EQUITY,EQUITY,,Fraport AG Ffm.Airport.Ser.AG I,Fraport AG
+FRT,EQUITY,EQUITY,US3137451015,Federal Realty Investment Trust,Federal Realty Investment Trust
+FRVIA.PA,EQUITY,EQUITY,JP3802750004,FORVIA,Forvia SE
+FSLR,EQUITY,EQUITY,US3364331070,"First Solar, Inc.","First Solar, Inc."
+FTI,EQUITY,EQUITY,GB00BDSFG982,TechnipFMC plc,TechnipFMC plc
+FTI.L,CONTAMINANT,MUTUALFUND,,19816,
+FTNT,EQUITY,EQUITY,US34959E1091,"Fortinet, Inc.","Fortinet, Inc."
+FTV,EQUITY,EQUITY,,Fortive Corporation,Fortive Corporation
+G,EQUITY,EQUITY,,Genpact Limited,Genpact Limited
+G1A.DE,EQUITY,EQUITY,,GEA Group AG                  I,GEA Group Aktiengesellschaft
+G24.DE,EQUITY,EQUITY,,Scout24 SE                    N,Scout24 SE
+GALE.SW,EQUITY,EQUITY,,GALENICA N,Galenica AG
+GALP.LS,EQUITY,EQUITY,,GALP ENERGIA-NOM,"Galp Energia, SGPS, S.A."
+GAP,EQUITY,EQUITY,,"Gap, Inc. (The)","The Gap, Inc."
+GATX,EQUITY,EQUITY,US3614481030,GATX Corporation,GATX Corporation
+GAW.L,EQUITY,EQUITY,,GAMES WORKSHOP GROUP PLC ORD 5P,Games Workshop Group PLC
+GBCI,EQUITY,EQUITY,US37637Q1058,"Glacier Bancorp, Inc.","Glacier Bancorp, Inc."
+GD,EQUITY,EQUITY,,General Dynamics Corporation,General Dynamics Corporation
+GDDY,EQUITY,EQUITY,US3802371076,GoDaddy Inc.,GoDaddy Inc.
+GE,EQUITY,EQUITY,US3696043013,GE Aerospace,GE Aerospace
+GEBN.SW,EQUITY,EQUITY,,GEBERIT N,Geberit AG
+GEF,EQUITY,EQUITY,US3976241071,Greif Inc.,"Greif, Inc."
+GEHC,EQUITY,EQUITY,,GE HealthCare Technologies Inc.,GE HealthCare Technologies Inc.
+GEN,EQUITY,EQUITY,,Gen Digital Inc.,Gen Digital Inc.
+GET.PA,EQUITY,EQUITY,AU0000430183,GETLINK SE,Getlink SE
+GEV,EQUITY,EQUITY,,GE Vernova Inc.,GE Vernova Inc.
+GF.SW,EQUITY,EQUITY,,GEORG FISCHER N,Georg Fischer AG
+GFC.PA,EQUITY,EQUITY,,GECINA,Gecina
+GGG,EQUITY,EQUITY,US3841091040,Graco Inc.,Graco Inc.
+GHC,EQUITY,EQUITY,,Graham Holdings Company,Graham Holdings Company
+GILD,EQUITY,EQUITY,US3755581036,"Gilead Sciences, Inc.","Gilead Sciences, Inc."
+GIS,EQUITY,EQUITY,US3703341046,"General Mills, Inc.","General Mills, Inc."
+GIVN.SW,EQUITY,EQUITY,,GIVAUDAN N,Givaudan SA
+GL,EQUITY,EQUITY,US37959E1029,Globe Life Inc.,Globe Life Inc.
+GLB.IR,EQUITY,EQUITY,,,Beacon Hill CBO III Ltd
+GLE.PA,EQUITY,EQUITY,CA83360C1032,SOCIETE GENERALE,Société Générale Société anonyme
+GLEN.L,EQUITY,EQUITY,,GLENCORE PLC ORD USD0.01,Glencore plc
+GLPI,EQUITY,EQUITY,US36467J1088,"Gaming and Leisure Properties, ","Gaming and Leisure Properties, Inc."
+GLW,EQUITY,EQUITY,,Corning Incorporated,Corning Incorporated
+GM,EQUITY,EQUITY,,General Motors Company,General Motors Company
+GME,EQUITY,EQUITY,,GameStop Corporation,GameStop Corp.
+GMED,EQUITY,EQUITY,US3795772082,"Globus Medical, Inc.","Globus Medical, Inc."
+GN.CO,EQUITY,EQUITY,,GN Store Nord A/S,GN Store Nord A/S
+GNRC,EQUITY,EQUITY,US3687361044,Generac Holdlings Inc.,Generac Holdings Inc.
+GNTX,EQUITY,EQUITY,,Gentex Corporation,Gentex Corporation
+GOOG,EQUITY,EQUITY,CA02080M1005,Alphabet Inc.,Alphabet Inc.
+GOOGL,EQUITY,EQUITY,CA02080M1005,Alphabet Inc.,Alphabet Inc.
+GPC,EQUITY,EQUITY,,Genuine Parts Company,Genuine Parts Company
+GPK,EQUITY,EQUITY,,Graphic Packaging Holding Compa,Graphic Packaging Holding Company
+GPN,EQUITY,EQUITY,US37940X1028,Global Payments Inc.,Global Payments Inc.
+GRF.MC,EQUITY,EQUITY,,GRIFOLS S.A.,"Grifols, S.A."
+GRG.L,EQUITY,EQUITY,,GREGGS PLC ORD 2P,Greggs plc
+GRMN,EQUITY,EQUITY,CH0114405324,Garmin Ltd.,Garmin Ltd.
+GS,EQUITY,EQUITY,,"Goldman Sachs Group, Inc. (The)","The Goldman Sachs Group, Inc."
+GSK.L,EQUITY,EQUITY,,GSK PLC ORD 31 1/4P,GSK plc
+GT,EQUITY,EQUITY,,The Goodyear Tire & Rubber Comp,The Goodyear Tire & Rubber Company
+GTLS,EQUITY,EQUITY,US16115Q3083,"Chart Industries, Inc.","Chart Industries, Inc."
+GWRE,EQUITY,EQUITY,US40171V1008,"Guidewire Software, Inc.","Guidewire Software, Inc."
+GWW,EQUITY,EQUITY,US3848021040,"W.W. Grainger, Inc.","W.W. Grainger, Inc."
+GXO,EQUITY,EQUITY,US36262G1013,"GXO Logistics, Inc.","GXO Logistics, Inc."
+H,EQUITY,EQUITY,,Hyatt Hotels Corporation,Hyatt Hotels Corporation
+HAE,EQUITY,EQUITY,,Haemonetics Corporation,Haemonetics Corporation
+HAL,EQUITY,EQUITY,,Halliburton Company,Halliburton Company
+HALO,EQUITY,EQUITY,US40637H1095,"Halozyme Therapeutics, Inc.","Halozyme Therapeutics, Inc."
+HAS,EQUITY,EQUITY,US4180561072,"Hasbro, Inc.","Hasbro, Inc."
+HAS.L,EQUITY,EQUITY,,HAYS PLC ORD 1P,Hays plc
+HBAN,EQUITY,EQUITY,,Huntington Bancshares Incorpora,Huntington Bancshares Incorporated
+HCA,EQUITY,EQUITY,,"HCA Healthcare, Inc.","HCA Healthcare, Inc."
+HD,EQUITY,EQUITY,,"Home Depot, Inc. (The)","The Home Depot, Inc."
+HEI.DE,EQUITY,EQUITY,,Heidelberg Materials AG       I,Heidelberg Materials AG
+HEN3.DE,EQUITY,EQUITY,,Henkel AG & Co. KGaA          I,Henkel AG & Co. KGaA
+HGV,EQUITY,EQUITY,US43283X1054,Hilton Grand Vacations Inc.,Hilton Grand Vacations Inc.
+HIG,EQUITY,EQUITY,,"The Hartford Insurance Group, I","The Hartford Insurance Group, Inc."
+HII,EQUITY,EQUITY,US4464131063,"Huntington Ingalls Industries, ","Huntington Ingalls Industries, Inc."
+HIK.L,EQUITY,EQUITY,,HIKMA PHARMACEUTICALS PLC ORD S,Hikma Pharmaceuticals PLC
+HIMS,EQUITY,EQUITY,US4330001060,"Hims & Hers Health, Inc.","Hims & Hers Health, Inc."
+HL,EQUITY,EQUITY,,Hecla Mining Company,Hecla Mining Company
+HLI,EQUITY,EQUITY,US4415931009,"Houlihan Lokey, Inc.","Houlihan Lokey, Inc."
+HLMA.L,EQUITY,EQUITY,,HALMA PLC ORD 10P,Halma plc
+HLN.L,EQUITY,EQUITY,,HALEON PLC ORD GBP0.01,Haleon plc
+HLNE,EQUITY,EQUITY,US4074971064,Hamilton Lane Incorporated,Hamilton Lane Incorporated
+HLT,EQUITY,EQUITY,US43300A2033,Hilton Worldwide Holdings Inc.,Hilton Worldwide Holdings Inc.
+HM-B.ST,EQUITY,EQUITY,,"Hennes & Mauritz AB, H & M ser.",H & M Hennes & Mauritz AB (publ)
+HNR1.DE,EQUITY,EQUITY,,HANNOVER RUECK SE NA O.N.,Hannover Rück SE
+HOG,EQUITY,EQUITY,US4128221086,"Harley-Davidson, Inc.","Harley-Davidson, Inc."
+HOLN.SW,EQUITY,EQUITY,,HOLCIM N,Holcim AG
+HOMB,EQUITY,EQUITY,US4368932004,"Home BancShares, Inc.","Home BancShares, Inc."
+HON,EQUITY,EQUITY,CA4385211061,Honeywell International Inc.,Honeywell International Inc.
+HOOD,EQUITY,EQUITY,,"Robinhood Markets, Inc.","Robinhood Markets, Inc."
+HPE,EQUITY,EQUITY,,Hewlett Packard Enterprise Comp,Hewlett Packard Enterprise Company
+HPQ,EQUITY,EQUITY,US40434L1052,HP Inc.,HP Inc.
+HQY,EQUITY,EQUITY,US42226A1079,"HealthEquity, Inc.","HealthEquity, Inc."
+HR,EQUITY,EQUITY,,Healthcare Realty Trust Incorpo,Healthcare Realty Trust Incorporated
+HRB,EQUITY,EQUITY,US0936711052,"H&R Block, Inc.","H&R Block, Inc."
+HRL,EQUITY,EQUITY,,Hormel Foods Corporation,Hormel Foods Corporation
+HSBA.L,EQUITY,EQUITY,,HSBC HOLDINGS PLC ORD $0.50 (UK,HSBC Holdings plc
+HSIC,EQUITY,EQUITY,US8064071025,"Henry Schein, Inc.","Henry Schein, Inc."
+HST,EQUITY,EQUITY,US44107P1049,"Host Hotels & Resorts, Inc.","Host Hotels & Resorts, Inc."
+HSX.L,EQUITY,EQUITY,,HISCOX LTD ORD 6.5P (DI),Hiscox Ltd
+HSY,EQUITY,EQUITY,,The Hershey Company,The Hershey Company
+HUBB,EQUITY,EQUITY,US4435106079,Hubbell Inc,Hubbell Incorporated
+HUM,EQUITY,EQUITY,US4448591028,Humana Inc.,Humana Inc.
+HUSQ-B.ST,EQUITY,EQUITY,,Husqvarna AB ser. B,Husqvarna AB (publ)
+HWC,EQUITY,EQUITY,,Hancock Whitney Corporation,Hancock Whitney Corporation
+HWDN.L,EQUITY,EQUITY,,HOWDEN JOINERY GROUP PLC ORD 10,Howden Joinery Group Plc
+HWM,EQUITY,EQUITY,,Howmet Aerospace Inc.,Howmet Aerospace Inc.
+HXL,EQUITY,EQUITY,,Hexcel Corporation,Hexcel Corporation
+IAG.L,EQUITY,EQUITY,,INTERNATIONAL CONSOLIDATED AIRL,International Consolidated Airlines Group S.A.
+IBE.MC,EQUITY,EQUITY,,ACCIONES IBERDROLA,"Iberdrola, S.A."
+IBKR,EQUITY,EQUITY,US45841N1072,"Interactive Brokers Group, Inc.","Interactive Brokers Group, Inc."
+IBM,EQUITY,EQUITY,US4592001014,International Business Machines,International Business Machines Corporation
+IBOC,EQUITY,EQUITY,,International Bancshares Corpor,International Bancshares Corporation
+ICE,EQUITY,EQUITY,,Intercontinental Exchange Inc.,"Intercontinental Exchange, Inc."
+ICG.L,EQUITY,EQUITY,,ICG PLC ORD 26 1/4P,ICG plc
+IDA,EQUITY,EQUITY,US4511071064,"IDACORP, Inc.","IDACORP, Inc."
+IDCC,EQUITY,EQUITY,US45867G1013,"InterDigital, Inc.","InterDigital, Inc."
+IDXX,EQUITY,EQUITY,,"IDEXX Laboratories, Inc.","IDEXX Laboratories, Inc."
+IEX,EQUITY,EQUITY,,IDEX Corporation,IDEX Corporation
+IFF,EQUITY,EQUITY,US4595061015,International Flavors & Fragran,International Flavors & Fragrances Inc.
+IFX.DE,EQUITY,EQUITY,,INFINEON TECHNOLOGIES AG      N,Infineon Technologies AG
+IGG.L,EQUITY,EQUITY,,IG GROUP HOLDINGS PLC ORD 0.005,IG Group Holdings plc
+IHG.L,EQUITY,EQUITY,PR82525F1005,INTERCONTINENTAL HOTELS GROUP P,InterContinental Hotels Group PLC
+III.L,EQUITY,EQUITY,,3I GROUP PLC ORD 73 19/22P,3i Group Ord
+ILMN,EQUITY,EQUITY,US4523271090,"Illumina, Inc.","Illumina, Inc."
+IMB.L,EQUITY,EQUITY,,IMPERIAL BRANDS PLC ORD 10P,Imperial Brands PLC
+IMI.L,EQUITY,EQUITY,,IMI PLC ORD 28 4/7P,IMI plc
+INCH.L,EQUITY,EQUITY,,INCHCAPE PLC ORD 10P,Inchcape plc
+INCY,EQUITY,EQUITY,,Incyte Corporation,Incyte Corporation
+INDT.ST,EQUITY,EQUITY,,Indutrade AB,Indutrade AB (publ)
+INDV,EQUITY,EQUITY,US45579U1097,"Indivior Pharmaceuticals, Inc.","Indivior Pharmaceuticals, Inc."
+INF.L,EQUITY,EQUITY,,INFORMA PLC ORD 0.1P,Informa plc
+INGA.AS,EQUITY,EQUITY,CA44989Q1054,ING GROEP N.V.,ING Groep N.V.
+INGR,EQUITY,EQUITY,,Ingredion Incorporated,Ingredion Incorporated
+INPST.AS,EQUITY,EQUITY,,INPOST S.A.,InPost S.A.
+INTC,EQUITY,EQUITY,,Intel Corporation,Intel Corporation
+INTU,EQUITY,EQUITY,US4612021034,Intuit Inc.,Intuit Inc.
+INVH,EQUITY,EQUITY,US46187W1071,Invitation Homes Inc.,Invitation Homes Inc.
+INVP.L,EQUITY,EQUITY,,INVESTEC PLC ORD GBP0.0002,Investec Group
+IP,EQUITY,EQUITY,,International Paper Company,International Paper Company
+IPGP,EQUITY,EQUITY,US44980X1090,IPG Photonics Corporation,IPG Photonics Corporation
+IPN.PA,EQUITY,EQUITY,,IPSEN,Ipsen S.A.
+IQV,EQUITY,EQUITY,US46266C1053,"IQVIA Holdings, Inc.",IQVIA Holdings Inc.
+IR,EQUITY,EQUITY,US45687V1061,Ingersoll Rand Inc.,Ingersoll Rand Inc.
+IRM,EQUITY,EQUITY,,Iron Mountain Incorporated (Del,Iron Mountain Incorporated
+IRT,EQUITY,EQUITY,US45378A1060,"Independence Realty Trust, Inc.","Independence Realty Trust, Inc."
+ISP.MI,EQUITY,EQUITY,,INTESA SANPAOLO,Intesa Sanpaolo S.p.A.
+ISRG,EQUITY,EQUITY,US46120E6023,"Intuitive Surgical, Inc.","Intuitive Surgical, Inc."
+IT,EQUITY,EQUITY,US3666511072,"Gartner, Inc.","Gartner, Inc."
+ITRK.L,EQUITY,EQUITY,,INTERTEK GROUP PLC ORD 1P,Intertek Group plc
+ITT,EQUITY,EQUITY,US45073V1089,ITT Inc.,ITT Inc.
+ITV.L,EQUITY,EQUITY,,ITV PLC ORD 10P,ITV plc
+ITW,EQUITY,EQUITY,US4523081093,Illinois Tool Works Inc.,Illinois Tool Works Inc.
+ITX.MC,EQUITY,EQUITY,,INDUSTRIA DE DISE...O TEXTIL S.,"Industria de Diseño Textil, S.A."
+IVZ,EQUITY,EQUITY,BMG491BT1088,Invesco Ltd,Invesco Ltd.
+J,EQUITY,EQUITY,US46982L1089,Jacobs Solutions Inc.,Jacobs Solutions Inc.
+JAZZ,EQUITY,EQUITY,IE00B4Q5ZN47,Jazz Pharmaceuticals plc,Jazz Pharmaceuticals plc
+JBHT,EQUITY,EQUITY,US4456581077,"J.B. Hunt Transport Services, I","J.B. Hunt Transport Services, Inc."
+JBL,EQUITY,EQUITY,US4663131039,Jabil Inc.,Jabil Inc.
+JCI,EQUITY,EQUITY,IE00BY7QL619,Johnson Controls International ,Johnson Controls International plc
+JD.L,EQUITY,EQUITY,,JD SPORTS FASHION PLC ORD 0.05P,JD Sports Fashion Plc
+JEF,EQUITY,EQUITY,,Jefferies Financial Group Inc.,Jefferies Financial Group Inc.
+JHG,EQUITY,EQUITY,JE00BYPZJM29,Janus Henderson Group plc,Janus Henderson Group plc
+JKHY,EQUITY,EQUITY,US4262811015,"Jack Henry & Associates, Inc.","Jack Henry & Associates, Inc."
+JLL,EQUITY,EQUITY,,Jones Lang LaSalle Incorporated,Jones Lang LaSalle Incorporated
+JMAT.L,EQUITY,EQUITY,,JOHNSON MATTHEY PLC ORD 110 49/,Johnson Matthey Plc
+JMT.LS,EQUITY,EQUITY,,"J.MARTINS,SGPS","Jerónimo Martins, SGPS, S.A."
+JNJ,EQUITY,EQUITY,US4781601046,Johnson & Johnson,Johnson & Johnson
+JPM,EQUITY,EQUITY,,JP Morgan Chase & Co.,JPMorgan Chase & Co.
+KBC.BR,EQUITY,EQUITY,BE0003867844,KBC,KBC Group NV
+KBH,EQUITY,EQUITY,US48666K1097,KB Home,KB Home
+KBR,EQUITY,EQUITY,US48242W1062,"KBR, Inc.","KBR, Inc."
+KD,EQUITY,EQUITY,,"Kyndryl Holdings, Inc.","Kyndryl Holdings, Inc."
+KDP,EQUITY,EQUITY,US49271V1008,Keurig Dr Pepper Inc.,Keurig Dr Pepper Inc.
+KER.PA,EQUITY,EQUITY,JP3270790003,KERING,Kering SA
+KEX,EQUITY,EQUITY,,Kirby Corporation,Kirby Corporation
+KEY,EQUITY,EQUITY,US4932671088,KeyCorp,KeyCorp
+KEYS,EQUITY,EQUITY,US49338L1035,Keysight Technologies Inc.,"Keysight Technologies, Inc."
+KGF.L,EQUITY,EQUITY,,KINGFISHER PLC ORD 15 5/7P,Kingfisher plc
+KHC,EQUITY,EQUITY,,The Kraft Heinz Company,The Kraft Heinz Company
+KIM,EQUITY,EQUITY,,Kimco Realty Corporation (HC),Kimco Realty Corporation
+KKR,EQUITY,EQUITY,US48251W1045,KKR & Co. Inc.,KKR & Co. Inc.
+KLAC,EQUITY,EQUITY,US4824801009,KLA Corporation,KLA Corporation
+KMB,EQUITY,EQUITY,,Kimberly-Clark Corporation,Kimberly-Clark Corporation
+KMI,EQUITY,EQUITY,US49456B1017,"Kinder Morgan, Inc.","Kinder Morgan, Inc."
+KNEBV.HE,EQUITY,EQUITY,,KONE Corporation,KONE Oyj
+KNF,EQUITY,EQUITY,,Knife Riv Holding Co.,Knife River Corporation
+KNIN.SW,EQUITY,EQUITY,,KUEHNE+NAGEL INT N,Kuehne + Nagel International AG
+KNSL,EQUITY,EQUITY,US49714P1084,"Kinsale Capital Group, Inc.","Kinsale Capital Group, Inc."
+KNX,EQUITY,EQUITY,,Knight-Swift Transportation Hol,Knight-Swift Transportation Holdings Inc.
+KO,EQUITY,EQUITY,,Coca-Cola Company (The),The Coca-Cola Company
+KPN.AS,EQUITY,EQUITY,,KPN KON,Koninklijke KPN N.V.
+KR,EQUITY,EQUITY,,Kroger Company (The),The Kroger Co.
+KRC,EQUITY,EQUITY,,Kilroy Realty Corporation,Kilroy Realty Corporation
+KRG,EQUITY,EQUITY,US49803T3005,Kite Realty Group Trust,Kite Realty Group Trust
+KTOS,EQUITY,EQUITY,US50077B2079,Kratos Defense & Security Solut,"Kratos Defense & Security Solutions, Inc."
+KVUE,EQUITY,EQUITY,US49177J1025,Kenvue Inc.,Kenvue Inc.
+L,EQUITY,EQUITY,,Loews Corporation,Loews Corporation
+LAD,EQUITY,EQUITY,US5367971034,"Lithia Motors, Inc.","Lithia Motors, Inc."
+LAMR,EQUITY,EQUITY,US5128161099,Lamar Advertising Company,Lamar Advertising Company
+LAND.L,EQUITY,EQUITY,,LAND SECURITIES GROUP PLC ORD 1,Land Securities Group Plc
+LANV,EQUITY,EQUITY,KYG5380J1004,Lanvin Group Holdings Limited,Lanvin Group Holdings Limited
+LDO.MI,EQUITY,EQUITY,,LEONARDO,Leonardo S.p.a.
+LDOS,EQUITY,EQUITY,US5253271028,"Leidos Holdings, Inc.","Leidos Holdings, Inc."
+LEA,EQUITY,EQUITY,SA0007879121,Lear Corporation,Lear Corporation
+LECO,EQUITY,EQUITY,US5339001068,"Lincoln Electric Holdings, Inc.","Lincoln Electric Holdings, Inc."
+LEG.DE,EQUITY,EQUITY,,LEG Immobilien SE             N,LEG Immobilien SE
+LEN,EQUITY,EQUITY,,Lennar Corporation,Lennar Corporation
+LFUS,EQUITY,EQUITY,US5370081045,"Littelfuse, Inc.","Littelfuse, Inc."
+LGEN.L,EQUITY,EQUITY,,LEGAL & GENERAL GROUP PLC ORD 2,Legal & General Group Plc
+LH,EQUITY,EQUITY,US5049221055,Labcorp Holdings Inc.,Labcorp Holdings Inc.
+LHA.DE,EQUITY,EQUITY,,DEUTSCHE LUFTHANSA AG         V,Deutsche Lufthansa AG
+LHX,EQUITY,EQUITY,,"L3Harris Technologies, Inc.","L3Harris Technologies, Inc."
+LIGHT.AS,EQUITY,EQUITY,,SIGNIFY NV,Signify N.V.
+LII,EQUITY,EQUITY,US5261071071,"Lennox International, Inc.",Lennox International Inc.
+LII.L,CONTAMINANT,MUTUALFUND,,1092567,
+LIN,EQUITY,EQUITY,IE000S9YS762,Linde plc,Linde plc
+LISN.SW,EQUITY,EQUITY,,LINDT N,Chocoladefabriken Lindt & Sprüngli AG
+LITE,EQUITY,EQUITY,US55024U1097,Lumentum Holdings Inc.,Lumentum Holdings Inc.
+LIVN,EQUITY,EQUITY,GB00BYMT0J19,LivaNova PLC,LivaNova PLC
+LLOY.L,EQUITY,EQUITY,,LLOYDS BANKING GROUP PLC ORD 10,Lloyds Banking Group plc
+LLY,EQUITY,EQUITY,,Eli Lilly and Company,Eli Lilly and Company
+LMT,EQUITY,EQUITY,,Lockheed Martin Corporation,Lockheed Martin Corporation
+LNT,EQUITY,EQUITY,,Alliant Energy Corporation,Alliant Energy Corporation
+LNTH,EQUITY,EQUITY,US5165441032,"Lantheus Holdings, Inc.","Lantheus Holdings, Inc."
+LOGN.SW,EQUITY,EQUITY,,LOGITECH N,Logitech International S.A.
+LONN.SW,EQUITY,EQUITY,,LONZA N,Lonza Group AG
+LOPE,EQUITY,EQUITY,US38526M1062,"Grand Canyon Education, Inc.","Grand Canyon Education, Inc."
+LOW,EQUITY,EQUITY,US5486611073,"Lowe's Companies, Inc.","Lowe's Companies, Inc."
+LPP.WA,EQUITY,EQUITY,HK0226001151,LPP,LPP SA
+LPX,EQUITY,EQUITY,,Louisiana-Pacific Corporation,Louisiana-Pacific Corporation
+LRCX,EQUITY,EQUITY,,Lam Research Corporation,Lam Research Corporation
+LSCC,EQUITY,EQUITY,,Lattice Semiconductor Corporati,Lattice Semiconductor Corporation
+LSEG.L,EQUITY,EQUITY,PLCRTCH00017,LONDON STOCK EXCHANGE GROUP PLC,London Stock Exchange Group plc
+LSG.OL,EQUITY,EQUITY,,LERØY SEAFOOD GROUP,Lerøy Seafood Group ASA
+LSTR,EQUITY,EQUITY,US5150981018,"Landstar System, Inc.","Landstar System, Inc."
+LULU,EQUITY,EQUITY,US5500211090,lululemon athletica inc.,lululemon athletica inc.
+LUV,EQUITY,EQUITY,,Southwest Airlines Company,Southwest Airlines Co.
+LVS,EQUITY,EQUITY,US5178341070,Las Vegas Sands Corp.,Las Vegas Sands Corp.
+LXS.DE,EQUITY,EQUITY,,LANXESS AG                    I,LANXESS Aktiengesellschaft
+LYB,EQUITY,EQUITY,NL0009434992,LyondellBasell Industries NV,LyondellBasell Industries N.V.
+LYV,EQUITY,EQUITY,US5380341090,"Live Nation Entertainment, Inc.","Live Nation Entertainment, Inc."
+M,EQUITY,EQUITY,US55616P1049,Macy's Inc,"Macy's, Inc."
+MA,EQUITY,EQUITY,,Mastercard Incorporated,Mastercard Incorporated
+MAA,EQUITY,EQUITY,US59522J1034,Mid-America Apartment Communiti,"Mid-America Apartment Communities, Inc."
+MAERSK-B.CO,EQUITY,EQUITY,,A.P. Møller - Mærsk B A/S,A.P. Møller - Mærsk A/S
+MANH,EQUITY,EQUITY,US5627501092,"Manhattan Associates, Inc.","Manhattan Associates, Inc."
+MAR,EQUITY,EQUITY,,Marriott International,"Marriott International, Inc."
+MAS,EQUITY,EQUITY,,Masco Corporation,Masco Corporation
+MASI,EQUITY,EQUITY,,Masimo Corporation,Masimo Corporation
+MAT,EQUITY,EQUITY,US5770811025,"Mattel, Inc.","Mattel, Inc."
+MB.MI,EQUITY,EQUITY,,MEDIOBANCA,Mediobanca Banca di Credito Finanziario S.p.A.
+MBG.DE,EQUITY,EQUITY,,Mercedes-Benz Group AG        N,Mercedes-Benz Group AG
+MC.PA,EQUITY,EQUITY,CA50244Q1037,LVMH,"LVMH Moët Hennessy - Louis Vuitton, Société Européenne"
+MCD,EQUITY,EQUITY,,McDonald's Corporation,McDonald's Corporation
+MCG.L,EQUITY,EQUITY,,MOBICO GROUP PLC ORD 5P,Mobico Group Plc
+MCHP,EQUITY,EQUITY,,Microchip Technology Incorporat,Microchip Technology Incorporated
+MCK,EQUITY,EQUITY,,McKesson Corporation,McKesson Corporation
+MCO,EQUITY,EQUITY,,Moody's Corporation,Moody's Corporation
+MDLZ,EQUITY,EQUITY,,"Mondelez International, Inc.","Mondelez International, Inc."
+MDT,EQUITY,EQUITY,IE00BTN1Y115,Medtronic plc.,Medtronic plc
+MEDP,EQUITY,EQUITY,US58506Q1094,"Medpace Holdings, Inc.","Medpace Holdings, Inc."
+MEL.MC,EQUITY,EQUITY,,"MELIA HOTELS INTERNATIONAL, S.A","Meliá Hotels International, S.A."
+MELE.BR,EQUITY,EQUITY,,MELEXIS,Melexis NV
+MET,EQUITY,EQUITY,US59156R1086,"MetLife, Inc.","MetLife, Inc."
+META,EQUITY,EQUITY,US30303M1027,"Meta Platforms, Inc.","Meta Platforms, Inc."
+METSO.HE,EQUITY,EQUITY,,Metso Oyj,Metso Oyj
+MF.PA,EQUITY,EQUITY,,WENDEL,Wendel
+MGM,EQUITY,EQUITY,US5529531015,MGM Resorts International,MGM Resorts International
+MICP.PA,CONTAMINANT,MUTUALFUND,,742480,
+MIDD,EQUITY,EQUITY,,The Middleby Corporation,The Middleby Corporation
+MKC,EQUITY,EQUITY,,"McCormick & Company, Incorporat","McCormick & Company, Incorporated"
+MKS.L,EQUITY,EQUITY,,MARKS AND SPENCER GROUP PLC ORD,Marks and Spencer Group plc
+MKSI,EQUITY,EQUITY,US55306N1046,MKS Inc.,MKS Inc.
+MLI,EQUITY,EQUITY,US6247561029,"Mueller Industries, Inc.","Mueller Industries, Inc."
+MLM,EQUITY,EQUITY,US5732841060,"Martin Marietta Materials, Inc.","Martin Marietta Materials, Inc."
+MMM,EQUITY,EQUITY,,3M Company,3M Company
+MMS,EQUITY,EQUITY,US5779331041,"Maximus, Inc.","Maximus, Inc."
+MNDI.L,EQUITY,EQUITY,,MONDI PLC ORD EUR 0.22,Mondi plc
+MNG.L,EQUITY,EQUITY,GVZ,M&G PLC,M&G plc
+MNST,EQUITY,EQUITY,,Monster Beverage Corporation,Monster Beverage Corporation
+MO,EQUITY,EQUITY,,"Altria Group, Inc.","Altria Group, Inc."
+MOG-A,EQUITY,EQUITY,,Moog Inc.,Moog Inc.
+MONC.MI,EQUITY,EQUITY,,MONCLER,Moncler S.p.A.
+MONY.L,EQUITY,EQUITY,,MONY GROUP PLC ORD 0.02P,MONY Group plc
+MORN,EQUITY,EQUITY,US6177001095,"Morningstar, Inc.","Morningstar, Inc."
+MOS,EQUITY,EQUITY,,Mosaic Company (The),The Mosaic Company
+MP,EQUITY,EQUITY,US5533681012,MP Materials Corp.,MP Materials Corp.
+MPC,EQUITY,EQUITY,US56585A1025,Marathon Petroleum Corporation,Marathon Petroleum Corporation
+MPWR,EQUITY,EQUITY,US6098391054,"Monolithic Power Systems, Inc.","Monolithic Power Systems, Inc."
+MRK,EQUITY,EQUITY,,"Merck & Company, Inc.","Merck & Co., Inc."
+MRL.MC,EQUITY,EQUITY,,"MERLIN PROPERTIES SOCIMI, S.A.","MERLIN Properties SOCIMI, S.A."
+MRNA,EQUITY,EQUITY,US60770K1079,"Moderna, Inc.","Moderna, Inc."
+MRSH,EQUITY,EQUITY,US5717481023,Marsh,"Marsh & McLennan Companies, Inc."
+MS,EQUITY,EQUITY,US6174464486,Morgan Stanley,Morgan Stanley
+MSA,EQUITY,EQUITY,US5534981064,MSA Safety Incorporated,MSA Safety Incorporated
+MSCI,EQUITY,EQUITY,US55354G1004,MSCI Inc.,MSCI Inc.
+MSFT,EQUITY,EQUITY,,Microsoft Corporation,Microsoft Corporation
+MSI,EQUITY,EQUITY,US6200763075,"Motorola Solutions, Inc.","Motorola Solutions, Inc."
+MSM,EQUITY,EQUITY,,"MSC Industrial Direct Company, ","MSC Industrial Direct Co., Inc."
+MT.AS,EQUITY,EQUITY,,ARCELORMITTAL SA,ArcelorMittal S.A.
+MTB,EQUITY,EQUITY,US55261FAG90,M&T Bank Corporation,M&T Bank Corporation
+MTD,EQUITY,EQUITY,US5926881054,"Mettler-Toledo International, I",Mettler-Toledo International Inc.
+MTDR,EQUITY,EQUITY,,Matador Resources Company,Matador Resources Company
+MTG,EQUITY,EQUITY,,MGIC Investment Corporation,MGIC Investment Corporation
+MTN,EQUITY,EQUITY,US91879Q1094,"Vail Resorts, Inc.","Vail Resorts, Inc."
+MTSI,EQUITY,EQUITY,,MACOM Technology Solutions Hold,"MACOM Technology Solutions Holdings, Inc."
+MTX.DE,EQUITY,EQUITY,,MTU Aero Engines AG           N,MTU Aero Engines AG
+MTZ,EQUITY,EQUITY,,"MasTec, Inc.","MasTec, Inc."
+MU,EQUITY,EQUITY,US5951121038,"Micron Technology, Inc.","Micron Technology, Inc."
+MUR,EQUITY,EQUITY,,Murphy Oil Corporation,Murphy Oil Corporation
+MUSA,EQUITY,EQUITY,US6267551025,Murphy USA Inc.,Murphy USA Inc.
+MUV2.DE,EQUITY,EQUITY,,MUENCHENER RUECKVERS.-GES. AG N,Münchener Rückversicherungs-Gesellschaft Aktiengesellschaft in München
+MZTI,EQUITY,EQUITY,,The Marzetti Company,The Marzetti Company
+NBIX,EQUITY,EQUITY,US64125C1099,"Neurocrine Biosciences, Inc.","Neurocrine Biosciences, Inc."
+NCLH,EQUITY,EQUITY,,Norwegian Cruise Line Holdings ,Norwegian Cruise Line Holdings Ltd.
+NDA-FI.HE,EQUITY,EQUITY,,Nordea Bank Abp,Nordea Bank Abp
+NDAQ,EQUITY,EQUITY,US6311031081,"Nasdaq, Inc.","Nasdaq, Inc."
+NDSN,EQUITY,EQUITY,,Nordson Corporation,Nordson Corporation
+NEE,EQUITY,EQUITY,US65339F1012,"NextEra Energy, Inc.","NextEra Energy, Inc."
+NEM,EQUITY,EQUITY,US6516391066,Newmont Corporation,Newmont Corporation
+NEM.DE,EQUITY,EQUITY,,Nemetschek SE                 I,Nemetschek SE
+NESN.SW,EQUITY,EQUITY,,NESTLE N,Nestlé S.A.
+NEU,EQUITY,EQUITY,US6515871076,NewMarket Corp,NewMarket Corporation
+NEX.PA,EQUITY,EQUITY,,NEXANS,Nexans S.A.
+NEXI.MI,EQUITY,EQUITY,KR7005720008,NEXI,Nexi S.p.A.
+NFG,EQUITY,EQUITY,,National Fuel Gas Company,National Fuel Gas Company
+NFLX,EQUITY,EQUITY,US64110L1061,"Netflix, Inc.","Netflix, Inc."
+NG.L,EQUITY,EQUITY,,NATIONAL GRID PLC ORD 12 204/47,National Grid plc
+NHY.OL,EQUITY,EQUITY,,NORSK HYDRO,Norsk Hydro ASA
+NI,EQUITY,EQUITY,US65473P1057,NiSource Inc,NiSource Inc.
+NIBE-B.ST,EQUITY,EQUITY,,NIBE Industrier AB ser. B,NIBE Industrier AB (publ)
+NJR,EQUITY,EQUITY,,NewJersey Resources Corporation,New Jersey Resources Corporation
+NKE,EQUITY,EQUITY,US6541061031,"Nike, Inc.","NIKE, Inc."
+NLY,EQUITY,EQUITY,US0357108390,Annaly Capital Management Inc.,"Annaly Capital Management, Inc."
+NN.AS,EQUITY,EQUITY,,NN GROUP,NN Group N.V.
+NNN,EQUITY,EQUITY,US6374171063,"NNN REIT, Inc.","NNN REIT, Inc."
+NOC,EQUITY,EQUITY,,Northrop Grumman Corporation,Northrop Grumman Corporation
+NOKIA.HE,EQUITY,EQUITY,,Nokia Corporation,Nokia Oyj
+NOV,EQUITY,EQUITY,US62955J1034,NOV Inc.,NOV Inc.
+NOVN.SW,EQUITY,EQUITY,,NOVARTIS N,Novartis AG
+NOVO-B.CO,EQUITY,EQUITY,,Novo Nordisk B A/S,Novo Nordisk A/S
+NOVT,EQUITY,EQUITY,,Novanta Inc.,Novanta Inc.
+NOW,EQUITY,EQUITY,US81762P1021,"ServiceNow, Inc.","ServiceNow, Inc."
+NRG,EQUITY,EQUITY,US6293775085,"NRG Energy, Inc.","NRG Energy, Inc."
+NSA,EQUITY,EQUITY,US6378701063,National Storage Affiliates Tru,National Storage Affiliates Trust
+NSC,EQUITY,EQUITY,,Norfolk Southern Corporation,Norfolk Southern Corporation
+NTAP,EQUITY,EQUITY,US64110D1046,"NetApp, Inc.","NetApp, Inc."
+NTGY.MC,EQUITY,EQUITY,,"NATURGY ENERGY GROUP, S.A.","Naturgy Energy Group, S.A."
+NTNX,EQUITY,EQUITY,US67059N1081,"Nutanix, Inc.","Nutanix, Inc."
+NTRS,EQUITY,EQUITY,,Northern Trust Corporation,Northern Trust Corporation
+NUE,EQUITY,EQUITY,,Nucor Corporation,Nucor Corporation
+NVDA,EQUITY,EQUITY,,NVIDIA Corporation,NVIDIA Corporation
+NVR,EQUITY,EQUITY,US62944T1051,"NVR, Inc.","NVR, Inc."
+NVST,EQUITY,EQUITY,US29415F1049,Envista Holdings Corporation,Envista Holdings Corporation
+NVT,EQUITY,EQUITY,IE00BDVJJQ56,nVent Electric plc,nVent Electric plc
+NWE,EQUITY,EQUITY,,"NorthWestern Energy Group, Inc.","NorthWestern Energy Group, Inc."
+NWG.L,EQUITY,EQUITY,,NATWEST GROUP PLC ORD 107.69P,NatWest Group plc
+NWS,EQUITY,EQUITY,JP3832370005,News Corporation,News Corporation
+NWSA,EQUITY,EQUITY,JP3832370005,News Corporation,News Corporation
+NXPI,EQUITY,EQUITY,NL0009538784,NXP Semiconductors N.V.,NXP Semiconductors N.V.
+NXST,EQUITY,EQUITY,US65336K1034,"Nexstar Media Group, Inc.","Nexstar Media Group, Inc."
+NXT,EQUITY,EQUITY,,Nextpower Inc.,Nextpower Inc.
+NXT.L,EQUITY,EQUITY,,NEXT PLC ORD 10P,NEXT plc
+NYT,EQUITY,EQUITY,,New York Times Company (The),The New York Times Company
+O,EQUITY,EQUITY,,Realty Income Corporation,Realty Income Corporation
+OC,EQUITY,EQUITY,US6907421019,Owens Corning Inc,Owens Corning
+OCDO.L,EQUITY,EQUITY,,OCADO GROUP PLC ORD 2P,Ocado Group plc
+OCI.AS,EQUITY,EQUITY,,OCI N.V.,OCI N.V.
+ODFL,EQUITY,EQUITY,US6795801009,"Old Dominion Freight Line, Inc.","Old Dominion Freight Line, Inc."
+OERL.SW,EQUITY,EQUITY,,OC OERLIKON N,OC Oerlikon Corporation AG
+OGE,EQUITY,EQUITY,US6708371033,OGE Energy Corp,OGE Energy Corp.
+OGS,EQUITY,EQUITY,US68235P1084,"ONE Gas, Inc.","ONE Gas, Inc."
+OHI,EQUITY,EQUITY,US6819361006,"Omega Healthcare Investors, Inc","Omega Healthcare Investors, Inc."
+OKE,EQUITY,EQUITY,US6826801036,"ONEOK, Inc.","ONEOK, Inc."
+OKTA,EQUITY,EQUITY,US6792951054,"Okta, Inc.","Okta, Inc."
+OLED,EQUITY,EQUITY,,Universal Display Corporation,Universal Display Corporation
+OLLI,EQUITY,EQUITY,US6811161099,Ollie's Bargain Outlet Holdings,"Ollie's Bargain Outlet Holdings, Inc."
+OLN,EQUITY,EQUITY,,Olin Corporation,Olin Corporation
+OMC,EQUITY,EQUITY,US6819191064,Omnicom Group Inc.,Omnicom Group Inc.
+OMV.VI,EQUITY,EQUITY,,OMV AG,OMV Aktiengesellschaft
+ON,EQUITY,EQUITY,,ON Semiconductor Corporation,ON Semiconductor Corporation
+ONB,EQUITY,EQUITY,US6800331075,Old National Bancorp,Old National Bancorp
+ONTEX.BR,EQUITY,EQUITY,,ONTEX GROUP,Ontex Group NV
+ONTO,EQUITY,EQUITY,US6833441057,Onto Innovation Inc.,Onto Innovation Inc.
+OPCH,EQUITY,EQUITY,US68404L2016,"Option Care Health, Inc.","Option Care Health, Inc."
+OR.PA,EQUITY,EQUITY,FR0011149590,L'OREAL,L'Oréal S.A.
+ORA,EQUITY,EQUITY,US6866881021,"Ormat Technologies, Inc.","Ormat Technologies, Inc."
+ORA.PA,EQUITY,EQUITY,,ORANGE,Orange S.A.
+ORCL,EQUITY,EQUITY,,Oracle Corporation,Oracle Corporation
+OREP.PA,CONTAMINANT,MUTUALFUND,,1329679,
+ORI,EQUITY,EQUITY,US6802231042,Old Republic International Corp,Old Republic International Corporation
+ORK.OL,EQUITY,EQUITY,INE16NZ01023,ORKLA,Orkla ASA
+ORLY,EQUITY,EQUITY,,"O'Reilly Automotive, Inc.","O'Reilly Automotive, Inc."
+ORSTED.CO,EQUITY,EQUITY,SGXZ32918005,ORSTED A/S,Ørsted A/S
+OSK,EQUITY,EQUITY,,Oshkosh Corporation (Holding Co,Oshkosh Corporation
+OTIS,EQUITY,EQUITY,US68902V1070,Otis Worldwide Corporation,Otis Worldwide Corporation
+OVV,EQUITY,EQUITY,,Ovintiv Inc. (DE),Ovintiv Inc.
+OXY,EQUITY,EQUITY,,Occidental Petroleum Corporatio,Occidental Petroleum Corporation
+OZK,EQUITY,EQUITY,US06417N1037,Bank OZK,Bank OZK
+P911.DE,EQUITY,EQUITY,,Dr. Ing. h.c. F. Porsche AG   I,Dr. Ing. h.c. F. Porsche AG
+PAG,EQUITY,EQUITY,US70959W1036,"Penske Automotive Group, Inc.","Penske Automotive Group, Inc."
+PAH3.DE,EQUITY,EQUITY,,Porsche Automobil Holding SE  I,Porsche Automobil Holding SE
+PANW,EQUITY,EQUITY,US6974351057,"Palo Alto Networks, Inc.","Palo Alto Networks, Inc."
+PATH,EQUITY,EQUITY,,"UiPath, Inc.","UiPath, Inc."
+PAYX,EQUITY,EQUITY,US7043261079,"Paychex, Inc.","Paychex, Inc."
+PB,EQUITY,EQUITY,US7436061052,"Prosperity Bancshares, Inc.","Prosperity Bancshares, Inc."
+PBB.DE,EQUITY,EQUITY,,Deutsche Pfandbriefbank AG    I,Deutsche Pfandbriefbank AG
+PBF,EQUITY,EQUITY,US69318G1067,PBF Energy Inc.,PBF Energy Inc.
+PCAR,EQUITY,EQUITY,US6937181088,PACCAR Inc.,PACCAR Inc
+PCG,EQUITY,EQUITY,,Pacific Gas & Electric Co.,PG&E Corporation
+PCTY,EQUITY,EQUITY,,Paylocity Holding Corporation,Paylocity Holding Corporation
+PEG,EQUITY,EQUITY,US7445731067,Public Service Enterprise Group,Public Service Enterprise Group Incorporated
+PEGA,EQUITY,EQUITY,US7055731035,Pegasystems Inc.,Pegasystems Inc.
+PEN,EQUITY,EQUITY,US70975L1070,"Penumbra, Inc.","Penumbra, Inc."
+PEP,EQUITY,EQUITY,US7134481081,"Pepsico, Inc.","PepsiCo, Inc."
+PERP.PA,CONTAMINANT,MUTUALFUND,,447355,
+PFE,EQUITY,EQUITY,US7170811035,"Pfizer, Inc.",Pfizer Inc.
+PFG,EQUITY,EQUITY,US74251V1026,Principal Financial Group Inc,"Principal Financial Group, Inc."
+PFGC,EQUITY,EQUITY,,Performance Food Group Company,Performance Food Group Company
+PG,EQUITY,EQUITY,,Procter & Gamble Company (The),The Procter & Gamble Company
+PGHN.SW,EQUITY,EQUITY,JP3869930002,PARTNERS GROUP N,Partners Group Holding AG
+PGR,EQUITY,EQUITY,,Progressive Corporation (The),The Progressive Corporation
+PH,EQUITY,EQUITY,,Parker-Hannifin Corporation,Parker-Hannifin Corporation
+PHM,EQUITY,EQUITY,US7458671010,"PulteGroup, Inc.","PulteGroup, Inc."
+PII,EQUITY,EQUITY,,Polaris Inc.,Polaris Inc.
+PINS,EQUITY,EQUITY,,"Pinterest, Inc.","Pinterest, Inc."
+PIRC.MI,EQUITY,EQUITY,CYF000002628,PIRELLI & C,Pirelli & C. S.p.A.
+PK,EQUITY,EQUITY,US7005171050,Park Hotels & Resorts Inc.,Park Hotels & Resorts Inc.
+PKG,EQUITY,EQUITY,,Packaging Corporation of Americ,Packaging Corporation of America
+PLD,EQUITY,EQUITY,US74340W1036,"Prologis, Inc.","Prologis, Inc."
+PLNT,EQUITY,EQUITY,US72703H1014,"Planet Fitness, Inc.","Planet Fitness, Inc."
+PLTR,EQUITY,EQUITY,,Palantir Technologies Inc.,Palantir Technologies Inc.
+PM,EQUITY,EQUITY,AR0361136887,Philip Morris International Inc,Philip Morris International Inc.
+PNC,EQUITY,EQUITY,US6934751057,"PNC Financial Services Group, I","The PNC Financial Services Group, Inc."
+PNDORA.CO,EQUITY,EQUITY,US87190B8054,Pandora A/S,Pandora A/S
+PNFP,EQUITY,EQUITY,US72346Q1040,"Pinnacle Financial Partners, In","Pinnacle Financial Partners, Inc."
+PNL.AS,EQUITY,EQUITY,DE000FPH9000,POSTNL,PostNL N.V.
+PNN.L,EQUITY,EQUITY,,PENNON GROUP PLC ORD 61 1/20P,Pennon Group Plc
+PNR,EQUITY,EQUITY,IE00BLS09M33,Pentair plc.,Pentair plc
+PNW,EQUITY,EQUITY,,Pinnacle West Capital Corporati,Pinnacle West Capital Corporation
+PODD,EQUITY,EQUITY,,Insulet Corporation,Insulet Corporation
+POOL,EQUITY,EQUITY,US73278L1052,Pool Corporation,Pool Corporation
+POR,EQUITY,EQUITY,US7365088472,Portland General Electric Co,Portland General Electric Company
+POST,EQUITY,EQUITY,US7374461041,"Post Holdings, Inc.","Post Holdings, Inc."
+PPC,EQUITY,EQUITY,,Pilgrim's Pride Corporation,Pilgrim's Pride Corporation
+PPG,EQUITY,EQUITY,US6935061076,"PPG Industries, Inc.","PPG Industries, Inc."
+PPL,EQUITY,EQUITY,US69351T1060,PPL Corporation,PPL Corporation
+PR,EQUITY,EQUITY,,Permian Resources Corporation,Permian Resources Corporation
+PRI,EQUITY,EQUITY,US74164M1080,"Primerica, Inc.","Primerica, Inc."
+PROX.BR,EQUITY,EQUITY,,PROXIMUS,Proximus PLC
+PRU,EQUITY,EQUITY,US7443201022,"Prudential Financial, Inc.","Prudential Financial, Inc."
+PRU.L,EQUITY,EQUITY,,PRUDENTIAL PLC ORD 5P,Prudential plc
+PRY.MI,EQUITY,EQUITY,,PRYSMIAN,Prysmian S.p.A.
+PSA,EQUITY,EQUITY,US74460D1090,Public Storage,Public Storage
+PSKY,EQUITY,EQUITY,,Paramount Skydance Corporation,Paramount Skydance Corporation
+PSN,EQUITY,EQUITY,US70202L1026,Parsons Corporation,Parsons Corporation
+PSN.L,EQUITY,EQUITY,,PERSIMMON PLC ORD 10P,Persimmon Plc
+PSON.L,EQUITY,EQUITY,,PEARSON PLC ORD 25P,Pearson plc
+PST.MI,EQUITY,EQUITY,,POSTE ITALIANE,Poste Italiane S.p.A.
+PSTG,EQUITY,EQUITY,,"Everpure, Inc.",Everpure Inc
+PSX,EQUITY,EQUITY,US7185461040,Phillips 66,Phillips 66
+PTC,EQUITY,EQUITY,US69370C1009,PTC Inc.,PTC Inc.
+PUM.DE,EQUITY,EQUITY,,PUMA SE                       I,PUMA SE
+PVH,EQUITY,EQUITY,US6936561009,PVH Corp.,PVH Corp.
+PWR,EQUITY,EQUITY,US74762E1029,"Quanta Services, Inc.","Quanta Services, Inc."
+PYPL,EQUITY,EQUITY,,"PayPal Holdings, Inc.","PayPal Holdings, Inc."
+Q,EQUITY,EQUITY,US74743L1008,"Qnity Electronics, Inc.","Qnity Electronics, Inc."
+QCOM,EQUITY,EQUITY,,QUALCOMM Incorporated,QUALCOMM Incorporated
+QIA.DE,EQUITY,EQUITY,,Qiagen N.V.                   A,Qiagen N.V.
+QLT.L,EQUITY,EQUITY,,QUILTER PLC ORD 8 1/6P,Quilter plc
+QLYS,EQUITY,EQUITY,US74758T3032,"Qualys, Inc.","Qualys, Inc."
+R,EQUITY,EQUITY,US7835491082,"Ryder System, Inc.","Ryder System, Inc."
+RACE.MI,EQUITY,EQUITY,GB00BN0VZ646,FERRARI,Ferrari N.V.
+RBA,EQUITY,EQUITY,,"RB Global, Inc.","RB Global, Inc."
+RBC,EQUITY,EQUITY,US75524B1044,RBC Bearings Incorporated,RBC Bearings Incorporated
+RBI.VI,EQUITY,EQUITY,,Raiffeisen Bank Internat. AG,Raiffeisen Bank International AG
+RCL,EQUITY,EQUITY,LR0008862868,Royal Caribbean Cruises Ltd.,Royal Caribbean Cruises Ltd.
+RCO.PA,EQUITY,EQUITY,,REMY COINTREAU,Rémy Cointreau SA
+REC.MI,EQUITY,EQUITY,,RECORDATI ORD,Recordati Industria Chimica e Farmaceutica S.p.A.
+RED.MC,EQUITY,EQUITY,,"REDEIA CORPORACION, S.A.","Redeia Corporación, S.A."
+REG,EQUITY,EQUITY,,Regency Centers Corporation,Regency Centers Corporation
+REGN,EQUITY,EQUITY,US75886F1075,"Regeneron Pharmaceuticals, Inc.","Regeneron Pharmaceuticals, Inc."
+REL.L,EQUITY,EQUITY,,RELX PLC ORD 14 51/116P,RELX PLC
+RENA.PA,CONTAMINANT,MUTUALFUND,,1199153,
+REP.MC,EQUITY,EQUITY,,"REPSOL,  S.A.","Repsol, S.A."
+REXR,EQUITY,EQUITY,US76169C1009,"Rexford Industrial Realty, Inc.","Rexford Industrial Realty, Inc."
+RF,EQUITY,EQUITY,,Regions Financial Corporation,Regions Financial Corporation
+RGA,EQUITY,EQUITY,,"Reinsurance Group of America, I","Reinsurance Group of America, Incorporated"
+RGEN,EQUITY,EQUITY,,Repligen Corporation,Repligen Corporation
+RGLD,EQUITY,EQUITY,US7802871084,"Royal Gold, Inc.","Royal Gold, Inc."
+RH,EQUITY,EQUITY,US74967X1037,RH,RH
+RHM.DE,EQUITY,EQUITY,,RHEINMETALL AG                I,Rheinmetall AG
+RIGN.SW,DEGRADED,,,,
+RIO.L,EQUITY,EQUITY,,RIO TINTO PLC ORD 10P,Rio Tinto Group
+RJF,EQUITY,EQUITY,US7547301090,"Raymond James Financial, Inc.","Raymond James Financial, Inc."
+RKT.L,EQUITY,EQUITY,,RECKITT BENCKISER GROUP PLC ORD,Reckitt Benckiser Group plc
+RL,EQUITY,EQUITY,,Ralph Lauren Corporation,Ralph Lauren Corporation
+RLI,EQUITY,EQUITY,US7496071074,RLI Corp.,RLI Corp.
+RMBS,EQUITY,EQUITY,US7509171069,"Rambus, Inc.",Rambus Inc.
+RMD,EQUITY,EQUITY,US7611521078,ResMed Inc.,ResMed Inc.
+RMS.PA,EQUITY,EQUITY,,HERMES INTL,Hermès International Société en commandite par actions
+RMV.L,EQUITY,EQUITY,,RIGHTMOVE PLC ORD 0.1P,Rightmove plc
+RNL.PA,EQUITY,EQUITY,,RENAULTPFRN24OCT49,Renault SA
+RNR,EQUITY,EQUITY,BMG7496G1033,RenaissanceRe Holdings Ltd.,RenaissanceRe Holdings Ltd.
+ROIV,EQUITY,EQUITY,,Roivant Sciences Ltd.,Roivant Sciences Ltd.
+ROK,EQUITY,EQUITY,US7739031091,"Rockwell Automation, Inc.","Rockwell Automation, Inc."
+ROL,EQUITY,EQUITY,US7757111049,"Rollins, Inc.","Rollins, Inc."
+ROL.L,DEGRADED,,,,
+ROP,EQUITY,EQUITY,US7766961061,"Roper Technologies, Inc.","Roper Technologies, Inc."
+ROP.SW,EQUITY,EQUITY,,ROCHE PS,Roche Holding AG
+ROST,EQUITY,EQUITY,US7782961038,"Ross Stores, Inc.","Ross Stores, Inc."
+RPM,EQUITY,EQUITY,US7496851038,RPM International Inc.,RPM International Inc.
+RR.L,EQUITY,EQUITY,,ROLLS-ROYCE HOLDINGS PLC ORD SH,Rolls-Royce Holdings plc
+RRC,EQUITY,EQUITY,,Range Resources Corporation,Range Resources Corporation
+RRX,EQUITY,EQUITY,,Regal Rexnord Corporation,Regal Rexnord Corporation
+RS,EQUITY,EQUITY,US75954K6082,"Reliance, Inc.","Reliance, Inc."
+RSG,EQUITY,EQUITY,US7607591002,"Republic Services, Inc.","Republic Services, Inc."
+RTO.L,EQUITY,EQUITY,,RENTOKIL INITIAL PLC ORD 1P,Rentokil Initial plc
+RTX,EQUITY,EQUITY,US75513E1010,RTX Corporation,RTX Corporation
+RVTY,EQUITY,EQUITY,,"Revvity, Inc.","Revvity, Inc."
+RWE.DE,EQUITY,EQUITY,,RWE AG                        I,RWE Aktiengesellschaft
+RXL.PA,EQUITY,EQUITY,SE0016829899,REXEL,Rexel S.A.
+RYAN,EQUITY,EQUITY,US78351F1075,"Ryan Specialty Holdings, Inc.","Ryan Specialty Holdings, Inc."
+RYN,EQUITY,EQUITY,US7549071030,Rayonier Inc. REIT,Rayonier Inc.
+SAB.MC,EQUITY,EQUITY,DE0005146807,BANCO DE SABADELL,"Banco de Sabadell, S.A."
+SAF.PA,EQUITY,EQUITY,GRS118003003,SAFRAN,Safran SA
+SAIA,EQUITY,EQUITY,US78709Y1055,"Saia, Inc.","Saia, Inc."
+SAIC,EQUITY,EQUITY,US8086251076,Science Applications Internatio,Science Applications International Corporation
+SALM.OL,EQUITY,EQUITY,RU0009098255,SALMAR,SalMar ASA
+SAM,EQUITY,EQUITY,,"Boston Beer Company, Inc. (The)","The Boston Beer Company, Inc."
+SAMPO.HE,EQUITY,EQUITY,,Sampo Plc A,Sampo Oyj
+SAN.MC,EQUITY,EQUITY,CA05973U1057,BANCO SANTANDER S.A.,"Banco Santander, S.A."
+SAN.PA,EQUITY,EQUITY,FR001400UEY9,SANOFI,Sanofi
+SAND.ST,EQUITY,EQUITY,,Sandvik AB,Sandvik AB (publ)
+SANO.HE,DEGRADED,,,,
+SAP.DE,EQUITY,EQUITY,,SAP SE                        I,SAP SE
+SARO,EQUITY,EQUITY,US85423L1035,"StandardAero, Inc.","StandardAero, Inc."
+SASY.PA,CONTAMINANT,MUTUALFUND,,4586617,
+SATS,EQUITY,EQUITY,,EchoStar Corporation,EchoStar Corporation
+SBAC,EQUITY,EQUITY,US78410G1040,SBA Communications Corporation,SBA Communications Corporation
+SBRA,EQUITY,EQUITY,US78573L1061,"Sabra Health Care REIT, Inc.","Sabra Health Care REIT, Inc."
+SBRY.L,EQUITY,EQUITY,,SAINSBURY (J) PLC ORD 28 4/7P,J Sainsbury plc
+SBUX,EQUITY,EQUITY,,Starbucks Corporation,Starbucks Corporation
+SCHA.OL,DEGRADED,,,,
+SCHN.PA,CONTAMINANT,MUTUALFUND,,957092,
+SCHP.SW,EQUITY,EQUITY,,SCHINDLER PS,Schindler Holding AG
+SCHW,EQUITY,EQUITY,,Charles Schwab Corporation (The,The Charles Schwab Corporation
+SCI,EQUITY,EQUITY,,Service Corporation Internation,Service Corporation International
+SCMN.SW,EQUITY,EQUITY,,SWISSCOM N,Swisscom AG
+SCR.PA,EQUITY,EQUITY,AU0000339939,SCOR SE,SCOR SE
+SCT.L,EQUITY,EQUITY,GB00BYZDVK82,SOFTCAT PLC,Softcat plc
+SDR.L,EQUITY,EQUITY,,SCHRODERS PLC ORD 20P,Schroders plc
+SDZ.SW,EQUITY,EQUITY,,SANDOZ GROUP N,Sandoz Group AG
+SEB-A.ST,EQUITY,EQUITY,,Skandinaviska Enskilda Banken s,Skandinaviska Enskilda Banken AB (publ)
+SECU-B.ST,EQUITY,EQUITY,,Securitas AB ser. B,Securitas AB (publ)
+SEIC,EQUITY,EQUITY,US7841171033,SEI Investments Company,SEI Investments Company
+SF,EQUITY,EQUITY,,Stifel Financial Corporation,Stifel Financial Corp.
+SFM,EQUITY,EQUITY,US85208M1027,"Sprouts Farmers Market, Inc.","Sprouts Farmers Market, Inc."
+SFOR.L,EQUITY,EQUITY,,S4 CAPITAL PLC ORD 25P,S4 Capital plc
+SGE.L,EQUITY,EQUITY,,THE SAGE GROUP PLC ORD 1 4/77P,The Sage Group plc
+SGEF.PA,CONTAMINANT,MUTUALFUND,,563832,
+SGI,EQUITY,EQUITY,,Somnigroup International Inc.,Somnigroup International Inc.
+SGO.PA,EQUITY,EQUITY,,SAINT GOBAIN,Compagnie de Saint-Gobain S.A.
+SGOB.PA,CONTAMINANT,MUTUALFUND,,1391041,
+SGRO.L,EQUITY,EQUITY,,SEGRO PLC ORD 10P,SEGRO Plc
+SGSN.SW,EQUITY,EQUITY,,SGS N,SGS SA
+SHB-B.ST,EQUITY,EQUITY,,Svenska Handelsbanken ser. B,Svenska Handelsbanken AB (publ)
+SHC,EQUITY,EQUITY,US83601L1026,Sotera Health Company,Sotera Health Company
+SHEL.L,EQUITY,EQUITY,,SHELL PLC ORD EUR0.07,Shell plc
+SHW,EQUITY,EQUITY,,Sherwin-Williams Company (The),The Sherwin-Williams Company
+SIE.DE,EQUITY,EQUITY,,SIEMENS AG                    N,Siemens Aktiengesellschaft
+SIGI,EQUITY,EQUITY,US8163001071,"Selective Insurance Group, Inc.","Selective Insurance Group, Inc."
+SIGN.SW,EQUITY,EQUITY,,SIG GROUP N,SIG Group AG
+SIKA.SW,EQUITY,EQUITY,,SIKA N,Sika AG
+SITM,EQUITY,EQUITY,US82982T1060,SiTime Corporation,SiTime Corporation
+SIX2.DE,EQUITY,EQUITY,,Sixt SE                       I,Sixt SE
+SJM,EQUITY,EQUITY,,The J.M. Smucker Company,The J. M. Smucker Company
+SKA-B.ST,EQUITY,EQUITY,,Skanska AB ser. B,Skanska AB (publ)
+SKF-B.ST,EQUITY,EQUITY,,"SKF, AB ser. B",AB SKF (publ)
+SKY.L,CONTAMINANT,MUTUALFUND,,,Sky plc
+SLAB,EQUITY,EQUITY,US8269191024,"Silicon Laboratories, Inc.",Silicon Laboratories Inc.
+SLB,EQUITY,EQUITY,AN8068571086,SLB Limited,SLB N.V.
+SLGN,EQUITY,EQUITY,US8270481091,Silgan Holdings Inc.,Silgan Holdings Inc.
+SLHN.SW,EQUITY,EQUITY,,SWISS LIFE HOLDING AG N,Swiss Life Holding AG
+SLM,EQUITY,EQUITY,,SLM Corporation,SLM Corporation
+SMCI,EQUITY,EQUITY,US86800U3023,"Super Micro Computer, Inc.","Super Micro Computer, Inc."
+SMG,EQUITY,EQUITY,US8101861065,Scotts Miracle-Gro Company (The,The Scotts Miracle-Gro Company
+SMIN.L,EQUITY,EQUITY,,SMITHS GROUP PLC ORD 37.5P,Smiths Group plc
+SMT.L,EQUITY,EQUITY,GB00BLDYK618,SCOTTISH MORTGAGE INVESTMENT TR,Scottish Mortgage Ord
+SN.L,EQUITY,EQUITY,,SMITH & NEPHEW PLC ORD USD0.20,Smith & Nephew plc
+SNA,EQUITY,EQUITY,,Snap-On Incorporated,Snap-on Incorporated
+SNDK,EQUITY,EQUITY,CA8000541083,Sandisk Corporation,Sandisk Corporation
+SNPS,EQUITY,EQUITY,US8716071076,"Synopsys, Inc.","Synopsys, Inc."
+SNX,EQUITY,EQUITY,,TD SYNNEX Corporation,TD SYNNEX Corporation
+SO,EQUITY,EQUITY,,Southern Company (The),The Southern Company
+SOGN.PA,CONTAMINANT,MUTUALFUND,,1929521,
+SOLB.BR,EQUITY,EQUITY,,SOLVAY,Solvay SA
+SOLS,EQUITY,EQUITY,US83443Q1031,Solstice Advanced Materials Inc,"Solstice Advanced Materials, Inc."
+SOLV,EQUITY,EQUITY,,Solventum Corporation,Solventum Corporation
+SON,EQUITY,EQUITY,,Sonoco Products Company,Sonoco Products Company
+SOON.SW,EQUITY,EQUITY,,SONOVA N,Sonova Holding AG
+SPG,EQUITY,EQUITY,US8288061091,"Simon Property Group, Inc.","Simon Property Group, Inc."
+SPGI,EQUITY,EQUITY,US78409V1044,S&P Global Inc.,S&P Global Inc.
+SPSN.SW,EQUITY,EQUITY,,SWISS PRIME SITE N,Swiss Prime Site AG
+SPX.L,EQUITY,EQUITY,,SPIRAX GROUP PLC ORD 26 12/13P,Spirax Group plc
+SPXC,EQUITY,EQUITY,US78473E1038,"SPX Technologies, Inc.","SPX Technologies, Inc."
+SR,EQUITY,EQUITY,CA87043J2039,Spire Inc.,Spire Inc.
+SRE,EQUITY,EQUITY,,DBA Sempra,Sempra
+SREN.SW,EQUITY,EQUITY,,SWISS RE N,Swiss Re AG
+SRG.MI,EQUITY,EQUITY,NET00SNADEA1,SNAM,Snam S.p.A.
+SRT3.DE,EQUITY,EQUITY,,SARTORIUS AG                  V,Sartorius Aktiengesellschaft
+SSB,EQUITY,EQUITY,US84472E1029,SouthState Bank Corporation,SouthState Bank Corporation
+SSD,EQUITY,EQUITY,,"Simpson Manufacturing Company, ","Simpson Manufacturing Co., Inc."
+SSE.L,EQUITY,EQUITY,,SSE PLC ORD 50P,SSE plc
+ST,EQUITY,EQUITY,GB00BFMBMT84,Sensata Technologies Holding pl,Sensata Technologies Holding plc
+STAG,EQUITY,EQUITY,US85254J1025,"Stag Industrial, Inc.","STAG Industrial, Inc."
+STAN.L,EQUITY,EQUITY,,STANDARD CHARTERED PLC ORD USD0,Standard Chartered PLC
+STE,EQUITY,EQUITY,,STERIS plc (Ireland),STERIS plc
+STERV.HE,EQUITY,EQUITY,,Stora Enso Oyj R,Stora Enso Oyj
+STJ.L,EQUITY,EQUITY,,ST. JAMES'S PLACE PLC ORD 15P,St. James's Place plc
+STLAM.MI,EQUITY,EQUITY,AR0940941575,STELLANTIS,Stellantis N.V.
+STLD,EQUITY,EQUITY,US8581191009,"Steel Dynamics, Inc.","Steel Dynamics, Inc."
+STMN.SW,EQUITY,EQUITY,,STRAUMANN N,Straumann Holding AG
+STMPA.PA,EQUITY,EQUITY,,STMICROELECTRONICS,STMicroelectronics N.V.
+STRL,EQUITY,EQUITY,,"Sterling Infrastructure, Inc.","Sterling Infrastructure, Inc."
+STT,EQUITY,EQUITY,,State Street Corporation,State Street Corporation
+STWD,EQUITY,EQUITY,US85571B1052,"STARWOOD PROPERTY TRUST, INC. S","Starwood Property Trust, Inc."
+STX,EQUITY,EQUITY,,Seagate Technology Holdings PLC,Seagate Technology Holdings plc
+STZ,EQUITY,EQUITY,US21036P1084,"Constellation Brands, Inc.","Constellation Brands, Inc."
+SU.PA,EQUITY,EQUITY,CA80687R1029,SCHNEIDER ELECTRIC SE,Schneider Electric S.E.
+SVT.L,EQUITY,EQUITY,,SEVERN TRENT PLC ORD 97 17/19P,Severn Trent PLC
+SW,EQUITY,EQUITY,,Smurfit WestRock plc,Smurfit Westrock Plc
+SW.PA,EQUITY,EQUITY,FR0011532431,SODEXO,Sodexo S.A.
+SWEC-B.ST,EQUITY,EQUITY,,SWECO AB ser. B,Sweco AB (publ)
+SWED-A.ST,EQUITY,EQUITY,,Swedbank AB ser A,Swedbank AB (publ)
+SWK,EQUITY,EQUITY,US8545021011,"Stanley Black & Decker, Inc.","Stanley Black & Decker, Inc."
+SWKS,EQUITY,EQUITY,US83088M1027,"Skyworks Solutions, Inc.","Skyworks Solutions, Inc."
+SWX,EQUITY,EQUITY,,"Southwest Gas Holdings, Inc.","Southwest Gas Holdings, Inc."
+SY1.DE,EQUITY,EQUITY,,Symrise AG                    I,Symrise AG
+SYF,EQUITY,EQUITY,US87165B1035,Synchrony Financial,Synchrony Financial
+SYK,EQUITY,EQUITY,,Stryker Corporation,Stryker Corporation
+SYNA,EQUITY,EQUITY,,Synaptics Incorporated,Synaptics Incorporated
+SYY,EQUITY,EQUITY,,Sysco Corporation,Sysco Corporation
+T,EQUITY,EQUITY,US00206R1023,AT&T Inc.,AT&T Inc.
+TAP,EQUITY,EQUITY,,Molson Coors Beverage Company,Molson Coors Beverage Company
+TATE.L,EQUITY,EQUITY,,TATE & LYLE PLC ORD 29 1/6P,Tate & Lyle plc
+TCBI,EQUITY,EQUITY,US88224Q1076,"Texas Capital Bancshares, Inc.","Texas Capital Bancshares, Inc."
+TDG,EQUITY,EQUITY,,Transdigm Group Incorporated,TransDigm Group Incorporated
+TDY,EQUITY,EQUITY,,Teledyne Technologies Incorpora,Teledyne Technologies Incorporated
+TECH,EQUITY,EQUITY,US09073M1045,Bio-Techne Corp,Bio-Techne Corporation
+TEF.MC,EQUITY,EQUITY,,"TELEFONICA,S.A.","Telefónica, S.A."
+TEL,EQUITY,EQUITY,,TE Connectivity plc,TE Connectivity plc
+TEL.OL,EQUITY,EQUITY,PLBLOCM00013,TELENOR,Telenor ASA
+TEL2-B.ST,EQUITY,EQUITY,,Tele2 AB ser. B,Tele2 AB (publ)
+TELIA.ST,EQUITY,EQUITY,,Telia Company AB,Telia Company AB (publ)
+TEMN.SW,EQUITY,EQUITY,,TEMENOS N,Temenos AG
+TEN.MI,EQUITY,EQUITY,ARBCOM4602S8,TENARIS,Tenaris S.A.
+TEP.PA,EQUITY,EQUITY,,TELEPERFORMANCE,Teleperformance SE
+TER,EQUITY,EQUITY,US8807701029,"Teradyne, Inc.","Teradyne, Inc."
+TEVA,EQUITY,EQUITY,US8816242098,Teva Pharmaceutical Industries ,Teva Pharmaceutical Industries Limited
+TEX,EQUITY,EQUITY,,Terex Corporation,Terex Corporation
+TFC,EQUITY,EQUITY,US89832Q1094,Truist Financial Corporation,Truist Financial Corporation
+TGS.OL,EQUITY,EQUITY,,TGS ASA,TGS ASA
+TGT,EQUITY,EQUITY,,Target Corporation,Target Corporation
+THC,EQUITY,EQUITY,,Tenet Healthcare Corporation,Tenet Healthcare Corporation
+THG,EQUITY,EQUITY,US4108671052,Hanover Insurance Group Inc,"The Hanover Insurance Group, Inc."
+THO,EQUITY,EQUITY,US8851601018,"Thor Industries, Inc.","THOR Industries, Inc."
+TIT.MI,EQUITY,EQUITY,,TELECOM ITALIA,Telecom Italia S.p.A.
+TJX,EQUITY,EQUITY,US8725401090,"TJX Companies, Inc. (The)","The TJX Companies, Inc."
+TKA.DE,EQUITY,EQUITY,,thyssenkrupp AG               I,thyssenkrupp AG
+TKO,EQUITY,EQUITY,US87256C1018,"TKO Group Holdings, Inc.","TKO Group Holdings, Inc."
+TKR,EQUITY,EQUITY,,Timken Company (The),The Timken Company
+TLN,EQUITY,EQUITY,,Talen Energy Corporation,Talen Energy Corporation
+TLX.DE,EQUITY,EQUITY,,Talanx AG                     N,Talanx AG
+TMHC,EQUITY,EQUITY,,Taylor Morrison Home Corporatio,Taylor Morrison Home Corporation
+TMO,EQUITY,EQUITY,US8835561023,Thermo Fisher Scientific Inc,Thermo Fisher Scientific Inc.
+TMUS,EQUITY,EQUITY,,"T-Mobile US, Inc.","T-Mobile US, Inc."
+TMV.DE,EQUITY,EQUITY,,TeamViewer SE                 I,TeamViewer SE
+TNL,EQUITY,EQUITY,,Travel   Leisure Co.,Travel + Leisure Co.
+TOL,EQUITY,EQUITY,US8894781033,"Toll Brothers, Inc.","Toll Brothers, Inc."
+TOM.OL,EQUITY,EQUITY,,TOMRA SYSTEMS,Tomra Systems ASA
+TOM2.AS,EQUITY,EQUITY,,TOMTOM,TomTom N.V.
+TPK.L,EQUITY,EQUITY,PLCTHQM00018,TRAVIS PERKINS PLC,Travis Perkins plc
+TPL,EQUITY,EQUITY,,Texas Pacific Land Corporation,Texas Pacific Land Corporation
+TPR,EQUITY,EQUITY,,"Tapestry, Inc.","Tapestry, Inc."
+TREL-B.ST,EQUITY,EQUITY,,Trelleborg AB ser. B,Trelleborg AB (publ)
+TREX,EQUITY,EQUITY,US89531P1057,"Trex Company, Inc.","Trex Company, Inc."
+TRGP,EQUITY,EQUITY,,"Targa Resources, Inc.",Targa Resources Corp.
+TRMB,EQUITY,EQUITY,,Trimble Inc.,Trimble Inc.
+TRN.MI,EQUITY,EQUITY,IT0004359037,TERNA,Terna S.p.A.
+TROW,EQUITY,EQUITY,US74144T1088,"T. Rowe Price Group, Inc.","T. Rowe Price Group, Inc."
+TRU,EQUITY,EQUITY,US89400J1079,TransUnion,TransUnion
+TRV,EQUITY,EQUITY,,"The Travelers Companies, Inc.","The Travelers Companies, Inc."
+TRYG.CO,EQUITY,EQUITY,,Tryg A/S,Tryg A/S
+TSCO,EQUITY,EQUITY,,Tractor Supply Company,Tractor Supply Company
+TSCO.L,EQUITY,EQUITY,,TESCO PLC ORD 6 1/3P,Tesco PLC
+TSLA,EQUITY,EQUITY,,"Tesla, Inc.","Tesla, Inc."
+TSN,EQUITY,EQUITY,US9024941034,"Tyson Foods, Inc.","Tyson Foods, Inc."
+TT,EQUITY,EQUITY,IE00BK9ZQ967,Trane Technologies plc,Trane Technologies plc
+TTC,EQUITY,EQUITY,,Toro Company (The),The Toro Company
+TTD,EQUITY,EQUITY,US88339J1051,"The Trade Desk, Inc.","The Trade Desk, Inc."
+TTE.PA,EQUITY,EQUITY,NETTOTALOIL1,TOTALENERGIES,TotalEnergies SE
+TTEK,EQUITY,EQUITY,US88162G1031,"Tetra Tech, Inc.","Tetra Tech, Inc."
+TTMI,EQUITY,EQUITY,US87305R1095,"TTM Technologies, Inc.","TTM Technologies, Inc."
+TTWO,EQUITY,EQUITY,,"Take-Two Interactive Software, ","Take-Two Interactive Software, Inc."
+TUI1.DE,EQUITY,EQUITY,,TUI AG                        N,TUI AG
+TWLO,EQUITY,EQUITY,US90138F1021,Twilio Inc.,Twilio Inc.
+TXN,EQUITY,EQUITY,,Texas Instruments Incorporated,Texas Instruments Incorporated
+TXNM,EQUITY,EQUITY,US69349H1077,"TXNM Energy, Inc.","TXNM Energy, Inc."
+TXRH,EQUITY,EQUITY,US8826811098,"Texas Roadhouse, Inc.","Texas Roadhouse, Inc."
+TXT,EQUITY,EQUITY,US8832031012,Textron Inc.,Textron Inc.
+TYL,EQUITY,EQUITY,US9022521051,"Tyler Technologies, Inc.","Tyler Technologies, Inc."
+UAL,EQUITY,EQUITY,US9100471096,"United Airlines Holdings, Inc.","United Airlines Holdings, Inc."
+UBER,EQUITY,EQUITY,US90353T1007,"Uber Technologies, Inc.","Uber Technologies, Inc."
+UBI.PA,EQUITY,EQUITY,,UBISOFT ENTERTAIN,Ubisoft Entertainment SA
+UBSG.SW,EQUITY,EQUITY,,UBS GROUP N,UBS Group AG
+UBSI,EQUITY,EQUITY,US9099071071,"United Bankshares, Inc.","United Bankshares, Inc."
+UCG.MI,EQUITY,EQUITY,,UNICREDIT,UniCredit S.p.A.
+UDR,EQUITY,EQUITY,US9026531049,"UDR, Inc.","UDR, Inc."
+UFPI,EQUITY,EQUITY,US90278Q1085,"UFP Industries, Inc.","UFP Industries, Inc."
+UGI,EQUITY,EQUITY,US9026811052,UGI Corporation,UGI Corporation
+UHR.SW,EQUITY,EQUITY,,SWATCH GROUP I,The Swatch Group AG
+UHS,EQUITY,EQUITY,US9139031002,"Universal Health Services, Inc.","Universal Health Services, Inc."
+ULS,EQUITY,EQUITY,US9037311076,UL Solutions Inc.,UL Solutions Inc.
+ULTA,EQUITY,EQUITY,US90384S3031,"Ulta Beauty, Inc.","Ulta Beauty, Inc."
+ULVR.L,EQUITY,EQUITY,,UNILEVER PLC ORD 3.5P,Unilever PLC
+UMBF,EQUITY,EQUITY,US9027881088,UMB Financial Corporation,UMB Financial Corporation
+UMG.AS,EQUITY,EQUITY,,UNIVERSAL MUSIC GROUP,Universal Music Group N.V.
+UMI.BR,EQUITY,EQUITY,,UMICORE,Umicore SA
+UNH,EQUITY,EQUITY,,UnitedHealth Group Incorporated,UnitedHealth Group Incorporated
+UNM,EQUITY,EQUITY,US91529Y1064,Unum Group,Unum Group
+UNP,EQUITY,EQUITY,,Union Pacific Corporation,Union Pacific Corporation
+UPM.HE,EQUITY,EQUITY,,UPM-Kymmene Corporation,UPM-Kymmene Oyj
+UPS,EQUITY,EQUITY,US9113121068,"United Parcel Service, Inc.","United Parcel Service, Inc."
+URI,EQUITY,EQUITY,US9113631090,"United Rentals, Inc.","United Rentals, Inc."
+URW.PA,EQUITY,EQUITY,,UNIBAIL-RODAMCO-WESTFIELD,Unibail-Rodamco-Westfield SE
+USB,EQUITY,EQUITY,US9029733048,U.S. Bancorp,U.S. Bancorp
+USFD,EQUITY,EQUITY,US9120081099,US Foods Holding Corp.,US Foods Holding Corp.
+UTG.L,EQUITY,EQUITY,,UNITE GROUP PLC ORD 25P,Unite Group PLC
+UTHR,EQUITY,EQUITY,,United Therapeutics Corporation,United Therapeutics Corporation
+V,EQUITY,EQUITY,US92826C8394,Visa Inc.,Visa Inc.
+VACN.SW,EQUITY,EQUITY,,VAT GROUP N,VAT Group AG
+VAL,EQUITY,EQUITY,,Valaris Limited,Valaris Limited
+VALMT.HE,EQUITY,EQUITY,,Valmet Corporation,Valmet Oyj
+VC,EQUITY,EQUITY,,Visteon Corporation,Visteon Corporation
+VCT.PA,EQUITY,EQUITY,CNE100004009,VICAT,Vicat S.A.
+VEEV,EQUITY,EQUITY,US9224751084,Veeva Systems Inc.,Veeva Systems Inc.
+VER.VI,EQUITY,EQUITY,,VERBUND AG Kat. A,VERBUND AG
+VFC,EQUITY,EQUITY,,V.F. Corporation,V.F. Corporation
+VICI,EQUITY,EQUITY,US9256521090,VICI Properties Inc.,VICI Properties Inc.
+VICR,EQUITY,EQUITY,,Vicor Corporation,Vicor Corporation
+VIE.PA,EQUITY,EQUITY,,VEOLIA ENVIRON.,Veolia Environnement SA
+VIG.VI,EQUITY,EQUITY,,VIENNA INSURANCE GROUP AG,Vienna Insurance Group AG
+VITR.ST,EQUITY,EQUITY,SE0011205202,Vitrolife AB,Vitrolife AB (publ)
+VIV.PA,EQUITY,EQUITY,,VIVENDI SE,Vivendi SE
+VK.PA,EQUITY,EQUITY,,VALLOUREC,Vallourec S.A.
+VLO,EQUITY,EQUITY,,Valero Energy Corporation,Valero Energy Corporation
+VLTO,EQUITY,EQUITY,US92338C1036,Veralto Corp,Veralto Corporation
+VLY,EQUITY,EQUITY,US9197941076,Valley National Bancorp,Valley National Bancorp
+VMC,EQUITY,EQUITY,,Vulcan Materials Company (Holdi,Vulcan Materials Company
+VMI,EQUITY,EQUITY,US9202531011,"Valmont Industries, Inc.","Valmont Industries, Inc."
+VNA.DE,EQUITY,EQUITY,,Vonovia SE                    N,Vonovia SE
+VNO,EQUITY,EQUITY,US9290421091,Vornado Realty Trust,Vornado Realty Trust
+VNOM,EQUITY,EQUITY,US64361Q1013,"Viper Energy, Inc.","Viper Energy, Inc."
+VNT,EQUITY,EQUITY,,Vontier Corporation,Vontier Corporation
+VOD.L,EQUITY,EQUITY,,VODAFONE GROUP PLC ORD USD0.20 ,Vodafone Group Public Limited Company
+VOE.VI,EQUITY,EQUITY,,voestalpine AG,Voestalpine AG
+VOLV-B.ST,EQUITY,EQUITY,,"Volvo, AB ser. B",AB Volvo (publ)
+VOYA,EQUITY,EQUITY,US9290891004,"Voya Financial, Inc.","Voya Financial, Inc."
+VPK.AS,EQUITY,EQUITY,INE0INX01018,VOPAK,Koninklijke Vopak N.V.
+VPLAY-B.ST,EQUITY,EQUITY,,Viaplay Group AB ser. B,Viaplay Group AB (publ)
+VRSK,EQUITY,EQUITY,US92345Y1064,"Verisk Analytics, Inc.","Verisk Analytics, Inc."
+VRSN,EQUITY,EQUITY,US92343E1029,"VeriSign, Inc.","VeriSign, Inc."
+VRT,EQUITY,EQUITY,,"Vertiv Holdings, LLC",Vertiv Holdings Co
+VRTX,EQUITY,EQUITY,,Vertex Pharmaceuticals Incorpor,Vertex Pharmaceuticals Incorporated
+VST,EQUITY,EQUITY,US92840M1027,Vistra Corp.,Vistra Corp.
+VTR,EQUITY,EQUITY,US92276F1003,"Ventas, Inc.","Ventas, Inc."
+VTRS,EQUITY,EQUITY,US92556V1061,Viatris Inc.,Viatris Inc.
+VVV,EQUITY,EQUITY,US92047W1018,Valvoline Inc.,Valvoline Inc.
+VWS.CO,EQUITY,EQUITY,SGXZ47063284,Vestas Wind Systems A/S,Vestas Wind Systems A/S
+VZ,EQUITY,EQUITY,ARDEUT112927,Verizon Communications Inc.,Verizon Communications Inc.
+WAB,EQUITY,EQUITY,US9297401088,Westinghouse Air Brake Technolo,Westinghouse Air Brake Technologies Corporation
+WAL,EQUITY,EQUITY,US9576381092,Western Alliance Bancorporation,Western Alliance Bancorporation
+WAT,EQUITY,EQUITY,,Waters Corporation,Waters Corporation
+WBD,EQUITY,EQUITY,,"Warner Bros. Discovery, Inc. - ","Warner Bros. Discovery, Inc."
+WBS,EQUITY,EQUITY,,Webster Financial Corporation,Webster Financial Corporation
+WCC,EQUITY,EQUITY,US95082P1057,"WESCO International, Inc.","WESCO International, Inc."
+WDAY,EQUITY,EQUITY,US98138H1014,"Workday, Inc.","Workday, Inc."
+WDC,EQUITY,EQUITY,,Western Digital Corporation,Western Digital Corporation
+WDP.BR,EQUITY,EQUITY,DE0005146807,WAREHOUSES DE PAUW,Warehouses De Pauw SA
+WEC,EQUITY,EQUITY,US92939U1060,"WEC Energy Group, Inc.","WEC Energy Group, Inc."
+WEIR.L,EQUITY,EQUITY,,WEIR GROUP PLC ORD 12.5P,The Weir Group PLC
+WELL,EQUITY,EQUITY,US95040Q1040,Welltower Inc.,Welltower Inc.
+WEX,EQUITY,EQUITY,US96208T1043,WEX Inc.,WEX Inc.
+WFC,EQUITY,EQUITY,,Wells Fargo & Company,Wells Fargo & Company
+WFRD,EQUITY,EQUITY,,Weatherford International plc,Weatherford International plc
+WH,EQUITY,EQUITY,US98311A1051,"Wyndham Hotels & Resorts, Inc.","Wyndham Hotels & Resorts, Inc."
+WHR,EQUITY,EQUITY,,Whirlpool Corporation,Whirlpool Corporation
+WIE.VI,EQUITY,EQUITY,,Wienerberger AG,Wienerberger AG
+WIHL.ST,EQUITY,EQUITY,SE0018012635,Wihlborgs Fastigheter AB,Wihlborgs Fastigheter AB (publ)
+WING,EQUITY,EQUITY,US9741551033,Wingstop Inc.,Wingstop Inc.
+WISE.L,EQUITY,EQUITY,,WISE GROUP PLC CLS A ORD USD0.0,Wise Group plc
+WKL.AS,EQUITY,EQUITY,,WOLTERS KLUWER,Wolters Kluwer N.V.
+WLK,EQUITY,EQUITY,,Westlake Corporation,Westlake Corporation
+WLN.PA,EQUITY,EQUITY,FR00140182K6,WORLDLINE,Worldline SA
+WM,EQUITY,EQUITY,US94106L1098,"Waste Management, Inc.","Waste Management, Inc."
+WMB,EQUITY,EQUITY,,"Williams Companies, Inc. (The)","The Williams Companies, Inc."
+WMG,EQUITY,EQUITY,,Warner Music Group Corp.,Warner Music Group Corp.
+WMS,EQUITY,EQUITY,US00790R1041,"Advanced Drainage Systems, Inc.","Advanced Drainage Systems, Inc."
+WMT,EQUITY,EQUITY,CA93267J1012,Walmart Inc.,Walmart Inc.
+WPC,EQUITY,EQUITY,,W. P. Carey Inc. REIT,W. P. Carey Inc.
+WPP.L,EQUITY,EQUITY,,WPP PLC ORD 10P,WPP plc
+WRB,EQUITY,EQUITY,,W.R. Berkley Corporation,W. R. Berkley Corporation
+WSM,EQUITY,EQUITY,US9699041011,"Williams-Sonoma, Inc.","Williams-Sonoma, Inc."
+WSO,EQUITY,EQUITY,US9426222009,"Watsco, Inc.","Watsco, Inc."
+WST,EQUITY,EQUITY,US9553061055,"West Pharmaceutical Services, I","West Pharmaceutical Services, Inc."
+WTB.L,EQUITY,EQUITY,,WHITBREAD PLC ORD 76 122/153P,Whitbread plc
+WTFC,EQUITY,EQUITY,,Wintrust Financial Corporation,Wintrust Financial Corporation
+WTRG,EQUITY,EQUITY,,"Essential Utilities, Inc.","Essential Utilities, Inc."
+WTS,EQUITY,EQUITY,US9427491025,"Watts Water Technologies, Inc.","Watts Water Technologies, Inc."
+WTW,EQUITY,EQUITY,,Willis Towers Watson Public Lim,Willis Towers Watson Public Limited Company
+WWD,EQUITY,EQUITY,US9807451037,"Woodward, Inc.","Woodward, Inc."
+WY,EQUITY,EQUITY,,Weyerhaeuser Company,Weyerhaeuser Company
+WYNN,EQUITY,EQUITY,US9831341071,"Wynn Resorts, Limited","Wynn Resorts, Limited"
+XEL,EQUITY,EQUITY,US98389B1008,Xcel Energy Inc.,Xcel Energy Inc.
+XOM,EQUITY,EQUITY,,Exxon Mobil Corporation,Exxon Mobil Corporation
+XPO,EQUITY,EQUITY,US9837931008,"XPO, Inc.","XPO, Inc."
+XRAY,EQUITY,EQUITY,US24906P1093,DENTSPLY SIRONA Inc.,DENTSPLY SIRONA Inc.
+XYL,EQUITY,EQUITY,US98419M1009,Xylem Inc.,Xylem Inc.
+XYZ,EQUITY,EQUITY,,"Block, Inc.","Block, Inc."
+YAR.OL,EQUITY,EQUITY,JP3939600007,YARA INTERNATIONAL,Yara International ASA
+YETI,EQUITY,EQUITY,US98585X1046,"YETI Holdings, Inc.","YETI Holdings, Inc."
+YUM,EQUITY,EQUITY,US9884981013,"Yum! Brands, Inc.","Yum! Brands, Inc."
+ZAL.DE,EQUITY,EQUITY,,Zalando SE                    I,Zalando SE
+ZBH,EQUITY,EQUITY,,"Zimmer Biomet Holdings, Inc.","Zimmer Biomet Holdings, Inc."
+ZBRA,EQUITY,EQUITY,,Zebra Technologies Corporation,Zebra Technologies Corporation
+ZION,EQUITY,EQUITY,,Zions Bancorporation N.A.,"Zions Bancorporation, National Association"
+ZTS,EQUITY,EQUITY,US98978V1035,Zoetis Inc.,Zoetis Inc.
+ZURN.SW,EQUITY,EQUITY,,ZURICH INSURANCE N,Zurich Insurance Group AG

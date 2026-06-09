@@ -1,9 +1,15 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from app.errors import DataSourceError
+from app.errors import DataSourceError, DegradedDataError
 from app.models.run_record import RunRecord
-from app.screener.runner import run_basis_filter
+from app.models.screener_record import ScreenerRecord
+from app.screener.runner import (
+    BasisFilterResult,
+    ResolveReason,
+    _resolve_market_cap_eur,
+    run_basis_filter,
+)
 from app.services.gemini_client import GeminiScoreResult
 
 _FX_USD_EUR = 0.92  # approximate USD → EUR rate for tests
@@ -123,6 +129,89 @@ def test_run_fails_ticker_when_fx_rate_unavailable():
     assert result == []
 
 
+# --- 0b: resolution data-quality divert ---
+
+
+class _CfgYF:
+    """Configurable per-ticker yfinance fake for 0b divert tests."""
+    def __init__(self, infos):
+        self._infos = infos
+    def get_ticker_info(self, ticker):
+        return self._infos[ticker]
+    def get_fx_rate(self, currency):
+        if currency == "NOFX":
+            raise DataSourceError("fx down")
+        return 1.0
+
+
+def _info(**kw):
+    base = {"shortName": "X", "quoteType": "EQUITY", "marketCap": 5e9,
+            "averageVolume": 5e5, "currentPrice": 100.0, "currency": "EUR",
+            "grossMargins": 0.5, "revenueGrowth": 0.1, "sector": "Technology"}
+    base.update(kw)
+    return base
+
+
+def test_resolve_reason_branches():
+    fx = {}
+    r = ScreenerRecord.from_yfinance_info("OK", _info())
+    assert _resolve_market_cap_eur(r, _CfgYF({}), fx)[1] == ResolveReason.OK
+    r = ScreenerRecord.from_yfinance_info("Z", _info(marketCap=0))
+    assert _resolve_market_cap_eur(r, _CfgYF({}), fx)[1] == ResolveReason.NO_RAW_MC
+    r = ScreenerRecord.from_yfinance_info("Z", _info(currency=None))
+    assert _resolve_market_cap_eur(r, _CfgYF({}), fx)[1] == ResolveReason.NO_CURRENCY
+    r = ScreenerRecord.from_yfinance_info("Z", _info(currency="NOFX"))
+    assert _resolve_market_cap_eur(r, _CfgYF({}), {})[1] == ResolveReason.NO_FX
+
+
+def test_resolve_mc_first_precedence():
+    r = ScreenerRecord.from_yfinance_info("Z", _info(marketCap=None, currency=None))
+    assert _resolve_market_cap_eur(r, _CfgYF({}), {})[1] == ResolveReason.NO_RAW_MC
+
+
+def test_divert_no_symbol_data_and_fx():
+    infos = {
+        "OK":  _info(),
+        "ATO": _info(marketCap=7.28e8),
+        "NOMC": _info(marketCap=0),
+        "NOCUR": _info(currency=None),
+        "NOVOL": _info(averageVolume=0),
+        "NOFX": _info(currency="NOFX"),
+    }
+    res = run_basis_filter(list(infos), _CfgYF(infos))
+    nsd = {r.ticker: r.resolution_detail for r in res.no_symbol_data}
+    assert nsd == {"NOMC": "NO_RAW_MC", "NOCUR": "NO_CURRENCY", "NOVOL": "NO_VOLUME"}
+    assert [r.ticker for r in res.fx_unavailable] == ["NOFX"]
+    assert "ATO" in [r.ticker for r in res.resolved]
+    assert "ATO" not in [r.ticker for r in res.no_symbol_data]
+    assert "OK" in [r.ticker for r in res.resolved]
+
+
+def test_fx_rate_carried_on_resolved_record():
+    infos = {"OK": _info(currency="USD")}
+    res = run_basis_filter(["OK"], _CfgYF(infos))
+    rec = res.resolved[0]
+    assert rec.fx_rate == 1.0
+
+
+def test_divert_no_price():
+    infos = {
+        "NOPX": _info(currentPrice=0, regularMarketPrice=0),
+        "NOPX2": _info(currentPrice=None, regularMarketPrice=None),
+        "OK": _info(),
+    }
+    res = run_basis_filter(list(infos), _CfgYF(infos))
+    nsd = {r.ticker: r.resolution_detail for r in res.no_symbol_data}
+    assert nsd == {"NOPX": "NO_PRICE", "NOPX2": "NO_PRICE"}
+    assert "OK" in [r.ticker for r in res.resolved]
+
+
+def test_divert_precedence_volume_before_price():
+    infos = {"Z": _info(averageVolume=0, currentPrice=0, regularMarketPrice=0)}
+    res = run_basis_filter(["Z"], _CfgYF(infos))
+    assert res.no_symbol_data[0].resolution_detail == "NO_VOLUME"
+
+
 # --- ITEM 2: yfinance resolution aggregate ---
 
 
@@ -213,6 +302,28 @@ def test_run_basis_filter_emits_aggregate_warning_with_count(caplog):
     msg = aggregate[0].getMessage()
     assert "2/3" in msg
     assert "FAIL1" in msg and "FAIL2" in msg
+
+
+class _FunnelYF:
+    """Resolves GOOD; raises DegradedDataError for DEGR; DataSourceError for GONE."""
+    def get_ticker_info(self, ticker):
+        if ticker == "DEGR":
+            raise DegradedDataError("degraded")
+        if ticker == "GONE":
+            raise DataSourceError("404")
+        return {"shortName": ticker, "marketCap": 5e9, "averageVolume": 5e5,
+                "currentPrice": 100.0, "currency": "EUR", "grossMargins": 0.5,
+                "revenueGrowth": 0.1, "sector": "Technology"}
+    def get_fx_rate(self, currency):
+        return 1.0
+
+
+def test_basis_result_splits_degraded_from_unresolved():
+    result = run_basis_filter(["GOOD", "DEGR", "GONE"], _FunnelYF())
+    assert result.degraded == ["DEGR"]
+    assert set(result.unresolved) == {"DEGR", "GONE"}  # unresolved = all that failed resolution
+    assert [r.ticker for r in result.resolved] == ["GOOD"]
+    assert [r.ticker for r in result.passed] == ["GOOD"]
 
 
 def test_run_basis_filter_no_aggregate_warning_when_all_resolve(caplog):
@@ -435,6 +546,50 @@ def test_run_filter_preview_propagates_unresolved_into_report():
     assert payload["yfinance_unresolved"] == {"count": 1, "tickers": ["GHOST"]}
 
 
+def test_run_filter_preview_writes_funnel_artifacts_when_output_dir_given(tmp_path):
+    import json
+
+    from app.screener.runner import run_filter_preview
+
+    mock_yf = _make_yf_mock({**_PASSING_INFO, "sector": "Technology"})
+    mock_edgar = _clean_edgar_mock()
+    mock_edgar.get_cik.return_value = "0000320193"
+
+    run_filter_preview(
+        ["BIGC"], mock_yf, mock_edgar, output_dir=tmp_path, run_month="2026-06"
+    )
+
+    summary_path = tmp_path / "Universum" / "2026-06-funnel_summary.json"
+    dropouts_path = tmp_path / "Universum" / "2026-06-dropouts.csv"
+    assert summary_path.exists()
+    assert dropouts_path.exists()
+
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    stages = {s["stage"]: s for s in payload["stages"]}
+
+    assert "scoring" in stages
+    assert stages["scoring"]["ran"] is False  # dry-run: scored=None
+    assert "crosshits" in stages
+    assert stages["crosshits"]["ran"] is False
+
+
+def test_run_filter_preview_writes_nothing_without_output_dir(tmp_path):
+    from app.screener.filter_report import FilterReport
+    from app.screener.runner import run_filter_preview
+
+    mock_yf = _make_yf_mock({**_PASSING_INFO, "sector": "Technology"})
+    mock_edgar = _clean_edgar_mock()
+    mock_edgar.get_cik.return_value = "0000320193"
+
+    report = run_filter_preview(["BIGC"], mock_yf, mock_edgar)
+
+    assert isinstance(report, FilterReport)
+    # No output_dir → no funnel artifacts written anywhere under tmp_path.
+    assert not (tmp_path / "Universum").exists()
+    assert list(tmp_path.rglob("*-funnel_summary.json")) == []
+    assert list(tmp_path.rglob("*-dropouts.csv")) == []
+
+
 def test_run_filter_preview_has_no_gemini_parameter():
     # Structurally cannot score: the signature must not accept a gemini client.
     import inspect
@@ -442,8 +597,8 @@ def test_run_filter_preview_has_no_gemini_parameter():
     from app.screener.runner import run_filter_preview
 
     params = inspect.signature(run_filter_preview).parameters
-    assert "gemini" not in params
-    assert set(params) == {"tickers", "yfinance", "edgar"}
+    assert "gemini" not in params           # structurally cannot score — unchanged invariant
+    assert set(params) == {"tickers", "yfinance", "edgar", "output_dir", "run_month"}
 
 
 # --- run_screener ---
@@ -499,7 +654,25 @@ def test_run_screener_returns_records_run_record_and_paths(tmp_path):
 
     assert isinstance(records, list)
     assert isinstance(run_record, RunRecord)
-    assert len(paths) == 3
+    assert len(paths) == 5  # 3 markdown + funnel_summary.json + dropouts.csv
+
+
+def test_run_screener_writes_funnel_artifacts(tmp_path):
+    from app.screener.runner import run_screener
+    yfinance, edgar, gemini, tracker = _full_mock_suite()
+
+    _, _, paths = run_screener(
+        tickers=["AAPL"],
+        yfinance=yfinance,
+        edgar=edgar,
+        gemini=gemini,
+        run_tracker=tracker,
+        output_dir=tmp_path,
+    )
+
+    names = {p.name for p in paths}
+    assert "2026-05-funnel_summary.json" in names
+    assert "2026-05-dropouts.csv" in names
 
 
 def test_run_screener_creates_three_named_output_files(tmp_path):

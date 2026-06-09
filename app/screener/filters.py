@@ -1,11 +1,15 @@
 import logging
 
+from app.errors import FilterConfigError
 from app.models.screener_record import ScreenerRecord
 
 logger = logging.getLogger(__name__)
 
 MIN_MARKET_CAP_EUR: float = 2_000_000_000
-MIN_AVG_DAILY_VOLUME: float = 100_000
+# GATE-A-approved EUR daily-trading-value floor (2026-06-08). Structural anchor: the empty
+# 0.89M-2.45M band between broken/micro and the survivor population; absolute trading minimum,
+# not a relative gap. See docs/superpowers/audits/2026-06-08-1-value-floor/calibration.md.
+MIN_AVG_DAILY_VALUE_EUR: float | None = 1_000_000.0
 MIN_GROSS_MARGIN: float = 0.30
 MIN_REVENUE_GROWTH: float = 0.0
 
@@ -17,11 +21,26 @@ def passes_market_cap_filter(record: ScreenerRecord) -> bool:
     return record.market_cap_eur >= MIN_MARKET_CAP_EUR
 
 
+def _avg_daily_value_eur(record: ScreenerRecord) -> float | None:
+    """Average daily traded value in EUR = shares/day x price x fx. None if any input
+    is missing (an invariant violation at the gate — resolution diverts these)."""
+    if record.avg_daily_volume is None or record.price is None or record.fx_rate is None:
+        return None
+    return record.avg_daily_volume * record.price * record.fx_rate
+
+
 def passes_volume_filter(record: ScreenerRecord) -> bool:
-    if record.avg_daily_volume is None:
-        logger.warning("ticker=%s avg_daily_volume missing", record.ticker)
-        return False
-    return record.avg_daily_volume >= MIN_AVG_DAILY_VOLUME
+    if MIN_AVG_DAILY_VALUE_EUR is None:
+        raise FilterConfigError(
+            "MIN_AVG_DAILY_VALUE_EUR not calibrated (sentinel) — run the calibration gate"
+        )
+    value = _avg_daily_value_eur(record)
+    if value is None:
+        raise FilterConfigError(
+            f"ticker={record.ticker} value uncomputable at volume gate "
+            "(invariant violation: vol/price/fx_rate missing — resolution should have diverted)"
+        )
+    return value >= MIN_AVG_DAILY_VALUE_EUR
 
 
 def passes_gross_margin_filter(record: ScreenerRecord) -> bool:

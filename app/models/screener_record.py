@@ -6,6 +6,12 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+# Minor-unit quote normalization: some exchanges quote price in a minor unit while
+# marketCap is in the major unit. London (GBp = pence) is the live case; ZAc (SA cents),
+# ILA (Israeli agorot) are the same class — add when a listing actually appears.
+_MINOR_UNIT: dict[str, tuple[str, int]] = {"GBp": ("GBP", 100)}
+
+
 class ScreenerRecord(BaseModel):
     # Identity
     ticker: str
@@ -30,6 +36,7 @@ class ScreenerRecord(BaseModel):
 
     # FX-normalized market cap — computed in run_basis_filter, not from yfinance directly
     market_cap_eur: float | None = None
+    fx_rate: float | None = None  # currency->EUR rate, carried from resolution (Punkt 1: value-gate primitive)
 
     # EDGAR fields (populated in Phase 1.2)
     cik: str | None = None
@@ -47,6 +54,7 @@ class ScreenerRecord(BaseModel):
     filter_passed_basis: bool | None = None
     filter_passed_edgar: bool | None = None
     filter_failed_reason: str | None = None
+    resolution_detail: str | None = None  # 0b: sub-reason when diverted (NO_RAW_MC|NO_CURRENCY|NO_VOLUME|NO_PRICE|NO_FX)
 
     # Metadata
     screened_at: datetime = Field(
@@ -56,13 +64,24 @@ class ScreenerRecord(BaseModel):
     @classmethod
     def from_yfinance_info(cls, ticker: str, info: dict[str, Any]) -> ScreenerRecord:
         """Create record from yfinance info dict. Gemini scoring fields default to None — set by scorer."""
+        currency = info.get("currency")
+        price = info.get("currentPrice") or info.get("regularMarketPrice")
+        # Normalize minor-unit quotes (e.g. London pence) to the major unit + ISO currency,
+        # so price is consistent for every consumer and the FX lookup hits a real ISO code.
+        # marketCap is already in the major unit — only price is rescaled.
+        minor = _MINOR_UNIT.get(currency or "")
+        if minor is not None:
+            iso, divisor = minor
+            currency = iso
+            if price is not None:
+                price = price / divisor
         return cls(
             ticker=ticker,
             name=info.get("shortName"),
-            currency=info.get("currency"),
+            currency=currency,
             market_cap=info.get("marketCap") or None,
             avg_daily_volume=info.get("averageVolume") or None,
-            price=info.get("currentPrice") or info.get("regularMarketPrice"),
+            price=price or None,
             bid=info.get("bid") or None,
             ask=info.get("ask") or None,
             gics_sector=info.get("sector"),

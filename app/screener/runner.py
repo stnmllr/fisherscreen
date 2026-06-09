@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
-from app.errors import DataSourceError
+from app.errors import DataSourceError, DegradedDataError
 from app.models.screener_record import ScreenerRecord
 from app.screener.filter_report import FilterReport, build_filter_report
 from app.screener.filters import apply_basis_filters, apply_edgar_filters
@@ -22,26 +25,51 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class ResolveReason(str, Enum):
+    OK = "OK"
+    NO_RAW_MC = "NO_RAW_MC"      # raw market_cap missing or 0 (collapsed to None at construction)
+    NO_CURRENCY = "NO_CURRENCY"  # market_cap present but currency missing -> uninterpretable
+    NO_FX = "NO_FX"             # mc + currency present, FX rate unavailable (infra, systemic)
+
+
+def _load_provenance() -> dict | None:
+    path = Path(__file__).parent.parent.parent / "data" / "universe_provenance.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        logger.warning("provenance: could not read %s", path)
+        return None
+
+
 @dataclass
 class BasisFilterResult:
     """Result of the basis filter stage.
 
-    `passed` are records that survived the basis filters; `unresolved` are
-    universe symbols that yfinance could not resolve (fetch raised
-    DataSourceError / ValidationError) — the durable attrition signal.
+    `passed` survived the basis filters. `resolved` are the **gateable** records
+    (constructed AND with usable core data); diverted data-quality records are NOT
+    here. `unresolved`/`degraded` failed yfinance resolution. `no_symbol_data` and
+    `fx_unavailable` are records diverted in resolution (0b) before any gate.
     """
 
     passed: list[ScreenerRecord] = field(default_factory=list)
     unresolved: list[str] = field(default_factory=list)
+    resolved: list[ScreenerRecord] = field(default_factory=list)
+    degraded: list[str] = field(default_factory=list)
+    no_symbol_data: list[ScreenerRecord] = field(default_factory=list)
+    fx_unavailable: list[ScreenerRecord] = field(default_factory=list)
 
 
 def _resolve_market_cap_eur(
     record: ScreenerRecord,
     yfinance: YFinanceClient,
     fx_cache: dict[str, float],
-) -> float | None:
-    if record.market_cap is None or record.currency is None:
-        return None
+) -> tuple[float | None, ResolveReason]:
+    if record.market_cap is None:
+        return None, ResolveReason.NO_RAW_MC
+    if record.currency is None:
+        return None, ResolveReason.NO_CURRENCY
     currency = record.currency
     if currency not in fx_cache:
         try:
@@ -51,8 +79,8 @@ def _resolve_market_cap_eur(
             fx_cache[currency] = None  # type: ignore[assignment]
     rate = fx_cache[currency]
     if rate is None:
-        return None
-    return record.market_cap * rate
+        return None, ResolveReason.NO_FX
+    return record.market_cap * rate, ResolveReason.OK
 
 
 def run_basis_filter(
@@ -65,13 +93,38 @@ def run_basis_filter(
 
     records: list[ScreenerRecord] = []
     unresolved: list[str] = []
+    degraded: list[str] = []
+    no_symbol_data: list[ScreenerRecord] = []
+    fx_unavailable: list[ScreenerRecord] = []
     fx_cache: dict[str, float] = {}
     for ticker in tickers:
         try:
             info = yfinance.get_ticker_info(ticker)
             record = ScreenerRecord.from_yfinance_info(ticker, info)
-            record.market_cap_eur = _resolve_market_cap_eur(record, yfinance, fx_cache)
-            records.append(record)
+            record.market_cap_eur, reason = _resolve_market_cap_eur(record, yfinance, fx_cache)
+            # 0b: divert unusable-data records out of the gate path (symbol-data first, then FX).
+            if reason == ResolveReason.NO_RAW_MC:
+                record.resolution_detail = "NO_RAW_MC"
+                no_symbol_data.append(record)
+            elif reason == ResolveReason.NO_CURRENCY:
+                record.resolution_detail = "NO_CURRENCY"
+                no_symbol_data.append(record)
+            elif record.avg_daily_volume is None:
+                record.resolution_detail = "NO_VOLUME"
+                no_symbol_data.append(record)
+            elif record.price is None:
+                record.resolution_detail = "NO_PRICE"
+                no_symbol_data.append(record)
+            elif reason == ResolveReason.NO_FX:
+                record.resolution_detail = "NO_FX"
+                fx_unavailable.append(record)
+            else:
+                record.fx_rate = fx_cache.get(record.currency)
+                records.append(record)
+        except DegradedDataError as exc:  # MUST precede DataSourceError (subclass)
+            logger.warning("ticker=%s degraded dict: %s", ticker, exc)
+            unresolved.append(ticker)
+            degraded.append(ticker)
         except (DataSourceError, ValidationError) as exc:
             logger.warning("ticker=%s data fetch failed: %s", ticker, exc)
             unresolved.append(ticker)
@@ -91,7 +144,20 @@ def run_basis_filter(
             unresolved,
         )
 
-    return BasisFilterResult(passed=apply_basis_filters(records), unresolved=unresolved)
+    if no_symbol_data or fx_unavailable:
+        logger.warning(
+            "resolution data-quality: %d no_symbol_data, %d fx_unavailable (diverted to REVIEW)",
+            len(no_symbol_data), len(fx_unavailable),
+        )
+
+    return BasisFilterResult(
+        passed=apply_basis_filters(records),
+        unresolved=unresolved,
+        resolved=records,
+        degraded=sorted(degraded),
+        no_symbol_data=no_symbol_data,
+        fx_unavailable=fx_unavailable,
+    )
 
 
 def _evaluate_edgar(records: list[ScreenerRecord], edgar: EdgarClient) -> None:
@@ -134,9 +200,15 @@ def run_filter_preview(
     tickers: list[str],
     yfinance: YFinanceClient,
     edgar: EdgarClient,
+    *,
+    output_dir: Path | None = None,
+    run_month: str | None = None,
 ) -> FilterReport:
     """Free ($0) filters-only preview: basis + EDGAR filters, no Gemini, no
-    run-tracker, no output. Returns a FilterReport for dry-run visibility."""
+    run-tracker. Emits funnel artifacts (stages through EDGAR) when output_dir
+    is given — for cold-run visibility."""
+    from app.config import settings
+
     basis = run_basis_filter(tickers, yfinance)
     records = basis.passed
     _evaluate_edgar(records, edgar)
@@ -149,6 +221,17 @@ def run_filter_preview(
         len(report.going_concern_drops),
         report.total_skipped(),
     )
+    if output_dir is not None:
+        from app.output.funnel_artifacts import write_funnel_artifacts
+        from app.screener.funnel import build_funnel
+        month = run_month or datetime.now(timezone.utc).strftime("%Y-%m")
+        summary, dropouts = build_funnel(
+            universe=tickers, basis=basis, scored=None,
+            score_threshold=settings.crosshits_score_threshold,
+            crosshits_min_dimensions=settings.crosshits_min_dimensions,
+            provenance=_load_provenance(),
+        )
+        write_funnel_artifacts(summary, dropouts, output_dir, month)
     return report
 
 
@@ -174,16 +257,31 @@ def run_screener(
     min_dims = crosshits_min_dimensions if crosshits_min_dimensions is not None else settings.crosshits_min_dimensions
     cap = crosshits_cap if crosshits_cap is not None else settings.crosshits_cap
 
-    records = run_basis_filter(tickers, yfinance).passed
-    records = run_edgar_filter(records, edgar)
-    records = run_gemini_scoring(records, gemini, run_tracker)
+    from app.output.funnel_artifacts import write_funnel_artifacts
+    from app.output.report_header import render_header
+    from app.screener.funnel import build_funnel
+
+    basis = run_basis_filter(tickers, yfinance)
+    edgar_passed = run_edgar_filter(basis.passed, edgar)
+    scored = run_gemini_scoring(edgar_passed, gemini, run_tracker)
     run_record = run_tracker.finish()
+    run_month = run_record.run_id[:7]
+
+    summary, dropouts = build_funnel(
+        universe=tickers, basis=basis, scored=scored,
+        score_threshold=threshold, crosshits_min_dimensions=min_dims,
+        provenance=_load_provenance(),
+    )
+    funnel_paths = write_funnel_artifacts(summary, dropouts, output_dir, run_month)
+    header = render_header(summary, run_month)
 
     paths = [
-        generate_dimensions(records, run_record, output_dir, score_threshold=threshold, cap=cap),
-        generate_crosshits(records, run_record, output_dir, score_threshold=threshold, min_dimensions=min_dims, cap=cap),
-        generate_changes(records, run_record, output_dir, score_threshold=threshold, cap=cap),
+        generate_dimensions(scored, run_record, output_dir, score_threshold=threshold, cap=cap),
+        generate_crosshits(scored, run_record, output_dir, score_threshold=threshold,
+                           min_dimensions=min_dims, cap=cap, header=header),
+        generate_changes(scored, run_record, output_dir, score_threshold=threshold, cap=cap),
+        *funnel_paths,
     ]
 
-    logger.info("run_screener: complete — %d records, %d output files", len(records), len(paths))
-    return records, run_record, paths
+    logger.info("run_screener: complete — %d records, %d output files", len(scored), len(paths))
+    return scored, run_record, paths

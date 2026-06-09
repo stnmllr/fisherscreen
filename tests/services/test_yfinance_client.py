@@ -3,9 +3,44 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from app.errors import DataSourceError
+from app.errors import DataSourceError, DegradedDataError
 from app.models.deep_dive_record import ForwardEstimates
 from app.services.yfinance_client import YFinanceClientImpl
+
+
+def test_degraded_dict_raises_degraded_data_error():
+    client = YFinanceClientImpl()
+    with patch("app.services.yfinance_client.yf.Ticker") as mock_ticker:
+        mock_ticker.return_value.info = {"symbol": "ZZZZ", "exchange": "NMS"}
+        with pytest.raises(DegradedDataError):
+            client.get_ticker_info("ZZZZ")
+
+
+def test_degraded_data_error_is_data_source_error():
+    # Subclass invariant: all existing `except DataSourceError` must still catch it.
+    assert issubclass(DegradedDataError, DataSourceError)
+
+
+def test_get_isin_returns_isin_string():
+    client = YFinanceClientImpl()
+    with patch("app.services.yfinance_client.yf.Ticker") as mock_ticker:
+        mock_ticker.return_value.isin = "FR0000131104"
+        assert client.get_isin("BNP.PA") == "FR0000131104"
+
+
+def test_get_isin_returns_none_when_absent_or_dash():
+    client = YFinanceClientImpl()
+    with patch("app.services.yfinance_client.yf.Ticker") as mock_ticker:
+        mock_ticker.return_value.isin = "-"   # yfinance sentinel for "no isin"
+        assert client.get_isin("ZZZZ") is None
+
+
+def test_get_isin_raises_data_source_error_on_exception():
+    client = YFinanceClientImpl()
+    with patch("app.services.yfinance_client.yf.Ticker") as mock_ticker:
+        mock_ticker.side_effect = Exception("network error")
+        with pytest.raises(DataSourceError, match="yfinance isin failed"):
+            client.get_isin("BADTICKER")
 
 
 def _estimate_frame(growth_by_period):
