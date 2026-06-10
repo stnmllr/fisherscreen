@@ -90,10 +90,11 @@ TTM-Vorcheck mit der vorhandenen .info-Zahl:
   revenue_growth_yoy is None→ income_stmt nachladen, γ anwenden (§3.3)
 ```
 
-**Warum lazy statt Voll-Universum:** Der Fetch ist auf ~200 Titel (heutige 189 + 13) gebounded
-statt ~700, und — load-bearing — die Änderungsmenge ist **strikt eine Teilmenge der heutigen
-Drops**. Jeder heutige Pass bleibt ein Pass (Monotonie); der Prod-Diff ist vollständig
-vorhersagbar und gegen die Diagnose-CSV reconcilierbar (wie die 112 relative_rescues bei Punkt 2).
+**Warum lazy statt Voll-Universum:** Der Fetch-Korb ist auf die **189** heutigen Drops gebounded
+(= 176 negativ-TTM + 13 Missing-TTM; die 13 sind *Teilmenge* der 189, nicht zusätzlich) statt
+~700, und — load-bearing — die Änderungsmenge ist **strikt eine Teilmenge der 189**. Jeder heutige
+Pass bleibt ein Pass (Monotonie); der Prod-Diff ist vollständig vorhersagbar und gegen die
+Diagnose-CSV reconcilierbar (wie die 112 relative_rescues bei Punkt 2).
 Voll-Universum (A) würde die Messgröße für alle ~700 wechseln, einen bidirektionalen Diff und ein
 neues False-Positive-Risiko in die Gegenrichtung einbauen (s. §5).
 
@@ -166,9 +167,12 @@ Die Missing-TTM-Fälle (`revenueGrowth is None`, die 13) lösen denselben Lazy-F
 *kein* implizites Fail mehr, sondern werden am Mehrjahres-Maß beurteilt (für Unilever/Infineon &
 Co. liegen die annualen Daten ja vor). Bleibt auch der annuale Fetch leer → `UNASSESSABLE` → pass.
 
-**No-op-Hinweis Vintage 2026-06:** die gesamte 175er-Negativ-Kohorte hat `n_years=4` — die ≥4-GJ-
-Regel verschiebt heute *keine* Zahl. Sie ist rein struktureller Schutz für künftige Kurzhistorie-
-Titel (und re-verifiziert beim jährlichen Re-Sweep §5).
+**Wirkung Vintage 2026-06:** die ≥4-GJ-Regel betrifft heute **genau 1 Titel — TREL-B.ST**
+(Trelleborg, `n_years=1`, TTM −2,9 %): er wandert von heutigem implizitem Fail auf
+UNASSESSABLE→pass. Das ist *keine* No-op — der eine Titel muss in der Akzeptanz-Identität (§6)
+bilanziert sein, sonst ist es genau die unbilanzierte Lücke, die bei Punkt 2 divergente Universen
+erzeugte. Re-verifiziert am Cold-Run; ansonsten struktureller Schutz für künftige
+Kurzhistorie-Titel (Spin-offs/junge Listings), re-geprüft beim jährlichen Re-Sweep §5.
 
 ---
 
@@ -178,9 +182,11 @@ Hybrid B prüft Titel mit **TTM ≥ 0 nie nach**. Ein Titel mit positivem TTM, a
 Mehrjahres-Trajektorie, rutscht damit durch. Der Voll-Universum-Sweep (alle 731 Survivors, offline,
 $0) beziffert den Korb:
 
-**X = 76 Survivors** (TTM≥0 heute, aber MULTI_YEAR_DECLINE), davon **42 >10B Large-Caps**, **54
-γ-bestätigt** (CAGR<0 ∧ down_years≥2). Beispiele: XOM (TTM +2,6 % / CAGR −6,7 %), Albemarle
-(+33 % / −11 %), Fortum (+21 % / −14 %), Kraft Heinz, J.B. Hunt, Illumina, Viatris.
+**X = 54 Survivors** (TTM≥0 heute, aber γ-Decline `CAGR<0 ∧ down_years≥2` — also der Korb, den
+die γ-Regel bei Nachprüfung selbst droppen würde; die lockerere α-`MULTI_YEAR_DECLINE`-Zählung war
+76, davon 22 γ gar nicht droppt). Davon **33 >10B Large-Caps**. Beispiele: XOM (TTM +2,6 % /
+CAGR −6,7 %), Intel (+7,2 % / −5,7 %), Chevron (+2,3 % / −7,9 %), Shell (+0,7 % / −11,2 %),
+TotalEnergies (+3,4 % / −11,5 %), Pfizer (+5,4 % / −14,8 %).
 
 **Bewusst akzeptiert — und zwar *wegen* der Richtung, nicht *trotz* der Größe:** Alle 76 haben
 **positives TTM** — ihr Niedergang liegt im Rückspiegel, das jüngste rollierende Fenster wächst
@@ -190,17 +196,18 @@ nachhaltig?" ist die Lehrbuch-Scorer-Frage, nicht die Floor-Frage.
 Die Alternative A wäre **nicht „strenger"**, sondern würde eine *rückwärtsgewandte* Fehlerklasse
 (erholende Titel auf historischem CAGR droppen) gegen eine *vorwärtsgerichtete* eintauschen. Fisher
 gewichtet „poised for increase", nicht „war mal größer" — bei Konflikt zwischen jüngerem (TTM) und
-älterem (CAGR) Signal gewinnt die Gegenwart. Dass 42/76 Large-Caps sind, ist *Bestätigung*: bei
-reifen Zyklikern (Öl, Lithium, Konsum) ist Erholung-nach-Einbruch der Normalfall, den ein
-Fisher-Screen sehen *will*.
+älterem (CAGR) Signal gewinnt die Gegenwart. Dass 33/54 Large-Caps sind (XOM, Intel, Chevron,
+Shell, Total, Pfizer), ist *Bestätigung*: bei reifen Zyklikern (Öl) und Pharma (Patent-Klippen)
+ist Erholung-nach-Einbruch der Normalfall, den ein Fisher-Screen sehen *will*.
 
 **Spec-Auflagen zum Residuum:**
-1. **Vintage-gestempelt dokumentiert** in `calibration.md` (X=76, davon 54 γ-bestätigt, Stand
-   2026-06), `full_sweep_slipthrough.csv` als Provenance-Blob eingefroren — analog Punkt-2-Tabelle.
+1. **Vintage-gestempelt dokumentiert** in `calibration.md` (X=54 γ-konsistent, davon 33 Large-Cap;
+   Stand 2026-06), `full_sweep_slipthrough.csv` als Provenance-Blob eingefroren (76 α-Zeilen, der
+   γ-Korb = `CAGR<0 ∧ down_years≥2`-Filter darauf) — analog Punkt-2-Tabelle.
 2. **Jährlicher Re-Sweep** als stehender Monitoring-Posten neben dem Index-Drift-Sweep (Korb
    verschiebt sich mit dem Zyklus).
 3. **Vorprüfung „die 76 erreichen den Scorer"** (sonst ist die Erholungs-Begründung hohl): am
-   Cold-Run verifizieren, dass keiner der 76 strukturell an einem nachgelagerten Gate (EDGAR)
+   Cold-Run verifizieren, dass keiner der 54 strukturell an einem nachgelagerten Gate (EDGAR)
    hängenbleibt. Legitime EDGAR-Inhalts-Drops (Restatement/Going-Concern) sind orthogonal und in
    Ordnung; nur ein *Artefakt*-Block widerlegte die Begründung.
 
@@ -212,15 +219,22 @@ Wie Punkt-2-Gate-B: kalter Lauf gegen das aktivierte Produktivverhalten, Identit
 
 **Diagnose-Klassifikator auf γ angleichen** (heute α): `scripts/diagnose_revenue_growth_drops.py`
 `fetch_trend` von α (`MULTI_YEAR_DECLINE = latest_down ∧ (down_years≥2 ∨ CAGR<0)`) auf γ
-(`CAGR<0 ∧ down_years≥2`, kein latest_down) umstellen + ≥4-GJ→UNASSESSABLE. Danach teilen Diagnose
-und Prod **dieselbe** (korrigierte) Semantik; die 175er-CSV wird Test-Fixture.
+(`CAGR<0 ∧ down_years≥2`, kein latest_down) umstellen + ≥4-GJ→UNASSESSABLE + γ einheitlich auch
+auf die Missing-TTM-Fälle anwenden (nicht als monolithischen Rescue-Bucket behandeln). Danach
+teilen Diagnose und Prod **dieselbe** (korrigierte) Semantik; die volle **189er-CSV** wird
+Test-Fixture (Assertion = 81/107/1, s.u.).
 
 **Akzeptanz-Identitäten (erwartetes Vintage-2026-06-Ergebnis, am Cold-Run re-verifiziert):**
-- **Monotonie/Additivität:** jeder heutige revenue_growth-Pass bleibt Pass; Änderungsmenge ⊆ {189+13}.
-- **Drop/Rescue-Identität:** exakt **76 gedroppt**, **99 gerettet** (von 175 mit Trenddaten),
-  **13 Missing-Data** im UNASSESSABLE/eigenen Zweig (nicht als negatives Urteil gezählt).
-- **Residuum:** Voll-Sweep reproduziert **X=76** (54 γ-bestätigt).
-- **Reach-Scorer:** die 76 X-Titel überleben EDGAR strukturell (§5.3).
+- **Monotonie/Additivität:** jeder heutige revenue_growth-Pass bleibt Pass; Änderungsmenge ⊆ den 189.
+- **Voll-bilanzierte Drop/Rescue-Identität (γ einheitlich über alle 189):**
+
+  **189 = 81 DROP + 107 RESCUE + 1 UNASSESSABLE** (geht voll auf — kein unbilanzierter Titel)
+  - negativ-TTM (176) → **76 DROP + 99 RESCUE + 1 UNASSESSABLE** (= TREL-B.ST, Kurzhistorie §4)
+  - missing-TTM (13) → **5 DROP + 8 RESCUE** (γ-Drops: Kering/Unilever/Vivendi/Georg Fischer/Sonova
+    = echte Mehrjahres-Schrumpfer, floor-korrekt — *nicht* monolithischer Rescue-Bucket; alle 13
+    bleiben via `revenue_growth_yoy=None` identifizierbar)
+- **Residuum:** Voll-Sweep reproduziert **X=54** γ-konsistent (33 Large-Cap).
+- **Reach-Scorer:** die 54 X-Titel überleben EDGAR strukturell (§5.3).
 
 Reduzierter bezahlter Lauf (optional, wie Punkt 2): zweiseitig grün — ein γ-Drop bestätigt
 gedroppt, ein Rescue scored.
@@ -234,11 +248,11 @@ gedroppt, ein Rescue scored.
 | `app/screener/filters.py` | `passes_revenue_growth_filter` → γ-Drei-Signal-Konjunktion; Lazy-Fetch-Hook; Missing-TTM nicht mehr implizit False |
 | `app/screener/runner.py` | Lazy-`income_stmt`-Fetch für TTM<0/None ∩ Survivors (analog `_assess_definedness_basket`-Pre-Pass); Trajektorie berechnen; `revenue_growth_definedness` setzen |
 | `app/services/income_statement.py` | Mehrjahres-Extraktor: `"Total Revenue"` über *alle* GJ-Spalten (heute nur newest via `_first_col_value`) → CAGR + down_years |
-| `app/models/screener_record.py` | Felder: `multiyear_revenue_cagr`, `revenue_down_years`, `revenue_growth_definedness` (Enum), `revenue_growth_pass_reason` (Prod-Audit-Primitiv: ABSOLUTE_PASS \| RECOVERED \| DECLINE_DROP \| UNASSESSABLE_PASS) |
+| `app/models/screener_record.py` | Felder: `multiyear_revenue_cagr`, `revenue_down_years`, `revenue_growth_definedness` (Enum), `revenue_growth_pass_reason` (Prod-Audit-Primitiv: **`TTM_PASS` \| `TRAJECTORY_RESCUE` \| `DECLINE_DROP` \| `UNASSESSABLE_PASS`**). Bewusst **kein** `ABSOLUTE_PASS`/`RECOVERED`: `ABSOLUTE_PASS` ist bereits das Punkt-2-gross_margin-Clearance-Token (dasselbe Token für zwei Gates macht Reconciliation-Queries mehrdeutig); `RECOVERED` ist im Diagnose-Skript schon eine `trend_class` mit *engerer* Bedeutung (letztes GJ annual up) — als pass_reason würde es fälschlich auch SINGLE_YEAR_DIP/MIXED-Passes einschließen. Die 13 Missing-TTM bleiben orthogonal via `revenue_growth_yoy=None` identifizierbar (sie verteilen sich auf TRAJECTORY_RESCUE und DECLINE_DROP, sind kein eigener Code). |
 | `app/screener/funnel.py` | Reason-Bucket für UNASSESSABLE (retrybar, Geschwister von `RESOLUTION_STATEMENT_UNAVAILABLE`); γ-Drops bleiben `GATE_REVENUE_GROWTH` |
 | `scripts/diagnose_revenue_growth_drops.py` | Klassifikator α→γ angleichen + ≥4-GJ-Routing (Diagnose=Prod-Semantik) |
 | `data/` + `calibration.md` | `full_sweep_slipthrough.csv` als Provenance-Blob; Residuum-Rationale |
-| Tests | `tests/screener/test_filters.py`, `test_runner.py`, `tests/services/test_income_statement.py`; 175er-CSV als Fixture, Identitäts-Asserts §6 |
+| Tests | `tests/screener/test_filters.py`, `test_runner.py`, `tests/services/test_income_statement.py`; 189er-CSV als Fixture, Identitäts-Asserts §6 (81/107/1) |
 
 ---
 
