@@ -123,6 +123,13 @@ Damit ist der applizierte Kern in *beiden* Fetch-Zweigen identisch (`CAGR<0 ∧ 
 TTM<0 ist beim Negativ-Zweig das dritte (und frischeste) bestätigende Signal, beim None-Zweig
 schlicht abwesend.
 
+**Epistemische Rechtfertigung der Zwei-vs-drei-Signal-Asymmetrie** (sieht auf den ersten Blick
+komisch aus — ein Titel mit TTM +0,1 % wird nie geprüft, einer mit TTM=None kann auf CAGR∧dy
+fallen — ist aber korrekt): ein vorhandenes positives TTM ist *affirmative Evidenz für Erholung*
+und rettet (§5); ein fehlendes TTM ist *keine Evidenz für irgendetwas* — es darf weder als
+down-Signal zählen (steht oben) noch als fingiertes Erholungssignal wirken.
+**Evidenz für Erholung rettet; Abwesenheit von Evidenz rettet nicht.**
+
 - **Kein separates `latest_down`-Kriterium** (das der α-Variante): das negative TTM *ist* das
   „aktuell down"-Signal — und das *frischeste*. Ein letztes-abgeschlossenes-GJ-down wäre redundant
   bis irreführend, weil das TTM-Fenster aktueller ist als das letzte GJ.
@@ -165,7 +172,13 @@ nur eine Ebene höher (Kriterium *konnte nicht greifen* ≠ Kriterium *bestanden
 
 Die Missing-TTM-Fälle (`revenueGrowth is None`, die 13) lösen denselben Lazy-Fetch aus — sie sind
 *kein* implizites Fail mehr, sondern werden am Mehrjahres-Maß beurteilt (für Unilever/Infineon &
-Co. liegen die annualen Daten ja vor). Bleibt auch der annuale Fetch leer → `UNASSESSABLE` → pass.
+Co. liegen die annualen Daten ja vor). Mit ≥4 GJ ist das Ergebnis **`DEFINED`** (das Kriterium
+*konnte greifen* — vollständiges γ-Verdikt aus echten Statements), **nicht `UNASSESSABLE`**: die 5
+γ-Drops darunter (Kering/Unilever/Vivendi/Georg Fischer/Sonova) wegen des fehlenden `.info`-Felds
+auf pass umzurouten hieße, ein Daten-Artefakt ein *berechnetes* Urteil überstimmen zu lassen — die
+exakte Inversion des ursprünglichen Missing-Data-Bugs (dort täuschte das Artefakt ein Fail vor;
+hier verhinderte es ein legitimes). Nur wenn auch der annuale Fetch leer bleibt oder <4 GJ liefert
+→ `UNASSESSABLE` → pass.
 
 **Wirkung Vintage 2026-06:** die ≥4-GJ-Regel betrifft heute **genau 1 Titel — TREL-B.ST**
 (Trelleborg, `n_years=1`, TTM −2,9 %): er wandert von heutigem implizitem Fail auf
@@ -225,7 +238,10 @@ teilen Diagnose und Prod **dieselbe** (korrigierte) Semantik; die volle **189er-
 Test-Fixture (Assertion = 81/107/1, s.u.).
 
 **Akzeptanz-Identitäten (erwartetes Vintage-2026-06-Ergebnis, am Cold-Run re-verifiziert):**
-- **Monotonie/Additivität:** jeder heutige revenue_growth-Pass bleibt Pass; Änderungsmenge ⊆ den 189.
+- **Monotonie/Additivität:** jeder heutige revenue_growth-Pass bleibt Pass; Änderungsmenge ⊆ den
+  189 (107 neu pass + 1 UNASSESSABLE-pass, 81 weiterhin drop). Die 5 missing-TTM-γ-Drops waren
+  heute schon Drops (`None→False`) — sie bleiben Drops, nur mit jetzt legitimem statt
+  artefaktischem Grund; **kein heutiger Pass kippt** (kein Titel wird neu rausgeworfen).
 - **Voll-bilanzierte Drop/Rescue-Identität (γ einheitlich über alle 189):**
 
   **189 = 81 DROP + 107 RESCUE + 1 UNASSESSABLE** (geht voll auf — kein unbilanzierter Titel)
@@ -264,3 +280,9 @@ gedroppt, ein Rescue scored.
 - **Wachstums-Qualitäts-Abstufung im Gate.** Gehört in den Gemini-Scorer (§2).
 - **Sektor-relative Wachstumsnorm.** Per Leitprinzip + breitem Sektor-Spread ausgeschlossen.
 - **Earnings-Call-/Forward-Guidance-Wachstum.** Tool-B-Tiefe, nicht Tool-A-Floor.
+- **Corporate-Action-Bereinigung (Spin-offs/Divestitures).** Extreme CAGR-Ausschläge können
+  abgespaltenen statt verlorenen Umsatz reflektieren (Vivendi −68 %/dy=2 = Aufspaltung Ende 2024).
+  Der γ-Drop ist trotzdem richtig — eine Holding, die den Großteil ihres Geschäfts abgegeben hat,
+  ist kein Fisher-Kandidat im Sinne des Screens. Der Floor unterscheidet organischen Schrumpf von
+  Corporate-Action **nicht** und **soll** es nicht (das wäre Tool-B-Tiefe). Als bekannte
+  Eigenschaft dokumentiert, kein Sonderpfad.
