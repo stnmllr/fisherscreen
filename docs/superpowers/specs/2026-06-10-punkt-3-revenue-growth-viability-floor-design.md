@@ -192,35 +192,47 @@ Kurzhistorie-Titel (Spin-offs/junge Listings), re-geprüft beim jährlichen Re-S
 ## 5. Akzeptiertes Residuum X — die Hybrid-B-Asymmetrie
 
 Hybrid B prüft Titel mit **TTM ≥ 0 nie nach**. Ein Titel mit positivem TTM, aber negativer
-Mehrjahres-Trajektorie, rutscht damit durch. Der Voll-Universum-Sweep (alle 731 Survivors, offline,
-$0) beziffert den Korb:
+Mehrjahres-Trajektorie, rutscht damit durch. Der Voll-Universum-Sweep beziffert den Korb direkt
+als `TTM≥0 ∧ CAGR<0 ∧ down_years≥2` über die Basis-Survivors (offline, $0). Survivor-Basis:
+**839 = 731 TTM_PASS + 107 TRAJECTORY_RESCUE + 1 UNASSESSABLE_PASS** (aus `revenue_growth_pass_reason`
+hergeleitet; die +108 ggü. dem 731-Vor-Punkt-3-Stand sind die jetzt durchgelassenen Rescues). Nur
+die 731 TTM_PASS (nie nachgeprüft) sind Slip-Kandidaten:
 
-**X = 54 Survivors** (TTM≥0 heute, aber γ-Decline `CAGR<0 ∧ down_years≥2` — also der Korb, den
-die γ-Regel bei Nachprüfung selbst droppen würde; die lockerere α-`MULTI_YEAR_DECLINE`-Zählung war
-76, davon 22 γ gar nicht droppt). Davon **33 >10B Large-Caps**. Beispiele: XOM (TTM +2,6 % /
-CAGR −6,7 %), Intel (+7,2 % / −5,7 %), Chevron (+2,3 % / −7,9 %), Shell (+0,7 % / −11,2 %),
-TotalEnergies (+3,4 % / −11,5 %), Pfizer (+5,4 % / −14,8 %).
+**X = 104 Survivors** (TTM≥0 heute, aber γ-Decline `CAGR<0 ∧ down_years≥2` — der Korb, den die
+γ-Regel bei Nachprüfung selbst droppen würde), davon **61 >10B Large-Caps**. Beispiele: XOM (TTM
++2,6 % / CAGR −6,7 %), Intel (+7,2 % / −5,7 %), Chevron (+2,3 % / −7,9 %), Shell (+0,7 % / −11,2 %),
+TotalEnergies (+3,4 % / −11,5 %), Pfizer (+5,4 % / −14,8 %), plus eine große Klasse nahezu-flacher
+Erholer (Martin Marietta −0,1 % / +17 %, Corteva −0,1 % / +11 %, Altria −0,9 % / +5 %).
 
-**Bewusst akzeptiert — und zwar *wegen* der Richtung, nicht *trotz* der Größe:** Alle 76 haben
+> **Korrektur-Hinweis:** Eine frühere Schätzung X=54 war ein Undercount — sie filterte nur die
+> α-`MULTI_YEAR_DECLINE`-Teilmenge (76, verlangt `latest_down`) nach γ und übersah die ~50 γ-Titel
+> mit *letztem Jahr hoch* (cagr<0 ∧ dy≥2 ∧ latest_up). Die α→γ-Angleichung des Sweeps und der direkte
+> `TTM≥0 ∧ γ`-Zählstand liefern die korrekte 104; `full_sweep_slipthrough.csv` (104 Zeilen, jede γ)
+> ist der eingefrorene Provenance-Blob, gegen den `test_residuum_blob_is_gamma_consistent_and_pinned`
+> Zahl-Regel-Blob-Deckungsgleichheit asserted (fängt künftige α/γ-Drift).
+
+**Bewusst akzeptiert — und zwar *wegen* der Richtung, nicht *trotz* der Größe:** Alle 104 haben
 **positives TTM** — ihr Niedergang liegt im Rückspiegel, das jüngste rollierende Fenster wächst
-wieder (erholende/inflektierende Titel, kein schleichender Schrumpfer). „Erholt sich gerade — wie
+wieder (erholende/inflektierende Titel, kein schleichender Schrumpfer). Der größere Korb ist sogar
+per-Titel *weniger* besorgniserregend: die Zusatz-Titel sind nahezu-flach-CAGR bei starkem positivem
+TTM (doppelt erholend) — der schwächste denkbare Slip-Through-Typ. „Erholt sich gerade — wie
 nachhaltig?" ist die Lehrbuch-Scorer-Frage, nicht die Floor-Frage.
 
 Die Alternative A wäre **nicht „strenger"**, sondern würde eine *rückwärtsgewandte* Fehlerklasse
 (erholende Titel auf historischem CAGR droppen) gegen eine *vorwärtsgerichtete* eintauschen. Fisher
 gewichtet „poised for increase", nicht „war mal größer" — bei Konflikt zwischen jüngerem (TTM) und
-älterem (CAGR) Signal gewinnt die Gegenwart. Dass 33/54 Large-Caps sind (XOM, Intel, Chevron,
+älterem (CAGR) Signal gewinnt die Gegenwart. Dass 61/104 Large-Caps sind (XOM, Intel, Chevron,
 Shell, Total, Pfizer), ist *Bestätigung*: bei reifen Zyklikern (Öl) und Pharma (Patent-Klippen)
 ist Erholung-nach-Einbruch der Normalfall, den ein Fisher-Screen sehen *will*.
 
 **Spec-Auflagen zum Residuum:**
-1. **Vintage-gestempelt dokumentiert** in `calibration.md` (X=54 γ-konsistent, davon 33 Large-Cap;
-   Stand 2026-06), `full_sweep_slipthrough.csv` als Provenance-Blob eingefroren (76 α-Zeilen, der
-   γ-Korb = `CAGR<0 ∧ down_years≥2`-Filter darauf) — analog Punkt-2-Tabelle.
+1. **Vintage-gestempelt dokumentiert** in `calibration.md` (X=104 γ-konsistent, davon 61 Large-Cap;
+   Stand 2026-06), `full_sweep_slipthrough.csv` als Provenance-Blob eingefroren (104 Zeilen, jede
+   erfüllt `CAGR<0 ∧ down_years≥2`; Zahl-Regel-Blob-Deckung per Test gelockt) — analog Punkt-2-Tabelle.
 2. **Jährlicher Re-Sweep** als stehender Monitoring-Posten neben dem Index-Drift-Sweep (Korb
    verschiebt sich mit dem Zyklus).
 3. **Vorprüfung „die 76 erreichen den Scorer"** (sonst ist die Erholungs-Begründung hohl): am
-   Cold-Run verifizieren, dass keiner der 54 strukturell an einem nachgelagerten Gate (EDGAR)
+   Cold-Run verifizieren, dass keiner der 104 strukturell an einem nachgelagerten Gate (EDGAR)
    hängenbleibt. Legitime EDGAR-Inhalts-Drops (Restatement/Going-Concern) sind orthogonal und in
    Ordnung; nur ein *Artefakt*-Block widerlegte die Begründung.
 
@@ -249,8 +261,8 @@ Test-Fixture (Assertion = 81/107/1, s.u.).
   - missing-TTM (13) → **5 DROP + 8 RESCUE** (γ-Drops: Kering/Unilever/Vivendi/Georg Fischer/Sonova
     = echte Mehrjahres-Schrumpfer, floor-korrekt — *nicht* monolithischer Rescue-Bucket; alle 13
     bleiben via `revenue_growth_yoy=None` identifizierbar)
-- **Residuum:** Voll-Sweep reproduziert **X=54** γ-konsistent (33 Large-Cap).
-- **Reach-Scorer:** die 54 X-Titel überleben EDGAR strukturell (§5.3).
+- **Residuum:** Voll-Sweep reproduziert **X=104** γ-konsistent (61 Large-Cap), jede Blob-Zeile γ.
+- **Reach-Scorer:** die 104 X-Titel überleben EDGAR strukturell (§5.3).
 
 Reduzierter bezahlter Lauf (optional, wie Punkt 2): zweiseitig grün — ein γ-Drop bestätigt
 gedroppt, ein Rescue scored.
