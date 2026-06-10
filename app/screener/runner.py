@@ -119,16 +119,12 @@ def _assess_definedness_basket(
     n_defined = 0
 
     for record in records:
-        # Only assess volume+cap survivors in the suspect basket.
-        try:
-            vol_passes = passes_volume_filter(record)
-            cap_passes = passes_market_cap_filter(record)
-        except Exception:
-            # FilterConfigError (uncalibrated sentinel) or invariant violation —
-            # leave definedness=None so the gate fires normally.
-            continue
-
-        if not (vol_passes and cap_passes):
+        # Only assess volume+cap survivors in the suspect basket. Call the filters
+        # directly: any exception (FilterConfigError from an uncalibrated sentinel or
+        # an invariant violation resolution should have diverted) MUST propagate —
+        # a swallowed throw would leave definedness=None and let a spurious-positive
+        # suspect slip to the gross_margin gate as DEFINED-by-default (silent pass).
+        if not (passes_volume_filter(record) and passes_market_cap_filter(record)):
             continue
         if not _is_suspect(record):
             continue

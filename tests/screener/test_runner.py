@@ -3,13 +3,16 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 
-from app.errors import DataSourceError, DegradedDataError
+import pytest
+
+from app.errors import DataSourceError, DegradedDataError, FilterConfigError
 from app.models.definedness import DefinednessOutcome
 from app.models.run_record import RunRecord
 from app.models.screener_record import ScreenerRecord
 from app.screener.runner import (
     BasisFilterResult,
     ResolveReason,
+    _assess_definedness_basket,
     _resolve_market_cap_eur,
     run_basis_filter,
 )
@@ -839,3 +842,70 @@ def test_prepass_volume_failer_skipped_no_fetch():
     rec = result.resolved[0]
     assert rec.definedness is None
     mock.get_annual_statements.assert_not_called()
+
+
+def _suspect_record(**overrides) -> ScreenerRecord:
+    """A suspect-basket record that passes market_cap (volume controllable via overrides)."""
+    base = dict(
+        ticker="SUSPECT",
+        name="Financial Corp",
+        currency="EUR",
+        market_cap=5_000_000_000,
+        market_cap_eur=5_000_000_000,
+        avg_daily_volume=500_000,
+        price=100.0,
+        fx_rate=1.0,
+        gross_margin=None,  # None -> suspect basket
+        revenue_growth_yoy=0.05,
+        gics_sector="Financial Services",
+        gics_industry="Banks - Diversified",
+    )
+    base.update(overrides)
+    return ScreenerRecord(**base)
+
+
+def test_assess_basket_propagates_filterconfigerror_no_silent_none():
+    """An invariant-violation FilterConfigError in the volume gate MUST propagate —
+    a swallowed throw would leave definedness=None (DEFINED-by-default silent pass)."""
+    # fx_rate=None -> _avg_daily_value_eur returns None -> passes_volume_filter raises.
+    record = _suspect_record(fx_rate=None)
+    yf = MagicMock()
+
+    with pytest.raises(FilterConfigError):
+        _assess_definedness_basket([record], yf)
+
+    # The throw must NOT have been swallowed into a non-assessed pass.
+    assert record.definedness is None  # never reached the assessment
+    yf.get_annual_statements.assert_not_called()
+
+
+def test_assess_basket_propagates_arbitrary_exception():
+    """Catch-all removal, not FilterConfigError-specific: any exception propagates."""
+    import app.screener.runner as runner_module
+
+    record = _suspect_record()
+    yf = MagicMock()
+
+    def _boom(_rec):
+        raise RuntimeError("filter exploded")
+
+    original = runner_module.passes_volume_filter
+    runner_module.passes_volume_filter = _boom
+    try:
+        with pytest.raises(RuntimeError):
+            _assess_definedness_basket([record], yf)
+    finally:
+        runner_module.passes_volume_filter = original
+
+    yf.get_annual_statements.assert_not_called()
+
+
+def test_assess_basket_datasourceerror_still_unassessable():
+    """Regression: an income-statement DataSourceError -> UNASSESSABLE (not None, not METRIK_NA)."""
+    record = _suspect_record()
+    yf = MagicMock()
+    yf.get_annual_statements.side_effect = DataSourceError("timeout")
+
+    _assess_definedness_basket([record], yf)
+
+    assert record.definedness is DefinednessOutcome.UNASSESSABLE
