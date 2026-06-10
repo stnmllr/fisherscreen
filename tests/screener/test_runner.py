@@ -58,15 +58,15 @@ def test_run_skips_tickers_with_data_source_errors():
 
 
 def test_run_processes_multiple_tickers():
-    mock_yf = MagicMock()
-    mock_yf.get_fx_rate.return_value = _FX_USD_EUR
-
-    def side_effect(ticker):
-        if ticker == "GOOD":
-            return _PASSING_INFO
-        return {**_PASSING_INFO, "revenueGrowth": -0.10}  # declining revenue fails V3
-
-    mock_yf.get_ticker_info.side_effect = side_effect
+    # SHRK has a negative TTM, so the pre-pass fetches its income statement. A falling
+    # newest-first revenue series makes it a real gamma decline (CAGR < 0, down_years >= 2)
+    # -> dropped on the revenue_growth viability floor. GOOD has positive TTM (no fetch).
+    infos = {
+        "GOOD": _PASSING_INFO,
+        "SHRK": {**_PASSING_INFO, "revenueGrowth": -0.10},  # declining revenue
+    }
+    stmts = {"SHRK": _make_revenue_stmt([60.0, 80.0, 90.0, 100.0])}  # newest-first, falling
+    mock_yf = _make_full_yf_mock(infos, stmts=stmts)
     result = run_basis_filter(["GOOD", "SHRK"], mock_yf).passed
 
     assert len(result) == 1
