@@ -9,15 +9,21 @@ Ordering pin: the medians MUST be computed over the Fisher-eligible universe
 EXCLUDING the METRIK_NA set.  The METRIK_NA set is loaded from A1's output file:
   docs/superpowers/audits/2026-06-09-2-gross-margin-floor/metrik_na_tickers.json
 
-Exclusion predicate: ticker ∈ A1's METRIK_NA set (tickers classified UNDEFINED by
-the waterfall probe — no genuine COGS structure).  DEFINED_NEGATIVE tickers (real
-industrial negative-margin businesses) are explicitly KEPT so they contribute to
-their own sector-bucket median; the median is robust to occasional negative outliers.
-The Financials/Real-Estate sector string exclusion is removed: Capital-Markets
+Cleaning: the SHARED clean_universe definition (include_defined_negative=False)
+— ticker ∈ A1's METRIK_NA set is excluded, gm<=0/None is excluded (negatives OUT:
+the median anchors "normal-low-but-viable", gm<=0 are the pathological tail the
+gate exists to exclude), and NO sector-string filter is applied. Capital-Markets
 financials (S&P Global, Moody's, MSCI, exchanges, asset managers) have a real
-revenue→COGS→gross-profit waterfall, are classified DEFINED by A1, and MUST remain
-so their sector bucket median is built — otherwise the relative arm silently
-FAILs every sub-30%-margin compounder in that sector.
+revenue→COGS→gross-profit waterfall, are classified DEFINED by A1 (NOT in
+METRIK_NA), and therefore stay in their own bucket — otherwise the relative arm
+silently FAILs every sub-30%-margin compounder there. This is the IDENTICAL
+cleaning A3 and the dispersion instrument use, so the medians pinned here are the
+medians the rescue analysis is evaluated against.
+
+Acceptance: each bucket's gm distribution is passed through is_bucket_acceptable
+(constituent-median-spread OR antimode-gap reject). Only ACCEPTED buckets are
+pinned in `entries`; REJECTED buckets are left out of the table -> the relative
+arm cannot fire on them (runtime fail-safe by construction).
 """
 from __future__ import annotations
 
@@ -28,9 +34,11 @@ from pathlib import Path
 
 from app.errors import DataSourceError, DegradedDataError
 from app.models.screener_record import ScreenerRecord
+from app.screener.bucket_acceptance import is_bucket_acceptable
 from app.screener.compose import build_screener_pipeline
 from app.screener.filters import _node_chain
 from app.screener.sector_buckets import resolve_bucket
+from app.screener.universe_cleaning import clean_universe
 
 UNIVERSE = Path("data/universe.json")
 AUDIT_DIR = Path("docs/superpowers/audits/2026-06-09-2-gross-margin-floor")
@@ -56,13 +64,6 @@ def main() -> None:
     )
     print(f"Loaded {len(metrik_na)} METRIK_NA tickers from A1 output.")
 
-    # Exclusion predicate: ticker ∈ A1's waterfall-based METRIK_NA set.
-    # DEFINED_NEGATIVE tickers (real negative-margin industrials) stay in the universe.
-    # No sector-string sweep — Capital-Markets financials with a real COGS waterfall
-    # are classified DEFINED by A1 and must contribute to their own sector bucket.
-    def _is_excluded(rec: ScreenerRecord) -> bool:
-        return rec.ticker in metrik_na
-
     tickers: list[str] = json.loads(UNIVERSE.read_text(encoding="utf-8"))
     yf_cached = build_screener_pipeline()
 
@@ -80,8 +81,11 @@ def main() -> None:
     print(f"Universe loaded: {len(all_records)} records, {unresolved} unresolved")
 
     # --- GICS nest viability check ---
-    # yfinance .info only surfaces 'sector' (gics_sector) and 'industry' (gics_industry).
-    # No GICS Industry-Group or Sub-Industry is available from this source.
+    # yfinance .info surfaces 'sector' (gics_sector) and 'industry' (gics_industry).
+    # CT-B does NOT use the sector: _node_chain rolls the industry up to its GICS
+    # INDUSTRY GROUP via INDUSTRY_GROUP_MAP -> chain = [industry, group]. The group
+    # is the exogenous, margin-blind intermediate node; the sector (multimodal
+    # catch-all) is never consulted.
     has_industry = sum(1 for r in all_records if r.gics_industry)
     has_sector = sum(1 for r in all_records if r.gics_sector)
     has_neither = sum(1 for r in all_records if not r.gics_industry and not r.gics_sector)
@@ -90,22 +94,22 @@ def main() -> None:
     print(f"  gics_sector present:   {has_sector}/{len(all_records)}")
     print(f"  neither present:       {has_neither}/{len(all_records)}")
     print(
-        "  Finding: yfinance .info exposes only 2 GICS levels (sector + industry).\n"
-        "  No Industry-Group or Sub-Industry is available from this source.\n"
-        "  node_chain = [gics_industry, gics_sector]  (finest -> coarsest, 2 levels).\n"
-        "  CT-B decision: inspect the dispersion (min/max span) of the SECTOR-level\n"
-        "  fallback buckets reported in the dispersion table below. Wide/bimodal spans\n"
-        "  -> the 2-level nest is insufficient -> CT-B (Ticker->GICS-node mapping layer)\n"
-        "  is due. Do NOT conclude CT-B unnecessary from nest depth alone — let the\n"
-        "  dispersion decide."
+        "  node_chain = [gics_industry, gics_group]  (finest -> coarsest, 2 levels).\n"
+        "  The coarsest node is the GICS industry GROUP, NOT the sector. A bucket that\n"
+        "  resolves at the coarsest node is a GROUP rollup (the industry was below\n"
+        "  n_min). Whether such a bucket is pinned is decided by the ACCEPTANCE GATE\n"
+        "  (constituent-spread + antimode-gap), NOT by nest depth: a clean group\n"
+        "  rollup is pinned, a multimodal one is left out (fail-safe)."
     )
 
-    # --- Cleaned universe ---
-    cleaned: list[ScreenerRecord] = [r for r in all_records if not _is_excluded(r)]
+    # --- Cleaned universe (shared clean_universe; negatives OUT, no sector string) ---
+    cleaned: list[ScreenerRecord] = clean_universe(
+        all_records, metrik_na, include_defined_negative=False
+    )
     excluded_count = len(all_records) - len(cleaned)
     print(
         f"\nCleaned universe: {len(cleaned)} records "
-        f"(excluded {excluded_count} METRIK_NA tickers per A1 waterfall classification)"
+        f"(excluded {excluded_count}: METRIK_NA per A1 + gm<=0/None; NO sector-string filter)"
     )
 
     # --- Build counts over cleaned universe ---
@@ -114,11 +118,13 @@ def main() -> None:
         for node in _node_chain(rec):
             counts[node] = counts.get(node, 0) + 1
 
-    # --- Resolve bucket per record; group gross_margin by bucket; track sector fallbacks ---
+    # --- Resolve bucket per record; group gm by bucket; track group rollups + constituents ---
     bucket_gms: dict[str, list[float]] = {}
-    # A bucket is a sector-level fallback when resolve_bucket returns the last element of
-    # the node_chain (i.e. the coarsest/sector level, because the industry was below n_min).
-    sector_fallback_buckets: set[str] = set()
+    # A bucket is a GROUP rollup when resolve_bucket returns the coarsest node of the
+    # chain (the industry was below n_min, so it rolled up to its GICS industry GROUP).
+    group_rollup_buckets: set[str] = set()
+    # Per-bucket constituent-industry gm lists feed the acceptance gate's spread test.
+    bucket_constituent_gms: dict[str, dict[str, list[float]]] = {}
     no_bucket = 0
     for rec in cleaned:
         chain = _node_chain(rec)
@@ -130,53 +136,68 @@ def main() -> None:
         if gm is None:
             continue  # excluded above but defensive
         bucket_gms.setdefault(bucket, []).append(gm)
-        # Flag as sector-level fallback if bucket is the last (coarsest) node in the chain
+        industry = rec.gics_industry or "(none)"
+        bucket_constituent_gms.setdefault(bucket, {}).setdefault(industry, []).append(gm)
+        # Flag as a GROUP rollup if the bucket is the coarsest node of a multi-node chain.
         if chain and bucket == chain[-1] and len(chain) > 1:
-            sector_fallback_buckets.add(bucket)
+            group_rollup_buckets.add(bucket)
 
     print(f"  Records with no qualifying bucket (n_min={n_min}): {no_bucket}")
 
-    # --- Compute medians and build the candidate table ---
+    # --- Acceptance gate: only ACCEPTED buckets are pinned; rejected -> fail-safe ---
+    # is_bucket_acceptable rejects on constituent-median-spread (multi-industry
+    # heterogeneity) OR antimode-gap (multimodal distribution; the DEFECT-1 fix that
+    # catches single-industry multimodality BC alone misses). A rejected bucket is
+    # NOT pinned, so the relative arm cannot fire on it at runtime (fail-safe by
+    # construction). Acceptance — not nest depth / group-rollup status — decides.
     entries: dict[str, float] = {}
     bucket_counts: dict[str, int] = {}
+    bucket_verdict: dict[str, tuple[bool, list[str]]] = {}
     for bucket, gms in sorted(bucket_gms.items()):
-        entries[bucket] = statistics.median(gms)
-        bucket_counts[bucket] = counts.get(bucket, 0)
-
-    # Ensure every entry key is also in counts (loader consistency requirement)
-    for bucket in entries:
-        if bucket not in bucket_counts:
+        constituents = bucket_constituent_gms[bucket]
+        constituent_medians = [statistics.median(v) for v in constituents.values()]
+        accept, reasons = is_bucket_acceptable(gms, constituent_medians)
+        bucket_verdict[bucket] = (accept, reasons)
+        if accept:
+            entries[bucket] = statistics.median(gms)
             bucket_counts[bucket] = counts.get(bucket, 0)
 
-    # --- Print dispersion/multimodality sanity per bucket ---
-    # Buckets marked [SECTOR-FALLBACK] resolved at the coarsest level because the
-    # industry bucket was below n_min. These are multimodal risk: the relative arm
-    # FIRES (bucket_median returns a value) but the median may be meaningless if the
-    # sector mixes structurally different businesses (e.g. luxury+auto+retail).
-    # Wide min/max spans on these buckets are the CT-B trigger signal.
-    print(f"\n=== PER-BUCKET DISPERSION (n_min={n_min}) ===")
+    # --- Print per-bucket dispersion + PIN/REJECT verdict ---
+    print(f"\n=== PER-BUCKET DISPERSION + ACCEPTANCE (n_min={n_min}) ===")
     print(
-        f"{'Bucket':<50} {'n_gm':>5} {'pop':>5} {'median':>8} {'min':>8} {'max':>8} {'note'}"
+        f"{'Bucket':<46} {'n_gm':>5} {'pop':>5} {'median':>8} {'min':>8} {'max':>8} {'verdict'}"
     )
-    print("-" * 100)
-    for bucket in sorted(entries.keys()):
+    print("-" * 110)
+    pinned = 0
+    rejected = 0
+    for bucket in sorted(bucket_gms.keys()):
         gms = bucket_gms[bucket]
-        pop = bucket_counts[bucket]
-        note = "[SECTOR-FALLBACK]" if bucket in sector_fallback_buckets else ""
+        pop = counts.get(bucket, 0)
+        accept, reasons = bucket_verdict[bucket]
+        rollup = " GROUP-ROLLUP" if bucket in group_rollup_buckets else ""
+        if accept:
+            pinned += 1
+            verdict = "PINNED" + rollup
+        else:
+            rejected += 1
+            verdict = "REJECTED-FAIL-SAFE" + rollup
         print(
-            f"{bucket:<50} {len(gms):>5} {pop:>5} "
-            f"{entries[bucket]:>8.4f} {min(gms):>8.4f} {max(gms):>8.4f} {note}"
+            f"{bucket:<46} {len(gms):>5} {pop:>5} "
+            f"{statistics.median(gms):>8.4f} {min(gms):>8.4f} {max(gms):>8.4f} {verdict}"
         )
+        if reasons:
+            print(f"    -> reject reasons: {', '.join(reasons)}")
 
-    print(f"\nTotal buckets in table: {len(entries)}")
-    print(f"Sector-level fallback buckets: {len(sector_fallback_buckets)}")
-    if sector_fallback_buckets:
-        print(
-            "CT-B decision: inspect the [SECTOR-FALLBACK] rows above. "
-            "Wide/bimodal min/max spans indicate the 2-level nest is insufficient "
-            "and CT-B (Ticker->GICS-node mapping layer) is due. "
-            "Do NOT conclude CT-B unnecessary from nest depth alone — let the dispersion decide."
-        )
+    print(f"\nBuckets clearing n_min: {len(bucket_gms)}")
+    print(f"  PINNED (accepted, in table): {pinned}")
+    print(f"  REJECTED-FAIL-SAFE (not pinned, relative arm cannot fire): {rejected}")
+    print(f"  of which GROUP rollups (industry below n_min -> rolled to GICS group): "
+          f"{len(group_rollup_buckets)}")
+    print(
+        "Note: a GROUP rollup is NOT rejected for being a rollup — the acceptance gate\n"
+        "(constituent-spread + antimode-gap), not nest depth, decides pinning. A clean\n"
+        "group rollup is pinned; a multimodal one is left out (fail-safe by construction)."
+    )
 
     # --- Emit candidate JSON ---
     AUDIT_DIR.mkdir(parents=True, exist_ok=True)

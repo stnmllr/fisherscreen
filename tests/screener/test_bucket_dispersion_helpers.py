@@ -1,17 +1,13 @@
-"""Unit tests for the pure helpers extracted into the CT-B acceptance instrument
-scripts/diagnose_bucket_dispersion.py. The live sweep is Stephan's calibration run;
-only the math helpers are unit-tested here (no warm cache, no universe)."""
-import importlib.util
+"""Unit tests for the pure dispersion/shape helpers. These were extracted from the
+CT-B acceptance instrument (scripts/diagnose_bucket_dispersion.py) into the shared
+module app.screener.bucket_acceptance; the tests now import the module directly.
+The live sweep is Stephan's calibration run; only the math helpers are unit-tested
+here (no warm cache, no universe)."""
 import statistics
-from pathlib import Path
 
 import pytest
 
-# Load the script module by path (it lives under scripts/, not an importable package).
-_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "diagnose_bucket_dispersion.py"
-_spec = importlib.util.spec_from_file_location("diagnose_bucket_dispersion", _SCRIPT)
-mod = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(mod)
+import app.screener.bucket_acceptance as mod
 
 
 # --- sample_skewness ---

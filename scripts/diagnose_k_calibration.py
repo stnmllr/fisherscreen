@@ -24,25 +24,23 @@ from app.screener.compose import build_screener_pipeline
 from app.screener.filters import MIN_GROSS_MARGIN, _node_chain
 from app.screener.sector_buckets import SectorMedianTable, bucket_median
 from app.screener.sector_median_table import load_sector_median_table
+from app.screener.universe_cleaning import clean_universe
 
 UNIVERSE = Path("data/universe.json")
-CANDIDATE_JSON = Path(
-    "docs/superpowers/audits/2026-06-09-2-gross-margin-floor/"
-    "sector_median_table.candidate.json"
-)
+AUDIT_DIR = Path("docs/superpowers/audits/2026-06-09-2-gross-margin-floor")
+CANDIDATE_JSON = AUDIT_DIR / "sector_median_table.candidate.json"
+METRIK_NA_JSON = AUDIT_DIR / "metrik_na_tickers.json"
 
 K_CANDIDATES: list[float] = [0.3, 0.4, 0.5, 0.6, 0.7]
 
 
-def _is_excluded_proxy(rec: ScreenerRecord) -> bool:
-    """Same exclusion proxy as A2: drop METRIK_NA / Financials / REITs."""
-    gm = rec.gross_margin
-    if gm is None or gm <= 0:
-        return True
-    sector = rec.gics_sector or ""
-    if "Financ" in sector or "Real Estate" in sector:
-        return True
-    return False
+def _load_metrik_na() -> set[str]:
+    """Load A1's METRIK_NA set so A3 cleans the SAME universe as A2 / dispersion."""
+    if not METRIK_NA_JSON.exists():
+        raise SystemExit(
+            f"A1 output missing: {METRIK_NA_JSON} — run A1 (definedness probe) first."
+        )
+    return set(json.loads(METRIK_NA_JSON.read_text(encoding="utf-8"))["metrik_na"])
 
 
 def _load_candidate_table() -> tuple[SectorMedianTable, str]:
@@ -69,10 +67,15 @@ def main() -> None:
         f"n_min={table.n_min}, vintage={vintage}"
     )
 
+    metrik_na = _load_metrik_na()
+    print(f"Loaded {len(metrik_na)} METRIK_NA tickers from A1 output.")
+
     tickers: list[str] = json.loads(UNIVERSE.read_text(encoding="utf-8"))
     yf_cached = build_screener_pipeline()
 
-    # Build cleaned universe (warm cache, $0)
+    # Build cleaned universe (warm cache, $0) using the SHARED clean_universe
+    # definition (METRIK_NA out, negatives out, NO sector-string filter) — identical
+    # to A2 and the dispersion instrument, so k is calibrated against the same medians.
     all_records: list[ScreenerRecord] = []
     unresolved = 0
     for t in tickers:
@@ -83,7 +86,7 @@ def main() -> None:
             continue
         all_records.append(ScreenerRecord.from_yfinance_info(t, info))
 
-    cleaned = [r for r in all_records if not _is_excluded_proxy(r)]
+    cleaned = clean_universe(all_records, metrik_na, include_defined_negative=False)
     print(f"Cleaned universe: {len(cleaned)} records ({unresolved} unresolved)")
 
     # Sub-floor band: cleaned records with gm < MIN_GROSS_MARGIN (the relative arm matters here)
