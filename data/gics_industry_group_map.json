@@ -1,0 +1,76 @@
+{
+  "_meta": {
+    "purpose": "CT-B exogenous backbone (Punkt 2): yfinance gics_industry -> GICS Industry Group. The MARGIN-BLIND axis the dual-arm relative bucket rolls up to, replacing the multimodal GICS-sector catch-all. Only thin industries (those that do not clear n_min at their own industry level) need an entry; thick industries resolve at industry level before the group node is consulted, so their omission is harmless.",
+    "axis": "GICS Industry Group (published taxonomy). NEVER hand-trim groups toward margin coherence — that turns the dispersion/unimodality acceptance gate into a rubber stamp (adaptive-stat-swallows-judgment). The gate, not this map, decides which group-buckets are valid; multimodal groups simply are not pinned in the median table -> fail-safe.",
+    "vintage": "2026-06",
+    "grounding": "scripts/diagnose_industry_histogram.py over the 2026-06 cleaned universe (warm cache). Keys are the exact yfinance gics_industry strings observed thin (n<8).",
+    "review_flags": "Yahoo's taxonomy is not GICS (spec section 4). The following assignments are genuine cross-taxonomy ambiguities resolved to the best published GICS group, NOT by margin — confirm or override: 'Education & Training Services' (Yahoo->Consumer Defensive; GICS-> Commercial & Professional Services vs Consumer Services), 'Pharmaceutical Retailers' (Health Care vs Consumer Staples Distribution & Retail), 'Pollution & Treatment Controls' (Commercial & Professional Services vs Capital Goods), 'Rental & Leasing Services' (Capital Goods/Trading Companies vs Commercial & Professional Services), 'Solar' (Yahoo->Technology; GICS often Industrials/Semis), 'Recreational Vehicles' (Automobiles & Components vs Consumer Durables & Apparel). The dispersion gate catches a mis-assignment that makes a bucket multimodal, but NOT one that lands a name in a spuriously-coherent wrong group — these six need a human taxonomy call."
+  },
+  "map": {
+    "Steel": "Materials",
+    "Other Industrial Metals & Mining": "Materials",
+    "Agricultural Inputs": "Materials",
+    "Chemicals": "Materials",
+    "Gold": "Materials",
+    "Aluminum": "Materials",
+    "Copper": "Materials",
+    "Paper & Paper Products": "Materials",
+    "Lumber & Wood Production": "Materials",
+    "Other Precious Metals & Mining": "Materials",
+
+    "Advertising Agencies": "Media & Entertainment",
+    "Electronic Gaming & Multimedia": "Media & Entertainment",
+    "Publishing": "Media & Entertainment",
+    "Broadcasting": "Media & Entertainment",
+
+    "Internet Retail": "Consumer Discretionary Distribution & Retail",
+    "Auto & Truck Dealerships": "Consumer Discretionary Distribution & Retail",
+    "Home Improvement Retail": "Consumer Discretionary Distribution & Retail",
+    "Department Stores": "Consumer Discretionary Distribution & Retail",
+    "Footwear & Accessories": "Consumer Durables & Apparel",
+    "Furnishings, Fixtures & Appliances": "Consumer Durables & Apparel",
+    "Leisure": "Consumer Durables & Apparel",
+    "Recreational Vehicles": "Consumer Durables & Apparel",
+    "Resorts & Casinos": "Consumer Services",
+    "Gambling": "Consumer Services",
+    "Personal Services": "Consumer Services",
+
+    "Beverages - Non-Alcoholic": "Food Beverage & Tobacco",
+    "Beverages - Wineries & Distilleries": "Food Beverage & Tobacco",
+    "Beverages - Brewers": "Food Beverage & Tobacco",
+    "Farm Products": "Food Beverage & Tobacco",
+    "Confectioners": "Food Beverage & Tobacco",
+    "Tobacco": "Food Beverage & Tobacco",
+    "Food Distribution": "Consumer Staples Distribution & Retail",
+    "Education & Training Services": "Commercial & Professional Services",
+
+    "Oil & Gas Refining & Marketing": "Energy",
+    "Oil & Gas Drilling": "Energy",
+
+    "Healthcare Plans": "Health Care Equipment & Services",
+    "Medical Distribution": "Health Care Equipment & Services",
+    "Health Information Services": "Health Care Equipment & Services",
+    "Pharmaceutical Retailers": "Health Care Equipment & Services",
+
+    "Railroads": "Transportation",
+    "Trucking": "Transportation",
+    "Marine Shipping": "Transportation",
+    "Airports & Air Services": "Transportation",
+    "Consulting Services": "Commercial & Professional Services",
+    "Waste Management": "Commercial & Professional Services",
+    "Security & Protection Services": "Commercial & Professional Services",
+    "Staffing & Employment Services": "Commercial & Professional Services",
+    "Pollution & Treatment Controls": "Commercial & Professional Services",
+    "Conglomerates": "Capital Goods",
+    "Metal Fabrication": "Capital Goods",
+    "Rental & Leasing Services": "Capital Goods",
+
+    "Electronics & Computer Distribution": "Technology Hardware & Equipment",
+    "Consumer Electronics": "Technology Hardware & Equipment",
+    "Solar": "Technology Hardware & Equipment",
+
+    "Utilities - Renewable": "Utilities",
+    "Utilities - Independent Power Producers": "Utilities",
+    "Utilities - Regulated Water": "Utilities"
+  }
+}

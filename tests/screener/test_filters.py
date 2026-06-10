@@ -6,6 +6,7 @@ from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
 from app.screener.filters import (
     _get_fail_reason,
+    _node_chain,
     apply_basis_filters,
     passes_gross_margin_filter,
     passes_market_cap_filter,
@@ -327,6 +328,32 @@ def test_get_fail_reason_order_volume_before_definedness():
     assert _get_fail_reason(rec) == "avg_volume"
 
 
+# --- CT-B node chain: industry -> GICS group (NOT sector) ---
+# The GICS *sector* is multimodal (the catch-all contamination CT-B kills); the
+# *industry group* is the exogenous margin-blind intermediate. _node_chain rolls
+# industry up to its mapped group; the sector is never consulted.
+
+def test_node_chain_thick_industry_with_group_mapping(monkeypatch):
+    monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {"Railroads": "Transportation"})
+    rec = _record(gics_industry="Railroads", gics_sector="Industrials")
+    # finest -> coarsest: [industry, group]; sector ("Industrials") is absent
+    assert _node_chain(rec) == ["Railroads", "Transportation"]
+
+
+def test_node_chain_industry_without_mapping_is_industry_only(monkeypatch):
+    monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {})
+    rec = _record(gics_industry="Quantum Widgets", gics_sector="Technology")
+    # No group mapping -> chain is just [industry]; sector never appended (CT-B).
+    assert _node_chain(rec) == ["Quantum Widgets"]
+
+
+def test_node_chain_no_industry_is_empty(monkeypatch):
+    monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {"Railroads": "Transportation"})
+    rec = _record(gics_industry=None, gics_sector="Industrials")
+    # No industry -> no anchor for rollup -> empty chain (sector is NOT a fallback).
+    assert _node_chain(rec) == []
+
+
 # --- dual-arm sector-aware gross margin floor (Punkt 2 Mechanism 2 / C3) ---
 
 def test_absolute_arm_passes_high_margin():
@@ -335,51 +362,81 @@ def test_absolute_arm_passes_high_margin():
 
 def test_no_table_relative_arm_dormant_below_30():
     assert passes_gross_margin_filter(
-        _record(gross_margin=0.18, gics_sector="Consumer Discretionary"),
+        _record(gross_margin=0.18, gics_industry="Marine Shipping"),
         table=None,
     ) is False
 
 
-def test_relative_arm_rescues_low_margin_in_low_margin_sector():
+def test_relative_arm_rescues_at_industry_level():
+    # Thick industry: the industry itself clears n_min, so the bucket resolves at
+    # the industry node — the group rollup is not even consulted.
     table = SectorMedianTable(
-        entries={"Consumer Discretionary": 0.20},
+        entries={"Marine Shipping": 0.20},
         n_min=1,
-        counts={"Consumer Discretionary": 40},
+        counts={"Marine Shipping": 40},
     )
-    rec = _record(gross_margin=0.18, gics_sector="Consumer Discretionary")
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
     assert passes_gross_margin_filter(rec, table=table, k=0.5) is True
+
+
+def test_relative_arm_rescues_thin_industry_via_group_rollup(monkeypatch):
+    # Thin industry (below n_min) WITH a group mapping rolls up to the GROUP median.
+    monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {"Marine Shipping": "Transportation"})
+    table = SectorMedianTable(
+        entries={"Transportation": 0.20},          # group-level pinned median
+        n_min=8,
+        counts={"Marine Shipping": 3, "Transportation": 40},  # industry thin, group thick
+    )
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
+    assert passes_gross_margin_filter(rec, table=table, k=0.5) is True
+
+
+def test_relative_arm_fails_safe_thin_industry_without_mapping(monkeypatch):
+    # Thin industry WITHOUT a group mapping -> chain is just [industry], industry is
+    # below n_min -> resolve_bucket None -> no rescue. No wrong-bucket rescue beats a
+    # missing one (CT-B fail-safe). The sector is NEVER consulted as a fallback.
+    monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {})
+    table = SectorMedianTable(
+        entries={"Transportation": 0.20},
+        n_min=8,
+        counts={"Marine Shipping": 3, "Transportation": 40},
+    )
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping",
+                  gics_sector="Industrials")
+    assert passes_gross_margin_filter(rec, table=table, k=0.5) is False
 
 
 def test_relative_arm_does_not_rescue_real_tail():
     table = SectorMedianTable(
-        entries={"Consumer Discretionary": 0.20},
+        entries={"Marine Shipping": 0.20},
         n_min=1,
-        counts={"Consumer Discretionary": 40},
+        counts={"Marine Shipping": 40},
     )
-    rec = _record(gross_margin=0.05, gics_sector="Consumer Discretionary")
+    rec = _record(gross_margin=0.05, gics_industry="Marine Shipping")
     assert passes_gross_margin_filter(rec, table=table, k=0.5) is False
 
 
 def test_relative_arm_fails_safe_when_bucket_median_is_none():
-    # n_min=10 but the bucket has only 2 peers -> resolve_bucket returns None ->
-    # bucket_median None -> relative arm does not fire (thin-sector fail-safe, spec §4)
+    # n_min=10 but the industry bucket has only 2 peers and no group mapping ->
+    # resolve_bucket returns None -> bucket_median None -> relative arm does not fire
+    # (thin-industry fail-safe, spec §4).
     table = SectorMedianTable(
-        entries={"Consumer Discretionary": 0.20},
+        entries={"Marine Shipping": 0.20},
         n_min=10,
-        counts={"Consumer Discretionary": 2},
+        counts={"Marine Shipping": 2},
     )
-    rec = _record(gross_margin=0.18, gics_sector="Consumer Discretionary")
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
     assert passes_gross_margin_filter(rec, table=table, k=0.5) is False
 
 
 def test_determinism_independent_of_peer_membership():
     # The verdict is a fixed function of the record's gm and the PINNED median, not of
     # peer membership: the same record passes under one pinned table and fails under another.
-    rec = _record(gross_margin=0.18, gics_sector="Consumer Discretionary")
-    lenient = SectorMedianTable(entries={"Consumer Discretionary": 0.20}, n_min=1,
-                                counts={"Consumer Discretionary": 40})
-    strict = SectorMedianTable(entries={"Consumer Discretionary": 0.50}, n_min=1,
-                               counts={"Consumer Discretionary": 40})
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
+    lenient = SectorMedianTable(entries={"Marine Shipping": 0.20}, n_min=1,
+                                counts={"Marine Shipping": 40})
+    strict = SectorMedianTable(entries={"Marine Shipping": 0.50}, n_min=1,
+                               counts={"Marine Shipping": 40})
     # k=0.5: lenient bar = 0.10 (0.18 passes); strict bar = 0.25 (0.18 fails)
     assert passes_gross_margin_filter(rec, table=lenient, k=0.5) is True
     assert passes_gross_margin_filter(rec, table=strict, k=0.5) is False
@@ -389,11 +446,11 @@ def test_determinism_independent_of_peer_membership():
 
 def test_apply_basis_filters_rescues_with_table():
     table = SectorMedianTable(
-        entries={"Consumer Discretionary": 0.20},
+        entries={"Marine Shipping": 0.20},
         n_min=1,
-        counts={"Consumer Discretionary": 40},
+        counts={"Marine Shipping": 40},
     )
-    rec = _record(ticker="MAERSK", gross_margin=0.18, gics_sector="Consumer Discretionary")
+    rec = _record(ticker="MAERSK", gross_margin=0.18, gics_industry="Marine Shipping")
     result = filters.apply_basis_filters([rec], sector_table=table, relative_k=0.5)
     assert rec.filter_passed_basis is True
     assert result and result[0].ticker == "MAERSK"

@@ -3,6 +3,7 @@ import logging
 from app.errors import FilterConfigError
 from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
+from app.screener.industry_group_map import INDUSTRY_GROUP_MAP
 from app.screener.sector_buckets import SectorMedianTable, bucket_median
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,15 @@ def passes_volume_filter(record: ScreenerRecord) -> bool:
 
 
 def _node_chain(record: ScreenerRecord) -> list[str]:
-    return [n for n in (record.gics_industry, record.gics_sector) if n]
+    # CT-B (Punkt 2): roll industry up to its GICS *industry group*, NOT the sector.
+    # The GICS sector is multimodal — the catch-all contamination CT-B exists to kill;
+    # the group is the exogenous, margin-blind intermediate node. A thin industry with
+    # no map entry yields chain == [industry]; if that does not clear n_min, resolve_bucket
+    # returns None and the relative arm stays dormant (fail-safe: no rescue beats a
+    # wrong-bucket rescue). The sector is never consulted.
+    industry = record.gics_industry
+    group = INDUSTRY_GROUP_MAP.get(industry) if industry else None
+    return [n for n in (industry, group) if n]
 
 
 def passes_gross_margin_filter(
