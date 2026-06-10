@@ -39,6 +39,11 @@ class CachedYFinanceClient:
     def get_financials(self, ticker: str) -> Any:
         return self._yfinance.get_financials(ticker)
 
+    def get_annual_statements(self, ticker: str) -> Any:
+        # Income-statement DataFrames are large and change annually — not cached in Firestore.
+        # Delegate directly to the raw client for each call.
+        return self._yfinance.get_annual_statements(ticker)
+
     def get_forward_estimates(self, ticker: str) -> Any:
         return self._yfinance.get_forward_estimates(ticker)
 

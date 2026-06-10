@@ -1,5 +1,7 @@
 from app.config import settings
 from app.screener.run_tracker import RunTracker
+from app.screener.sector_buckets import SectorMedianTable
+from app.screener.sector_median_table import load_sector_median_table
 from app.services.cached_edgar_client import CachedEdgarClient
 from app.services.cached_gemini_client import CachedGeminiClient
 from app.services.cached_yfinance_client import CachedYFinanceClient
@@ -57,3 +59,11 @@ def build_github_client() -> GitHubClient:
         repo=settings.github_repo,
         branch=settings.github_branch,
     )
+
+
+def build_sector_median_table() -> SectorMedianTable | None:
+    """Load the pinned sector-median reference table from data/sector_median_table.json.
+
+    Returns None when the file is absent (fail-safe: relative arm stays dormant
+    until Phase E commits the calibrated table)."""
+    return load_sector_median_table()

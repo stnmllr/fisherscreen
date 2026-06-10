@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
 from app.models.screener_record import ScreenerRecord
+
+logger = logging.getLogger(__name__)
 
 # --- Tunable instrumentation constants (severity only; no gate touches these) ---
 LARGE_CAP_VOLUME_EUR = 3_000_000_000     # GATE_VOLUME: a big name failing volume ~ data bug
@@ -21,6 +24,13 @@ class ReasonCode(str, Enum):
     RESOLUTION_FX_UNAVAILABLE = "RESOLUTION_FX_UNAVAILABLE"
     GATE_VOLUME = "GATE_VOLUME"
     GATE_MARKET_CAP = "GATE_MARKET_CAP"
+    FRAMEWORK_METRIK_NA = "FRAMEWORK_METRIK_NA"  # Fisher-Raster nicht anwendbar (gm strukturell undefiniert)
+    # Transient/retryable: income-statement could not be fetched this run — not a quality-fail.
+    # RESOLUTION_ prefix follows the reason's SEMANTICS (a needed data fetch failed → divert →
+    # retry), not the stage it is reported at: it is the sibling of RESOLUTION_FX_UNAVAILABLE /
+    # RESOLUTION_NO_SYMBOL_DATA, and deliberately NOT grouped with the permanent, structural
+    # FRAMEWORK_METRIK_NA. It is still diverted at the BASIS stage (metric_na position).
+    RESOLUTION_STATEMENT_UNAVAILABLE = "RESOLUTION_STATEMENT_UNAVAILABLE"
     GATE_GROSS_MARGIN = "GATE_GROSS_MARGIN"
     GATE_REVENUE_GROWTH = "GATE_REVENUE_GROWTH"
     GATE_RESTATEMENT = "GATE_RESTATEMENT"
@@ -48,6 +58,8 @@ class Stage(str, Enum):
 _BASIS_REASON: dict[str, ReasonCode] = {
     "avg_volume": ReasonCode.GATE_VOLUME,
     "market_cap": ReasonCode.GATE_MARKET_CAP,
+    "metric_na": ReasonCode.FRAMEWORK_METRIK_NA,
+    "statement_unavailable": ReasonCode.RESOLUTION_STATEMENT_UNAVAILABLE,
     "gross_margin": ReasonCode.GATE_GROSS_MARGIN,
     "revenue_growth": ReasonCode.GATE_REVENUE_GROWTH,
 }
@@ -61,6 +73,7 @@ _ALWAYS_REVIEW = {
     ReasonCode.RESOLUTION_DEGRADED_DICT,
     ReasonCode.RESOLUTION_NO_SYMBOL_DATA,
     ReasonCode.RESOLUTION_FX_UNAVAILABLE,
+    ReasonCode.RESOLUTION_STATEMENT_UNAVAILABLE,  # transient/retryable — must not silently disappear
     ReasonCode.SCORE_NOT_SCORED,
 }
 
@@ -111,6 +124,10 @@ class FunnelSummary:
     stages: list[FunnelStage]
     review_flags: int
     pass_through_count: int
+    # Punkt 2 Phase E: tickers that cleared the gross-margin gate only via the relative
+    # arm (sub-floor rescues). ABSOLUTE_PASS is the implicit majority and is not listed —
+    # this list is the load-bearing prod audit signal for the rescue arm.
+    relative_rescues: list[str] = field(default_factory=list)
     provenance: dict[str, Any] | None = field(default=None)
 
     def stage(self, stage: Stage) -> FunnelStage:
@@ -128,6 +145,7 @@ class FunnelSummary:
             ],
             "review_flags": self.review_flags,
             "pass_through_count": self.pass_through_count,
+            "relative_rescues": self.relative_rescues,
             "provenance": self.provenance,
         }
 
@@ -260,6 +278,14 @@ def build_funnel(
                                   len(crosshits)))
 
     review_flags = sum(1 for d in dropouts if d.severity_bucket == SeverityBucket.REVIEW)
+    # Sub-floor names rescued by the relative gross-margin arm (Punkt 2 Phase E).
+    # ABSOLUTE_PASS is the implicit majority; the RELATIVE_RESCUE list is the audit signal.
+    relative_rescues = sorted(
+        r.ticker for r in basis.passed
+        if r.gross_margin_pass_reason == "RELATIVE_RESCUE"
+    )
+    logger.info("relative_rescues: n=%d %s", len(relative_rescues), relative_rescues)
     summary = FunnelSummary(stages=stages, review_flags=review_flags,
-                            pass_through_count=len(pass_through), provenance=provenance)
+                            pass_through_count=len(pass_through),
+                            relative_rescues=relative_rescues, provenance=provenance)
     return summary, dropouts

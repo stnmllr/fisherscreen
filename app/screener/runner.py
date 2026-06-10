@@ -11,9 +11,15 @@ from typing import TYPE_CHECKING
 from pydantic import ValidationError
 
 from app.errors import DataSourceError, DegradedDataError
+from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
+from app.screener import filters as _filters
+from app.screener.compose import build_sector_median_table
 from app.screener.filter_report import FilterReport, build_filter_report
-from app.screener.filters import apply_basis_filters, apply_edgar_filters
+from app.screener.filters import apply_basis_filters, apply_edgar_filters, passes_market_cap_filter, passes_volume_filter
+from app.screener.metric_definedness import assess_definedness
+from app.screener.sector_buckets import SectorMedianTable
+from app.services.income_statement import extract_waterfall_inputs
 
 if TYPE_CHECKING:
     from app.models.run_record import RunRecord
@@ -83,9 +89,97 @@ def _resolve_market_cap_eur(
     return record.market_cap * rate, ResolveReason.OK
 
 
+def _is_suspect(record: ScreenerRecord) -> bool:
+    """True when the record belongs to the definedness suspect basket.
+
+    Basket scoping (Financials/RE sector OR gm<=0) is FETCH-scoping, not a
+    classification key (verdict stays the waterfall). It rests on Gate-A's vintage
+    finding that the spurious-positive edge is subset of Financials/RE —
+    RE-VERIFY this at table re-vintage; see calibration.md.
+    """
+    sector = record.gics_sector or ""
+    if "Financ" in sector or "Real Estate" in sector:
+        return True
+    gm = record.gross_margin
+    return gm is None or gm <= 0
+
+
+def _assess_definedness_basket(
+    records: list[ScreenerRecord],
+    yfinance: "YFinanceClient",
+) -> None:
+    """Mutate definedness in-place for suspect basket ∩ volume+cap survivors.
+
+    Non-suspect records and records that fail volume/cap are left with
+    definedness=None (the gates will handle them in the normal order).
+    """
+    n_assessed = 0
+    n_metrik_na = 0
+    n_unassessable = 0
+    n_defined = 0
+
+    for record in records:
+        # Only assess volume+cap survivors in the suspect basket. Call the filters
+        # directly: any exception (FilterConfigError from an uncalibrated sentinel or
+        # an invariant violation resolution should have diverted) MUST propagate —
+        # a swallowed throw would leave definedness=None and let a spurious-positive
+        # suspect slip to the gross_margin gate as DEFINED-by-default (silent pass).
+        if not (passes_volume_filter(record) and passes_market_cap_filter(record)):
+            continue
+        if not _is_suspect(record):
+            continue
+
+        n_assessed += 1
+
+        # REIT short-circuit: no fetch needed.
+        if "REIT" in (record.gics_industry or ""):
+            record.definedness = DefinednessOutcome.METRIK_NA
+            n_metrik_na += 1
+            continue
+
+        # Fetch the income statement and classify the waterfall.
+        statement_available = False
+        income_stmt = None
+        try:
+            income_stmt = yfinance.get_annual_statements(record.ticker)[0]
+            statement_available = True
+        except DataSourceError as exc:
+            logger.warning(
+                "ticker=%s income_stmt fetch failed (UNASSESSABLE): %s",
+                record.ticker, exc,
+            )
+
+        _, total_revenue, cost_of_revenue, gross_profit, cor_present = (
+            extract_waterfall_inputs(income_stmt if statement_available else None)
+        )
+
+        outcome = assess_definedness(
+            record.gics_industry,
+            statement_available,
+            total_revenue,
+            cost_of_revenue,
+            gross_profit,
+            cor_present,
+        )
+        record.definedness = outcome
+
+        if outcome is DefinednessOutcome.METRIK_NA:
+            n_metrik_na += 1
+        elif outcome is DefinednessOutcome.UNASSESSABLE:
+            n_unassessable += 1
+        else:
+            n_defined += 1
+
+    logger.info(
+        "definedness_prepass: assessed=%d METRIK_NA=%d UNASSESSABLE=%d DEFINED=%d",
+        n_assessed, n_metrik_na, n_unassessable, n_defined,
+    )
+
+
 def run_basis_filter(
     tickers: list[str],
-    yfinance: YFinanceClient,
+    yfinance: "YFinanceClient",
+    sector_table: SectorMedianTable | None = None,
 ) -> BasisFilterResult:
     us_input = sum(1 for t in tickers if "." not in t)
     eu_input = len(tickers) - us_input
@@ -150,8 +244,19 @@ def run_basis_filter(
             len(no_symbol_data), len(fx_unavailable),
         )
 
+    # CT-A pre-pass: assess income-statement definedness for the suspect basket
+    # BEFORE apply_basis_filters. Only fetch for records that pass BOTH volume and
+    # market_cap (saves fetches; avoids over-diverting names that fail those gates
+    # anyway; keeps stage arithmetic monotone).
+    _assess_definedness_basket(records, yfinance)
+
+    table = sector_table if sector_table is not None else build_sector_median_table()
     return BasisFilterResult(
-        passed=apply_basis_filters(records),
+        passed=apply_basis_filters(
+            records,
+            sector_table=table,
+            relative_k=_filters.GROSS_MARGIN_RELATIVE_K,
+        ),
         unresolved=unresolved,
         resolved=records,
         degraded=sorted(degraded),

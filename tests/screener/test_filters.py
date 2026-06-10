@@ -2,14 +2,19 @@ import pytest
 
 import app.screener.filters as filters
 from app.errors import FilterConfigError
+from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
 from app.screener.filters import (
+    _get_fail_reason,
+    _node_chain,
     apply_basis_filters,
+    gross_margin_pass_reason,
     passes_gross_margin_filter,
     passes_market_cap_filter,
     passes_revenue_growth_filter,
     passes_volume_filter,
 )
+from app.screener.sector_buckets import SectorMedianTable
 
 
 def _record(**kwargs) -> ScreenerRecord:
@@ -265,3 +270,285 @@ def test_apply_edgar_filters_checks_restatement_before_going_concern():
 def test_apply_edgar_filters_returns_empty_for_empty_input():
     from app.screener.filters import apply_edgar_filters
     assert apply_edgar_filters([]) == []
+
+
+# --- metric_na / statement_unavailable divert (Punkt 2 CT-A) ---
+# The runner pre-pass sets record.definedness; filters.py reads the pre-computed field.
+
+def test_definedness_metrik_na_diverts_to_metric_na():
+    """Pre-computed METRIK_NA on a volume+cap-passing record -> reason 'metric_na'."""
+    rec = _record(ticker="BANK", gross_margin=0.0, definedness=DefinednessOutcome.METRIK_NA)
+    apply_basis_filters([rec])
+    assert rec.filter_failed_reason == "metric_na"
+
+
+def test_definedness_unassessable_diverts_to_statement_unavailable():
+    """Pre-computed UNASSESSABLE (fetch failed) -> reason 'statement_unavailable'."""
+    rec = _record(ticker="X", gross_margin=None, definedness=DefinednessOutcome.UNASSESSABLE)
+    apply_basis_filters([rec])
+    assert rec.filter_failed_reason == "statement_unavailable"
+
+
+def test_definedness_defined_continues_to_gross_margin_gate():
+    """DEFINED -> continues; with passing gross_margin the record passes basis."""
+    rec = _record(ticker="LOW", gross_margin=0.45, definedness=DefinednessOutcome.DEFINED)
+    result = apply_basis_filters([rec])
+    assert rec.filter_passed_basis is True
+    assert len(result) == 1
+
+
+def test_definedness_none_continues_to_gross_margin_gate():
+    """None (non-suspect, not assessed) -> continues; treated as DEFINED via None."""
+    rec = _record(ticker="NORM", gross_margin=0.45, definedness=None)
+    result = apply_basis_filters([rec])
+    assert rec.filter_passed_basis is True
+    assert len(result) == 1
+
+
+def test_definedness_defined_low_margin_still_fails_gross_margin():
+    """DEFINED with low margin -> continues past metric_na, fails gross_margin gate."""
+    rec = _record(ticker="LOW", gross_margin=0.10, definedness=DefinednessOutcome.DEFINED)
+    apply_basis_filters([rec])
+    assert rec.filter_failed_reason == "gross_margin"
+
+
+def test_volume_failer_with_unassessable_still_returns_avg_volume():
+    """volume gate fires BEFORE definedness check — order must be preserved."""
+    rec = _record(
+        ticker="ILLIQUID",
+        avg_daily_volume=10,       # fails volume gate
+        definedness=DefinednessOutcome.UNASSESSABLE,
+    )
+    apply_basis_filters([rec])
+    assert rec.filter_failed_reason == "avg_volume"
+
+
+def test_get_fail_reason_order_volume_before_definedness():
+    """Direct _get_fail_reason: UNASSESSABLE does not override a volume failure."""
+    rec = _record(ticker="Z", avg_daily_volume=10, definedness=DefinednessOutcome.UNASSESSABLE)
+    assert _get_fail_reason(rec) == "avg_volume"
+
+
+# --- CT-B node chain: industry -> GICS group (NOT sector) ---
+# The GICS *sector* is multimodal (the catch-all contamination CT-B kills); the
+# *industry group* is the exogenous margin-blind intermediate. _node_chain rolls
+# industry up to its mapped group; the sector is never consulted.
+
+def test_node_chain_thick_industry_with_group_mapping(monkeypatch):
+    monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {"Railroads": "Transportation"})
+    rec = _record(gics_industry="Railroads", gics_sector="Industrials")
+    # finest -> coarsest: [industry, group]; sector ("Industrials") is absent
+    assert _node_chain(rec) == ["Railroads", "Transportation"]
+
+
+def test_node_chain_industry_without_mapping_is_industry_only(monkeypatch):
+    monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {})
+    rec = _record(gics_industry="Quantum Widgets", gics_sector="Technology")
+    # No group mapping -> chain is just [industry]; sector never appended (CT-B).
+    assert _node_chain(rec) == ["Quantum Widgets"]
+
+
+def test_node_chain_no_industry_is_empty(monkeypatch):
+    monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {"Railroads": "Transportation"})
+    rec = _record(gics_industry=None, gics_sector="Industrials")
+    # No industry -> no anchor for rollup -> empty chain (sector is NOT a fallback).
+    assert _node_chain(rec) == []
+
+
+# --- dual-arm sector-aware gross margin floor (Punkt 2 Mechanism 2 / C3) ---
+
+def test_absolute_arm_passes_high_margin():
+    assert passes_gross_margin_filter(_record(gross_margin=0.45), table=None) is True
+
+
+def test_no_table_relative_arm_dormant_below_30():
+    assert passes_gross_margin_filter(
+        _record(gross_margin=0.18, gics_industry="Marine Shipping"),
+        table=None,
+    ) is False
+
+
+def test_relative_arm_rescues_at_industry_level():
+    # Thick industry: the industry itself clears n_min, so the bucket resolves at
+    # the industry node — the group rollup is not even consulted.
+    table = SectorMedianTable(
+        entries={"Marine Shipping": 0.20},
+        n_min=1,
+        counts={"Marine Shipping": 40},
+    )
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
+    assert passes_gross_margin_filter(rec, table=table, k=0.5) is True
+
+
+def test_relative_arm_rescues_thin_industry_via_group_rollup(monkeypatch):
+    # Thin industry (below n_min) WITH a group mapping rolls up to the GROUP median.
+    monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {"Marine Shipping": "Transportation"})
+    table = SectorMedianTable(
+        entries={"Transportation": 0.20},          # group-level pinned median
+        n_min=8,
+        counts={"Marine Shipping": 3, "Transportation": 40},  # industry thin, group thick
+    )
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
+    assert passes_gross_margin_filter(rec, table=table, k=0.5) is True
+
+
+def test_relative_arm_fails_safe_thin_industry_without_mapping(monkeypatch):
+    # Thin industry WITHOUT a group mapping -> chain is just [industry], industry is
+    # below n_min -> resolve_bucket None -> no rescue. No wrong-bucket rescue beats a
+    # missing one (CT-B fail-safe). The sector is NEVER consulted as a fallback.
+    monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {})
+    table = SectorMedianTable(
+        entries={"Transportation": 0.20},
+        n_min=8,
+        counts={"Marine Shipping": 3, "Transportation": 40},
+    )
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping",
+                  gics_sector="Industrials")
+    assert passes_gross_margin_filter(rec, table=table, k=0.5) is False
+
+
+def test_relative_arm_does_not_rescue_real_tail():
+    table = SectorMedianTable(
+        entries={"Marine Shipping": 0.20},
+        n_min=1,
+        counts={"Marine Shipping": 40},
+    )
+    rec = _record(gross_margin=0.05, gics_industry="Marine Shipping")
+    assert passes_gross_margin_filter(rec, table=table, k=0.5) is False
+
+
+def test_relative_arm_fails_safe_when_bucket_median_is_none():
+    # n_min=10 but the industry bucket has only 2 peers and no group mapping ->
+    # resolve_bucket returns None -> bucket_median None -> relative arm does not fire
+    # (thin-industry fail-safe, spec §4).
+    table = SectorMedianTable(
+        entries={"Marine Shipping": 0.20},
+        n_min=10,
+        counts={"Marine Shipping": 2},
+    )
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
+    assert passes_gross_margin_filter(rec, table=table, k=0.5) is False
+
+
+def test_determinism_independent_of_peer_membership():
+    # The verdict is a fixed function of the record's gm and the PINNED median, not of
+    # peer membership: the same record passes under one pinned table and fails under another.
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
+    lenient = SectorMedianTable(entries={"Marine Shipping": 0.20}, n_min=1,
+                                counts={"Marine Shipping": 40})
+    strict = SectorMedianTable(entries={"Marine Shipping": 0.50}, n_min=1,
+                               counts={"Marine Shipping": 40})
+    # k=0.5: lenient bar = 0.10 (0.18 passes); strict bar = 0.25 (0.18 fails)
+    assert passes_gross_margin_filter(rec, table=lenient, k=0.5) is True
+    assert passes_gross_margin_filter(rec, table=strict, k=0.5) is False
+
+
+# --- apply_basis_filters with sector table (Punkt 2 Mechanism 2 / C4) ---
+
+def test_apply_basis_filters_rescues_with_table():
+    table = SectorMedianTable(
+        entries={"Marine Shipping": 0.20},
+        n_min=1,
+        counts={"Marine Shipping": 40},
+    )
+    rec = _record(ticker="MAERSK", gross_margin=0.18, gics_industry="Marine Shipping")
+    result = filters.apply_basis_filters([rec], sector_table=table, relative_k=0.5)
+    assert rec.filter_passed_basis is True
+    assert result and result[0].ticker == "MAERSK"
+
+
+# --- gross_margin_pass_reason: ABSOLUTE_PASS vs RELATIVE_RESCUE (Punkt 2 Phase E) ---
+# A passing record must be auditable as either an absolute pass or a relative rescue.
+# RELATIVE_RESCUE is tagged ONLY for a SUB-FLOOR name (gm < MIN_GROSS_MARGIN AND
+# gm >= k*median). gm >= MIN_GROSS_MARGIN is always ABSOLUTE_PASS, never RELATIVE_RESCUE.
+
+def _bucket_table(median=0.30, n_min=1):
+    return SectorMedianTable(
+        entries={"Marine Shipping": median},
+        n_min=n_min,
+        counts={"Marine Shipping": 40},
+    )
+
+
+def test_pass_reason_absolute_above_floor():
+    rec = _record(gross_margin=0.40, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=None) == "ABSOLUTE_PASS"
+
+
+def test_pass_reason_relative_rescue_sub_floor():
+    # gm=0.20, k=0.5, median=0.30 -> bar=0.15, 0.20>=0.15 -> rescue
+    rec = _record(gross_margin=0.20, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=_bucket_table(0.30), k=0.5) == "RELATIVE_RESCUE"
+
+
+def test_pass_reason_none_sub_floor_below_relative_bar():
+    # gm=0.20, k=0.5, median=0.50 -> bar=0.25, 0.20<0.25 -> fails the gate
+    rec = _record(gross_margin=0.20, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=_bucket_table(0.50), k=0.5) is None
+
+
+def test_pass_reason_none_dormant_no_table():
+    # sub-floor, no table -> relative arm dormant -> None
+    rec = _record(gross_margin=0.20, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=None) is None
+
+
+def test_pass_reason_absolute_even_when_table_present():
+    # gm=0.40 clears k*median trivially but must NOT be tagged RELATIVE_RESCUE.
+    rec = _record(gross_margin=0.40, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=_bucket_table(0.30), k=0.5) == "ABSOLUTE_PASS"
+
+
+def test_pass_reason_none_when_gross_margin_missing():
+    rec = _record(gross_margin=None)
+    assert gross_margin_pass_reason(rec, table=_bucket_table(0.30), k=0.5) is None
+
+
+def test_pass_reason_none_when_bucket_median_none():
+    # thin bucket, no group mapping -> bucket_median None -> no rescue
+    table = SectorMedianTable(entries={"Marine Shipping": 0.20}, n_min=10,
+                              counts={"Marine Shipping": 2})
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=table, k=0.5) is None
+
+
+# --- delegation regression: passes_gross_margin_filter == (pass_reason is not None) ---
+
+def test_passes_filter_delegates_to_pass_reason():
+    table = _bucket_table(0.30)
+    cases = [
+        (_record(gross_margin=0.40, gics_industry="Marine Shipping"), None, None),
+        (_record(gross_margin=0.40, gics_industry="Marine Shipping"), table, 0.5),
+        (_record(gross_margin=0.20, gics_industry="Marine Shipping"), table, 0.5),
+        (_record(gross_margin=0.20, gics_industry="Marine Shipping"),
+         _bucket_table(0.50), 0.5),
+        (_record(gross_margin=0.20, gics_industry="Marine Shipping"), None, None),
+        (_record(gross_margin=None), table, 0.5),
+    ]
+    for rec, tbl, k in cases:
+        expected = gross_margin_pass_reason(rec, tbl, k) is not None
+        assert passes_gross_margin_filter(rec, tbl, k) is expected
+
+
+# --- apply_basis_filters tags gross_margin_pass_reason on PASSING records only ---
+
+def test_apply_basis_filters_tags_absolute_pass():
+    rec = _record(ticker="ABS", gross_margin=0.45)
+    apply_basis_filters([rec])
+    assert rec.filter_passed_basis is True
+    assert rec.gross_margin_pass_reason == "ABSOLUTE_PASS"
+
+
+def test_apply_basis_filters_tags_relative_rescue():
+    table = _bucket_table(0.30)
+    rec = _record(ticker="RES", gross_margin=0.20, gics_industry="Marine Shipping")
+    filters.apply_basis_filters([rec], sector_table=table, relative_k=0.5)
+    assert rec.filter_passed_basis is True
+    assert rec.gross_margin_pass_reason == "RELATIVE_RESCUE"
+
+
+def test_apply_basis_filters_does_not_tag_failing_record():
+    rec = _record(ticker="SMALL", market_cap_eur=1_000_000_000)  # fails market_cap
+    apply_basis_filters([rec])
+    assert rec.filter_passed_basis is False
+    assert rec.gross_margin_pass_reason is None
