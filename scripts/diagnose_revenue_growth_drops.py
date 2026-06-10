@@ -42,11 +42,14 @@ from collections import Counter
 from pathlib import Path
 
 from app.errors import DataSourceError
+from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
 from app.screener import filters
 from app.screener.compose import build_screener_pipeline, build_sector_median_table
 from app.screener.filters import gross_margin_pass_reason
+from app.screener.revenue_trajectory import classify_revenue_trajectory, is_gamma_decline
 from app.screener.runner import run_basis_filter
+from app.services.income_statement import extract_revenue_series
 
 UNIVERSE = Path("data/universe.json")
 OUT_DIR = Path("docs/superpowers/audits/2026-06-10-punkt-3-revenue-growth")
@@ -139,98 +142,101 @@ def summarise(drops: list[ScreenerRecord], table: object, k: float | None) -> No
 
 
 def fetch_trend(ticker: str, yf: object) -> dict:
-    """Stage 2: pull multi-year annual Total Revenue and classify the trajectory."""
+    """Stage 2: pull multi-year annual Total Revenue and classify via the PRODUCTION gamma
+    core (`extract_revenue_series` + `classify_revenue_trajectory` + `is_gamma_decline`), so
+    the diagnostic and the live gate share one semantics. `trend_class` mirrors the gate
+    outcome on the TTM<0/None branch:
+      DECLINE_DROP      - DEFINED and gamma (CAGR<0 AND down_years>=2): the only drop.
+      TRAJECTORY_RESCUE - DEFINED but not gamma (positive CAGR or single down-year).
+      UNASSESSABLE_PASS - <4 GJ (criterion could not apply) -> floor pass.
+      FETCH_FAILED      - income_stmt fetch raised; in prod this is UNASSESSABLE->pass too,
+                          kept distinct here for audit visibility."""
     try:
         income_stmt = yf.get_annual_statements(ticker)[0]
     except DataSourceError:
         return {"trend_class": "FETCH_FAILED", "revenues": [], "cagr": None, "down_years": None}
 
-    if getattr(income_stmt, "ndim", None) != 2 or getattr(income_stmt, "empty", True):
-        return {"trend_class": "INSUFFICIENT_DATA", "revenues": [], "cagr": None, "down_years": None}
-    if "Total Revenue" not in income_stmt.index:
-        return {"trend_class": "INSUFFICIENT_DATA", "revenues": [], "cagr": None, "down_years": None}
-
-    row = income_stmt.loc["Total Revenue"]
-    # Columns are newest-first; reverse to oldest->newest for trajectory reasoning.
-    revs: list[float] = []
-    for val in reversed(list(row)):
-        try:
-            f = float(val)
-        except (TypeError, ValueError):
-            continue
-        if f == f and f > 0:  # drop NaN and non-positive
-            revs.append(f)
-
-    if len(revs) < 2:
-        return {"trend_class": "INSUFFICIENT_DATA", "revenues": revs, "cagr": None, "down_years": None}
-
-    yoy = [(revs[i] - revs[i - 1]) / revs[i - 1] for i in range(1, len(revs))]
-    down_years = sum(1 for g in yoy if g < 0)
-    years = len(revs) - 1
-    cagr = (revs[-1] / revs[0]) ** (1 / years) - 1 if revs[0] > 0 else None
-
-    # Classify: only the latest year down on an otherwise up multi-year trend = a dip the
-    # hard gate kills unfairly; multiple down years or negative CAGR = a real decliner.
-    latest_down = yoy[-1] < 0
-    if not latest_down:
-        trend_class = "RECOVERED"  # TTM-snapshot gate disagrees with the annual trend
-    elif down_years == 1 and (cagr is not None and cagr > 0):
-        trend_class = "SINGLE_YEAR_DIP"
-    elif down_years >= 2 or (cagr is not None and cagr < 0):
-        trend_class = "MULTI_YEAR_DECLINE"
+    revenues = extract_revenue_series(income_stmt)
+    cagr, down_years, defn = classify_revenue_trajectory(revenues)
+    if defn is DefinednessOutcome.UNASSESSABLE:
+        trend_class = "UNASSESSABLE_PASS"
+    elif is_gamma_decline(cagr, down_years):
+        trend_class = "DECLINE_DROP"
     else:
-        trend_class = "MIXED"
+        trend_class = "TRAJECTORY_RESCUE"
 
     return {
         "trend_class": trend_class,
-        "revenues": revs,
+        "revenues": revenues,
         "cagr": cagr,
         "down_years": down_years,
-        "yoy": yoy,
     }
 
 
 def full_sweep(passed: list[ScreenerRecord]) -> None:
-    """One-time offline audit: apply the multi-year trajectory classification to the
-    basis SURVIVORS (which all passed today's TTM>=0 gate). The slip-through basket X
-    = survivors classified MULTI_YEAR_DECLINE: they pass today AND would pass the hybrid
-    lazy-fetch gate (TTM>=0 -> never re-checked), yet their multi-year revenue declines.
-    Quantifies the accepted asymmetry residuum before spec freeze. $0, runtime irrelevant.
+    """Residuum derivation X, directly as TTM>=0 AND CAGR<0 AND down_years>=2 over the survivors.
+
+    The slip-through candidates are EXACTLY the survivors the lazy gate never re-checked —
+    those tagged `revenue_growth_pass_reason == "TTM_PASS"` (TTM>=0). For each, fetch the
+    multi-year trajectory fresh and keep it iff it is a genuine gamma decline. Survivors
+    tagged TRAJECTORY_RESCUE / UNASSESSABLE_PASS were already re-checked by the gate and
+    cannot slip, so they are excluded by construction (not by a trajectory re-test).
+
+    Three invariants are asserted so the printed number, the gamma rule, and the frozen
+    provenance blob describe ONE identical set (catches alpha-vs-gamma drift between the
+    diagnostic and the spec/docs): every slip row satisfies gamma; the CSV row count equals
+    the printed X; the survivor base is derived explicitly from pass_reason. $0.
     """
-    print(f"\n=== FULL SWEEP: trajectory over {len(passed)} basis survivors ===")
+    base = Counter(r.revenue_growth_pass_reason for r in passed)
+    print(f"\n=== FULL SWEEP: {len(passed)} basis survivors ===")
+    print("survivor base by revenue_growth_pass_reason (derives the 731->839 shift):")
+    for reason, n in base.most_common():
+        print(f"    {n:>4}  {reason}")
+    print("    (TTM_PASS = TTM>=0, never re-checked -> the only slip-through candidates;")
+    print("     TRAJECTORY_RESCUE / UNASSESSABLE_PASS were re-checked and cannot slip.)")
+
     yf = build_screener_pipeline()
-    counter: Counter = Counter()
     slip: list[tuple] = []
     for r in passed:
+        if r.revenue_growth_pass_reason != "TTM_PASS":
+            continue  # re-checked by the gate already -> not a slip candidate
         t = fetch_trend(r.ticker, yf)
-        counter[t["trend_class"]] += 1
-        if t["trend_class"] == "MULTI_YEAR_DECLINE":
+        if t["trend_class"] == "DECLINE_DROP":  # gamma on a fresh multi-year fetch
             slip.append((r.ticker, r.name or "", (r.market_cap_eur or 0) / 1e9,
                          r.revenue_growth_yoy, t["cagr"], t["down_years"]))
-    print("\nSurvivor trajectory distribution:")
-    for cls, n in counter.most_common():
-        print(f"    {n:>4}  {cls}")
-    print(
-        f"\nX (slip-through residuum) = {len(slip)} survivors: TTM>=0 today but "
-        f"MULTI_YEAR_DECLINE multi-year"
-    )
+
+    # INVARIANT 1 — every slip row is gamma (CAGR<0 AND down_years>=2). A violation means the
+    # sweep classifier and the spec rule diverged (the exact alpha-vs-gamma drift to catch).
+    for tk, _nm, _mc, _yoy, cagr, dy in slip:
+        assert cagr is not None and cagr < 0 and (dy or 0) >= 2, (
+            f"slip row {tk} violates gamma: cagr={cagr} down_years={dy}"
+        )
+
+    large = sum(1 for s in slip if s[2] >= 10)
+    print(f"\nX (slip-through residuum) = {len(slip)} survivors (TTM>=0 AND gamma), {large} >=10B")
     for tk, nm, mc, yoy, cagr, dy in sorted(slip, key=lambda s: -s[2]):
+        ttm = 0.0 if yoy == 0 else yoy  # normalise -0.0 so no reviewer trips over signed zero
         print(
             f"    {tk:<12} {nm[:28]:<28} mc={mc:>6.1f}B  "
-            f"ttm_yoy={_pct(yoy)}  cagr={_pct(cagr)}  down_years={dy}"
+            f"ttm_yoy={_pct(ttm)}  cagr={_pct(cagr)}  down_years={dy}"
         )
     out = OUT_DIR / "full_sweep_slipthrough.csv"
     with out.open("w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["ticker", "name", "market_cap_eur_b", "ttm_yoy", "multiyear_cagr", "down_years"])
         for tk, nm, mc, yoy, cagr, dy in slip:
-            w.writerow([tk, nm, round(mc, 2), yoy, cagr, dy])
-    print(f"\nWrote {len(slip)} slip-through rows -> {out}")
+            ttm = 0.0 if yoy == 0 else yoy
+            w.writerow([tk, nm, round(mc, 2), ttm, cagr, dy])
+    # INVARIANT 2 — the frozen blob row count equals the printed X (number == blob).
+    written = sum(1 for _ in out.open(encoding="utf-8")) - 1
+    assert written == len(slip), f"blob has {written} rows, X={len(slip)}"
+    print(f"\nWrote {len(slip)} slip-through rows -> {out}  (every row gamma; count==X)")
 
 
 def main() -> None:
     with_trend = "--with-trend" in sys.argv
     do_full_sweep = "--full-sweep" in sys.argv
+    write_drops = "--write-drops" in sys.argv
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     drops, passed, table, k = collect_drops()
@@ -278,12 +284,23 @@ def main() -> None:
         for cls, n in class_counter.most_common():
             print(f"    {n:>4}  {cls}")
 
-    fieldnames = list(rows[0].keys())
-    with CSV_PATH.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-    print(f"\nWrote {len(rows)} rows -> {CSV_PATH}")
+    # The drop-cohort CSV is the FROZEN vintage-2026-06 provenance fixture (189 rows, the
+    # pre-Punkt-3 flat-gate cohort that the hermetic acceptance test locks against). Post-ship
+    # this script runs the NEW gate and would write only the live gamma-drops (~81), clobbering
+    # the fixture — so the write is OFF by default. Pass --write-drops only to deliberately
+    # re-vintage it.
+    if write_drops:
+        fieldnames = list(rows[0].keys())
+        with CSV_PATH.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f"\nWrote {len(rows)} rows -> {CSV_PATH}")
+    else:
+        print(
+            f"\n(drop-cohort CSV write SKIPPED — {CSV_PATH.name} is the frozen vintage fixture; "
+            "pass --write-drops to re-vintage)"
+        )
 
 
 if __name__ == "__main__":
