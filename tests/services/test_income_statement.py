@@ -92,3 +92,27 @@ def test_none_value_in_row_returns_none():
     available, rev, cor, gp, cor_present = extract_waterfall_inputs(stmt)
     assert available is True
     assert rev is None
+
+
+# --- SEAM-4 contract guard: non-2-D inputs degrade gracefully ---
+
+def test_series_input_returns_not_available():
+    """A pandas Series (1-D) is a contract violation; degrade to not-available
+    instead of raising AttributeError downstream in _first_col_value."""
+    series = pd.Series({"Total Revenue": 1_000.0, "Cost Of Revenue": 300.0})
+    available, rev, cor, gp, cor_present = extract_waterfall_inputs(series)
+    assert available is False
+    assert rev is None
+    assert cor is None
+    assert gp is None
+    assert cor_present is False
+
+
+def test_scalar_input_returns_not_available():
+    """A scalar (no ndim) degrades to not-available."""
+    available, rev, cor, gp, cor_present = extract_waterfall_inputs(42.0)
+    assert available is False
+    assert rev is None
+    assert cor is None
+    assert gp is None
+    assert cor_present is False

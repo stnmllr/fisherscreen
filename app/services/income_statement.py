@@ -47,6 +47,11 @@ def extract_waterfall_inputs(
     - cost_of_revenue_present: True when "Cost Of Revenue" is in income_stmt.index
       (only meaningful when statement_available is True).
     """
+    # Contract: we extract only from a 2-D income-statement frame. A Series/scalar
+    # (an easy pandas slip at a call site) degrades to "not available" rather than
+    # raising AttributeError downstream in _first_col_value.
+    if getattr(income_stmt, "ndim", None) != 2:
+        return False, None, None, None, False
     if income_stmt is None or getattr(income_stmt, "empty", True):
         return False, None, None, None, False
 
