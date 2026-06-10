@@ -1,130 +1,118 @@
 """Unit tests for the shared bucket-acceptance module (Punkt 2, CT-B).
 
-DEFECT 1 fix: the acceptance gate must reject single-industry multimodal buckets
-that the bimodality coefficient under-detects. The discriminator is an
-ANTIMODE / GAP — an empty histogram bin separating two populated regions — NOT
-raw width. Wide-but-UNIMODAL buckets must still PASS ("weit ist erlaubt,
-multimodal nicht").
+The acceptance gate's harm-discriminator is an ABSOLUTE below-median gross-margin
+regime gap, NOT a scale-relative shape statistic. A human proof showed every
+scale-RELATIVE normalization (gap/median, gap/IQR, gap/std, KDE-trough/bandwidth)
+ranks the two critical buckets BACKWARDS — benign Grocery looks more anomalous
+than harmful SBS — because the gap and the spread co-scale. The discriminating
+signal is gross-margin PERCENTAGE POINTS: a low subpopulation >= 10pp below the
+bucket median is a real cost-structure / regime break (contract-mfr vs brand,
+commodity vs specialty); < 10pp is sampling noise. A gap ABOVE the median is
+harmless (the low names ARE the median region) and never fires.
+
+Margin-awareness falls ONLY for the acceptance test, not the bucketing (GICS
+stays exogenous) -> no circularity.
 
 Synthetic fixtures only (no real tickers; thresholds are not fitted to them).
+The shapes are labelled by the real bucket they abstract.
 """
 from __future__ import annotations
 
 from app.screener.bucket_acceptance import (
-    has_antimode_gap,
+    has_below_median_regime_gap,
     is_bucket_acceptable,
 )
 
 
-# --- has_antimode_gap: real-case regression (acceptance spec) ---
-# Reconstructed from the human review of actual GICS sector-median buckets.
-# These are the acceptance spec, not outcome-tuning: 2 must reject, 2 must pass.
+# --- has_below_median_regime_gap: acceptance spec (abstract shapes) ---
 
-def test_antimode_gap_real_sbs_like_rejects():
-    # "Specialized Business Services"-like: a low cluster (~0.11-0.25) and a
-    # separate upper region (~0.46-0.75) with a clear valley between -> reject.
-    vals = [0.11, 0.11, 0.14, 0.15, 0.25,
-            0.46, 0.48, 0.49, 0.52, 0.55, 0.58, 0.62, 0.66, 0.70, 0.75]
-    assert has_antimode_gap(vals) is True
+def test_regime_gap_sbs_shape_rejects():
+    # SBS-shape: a low cluster + a >=0.10 gap BELOW the median + an upper body.
+    # gap 0.30->0.42 = 0.12, below median ~0.52, 5/13 = 38% below -> reject.
+    vals = [0.11, 0.12, 0.13, 0.25, 0.30,
+            0.42, 0.48, 0.52, 0.58, 0.62, 0.66, 0.70, 0.75]
+    assert has_below_median_regime_gap(vals) is True
 
 
-def test_antimode_gap_real_travel_like_rejects():
-    # "Travel Services"-like (n=9): a lone low point (0.083), a mid cluster
-    # (~0.49-0.58) and an upper cluster (~0.82-0.90). The mid->upper jump is a
-    # real valley separating two non-trivial sides -> reject. (Old sqrt(n)
-    # binning aliased this boundary into a bin and MISSED it.)
-    vals = [0.083, 0.49, 0.51, 0.53, 0.55, 0.58, 0.82, 0.86, 0.90]
-    assert has_antimode_gap(vals) is True
+def test_regime_gap_computer_hardware_shape_rejects():
+    # ComputerHardware-shape: gap 0.20->0.39 = 0.19 below median 0.43,
+    # 3/9 = 33% below -> reject.
+    vals = [0.084, 0.19, 0.20, 0.39, 0.43, 0.47, 0.52, 0.60, 0.70]
+    assert has_below_median_regime_gap(vals) is True
 
 
-def test_antimode_gap_real_chem_wide_unimodal_passes():
-    # Chemicals-like: wide but continuous (neighbour spacings all comparable) ->
-    # no valley -> PASS. Width alone is not a reject reason.
-    vals = [0.14, 0.18, 0.20, 0.23, 0.25, 0.28, 0.30, 0.33, 0.33, 0.36, 0.40, 0.44, 0.50]
-    assert has_antimode_gap(vals) is False
+def test_regime_gap_aero_defense_shape_accepts():
+    # A&D-shape: continuous, dense core, thin right tail. NO >=0.10 gap below the
+    # median; the only larger gaps are ABOVE the median in the tail. Wide != bimodal
+    # (Correction 1) -> must stay accepted.
+    vals = [0.05, 0.10, 0.13, 0.15, 0.18, 0.20, 0.22, 0.24, 0.26, 0.30, 0.34, 0.40, 0.48, 0.60]
+    assert has_below_median_regime_gap(vals) is False
 
 
-def test_antimode_gap_real_grocery_tight_passes():
-    # Grocery-like (n=8): two low points then a tight cluster; no neighbour gap
-    # reaches 4x the typical spacing with both sides non-trivial -> PASS.
+def test_regime_gap_grocery_shape_accepts():
+    # Grocery-shape: largest sub-median gap 0.064 < 0.10 -> noise -> accept.
     vals = [0.067, 0.076, 0.14, 0.18, 0.21, 0.24, 0.27, 0.29]
-    assert has_antimode_gap(vals) is False
+    assert has_below_median_regime_gap(vals) is False
 
 
-# --- has_antimode_gap ---
-
-def test_antimode_gap_two_clusters_with_empty_separation():
-    # Two tight clusters near 0.1 and 0.9 with nothing in between -> empty middle
-    # bins, each side roughly half the mass -> antimode gap present.
-    low = [0.10, 0.11, 0.12, 0.13, 0.14]
-    high = [0.86, 0.87, 0.88, 0.89, 0.90]
-    assert has_antimode_gap(low + high) is True
+def test_regime_gap_airlines_shape_accepts():
+    # Airlines-shape: the >=0.10 gap (0.23->0.33) is ABOVE the median ~0.225 ->
+    # never fires above the median -> accept.
+    vals = [0.19, 0.20, 0.21, 0.22, 0.23, 0.33, 0.36, 0.39]
+    assert has_below_median_regime_gap(vals) is False
 
 
-def test_antimode_gap_false_for_wide_continuous_unimodal():
-    # Wide spread but continuous (every bin populated): no empty separating bin.
-    vals = [0.10, 0.18, 0.27, 0.33, 0.41, 0.50, 0.58, 0.66, 0.74, 0.83, 0.90]
-    assert has_antimode_gap(vals) is False
+def test_regime_gap_single_low_outlier_accepts():
+    # A big gap below the median (0.08->0.50 = 0.42) but only 1/8 = 12.5% mass below
+    # it (< 20%) -> a lone outlier is not a subpopulation -> accept.
+    vals = [0.08, 0.50, 0.52, 0.54, 0.56, 0.58, 0.60, 0.62]
+    assert has_below_median_regime_gap(vals) is False
 
 
-def test_antimode_gap_false_for_tight_cluster():
-    vals = [0.40, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46]
-    assert has_antimode_gap(vals) is False
-
-
-def test_antimode_gap_false_for_small_n():
+def test_regime_gap_false_for_small_n():
     # n < 6 cannot be assessed -> always False.
-    assert has_antimode_gap([0.1, 0.9, 0.1, 0.9, 0.1]) is False
+    assert has_below_median_regime_gap([0.10, 0.11, 0.50, 0.60, 0.61]) is False
 
 
-def test_antimode_gap_false_for_all_equal_values():
-    # Degenerate: all neighbour gaps are zero -> cannot assess -> False.
-    assert has_antimode_gap([0.30] * 8) is False
+def test_regime_gap_false_for_all_equal_values():
+    # Degenerate: no gap at all -> False.
+    assert has_below_median_regime_gap([0.30] * 8) is False
 
 
-def test_antimode_gap_false_for_single_left_edge_outlier():
-    # A lone low outlier then a dense upper cluster: only ONE value sits on the
-    # left side of the big gap (< 20% of the mass) -> not a non-trivial split.
-    vals = [0.05] + [0.80, 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87, 0.88]
-    assert has_antimode_gap(vals) is False
-
-
-def test_antimode_gap_false_when_one_side_below_min_fraction():
-    # A single far outlier (one point on the far side) is NOT a cluster: the outlier
-    # side holds < min_side_fraction of the mass -> no qualifying antimode gap.
-    main = [0.40, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48]
-    outlier = [0.95]
-    assert has_antimode_gap(main + outlier) is False
+def test_regime_gap_gap_exactly_at_threshold_rejects():
+    # gap exactly 0.10 below the median with >= 20% mass below -> reject (>=).
+    # low cluster 0.10,0.12,0.15 then 0.25 (gap 0.15->0.25 = 0.10), median ~0.40.
+    vals = [0.10, 0.12, 0.15, 0.25, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65]
+    assert has_below_median_regime_gap(vals) is True
 
 
 # --- is_bucket_acceptable ---
 
-def test_acceptable_false_via_antimode_gap():
-    low = [0.10, 0.11, 0.12, 0.13, 0.14]
-    high = [0.86, 0.87, 0.88, 0.89, 0.90]
-    values = low + high
+def test_acceptable_false_via_regime_gap():
+    values = [0.11, 0.12, 0.13, 0.25, 0.30,
+              0.42, 0.48, 0.52, 0.58, 0.62, 0.66, 0.70, 0.75]
     # single-industry: one constituent median, no spread
-    accept, reasons = is_bucket_acceptable(values, [0.50])
+    accept, reasons = is_bucket_acceptable(values, [0.52])
     assert accept is False
-    assert any("antimode" in r.lower() for r in reasons)
+    assert any("regime gap" in r.lower() for r in reasons)
 
 
-def test_acceptable_true_for_wide_continuous_unimodal():
-    values = [0.10, 0.18, 0.27, 0.33, 0.41, 0.50, 0.58, 0.66, 0.74, 0.83, 0.90]
-    accept, reasons = is_bucket_acceptable(values, [0.50])
+def test_acceptable_true_for_continuous_dense_core():
+    values = [0.05, 0.10, 0.13, 0.15, 0.18, 0.20, 0.22, 0.24, 0.26, 0.30, 0.34, 0.40, 0.48, 0.60]
+    accept, reasons = is_bucket_acceptable(values, [0.23])
     assert accept is True
     assert reasons == []
 
 
-def test_acceptable_true_for_tight_cluster():
-    values = [0.40, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46]
-    accept, reasons = is_bucket_acceptable(values, [0.43])
+def test_acceptable_true_for_grocery_shape():
+    values = [0.067, 0.076, 0.14, 0.18, 0.21, 0.24, 0.27, 0.29]
+    accept, reasons = is_bucket_acceptable(values, [0.20])
     assert accept is True
     assert reasons == []
 
 
 def test_acceptable_false_via_constituent_spread_even_without_gap():
-    # Continuous values (no antimode gap) but constituent medians span > 0.15
+    # Continuous values (no regime gap) but constituent medians span > 0.15
     # (multi-industry heterogeneity) -> reject via spread.
     values = [0.20, 0.28, 0.36, 0.44, 0.52, 0.60, 0.68, 0.76]
     constituent_medians = [0.22, 0.40, 0.74]  # spread 0.52 > 0.15
@@ -134,7 +122,7 @@ def test_acceptable_false_via_constituent_spread_even_without_gap():
 
 
 def test_acceptable_small_n_no_gap_passes():
-    # n < 6: antimode can't fire, single constituent -> no spread -> accept.
+    # n < 6: regime gap can't fire, single constituent -> no spread -> accept.
     values = [0.40, 0.42, 0.44, 0.46]
     accept, reasons = is_bucket_acceptable(values, [0.43])
     assert accept is True

@@ -21,9 +21,10 @@ bucket clearing n_min, reports:
 Then a RESCUE-SET section over sub-floor records (gm < MIN_GROSS_MARGIN) feeding
 the pre-committed verdict rule (clean-rescue-set headline number). The
 clean-rescue-set is now defined as sub-floor names landing in an
-is_bucket_acceptable bucket — so the antimode gate (DEFECT-1 fix) excludes the
-single-industry multimodal buckets (e.g. Specialty Business Services, Travel
-Services) that the bimodality coefficient alone let slip through.
+is_bucket_acceptable bucket — so the below-median regime-gap gate excludes the
+buckets that pin a structurally low-margin subpopulation against a higher-regime
+median (e.g. Specialty Business Services, Computer Hardware) that the bimodality
+coefficient alone let slip through.
 
 Read-only, warm-cache ($0). Cleaning is the SHARED clean_universe definition
 (METRIK_NA out, negatives out, NO sector-string filter) — identical to A2/A3, so
@@ -122,10 +123,10 @@ def main() -> None:
 
     # --- Per-bucket dispersion + acceptance report ---
     # ACCEPTANCE drives the rescue set: is_bucket_acceptable rejects on
-    # constituent-median-spread (multi-industry heterogeneity) OR an antimode gap
-    # (the DEFECT-1 fix: an empty bin separating two populated clusters, which the
-    # bimodality coefficient under-detects). BC is reported as advisory only. Raw
-    # width/IQR is NOT a reject reason — wide-but-unimodal buckets pass.
+    # constituent-median-spread (multi-industry heterogeneity) OR a below-median
+    # regime gap (a low subpopulation >= 0.10 gross-margin pp below the bucket median
+    # with >= 20% mass below it, pinned against the wrong regime). BC is reported as
+    # advisory only. Raw width/IQR is NOT a reject reason — wide-but-unimodal pass.
     rejected_buckets: set[str] = set()
     print(f"\n=== PER-BUCKET DISPERSION (n_min={n_min}) ===")
     for bucket in sorted(bucket_gms.keys()):
@@ -176,8 +177,9 @@ def main() -> None:
         if r.gross_margin is not None and r.gross_margin < MIN_GROSS_MARGIN
     ]
     # Clean-rescue-set := sub-floor names landing in an is_bucket_acceptable bucket.
-    # The antimode gate now excludes the multimodal single-industry buckets (SBS,
-    # Travel Services) that BC alone passed.
+    # The below-median regime-gap gate now excludes the buckets that pin a low-margin
+    # subpopulation against a higher-regime median (SBS, Computer Hardware) that BC
+    # alone passed.
     clean_rescuable: list[tuple[ScreenerRecord, str]] = []
     suspect_or_no_bucket: list[ScreenerRecord] = []
     for rec in sub_floor:

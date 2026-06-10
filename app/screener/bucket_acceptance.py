@@ -2,16 +2,24 @@
 
 Centralizes the pure dispersion/shape helpers (previously defined inline in
 scripts/diagnose_bucket_dispersion.py) so the calibration instrument and any
-future consumer share one implementation. Then adds the DEFECT-1 fix: an
-ANTIMODE / GAP detector and the acceptance verdict.
+future consumer share one implementation. Then adds the acceptance verdict: an
+ABSOLUTE below-median gross-margin regime-gap detector.
 
-DEFECT 1 background: the bimodality coefficient (BC) under-detects single-industry
-multimodality — clearly multimodal buckets (e.g. a low cluster plus a separate
-upper region with an empty histogram bin between them) passed as "clean". The
-robust discriminator is an antimode: an EMPTY bin separating two populated regions,
-each holding a non-trivial share of the mass. Raw width is NOT a reject reason —
-wide-but-unimodal buckets must pass ("weit ist erlaubt, multimodal nicht"). BC is
-demoted to an advisory metric, reported but not a hard reject.
+Background: the harm a bucket can do is to pin a structurally LOW-margin
+subpopulation against a median that describes a different (higher) margin regime.
+A scale-RELATIVE shape statistic (gap/median, gap/IQR, gap/std, KDE-trough /
+bandwidth) cannot rank the critical buckets correctly: a human proof showed every
+relative normalization ranks them BACKWARDS — benign Grocery looks more anomalous
+than harmful SBS — because the gap and the spread co-scale. The discriminating
+signal is gross-margin PERCENTAGE POINTS (absolute): a low subpopulation >= 10pp
+below the bucket median is a real cost-structure / regime break (contract-mfr vs
+brand, commodity vs specialty); < 10pp is sampling noise. A gap ABOVE the median
+is harmless (those low names ARE the median region) and never fires — this
+protects continuous wide buckets (e.g. Aerospace & Defense): wide != bimodal.
+
+Margin-awareness here falls ONLY for the acceptance test, not the bucketing (GICS
+stays exogenous) -> no circularity. BC remains an advisory metric (reported, not a
+hard reject).
 """
 from __future__ import annotations
 
@@ -21,9 +29,13 @@ import statistics
 CONSTITUENT_SPREAD_THRESHOLD = 0.15   # max-min of constituent-industry medians
 BIMODALITY_THRESHOLD = 0.555          # Pearson/SAS bimodality coefficient cutoff (advisory only)
 HIST_BINS = 10                        # bins for the ASCII histogram (display only)
-ANTIMODE_MIN_SIDE_FRACTION = 0.20     # each side of an antimode must hold >= this mass share
-ANTIMODE_MIN_N = 6                    # below this, distribution shape cannot be assessed
-ANTIMODE_GAP_RATIO = 4.0              # a neighbour gap >= this x the typical spacing is a valley
+_MIN_N_FOR_SHAPE = 6                  # below this, distribution shape cannot be assessed
+
+# Absolute below-median regime-gap detector (the harm discriminator).
+GROSS_MARGIN_REGIME_GAP = 0.10        # >=10 gross-margin percentage points below the median
+                                      # = a real cost-structure / regime break (contract-mfr vs
+                                      # brand, commodity vs specialty). <10pp = sampling noise.
+BELOW_MEDIAN_MIN_FRACTION = 0.20      # the separated low subpopulation must be non-trivial
 
 
 # --------------------------------------------------------------------------- #
@@ -119,46 +131,34 @@ def ascii_histogram(values: list[float], *, bins: int = HIST_BINS, width: int = 
 
 
 # --------------------------------------------------------------------------- #
-# DEFECT-1 fix: antimode-gap detector + acceptance verdict.
+# Absolute below-median regime-gap detector + acceptance verdict.
 # --------------------------------------------------------------------------- #
-def has_antimode_gap(
+def has_below_median_regime_gap(
     values: list[float],
     *,
-    min_side_fraction: float = ANTIMODE_MIN_SIDE_FRACTION,
-    gap_ratio: float = ANTIMODE_GAP_RATIO,
+    gap_threshold: float = GROSS_MARGIN_REGIME_GAP,
+    min_below_fraction: float = BELOW_MEDIAN_MIN_FRACTION,
 ) -> bool:
-    """True iff the sorted distribution contains an ANTIMODE / valley: a single
-    neighbour gap that is large relative to the typical spacing AND that splits
-    the sample into two non-trivial sides.
-
-    BIN-FREE detector (no bin-alignment artifact). The data is sorted; the gap
-    between each adjacent pair is compared against the *typical* neighbour
-    spacing (median of the non-zero gaps). A gap >= ``gap_ratio`` x typical that
-    leaves at least ``min_side_fraction`` of the mass on EACH side is a valley
-    between two clusters -> reject.
-
-    This is robust where adaptive binning failed: a real valley registers as one
-    oversized neighbour gap regardless of where bin edges would have fallen. A
-    lone far outlier does NOT qualify (its side holds < min_side_fraction); a
-    wide-but-continuous unimodal spread does NOT qualify (no single gap dominates
-    the typical spacing). Guarded: n < ANTIMODE_MIN_N or degenerate (all gaps
-    zero) -> False (cannot assess)."""
+    """True iff there is a gross-margin gap >= gap_threshold that lies BELOW the bucket
+    median (the gap's upper edge is at or below the median) with at least
+    min_below_fraction of the mass below it. This is THE harm: a low subpopulation in a
+    structurally different margin regime, measured against a median that describes the
+    population ABOVE the gap. A gap ABOVE the median is harmless (the low names ARE the
+    median region); that direction never fires (protects continuous wide buckets like
+    Aerospace & Defense, median in the dense core)."""
     n = len(values)
-    if n < ANTIMODE_MIN_N:
+    if n < _MIN_N_FOR_SHAPE:
         return False
     s = sorted(values)
-    gaps = [s[i + 1] - s[i] for i in range(n - 1)]
-    nonzero = [g for g in gaps if g > 0]
-    if not nonzero:
-        return False
-    typical = statistics.median(nonzero)  # typical neighbour spacing
-    if typical <= 0:
-        return False
-    min_mass = n * min_side_fraction
-    for i, g in enumerate(gaps):
-        left = i + 1            # count of values at/left of this gap (s[0..i])
-        right = n - left
-        if left >= min_mass and right >= min_mass and g >= gap_ratio * typical:
+    m = statistics.median(s)
+    min_below = n * min_below_fraction
+    for i in range(n - 1):
+        if s[i + 1] > m:          # sorted: once the gap's upper edge exceeds the median,
+            break                  # no later gap is "below the median" either
+        left = i + 1               # values strictly below the gap (s[0..i])
+        if left < min_below:
+            continue
+        if s[i + 1] - s[i] >= gap_threshold:
             return True
     return False
 
@@ -175,12 +175,14 @@ def is_bucket_acceptable(
       - constituent_median_spread(constituent_medians) > threshold
         (multi-industry heterogeneity: a catch-all/group bucket mixing
         structurally different margin regimes), OR
-      - has_antimode_gap(values) (multimodal distribution within the bucket).
+      - has_below_median_regime_gap(values) (a low subpopulation >= 10 gross-margin
+        percentage points below the bucket median, with >= 20% of the mass below it:
+        a structural margin-regime break pinned against the wrong median).
 
     BC is intentionally NOT a hard reject (it under-detects) — it stays a
     separately-reported advisory metric. Raw width / IQR alone is NOT a reject
-    reason: a wide-but-unimodal bucket passes. Returns (accept, reasons) where
-    reasons name which rule(s) fired."""
+    reason: a wide-but-unimodal bucket passes (wide != bimodal). Returns
+    (accept, reasons) where reasons name which rule(s) fired."""
     reasons: list[str] = []
 
     spread = constituent_median_spread(constituent_medians)
@@ -189,7 +191,10 @@ def is_bucket_acceptable(
             f"constituent-median-spread {spread:.4f} > {constituent_spread_threshold}"
         )
 
-    if has_antimode_gap(values):
-        reasons.append("antimode-gap (empty bin separating two populated clusters)")
+    if has_below_median_regime_gap(values):
+        reasons.append(
+            f"below-median regime gap >= {GROSS_MARGIN_REGIME_GAP:.2f} with "
+            f">= {BELOW_MEDIAN_MIN_FRACTION:.0%} mass below"
+        )
 
     return (len(reasons) == 0, reasons)

@@ -21,7 +21,7 @@ cleaning A3 and the dispersion instrument use, so the medians pinned here are th
 medians the rescue analysis is evaluated against.
 
 Acceptance: each bucket's gm distribution is passed through is_bucket_acceptable
-(constituent-median-spread OR antimode-gap reject). Only ACCEPTED buckets are
+(constituent-median-spread OR below-median regime-gap reject). Only ACCEPTED buckets are
 pinned in `entries`; REJECTED buckets are left out of the table -> the relative
 arm cannot fire on them (runtime fail-safe by construction).
 """
@@ -98,8 +98,8 @@ def main() -> None:
         "  The coarsest node is the GICS industry GROUP, NOT the sector. A bucket that\n"
         "  resolves at the coarsest node is a GROUP rollup (the industry was below\n"
         "  n_min). Whether such a bucket is pinned is decided by the ACCEPTANCE GATE\n"
-        "  (constituent-spread + antimode-gap), NOT by nest depth: a clean group\n"
-        "  rollup is pinned, a multimodal one is left out (fail-safe)."
+        "  (constituent-spread + below-median regime-gap), NOT by nest depth: a clean\n"
+        "  group rollup is pinned, a regime-split one is left out (fail-safe)."
     )
 
     # --- Cleaned universe (shared clean_universe; negatives OUT, no sector string) ---
@@ -146,8 +146,9 @@ def main() -> None:
 
     # --- Acceptance gate: only ACCEPTED buckets are pinned; rejected -> fail-safe ---
     # is_bucket_acceptable rejects on constituent-median-spread (multi-industry
-    # heterogeneity) OR antimode-gap (multimodal distribution; the DEFECT-1 fix that
-    # catches single-industry multimodality BC alone misses). A rejected bucket is
+    # heterogeneity) OR a below-median regime gap (a low subpopulation >= 0.10 gross-
+    # margin pp below the bucket median, with >= 20% mass below, that BC alone misses).
+    # A rejected bucket is
     # NOT pinned, so the relative arm cannot fire on it at runtime (fail-safe by
     # construction). Acceptance — not nest depth / group-rollup status — decides.
     entries: dict[str, float] = {}
@@ -195,8 +196,8 @@ def main() -> None:
           f"{len(group_rollup_buckets)}")
     print(
         "Note: a GROUP rollup is NOT rejected for being a rollup — the acceptance gate\n"
-        "(constituent-spread + antimode-gap), not nest depth, decides pinning. A clean\n"
-        "group rollup is pinned; a multimodal one is left out (fail-safe by construction)."
+        "(constituent-spread + below-median regime-gap), not nest depth, decides pinning.\n"
+        "A clean group rollup is pinned; a regime-split one is left out (fail-safe)."
     )
 
     # --- Emit candidate JSON ---
