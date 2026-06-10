@@ -23,7 +23,11 @@ class ReasonCode(str, Enum):
     GATE_MARKET_CAP = "GATE_MARKET_CAP"
     FRAMEWORK_METRIK_NA = "FRAMEWORK_METRIK_NA"  # Fisher-Raster nicht anwendbar (gm strukturell undefiniert)
     # Transient/retryable: income-statement could not be fetched this run — not a quality-fail.
-    FRAMEWORK_STATEMENT_UNAVAILABLE = "FRAMEWORK_STATEMENT_UNAVAILABLE"
+    # RESOLUTION_ prefix follows the reason's SEMANTICS (a needed data fetch failed → divert →
+    # retry), not the stage it is reported at: it is the sibling of RESOLUTION_FX_UNAVAILABLE /
+    # RESOLUTION_NO_SYMBOL_DATA, and deliberately NOT grouped with the permanent, structural
+    # FRAMEWORK_METRIK_NA. It is still diverted at the BASIS stage (metric_na position).
+    RESOLUTION_STATEMENT_UNAVAILABLE = "RESOLUTION_STATEMENT_UNAVAILABLE"
     GATE_GROSS_MARGIN = "GATE_GROSS_MARGIN"
     GATE_REVENUE_GROWTH = "GATE_REVENUE_GROWTH"
     GATE_RESTATEMENT = "GATE_RESTATEMENT"
@@ -52,7 +56,7 @@ _BASIS_REASON: dict[str, ReasonCode] = {
     "avg_volume": ReasonCode.GATE_VOLUME,
     "market_cap": ReasonCode.GATE_MARKET_CAP,
     "metric_na": ReasonCode.FRAMEWORK_METRIK_NA,
-    "statement_unavailable": ReasonCode.FRAMEWORK_STATEMENT_UNAVAILABLE,
+    "statement_unavailable": ReasonCode.RESOLUTION_STATEMENT_UNAVAILABLE,
     "gross_margin": ReasonCode.GATE_GROSS_MARGIN,
     "revenue_growth": ReasonCode.GATE_REVENUE_GROWTH,
 }
@@ -66,7 +70,7 @@ _ALWAYS_REVIEW = {
     ReasonCode.RESOLUTION_DEGRADED_DICT,
     ReasonCode.RESOLUTION_NO_SYMBOL_DATA,
     ReasonCode.RESOLUTION_FX_UNAVAILABLE,
-    ReasonCode.FRAMEWORK_STATEMENT_UNAVAILABLE,  # transient/retryable — must not silently disappear
+    ReasonCode.RESOLUTION_STATEMENT_UNAVAILABLE,  # transient/retryable — must not silently disappear
     ReasonCode.SCORE_NOT_SCORED,
 }
 
