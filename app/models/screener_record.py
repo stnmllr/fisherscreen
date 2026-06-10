@@ -60,6 +60,14 @@ class ScreenerRecord(BaseModel):
     # "ABSOLUTE_PASS" (gm >= floor) | "RELATIVE_RESCUE" (sub-floor, rescued by the
     # relative arm) | None (not applicable / did not pass the basis filter).
     gross_margin_pass_reason: str | None = None
+    # Punkt 3 Phase: multi-year revenue-growth viability floor.
+    # Populated in the runner pre-pass (_assess_revenue_growth_trajectory) ONLY for
+    # vol+cap survivors that clear the gross-margin gate AND have revenue_growth_yoy < 0
+    # or None (the lazy-fetch cohort). Left None for everyone else (TTM-pass / not reached).
+    multiyear_revenue_cagr: float | None = None      # endpoint CAGR over available fiscal years
+    revenue_down_years: int | None = None            # count of negative YoY transitions (oldest->newest)
+    revenue_growth_definedness: DefinednessOutcome | None = None  # DEFINED | UNASSESSABLE (3-state, never bool)
+    revenue_growth_pass_reason: str | None = None    # TTM_PASS | TRAJECTORY_RESCUE | DECLINE_DROP | UNASSESSABLE_PASS
     resolution_detail: str | None = None  # 0b: sub-reason when diverted (NO_RAW_MC|NO_CURRENCY|NO_VOLUME|NO_PRICE|NO_FX)
     # CT-A: definedness verdict from the basis-stage income-statement pre-pass.
     # None = not assessed (non-suspect, or record did not reach the assessment).

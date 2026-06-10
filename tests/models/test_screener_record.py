@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
 
 
@@ -151,3 +152,23 @@ def test_price_zero_collapses_to_none():
     info = {"shortName": "X", "currency": "EUR", "currentPrice": 0,
             "regularMarketPrice": 0, "marketCap": 5e9, "averageVolume": 5e5}
     assert ScreenerRecord.from_yfinance_info("Z", info).price is None
+
+
+def test_revenue_trajectory_fields_default_none():
+    r = ScreenerRecord(ticker="X")
+    assert r.multiyear_revenue_cagr is None
+    assert r.revenue_down_years is None
+    assert r.revenue_growth_definedness is None
+    assert r.revenue_growth_pass_reason is None
+
+
+def test_revenue_trajectory_fields_accept_values():
+    r = ScreenerRecord(
+        ticker="X",
+        multiyear_revenue_cagr=-0.05,
+        revenue_down_years=2,
+        revenue_growth_definedness=DefinednessOutcome.DEFINED,
+        revenue_growth_pass_reason="DECLINE_DROP",
+    )
+    assert r.revenue_down_years == 2
+    assert r.revenue_growth_definedness is DefinednessOutcome.DEFINED
