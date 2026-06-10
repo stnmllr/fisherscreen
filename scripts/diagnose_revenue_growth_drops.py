@@ -1,0 +1,290 @@
+"""Punkt-3 grounding: characterise the records the revenue_growth gate drops.
+
+The gate is a flat hard knock-out: pass iff info['revenueGrowth'] (a single TTM-YoY
+decimal snapshot) >= MIN_REVENUE_GROWTH (0.0). Punkt 3 asks whether to replace it with
+a smoothed/scored form. This script grounds that design question in the real drop cohort,
+answering Stephan's three framing questions:
+
+  Q2 (sector clustering): which sectors/industries dominate the drop set?
+  Q1 (depth/duration):    is the dip a single bad TTM year on an intact multi-year
+                          uptrend, or a genuine multi-year shrinker?  (--with-trend)
+  Q3 (false-negative est): how many look like plausible Fisher compounders momentarily
+                          dinged vs. legitimate structural decliners? (manual, from the
+                          enriched CSV — this script supplies the evidence, not the verdict)
+
+Two stages, gated so the cheap cohort is confirmed before the heavier fetch:
+
+  Stage 1 (default, $0, warm .info cache): run_basis_filter over the universe with the
+    REAL activated config (build_sector_median_table() + live GROSS_MARGIN_RELATIVE_K),
+    isolate records whose filter_failed_reason == "revenue_growth", and for each
+    reconstruct whether its gross-margin clearance was ABSOLUTE_PASS or RELATIVE_RESCUE
+    (the RELATIVE_RESCUE subset == the low-margin cyclicals Punkt 2 just surfaced).
+    Emits a sector/industry histogram, large-cap REVIEW flags, and a per-ticker CSV.
+
+  Stage 2 (--with-trend, live yfinance income_stmt fetch for the drop cohort only):
+    pull annual "Total Revenue" across all available fiscal years, compute the
+    multi-year trajectory (per-year YoY, oldest->newest CAGR, count of down years) and
+    classify SINGLE_YEAR_DIP vs MULTI_YEAR_DECLINE vs INSUFFICIENT_DATA. Enriches the CSV.
+
+Run:
+    uv run python scripts\\diagnose_revenue_growth_drops.py
+    uv run python scripts\\diagnose_revenue_growth_drops.py --with-trend
+
+$0 (yfinance is free). Read-only. NO Gemini, NO deploy. Runs OUTSIDE pytest, so the
+dormant-arm autouse fixture does not apply — this exercises the real activated config.
+"""
+from __future__ import annotations
+
+import csv
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+from app.errors import DataSourceError
+from app.models.screener_record import ScreenerRecord
+from app.screener import filters
+from app.screener.compose import build_screener_pipeline, build_sector_median_table
+from app.screener.filters import gross_margin_pass_reason
+from app.screener.runner import run_basis_filter
+
+UNIVERSE = Path("data/universe.json")
+OUT_DIR = Path("docs/superpowers/audits/2026-06-10-punkt-3-revenue-growth")
+CSV_PATH = OUT_DIR / "revenue_growth_drops.csv"
+
+# Funnel's large-cap severity threshold for the growth gate: a big mature firm can
+# genuinely shrink, so a >10B drop is flagged REVIEW (worth a human eyeball), not benign.
+LARGE_CAP_GROWTH_EUR = 10_000_000_000
+
+
+def _pct(x: float | None) -> str:
+    return f"{x * 100:+.1f}%" if x is not None else "n/a"
+
+
+def collect_drops() -> tuple[list[ScreenerRecord], object, float | None]:
+    """Stage 1: run the real activated basis filter, return the revenue_growth drops."""
+    tickers: list[str] = json.loads(UNIVERSE.read_text(encoding="utf-8"))
+    yf = build_screener_pipeline()  # warm cache (Firestore-backed)
+    print(f"Universe: {len(tickers)} tickers — running basis filter (warm cache)...")
+    result = run_basis_filter(tickers, yf)
+
+    table = build_sector_median_table()
+    k = filters.GROSS_MARGIN_RELATIVE_K
+    print(
+        f"Activated config: table={'loaded' if table else 'ABSENT'}, "
+        f"GROSS_MARGIN_RELATIVE_K={k}"
+    )
+    print(
+        f"resolved={len(result.resolved)} passed_basis={len(result.passed)} "
+        f"unresolved={len(result.unresolved)}\n"
+    )
+
+    drops = [
+        r for r in result.resolved if r.filter_failed_reason == "revenue_growth"
+    ]
+    return drops, list(result.passed), table, k
+
+
+def summarise(drops: list[ScreenerRecord], table: object, k: float | None) -> None:
+    total = len(drops)
+    print("=" * 72)
+    print(f"REVENUE_GROWTH DROPS: {total}")
+    print("=" * 72)
+
+    # ABSOLUTE_PASS vs RELATIVE_RESCUE: the RELATIVE_RESCUE subset is the low-margin
+    # cyclical cohort Punkt 2 surfaced (gm rescued by the relative arm, then killed here).
+    rescue = [
+        r for r in drops
+        if gross_margin_pass_reason(r, table, k) == "RELATIVE_RESCUE"
+    ]
+    print(
+        f"  gross-margin clearance: ABSOLUTE_PASS={total - len(rescue)}  "
+        f"RELATIVE_RESCUE={len(rescue)} (Punkt-2 low-margin cyclicals)"
+    )
+    # Two distinct failure modes hide under one reason code: a genuine negative-growth
+    # judgement, vs. a MISSING yfinance field (revenueGrowth=None -> gate returns False).
+    # The latter is a data-availability artefact, not a growth verdict — Punkt 3 must
+    # not conflate them. Surface the split.
+    missing = [r for r in drops if r.revenue_growth_yoy is None]
+    print(
+        f"  failure mode: NEGATIVE_GROWTH={total - len(missing)}  "
+        f"MISSING_DATA={len(missing)} (revenueGrowth=None, not a growth verdict)"
+    )
+    if missing:
+        print("    missing-data drops: " + ", ".join(sorted(r.ticker for r in missing)))
+    print()
+
+    print("By GICS sector:")
+    for sector, n in Counter(r.gics_sector or "?" for r in drops).most_common():
+        print(f"    {n:>4}  {sector}")
+
+    print("\nBy GICS industry (top 15):")
+    for industry, n in Counter(
+        r.gics_industry or "?" for r in drops
+    ).most_common(15):
+        print(f"    {n:>4}  {industry}")
+
+    large = sorted(
+        (r for r in drops if (r.market_cap_eur or 0) >= LARGE_CAP_GROWTH_EUR),
+        key=lambda r: r.market_cap_eur or 0,
+        reverse=True,
+    )
+    print(f"\nLarge-cap drops (>10B EUR, funnel-flagged REVIEW): {len(large)}")
+    for r in large:
+        print(
+            f"    {r.ticker:<12} {(r.name or '')[:30]:<30} "
+            f"mc={r.market_cap_eur / 1e9:>6.1f}B  gm={_pct(r.gross_margin)}  "
+            f"rev_growth_yoy={_pct(r.revenue_growth_yoy)}  {r.gics_sector or ''}"
+        )
+
+
+def fetch_trend(ticker: str, yf: object) -> dict:
+    """Stage 2: pull multi-year annual Total Revenue and classify the trajectory."""
+    try:
+        income_stmt = yf.get_annual_statements(ticker)[0]
+    except DataSourceError:
+        return {"trend_class": "FETCH_FAILED", "revenues": [], "cagr": None, "down_years": None}
+
+    if getattr(income_stmt, "ndim", None) != 2 or getattr(income_stmt, "empty", True):
+        return {"trend_class": "INSUFFICIENT_DATA", "revenues": [], "cagr": None, "down_years": None}
+    if "Total Revenue" not in income_stmt.index:
+        return {"trend_class": "INSUFFICIENT_DATA", "revenues": [], "cagr": None, "down_years": None}
+
+    row = income_stmt.loc["Total Revenue"]
+    # Columns are newest-first; reverse to oldest->newest for trajectory reasoning.
+    revs: list[float] = []
+    for val in reversed(list(row)):
+        try:
+            f = float(val)
+        except (TypeError, ValueError):
+            continue
+        if f == f and f > 0:  # drop NaN and non-positive
+            revs.append(f)
+
+    if len(revs) < 2:
+        return {"trend_class": "INSUFFICIENT_DATA", "revenues": revs, "cagr": None, "down_years": None}
+
+    yoy = [(revs[i] - revs[i - 1]) / revs[i - 1] for i in range(1, len(revs))]
+    down_years = sum(1 for g in yoy if g < 0)
+    years = len(revs) - 1
+    cagr = (revs[-1] / revs[0]) ** (1 / years) - 1 if revs[0] > 0 else None
+
+    # Classify: only the latest year down on an otherwise up multi-year trend = a dip the
+    # hard gate kills unfairly; multiple down years or negative CAGR = a real decliner.
+    latest_down = yoy[-1] < 0
+    if not latest_down:
+        trend_class = "RECOVERED"  # TTM-snapshot gate disagrees with the annual trend
+    elif down_years == 1 and (cagr is not None and cagr > 0):
+        trend_class = "SINGLE_YEAR_DIP"
+    elif down_years >= 2 or (cagr is not None and cagr < 0):
+        trend_class = "MULTI_YEAR_DECLINE"
+    else:
+        trend_class = "MIXED"
+
+    return {
+        "trend_class": trend_class,
+        "revenues": revs,
+        "cagr": cagr,
+        "down_years": down_years,
+        "yoy": yoy,
+    }
+
+
+def full_sweep(passed: list[ScreenerRecord]) -> None:
+    """One-time offline audit: apply the multi-year trajectory classification to the
+    basis SURVIVORS (which all passed today's TTM>=0 gate). The slip-through basket X
+    = survivors classified MULTI_YEAR_DECLINE: they pass today AND would pass the hybrid
+    lazy-fetch gate (TTM>=0 -> never re-checked), yet their multi-year revenue declines.
+    Quantifies the accepted asymmetry residuum before spec freeze. $0, runtime irrelevant.
+    """
+    print(f"\n=== FULL SWEEP: trajectory over {len(passed)} basis survivors ===")
+    yf = build_screener_pipeline()
+    counter: Counter = Counter()
+    slip: list[tuple] = []
+    for r in passed:
+        t = fetch_trend(r.ticker, yf)
+        counter[t["trend_class"]] += 1
+        if t["trend_class"] == "MULTI_YEAR_DECLINE":
+            slip.append((r.ticker, r.name or "", (r.market_cap_eur or 0) / 1e9,
+                         r.revenue_growth_yoy, t["cagr"], t["down_years"]))
+    print("\nSurvivor trajectory distribution:")
+    for cls, n in counter.most_common():
+        print(f"    {n:>4}  {cls}")
+    print(
+        f"\nX (slip-through residuum) = {len(slip)} survivors: TTM>=0 today but "
+        f"MULTI_YEAR_DECLINE multi-year"
+    )
+    for tk, nm, mc, yoy, cagr, dy in sorted(slip, key=lambda s: -s[2]):
+        print(
+            f"    {tk:<12} {nm[:28]:<28} mc={mc:>6.1f}B  "
+            f"ttm_yoy={_pct(yoy)}  cagr={_pct(cagr)}  down_years={dy}"
+        )
+    out = OUT_DIR / "full_sweep_slipthrough.csv"
+    with out.open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["ticker", "name", "market_cap_eur_b", "ttm_yoy", "multiyear_cagr", "down_years"])
+        for tk, nm, mc, yoy, cagr, dy in slip:
+            w.writerow([tk, nm, round(mc, 2), yoy, cagr, dy])
+    print(f"\nWrote {len(slip)} slip-through rows -> {out}")
+
+
+def main() -> None:
+    with_trend = "--with-trend" in sys.argv
+    do_full_sweep = "--full-sweep" in sys.argv
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    drops, passed, table, k = collect_drops()
+    if not drops:
+        print("No revenue_growth drops found — cache cold or config dormant. Aborting.")
+        sys.exit(1)
+
+    summarise(drops, table, k)
+
+    if do_full_sweep:
+        full_sweep(passed)
+
+    rows = []
+    for r in drops:
+        row = {
+            "ticker": r.ticker,
+            "name": r.name or "",
+            "gics_sector": r.gics_sector or "",
+            "gics_industry": r.gics_industry or "",
+            "market_cap_eur_b": round((r.market_cap_eur or 0) / 1e9, 2),
+            "gross_margin": r.gross_margin,
+            "revenue_growth_yoy": r.revenue_growth_yoy,
+            "gm_clearance": gross_margin_pass_reason(r, table, k),
+            "large_cap_review": (r.market_cap_eur or 0) >= LARGE_CAP_GROWTH_EUR,
+        }
+        rows.append(row)
+
+    if with_trend:
+        print("\n--- Stage 2: fetching multi-year revenue for the drop cohort ---")
+        yf_trend = build_screener_pipeline()
+        class_counter: Counter = Counter()
+        for row in rows:
+            t = fetch_trend(row["ticker"], yf_trend)
+            row["trend_class"] = t["trend_class"]
+            row["multiyear_cagr"] = round(t["cagr"], 4) if t["cagr"] is not None else None
+            row["down_years"] = t["down_years"]
+            row["n_years"] = len(t["revenues"])
+            class_counter[t["trend_class"]] += 1
+            print(
+                f"    {row['ticker']:<12} {t['trend_class']:<18} "
+                f"CAGR={_pct(t['cagr'])}  down_years={t['down_years']}  "
+                f"yoy_snapshot={_pct(row['revenue_growth_yoy'])}"
+            )
+        print("\nTrajectory classification:")
+        for cls, n in class_counter.most_common():
+            print(f"    {n:>4}  {cls}")
+
+    fieldnames = list(rows[0].keys())
+    with CSV_PATH.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"\nWrote {len(rows)} rows -> {CSV_PATH}")
+
+
+if __name__ == "__main__":
+    main()

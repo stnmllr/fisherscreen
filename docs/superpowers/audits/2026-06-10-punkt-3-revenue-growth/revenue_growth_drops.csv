@@ -1,0 +1,190 @@
+ticker,name,gics_sector,gics_industry,market_cap_eur_b,gross_margin,revenue_growth_yoy,gm_clearance,large_cap_review,trend_class,multiyear_cagr,down_years,n_years
+8TRA.DE,TRATON SE                     I,Industrials,Farm & Heavy Construction Machinery,16.75,0.16899,-0.035,RELATIVE_RESCUE,True,SINGLE_YEAR_DIP,0.0298,1,4
+ACX.MC,"ACERINOX, S.A.",Basic Materials,Steel,4.01,0.34697,-0.108,ABSOLUTE_PASS,False,RECOVERED,-0.127,2,4
+AFX.DE,Carl Zeiss Meditec AG         I,Healthcare,Medical Instruments & Supplies,2.24,0.51284003,-0.064,ABSOLUTE_PASS,False,RECOVERED,0.0539,1,4
+AI.PA,AIR LIQUIDE,Basic Materials,Specialty Chemicals,107.21,0.64175004,-0.034,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0345,3,4
+AIR.PA,AIRBUS SE,Industrials,Aerospace & Defense,137.61,0.15366,-0.066,RELATIVE_RESCUE,True,RECOVERED,0.0771,0,4
+AIXA.DE,AIXTRON SE                    N,Technology,Semiconductor Equipment & Materials,6.13,0.39529,-0.472,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.0631,1,4
+AKE.PA,ARKEMA,Basic Materials,Specialty Chemicals,4.34,0.17554002,-0.084,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,-0.0775,2,4
+AKRBP.OL,AKER BP,Energy,Oil & Gas E&P,20.07,0.89553,-0.047,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0604,2,4
+AKZA.AS,AKZO NOBEL,Basic Materials,Specialty Chemicals,9.91,0.40066,-0.087,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.0216,2,4
+ALFA.ST,Alfa Laval AB,Industrials,Specialty Industrial Machinery,19.88,0.36625,-0.033,ABSOLUTE_PASS,True,RECOVERED,0.1015,0,4
+ALLFG.AS,ALLFUNDS GROUP PLC,Financial Services,Asset Management,5.17,0.76448995,-0.049,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.3809,2,4
+ANA.MC,"ACCIONA, S.A.",Industrials,Engineering & Construction,12.84,0.69632006,-0.017,ABSOLUTE_PASS,True,RECOVERED,0.2181,0,4
+ANE.MC,CORPORACI...N ACCIONA ENERG...A,Utilities,Utilities - Renewable,6.91,0.59196,-0.183,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.124,3,4
+AOS,A.O. Smith Corporation,Industrials,Specialty Industrial Machinery,7.06,0.38764998,-0.019,ABSOLUTE_PASS,False,RECOVERED,0.0067,1,4
+APA,APA Corporation,Energy,Oil & Gas E&P,11.19,0.72273004,-0.119,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0696,2,4
+APO,"Apollo Global Management, Inc. ",Financial Services,Asset Management,66.18,0.35222,-0.092,ABSOLUTE_PASS,True,RECOVERED,0.4296,1,4
+ARWR,"Arrowhead Pharmaceuticals, Inc.",Healthcare,Biotechnology,8.94,1.0,-0.864,ABSOLUTE_PASS,False,RECOVERED,0.5052,2,4
+ASSA-B.ST,ASSA ABLOY AB ser. B,Industrials,Security & Protection Services,33.26,0.43120998,-0.058,ABSOLUTE_PASS,True,RECOVERED,0.0806,0,4
+AT1.DE,Aroundtown SA                 B,Real Estate,Real Estate Services,2.33,0.64491,-0.012,ABSOLUTE_PASS,False,RECOVERED,-0.0108,2,4
+ATCO-A.ST,Atlas Copco AB ser. A,Industrials,Specialty Industrial Machinery,79.58,0.42635,-0.051,ABSOLUTE_PASS,True,SINGLE_YEAR_DIP,0.06,1,4
+AXTA,Axalta Coating Systems Ltd.,Basic Materials,Specialty Chemicals,6.08,0.34155,-0.006,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.0157,1,4
+AZE.BR,AZELIS GROUP NV,Basic Materials,Specialty Chemicals,2.54,0.23031001,-0.056,RELATIVE_RESCUE,False,SINGLE_YEAR_DIP,0.0006,1,4
+BAYN.DE,Bayer AG                      N,Healthcare,Drug Manufacturers - General,34.86,0.59918,-0.024,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0351,3,4
+BBWI,"Bath & Body Works, Inc.",Consumer Cyclical,Specialty Retail,3.19,0.4323,-0.032,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.012,3,4
+BEI.DE,BEIERSDORF AG                 I,Consumer Defensive,Household & Personal Products,15.24,0.57714003,-0.002,ABSOLUTE_PASS,True,RECOVERED,0.0384,0,4
+BKG.L,BERKELEY GROUP HOLDINGS (THE) P,Consumer Cyclical,Residential Construction,3.68,0.26844,-0.078,RELATIVE_RESCUE,False,RECOVERED,0.0193,1,4
+BKH,Black Hills Corporation,Utilities,Utilities - Regulated Gas,4.46,0.39016,-0.03,ABSOLUTE_PASS,False,RECOVERED,-0.0326,2,4
+BLDR,"Builders FirstSource, Inc.",Industrials,Building Products & Equipment,7.22,0.29888,-0.101,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,-0.1257,3,4
+BMW.DE,BAYERISCHE MOTOREN WERKE AG   S,Consumer Cyclical,Auto Manufacturers,41.55,0.13136,-0.081,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.0219,2,4
+BN.PA,DANONE,Consumer Defensive,Packaged Foods,42.55,0.50618,-0.005,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0046,3,4
+BNR.DE,Brenntag SE                   N,Basic Materials,Specialty Chemicals,8.06,0.25483,-0.101,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,-0.0791,3,4
+BOSS.DE,HUGO BOSS AG                  N,Consumer Cyclical,Apparel Manufacturing,2.53,0.61745,-0.094,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.0535,1,4
+BT-A.L,BT GROUP PLC ORD 5P,Communication Services,Telecom Services,22.53,0.47145998,-0.039,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0079,2,4
+CA.PA,CARREFOUR,Consumer Defensive,Grocery Stores,11.52,0.17942,,RELATIVE_RESCUE,True,RECOVERED,0.0037,1,4
+CAG,"ConAgra Brands, Inc.",Consumer Defensive,Packaged Foods,5.44,0.24274999,-0.019,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,0.0022,2,4
+CBT,Cabot Corporation,Basic Materials,Specialty Chemicals,3.77,0.25231,-0.034,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,-0.0493,2,4
+CHTR,"Charter Communications, Inc.",Communication Services,Telecom Services,18.35,0.55346,-0.01,ABSOLUTE_PASS,True,SINGLE_YEAR_DIP,0.0046,1,4
+CLN.SW,CLARIANT N,Basic Materials,Specialty Chemicals,2.59,0.31188,-0.071,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.0902,3,4
+CNH,CNH Industrial N.V.,Industrials,Farm & Heavy Construction Machinery,11.52,0.18482,-0.001,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.0841,2,4
+CNM,"Core & Main, Inc.",Industrials,Industrial Distribution,8.87,0.26926002,-0.069,RELATIVE_RESCUE,False,RECOVERED,0.0476,0,4
+COIN,"Coinbase Global, Inc.",Financial Services,Financial Data & Stock Exchanges,35.44,0.85475,-0.308,ABSOLUTE_PASS,True,RECOVERED,0.31,1,4
+CON.DE,CONTINENTAL AG                I,Consumer Cyclical,Auto Parts,13.67,0.26707,-0.104,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.2067,2,4
+COP,ConocoPhillips,Energy,Oil & Gas E&P,123.09,0.45591,-0.053,ABSOLUTE_PASS,True,RECOVERED,-0.0911,2,4
+CPB,The Campbell's Company,Consumer Defensive,Packaged Foods,5.71,0.292,-0.044,RELATIVE_RESCUE,False,RECOVERED,0.0619,0,4
+CPR.MI,CAMPARI,Consumer Defensive,Beverages - Wineries & Distilleries,6.61,0.60307,-0.028,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.0419,1,4
+CROX,"Crocs, Inc.",Consumer Cyclical,Footwear & Accessories,5.49,0.58101004,-0.017,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.0436,1,4
+CSL,Carlisle Companies Incorporated,Industrials,Building Products & Equipment,12.17,0.35571,-0.04,ABSOLUTE_PASS,True,RECOVERED,-0.027,1,4
+DE,Deere & Company,Industrials,Farm & Heavy Construction Machinery,134.9,0.25965,-0.111,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.045,2,4
+DGE.L,DIAGEO PLC ORD 28 101/108P,Consumer Defensive,Beverages - Wineries & Distilleries,38.37,0.60003,-0.04,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0044,2,4
+DHI,"D.R. Horton, Inc.",Consumer Cyclical,Residential Construction,37.06,0.21597,-0.023,RELATIVE_RESCUE,True,SINGLE_YEAR_DIP,0.0076,1,4
+DHL.DE,DEUTSCHE POST AG              N,Industrials,Integrated Freight & Logistics,57.73,0.17523001,-0.019,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.0427,2,4
+DIA.MC,DISTRIBUIDORA INTERNACIONAL DE ,Consumer Defensive,Discount Stores,2.29,0.24781,-0.043,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,-0.0129,2,4
+DSFIR.AS,DSM FIRMENICH AG,Basic Materials,Specialty Chemicals,17.62,0.39075002,,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,0.025,2,4
+DTG.DE,Daimler Truck Holding AG      N,Industrials,Farm & Heavy Construction Machinery,31.54,0.17694001,-0.133,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.0368,2,4
+DVN,Devon Energy Corporation,Energy,Oil & Gas E&P,43.97,0.46929002,-0.008,ABSOLUTE_PASS,True,RECOVERED,-0.0357,1,4
+EDP.LS,"EDP, SA",Utilities,Utilities - Diversified,18.31,0.40208998,-0.008,ABSOLUTE_PASS,True,RECOVERED,-0.0891,2,4
+EDPR.LS,"EDP RENEWABLES, SA",Utilities,Utilities - Renewable,14.35,0.79794,-0.1,ABSOLUTE_PASS,True,RECOVERED,0.0421,1,4
+ELISA.HE,Elisa Corporation,Communication Services,Telecom Services,6.38,0.44544,-0.013,ABSOLUTE_PASS,False,RECOVERED,0.0196,0,4
+EMSN.SW,EMS-CHEMIE N,Basic Materials,Specialty Chemicals,17.53,0.48496,-0.054,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0723,3,4
+EN.PA,BOUYGUES,Industrials,Engineering & Construction,18.94,0.56477,-0.032,ABSOLUTE_PASS,True,RECOVERED,0.0861,0,4
+ENEL.MI,ENEL,Utilities,Utilities - Diversified,95.56,0.38531,-0.067,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.1307,3,4
+ENGI.PA,ENGIE,Utilities,Utilities - Diversified,68.66,0.31912002,-0.066,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0848,3,4
+ENI.MI,ENI,Energy,Oil & Gas Integrated,68.44,0.20799999,-0.126,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.1473,3,4
+EOAN.DE,E.ON SE                       N,Utilities,Utilities - Diversified,47.02,0.27811,-0.134,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.1204,3,4
+EPI-A.ST,Epiroc AB ser. A,Industrials,Farm & Heavy Construction Machinery,28.89,0.36068,-0.076,ABSOLUTE_PASS,True,SINGLE_YEAR_DIP,0.0765,1,4
+ERIC-B.ST,"Ericsson, Telefonab. L M ser. B",Technology,Communication Equipment,33.79,0.48048002,-0.103,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0448,3,4
+EVK.DE,Evonik Industries AG          N,Basic Materials,Specialty Chemicals,7.14,0.24170999,-0.093,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,-0.087,3,4
+FBIN,"Fortune Brands Innovations, Inc",Industrials,Building Products & Equipment,4.26,0.44912,-0.021,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.0187,3,4
+FLS,Flowserve Corporation,Industrials,Specialty Industrial Machinery,8.4,0.35528,-0.067,ABSOLUTE_PASS,False,RECOVERED,0.0937,0,4
+FME.DE,Fresenius Medical Care AG     I,Healthcare,Medical Care Facilities,10.47,0.25955,-0.055,RELATIVE_RESCUE,True,RECOVERED,0.0039,1,4
+FND,"Floor & Decor Holdings, Inc.",Consumer Cyclical,Home Improvement Retail,4.65,0.45009997,-0.007,ABSOLUTE_PASS,False,RECOVERED,0.0318,0,4
+FOX,Fox Corporation,Communication Services,Entertainment,22.14,0.36843,-0.086,ABSOLUTE_PASS,True,RECOVERED,0.0527,1,4
+FOXA,Fox Corporation,Communication Services,Entertainment,24.83,0.36843,-0.086,ABSOLUTE_PASS,True,RECOVERED,0.0527,1,4
+FR.PA,VALEO,Consumer Cyclical,Auto Parts,3.48,0.20232001,-0.013,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,0.0142,2,4
+GEBN.SW,GEBERIT N,Industrials,Building Products & Equipment,18.06,0.73640996,-0.006,ABSOLUTE_PASS,True,RECOVERED,-0.023,1,4
+GEF,Greif Inc.,Consumer Cyclical,Packaging & Containers,3.22,0.22341,-0.005,RELATIVE_RESCUE,False,RECOVERED,-0.078,1,4
+GF.SW,GEORG FISCHER N,Industrials,Specialty Industrial Machinery,3.8,0.42294997,,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.0914,3,4
+GIVN.SW,GIVAUDAN N,Basic Materials,Specialty Chemicals,31.45,0.43522,-0.018,ABSOLUTE_PASS,True,RECOVERED,0.0164,1,4
+GM,General Motors Company,Consumer Cyclical,Auto Manufacturers,65.34,0.111420006,-0.009,RELATIVE_RESCUE,True,SINGLE_YEAR_DIP,0.0569,1,4
+GRF.MC,GRIFOLS S.A.,Healthcare,Drug Manufacturers - General,6.04,0.38361,-0.048,ABSOLUTE_PASS,False,RECOVERED,0.0746,0,4
+GTLS,"Chart Industries, Inc.",Industrials,Specialty Industrial Machinery,8.58,0.32536998,-0.117,ABSOLUTE_PASS,False,RECOVERED,0.3829,0,4
+H,Hyatt Hotels Corporation,Consumer Cyclical,Lodging,15.81,0.42521,-0.035,ABSOLUTE_PASS,True,RECOVERED,0.0642,1,4
+HAL,Halliburton Company,Energy,Oil & Gas Equipment & Services,28.63,0.15283,-0.003,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,0.0301,2,4
+HEI.DE,Heidelberg Materials AG       I,Basic Materials,Building Materials,30.48,0.64184,-0.009,ABSOLUTE_PASS,True,RECOVERED,0.0057,1,4
+HEN3.DE,Henkel AG & Co. KGaA          I,Consumer Defensive,Household & Personal Products,27.94,0.50847,-0.063,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0291,2,4
+HLI,"Houlihan Lokey, Inc.",Financial Services,Capital Markets,8.43,0.94323,-0.046,ABSOLUTE_PASS,False,RECOVERED,0.131,0,4
+HLNE,Hamilton Lane Incorporated,Financial Services,Asset Management,3.84,0.6053,-0.022,ABSOLUTE_PASS,False,RECOVERED,0.128,0,4
+HM-B.ST,"Hennes & Mauritz AB, H & M ser.",Consumer Cyclical,Apparel Manufacturing,24.05,0.53825,-0.103,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,0.007,2,4
+HOLN.SW,HOLCIM N,Basic Materials,Building Materials,42.87,0.42343,-0.036,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.1863,3,4
+HUSQ-B.ST,Husqvarna AB ser. B,Industrials,Tools & Accessories,2.12,0.30926,-0.05,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.0481,3,4
+IBE.MC,ACCIONES IBERDROLA,Utilities,Utilities - Diversified,134.75,0.53907,-0.045,ABSOLUTE_PASS,True,RECOVERED,-0.0652,2,4
+IDA,"IDACORP, Inc.",Utilities,Utilities - Regulated Electric,6.73,0.37604,-0.067,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.0332,1,4
+IDCC,"InterDigital, Inc.",Technology,Software - Application,5.75,0.84656996,-0.024,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.2213,1,4
+IFF,International Flavors & Fragran,Basic Materials,Specialty Chemicals,16.74,0.36346,-0.036,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0434,2,4
+IFX.DE,INFINEON TECHNOLOGIES AG      N,Technology,Semiconductors,99.15,0.41162,,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,0.0103,2,4
+INGR,Ingredion Incorporated,Consumer Defensive,Packaged Foods,5.54,0.24493,-0.012,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,-0.0315,2,4
+IT,"Gartner, Inc.",Technology,Information Technology Services,9.12,0.68987,-0.015,ABSOLUTE_PASS,False,RECOVERED,0.0587,0,4
+KBH,KB Home,Consumer Cyclical,Residential Construction,2.9,0.18634,-0.226,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,-0.0333,2,4
+KBR,"KBR, Inc.",Industrials,Engineering & Construction,3.87,0.14497,-0.047,RELATIVE_RESCUE,False,RECOVERED,0.0586,0,4
+KD,"Kyndryl Holdings, Inc.",Technology,Information Technology Services,2.25,0.21792999,-0.008,RELATIVE_RESCUE,False,RECOVERED,-0.0394,2,4
+KER.PA,KERING,Consumer Cyclical,Luxury Goods,31.1,0.72641,,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.1033,3,4
+KKR,KKR & Co. Inc.,Financial Services,Asset Management,77.31,0.55542,-0.066,ABSOLUTE_PASS,True,SINGLE_YEAR_DIP,0.5112,1,4
+KNIN.SW,KUEHNE+NAGEL INT N,Industrials,Integrated Freight & Logistics,24.87,0.36519,-0.115,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.1467,2,4
+LEG.DE,LEG Immobilien SE             N,Real Estate,Real Estate Services,3.91,0.45518002,-0.215,ABSOLUTE_PASS,False,RECOVERED,0.0621,0,4
+LEN,Lennar Corporation,Consumer Cyclical,Residential Construction,19.72,0.16871001,-0.133,RELATIVE_RESCUE,True,SINGLE_YEAR_DIP,0.0051,1,4
+LIGHT.AS,SIGNIFY NV,Industrials,Electrical Equipment & Parts,2.45,0.40011,-0.12,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.0845,3,4
+LONN.SW,LONZA N,Healthcare,Diagnostics & Research,37.7,0.35966998,,ABSOLUTE_PASS,True,RECOVERED,0.0162,1,4
+LPX,Louisiana-Pacific Corporation,Industrials,Building Products & Equipment,4.38,0.19781,-0.207,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,-0.111,2,4
+MBG.DE,Mercedes-Benz Group AG        N,Consumer Cyclical,Auto Manufacturers,45.43,0.15545,-0.049,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.0412,2,4
+MC.PA,LVMH,Consumer Cyclical,Luxury Goods,241.73,0.66242,-0.047,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,0.0068,2,4
+MTDR,Matador Resources Company,Energy,Oil & Gas E&P,5.77,0.79656,-0.064,ABSOLUTE_PASS,False,RECOVERED,0.0458,1,4
+MTN,"Vail Resorts, Inc.",Consumer Cyclical,Resorts & Casinos,4.05,0.43330002,-0.07,ABSOLUTE_PASS,False,RECOVERED,0.0548,1,4
+MZTI,The Marzetti Company,Consumer Defensive,Packaged Foods,2.61,0.24192,-0.01,RELATIVE_RESCUE,False,RECOVERED,0.0443,0,4
+NESN.SW,NESTLE N,Consumer Defensive,Packaged Foods,220.05,0.45826,-0.022,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0175,3,4
+NEU,NewMarket Corp,Basic Materials,Specialty Chemicals,6.54,0.31265,-0.045,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.0048,2,4
+NHY.OL,NORSK HYDRO,Basic Materials,Aluminum,19.79,0.3525,-0.117,ABSOLUTE_PASS,True,RECOVERED,0.0001,1,4
+NIBE-B.ST,NIBE Industrier AB ser. B,Industrials,Building Products & Equipment,6.6,0.31785,-0.002,ABSOLUTE_PASS,False,RECOVERED,0.0064,1,4
+NOV,NOV Inc.,Energy,Oil & Gas Equipment & Services,6.46,0.20649,-0.024,RELATIVE_RESCUE,False,SINGLE_YEAR_DIP,0.0651,1,4
+NOVN.SW,NOVARTIS N,Healthcare,Drug Manufacturers - General,244.9,0.75554,-0.007,ABSOLUTE_PASS,True,RECOVERED,0.0925,0,4
+NTGY.MC,"NATURGY ENERGY GROUP, S.A.",Utilities,Utilities - Regulated Gas,27.22,0.40171,-0.069,ABSOLUTE_PASS,True,RECOVERED,-0.1695,2,4
+NVR,"NVR, Inc.",Consumer Cyclical,Residential Construction,14.96,0.22489999,-0.214,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.0063,2,4
+OC,Owens Corning Inc,Industrials,Building Products & Equipment,8.56,0.2718,-0.105,RELATIVE_RESCUE,False,RECOVERED,0.0115,1,4
+ODFL,"Old Dominion Freight Line, Inc.",Industrials,Trucking,44.75,0.38946,-0.029,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0424,3,4
+OGS,"ONE Gas, Inc.",Utilities,Utilities - Regulated Gas,4.13,0.37599,-0.111,ABSOLUTE_PASS,False,RECOVERED,-0.0199,2,4
+OLED,Universal Display Corporation,Technology,Electronic Components,3.61,0.74166,-0.145,ABSOLUTE_PASS,False,RECOVERED,0.018,1,4
+OMV.VI,OMV AG,Energy,Oil & Gas Integrated,18.73,0.32265,-0.041,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.2693,3,4
+ORA.PA,ORANGE,Communication Services,Telecom Services,47.43,0.36918998,,ABSOLUTE_PASS,True,RECOVERED,0.0107,0,4
+OXY,Occidental Petroleum Corporatio,Energy,Oil & Gas E&P,48.66,0.69757,-0.083,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.1616,3,4
+P911.DE,Dr. Ing. h.c. F. Porsche AG   I,Consumer Cyclical,Auto Manufacturers,43.32,0.14064,-0.052,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.0122,2,4
+PCAR,PACCAR Inc.,Industrials,Farm & Heavy Construction Machinery,54.49,0.13583,-0.089,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.0044,2,4
+PEGA,Pegasystems Inc.,Technology,Software - Application,4.94,0.74961996,-0.096,ABSOLUTE_PASS,False,RECOVERED,0.0983,0,4
+PHM,"PulteGroup, Inc.",Consumer Cyclical,Residential Construction,20.23,0.261,-0.124,RELATIVE_RESCUE,True,SINGLE_YEAR_DIP,0.0266,1,4
+PIRC.MI,PIRELLI & C,Consumer Cyclical,Auto Parts,6.63,0.69069,-0.026,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.0123,1,4
+PNDORA.CO,Pandora A/S,Consumer Cyclical,Luxury Goods,6.11,0.79046994,-0.032,ABSOLUTE_PASS,False,RECOVERED,0.0714,0,4
+POR,Portland General Electric Co,Utilities,Utilities - Regulated Electric,5.03,0.47434,-0.053,ABSOLUTE_PASS,False,RECOVERED,0.1055,0,4
+PROX.BR,PROXIMUS,Communication Services,Telecom Services,2.06,0.39785,-0.071,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.022,1,4
+PSN,Parsons Corporation,Technology,Information Technology Services,5.41,0.22773,-0.041,RELATIVE_RESCUE,False,SINGLE_YEAR_DIP,0.149,1,4
+PSTG,"Everpure, Inc.",Technology,Computer Hardware,19.38,0.70381,,ABSOLUTE_PASS,True,RECOVERED,0.0998,0,4
+PUM.DE,PUMA SE                       I,Consumer Cyclical,Footwear & Accessories,3.96,0.45055,-0.063,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.0483,2,4
+QCOM,QUALCOMM Incorporated,Technology,Semiconductors,187.31,0.54799,-0.035,ABSOLUTE_PASS,True,RECOVERED,0.0006,1,4
+R,"Ryder System, Inc.",Industrials,Rental & Leasing Services,9.27,0.20086999,-0.002,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,0.006,2,4
+RCO.PA,REMY COINTREAU,Consumer Defensive,Beverages - Wineries & Distilleries,2.28,0.65839994,-0.012,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.1547,3,4
+RI.PA,PERNOD RICARD,Consumer Defensive,Beverages - Wineries & Distilleries,15.82,0.5836,-0.149,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,0.008,2,4
+RKT.L,RECKITT BENCKISER GROUP PLC ORD,Consumer Defensive,Household & Personal Products,33.66,0.60780996,,ABSOLUTE_PASS,True,RECOVERED,-0.0058,1,4
+ROP.SW,ROCHE PS,Healthcare,Drug Manufacturers - General,277.36,0.7449,-0.004,ABSOLUTE_PASS,True,RECOVERED,-0.0126,1,4
+RWE.DE,RWE AG                        I,Utilities,Utilities - Diversified,39.93,0.37570998,-0.328,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.2287,3,4
+SATS,EchoStar Corporation,Communication Services,Telecom Services,29.28,0.27082002,-0.052,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.0697,3,4
+SCHP.SW,SCHINDLER PS,Industrials,Specialty Industrial Machinery,30.58,0.73779,-0.051,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0119,2,4
+SCMN.SW,SWISSCOM N,Communication Services,Telecom Services,36.72,0.58134,-0.041,ABSOLUTE_PASS,True,RECOVERED,0.1084,1,4
+SGO.PA,SAINT GOBAIN,Industrials,Building Products & Equipment,36.66,0.27836,-0.021,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.0317,3,4
+SIGN.SW,SIG GROUP N,Consumer Cyclical,Packaging & Containers,5.02,0.24985,-0.048,RELATIVE_RESCUE,False,SINGLE_YEAR_DIP,0.0533,1,4
+SIKA.SW,SIKA N,Basic Materials,Specialty Chemicals,26.11,0.54936004,-0.079,ABSOLUTE_PASS,True,SINGLE_YEAR_DIP,0.0221,1,4
+SKF-B.ST,"SKF, AB ser. B",Industrials,Tools & Accessories,9.89,0.27211002,-0.087,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,-0.0187,2,4
+SMIN.L,SMITHS GROUP PLC ORD 37.5P,Industrials,Specialty Industrial Machinery,8.65,0.36992002,-0.01,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.0491,1,4
+SOLV,Solventum Corporation,Healthcare,Medical Instruments & Supplies,12.35,0.53655,-0.03,ABSOLUTE_PASS,True,RECOVERED,0.0079,0,4
+SON,Sonoco Products Company,Consumer Cyclical,Packaging & Containers,4.27,0.20912,-0.019,RELATIVE_RESCUE,False,RECOVERED,0.0867,2,4
+SOON.SW,SONOVA N,Healthcare,Medical Devices,13.19,0.73721004,,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.012,3,4
+SPSN.SW,SWISS PRIME SITE N,Real Estate,Real Estate - Diversified,11.19,0.88682,-0.196,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0488,1,4
+SRE,DBA Sempra,Utilities,Utilities - Diversified,51.39,0.42457,-0.039,ABSOLUTE_PASS,True,RECOVERED,-0.0173,1,4
+SSE.L,SSE PLC ORD 50P,Utilities,Utilities - Diversified,32.85,0.37050998,-0.021,ABSOLUTE_PASS,True,RECOVERED,-0.0657,2,4
+STERV.HE,Stora Enso Oyj R,Consumer Cyclical,Packaging & Containers,7.5,0.24608,-0.002,RELATIVE_RESCUE,False,RECOVERED,-0.0723,2,4
+STZ,"Constellation Brands, Inc.",Consumer Defensive,Beverages - Brewers,20.87,0.51651,-0.113,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0112,1,4
+SWKS,"Skyworks Solutions, Inc.",Technology,Semiconductors,9.57,0.41075,-0.01,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.0934,3,4
+SWX,"Southwest Gas Holdings, Inc.",Utilities,Utilities - Regulated Gas,5.51,0.51233,-0.216,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.2686,3,4
+SY1.DE,Symrise AG                    I,Basic Materials,Specialty Chemicals,11.5,0.37627,-0.024,ABSOLUTE_PASS,True,SINGLE_YEAR_DIP,0.0219,1,4
+TECH,Bio-Techne Corp,Healthcare,Biotechnology,7.37,0.66399,-0.015,ABSOLUTE_PASS,False,RECOVERED,0.0333,0,4
+TEF.MC,"TELEFONICA,S.A.",Communication Services,Telecom Services,22.02,0.45129,-0.124,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0424,2,4
+TEL.OL,TELENOR,Communication Services,Telecom Services,18.64,0.65228,-0.014,ABSOLUTE_PASS,True,RECOVERED,-0.0014,1,4
+TELIA.ST,Telia Company AB,Communication Services,Telecom Services,17.79,0.50043,-0.003,ABSOLUTE_PASS,True,RECOVERED,-0.0182,1,4
+TEP.PA,TELEPERFORMANCE,Industrials,Specialty Business Services,3.3,0.30953,-0.021,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.0778,1,4
+TGS.OL,TGS ASA,Energy,Oil & Gas Equipment & Services,2.64,0.83919,-0.422,ABSOLUTE_PASS,False,RECOVERED,0.2868,0,4
+TMHC,Taylor Morrison Home Corporatio,Consumer Cyclical,Residential Construction,5.71,0.22610001,-0.268,RELATIVE_RESCUE,False,MULTI_YEAR_DECLINE,-0.0042,2,4
+TOL,"Toll Brothers, Inc.",Consumer Cyclical,Residential Construction,11.66,0.25203,-0.076,RELATIVE_RESCUE,True,RECOVERED,0.0219,1,4
+TREL-B.ST,Trelleborg AB ser. B,Industrials,Specialty Industrial Machinery,8.31,0.37512,-0.029,ABSOLUTE_PASS,False,INSUFFICIENT_DATA,,,1
+TRGP,"Targa Resources, Inc.",Energy,Oil & Gas Midstream,49.05,0.41766,-0.102,ABSOLUTE_PASS,True,RECOVERED,-0.0665,1,4
+TTEK,"Tetra Tech, Inc.",Industrials,Engineering & Construction,6.29,0.21806,-0.049,RELATIVE_RESCUE,False,RECOVERED,0.1581,0,4
+UHR.SW,SWATCH GROUP I,Consumer Cyclical,Luxury Goods,11.26,0.82197,-0.021,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0574,2,4
+ULVR.L,UNILEVER PLC ORD 3.5P,Consumer Defensive,Household & Personal Products,108.24,0.46945998,,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0562,2,4
+UPS,"United Parcel Service, Inc.",Industrials,Integrated Freight & Logistics,79.32,0.2245,-0.016,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,-0.0404,2,4
+UTHR,United Therapeutics Corporation,Healthcare,Drug Manufacturers - Specialty & Generic,20.31,0.86583,-0.016,ABSOLUTE_PASS,True,RECOVERED,0.1802,0,4
+VER.VI,VERBUND AG Kat. A,Utilities,Utilities - Renewable,20.39,0.47465,-0.155,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0816,2,4
+VIV.PA,VIVENDI SE,Communication Services,Electronic Gaming & Multimedia,2.11,0.30618998,,ABSOLUTE_PASS,False,RECOVERED,-0.6825,2,4
+VK.PA,VALLOUREC,Basic Materials,Steel,5.45,0.30186,-0.147,ABSOLUTE_PASS,False,MULTI_YEAR_DECLINE,-0.0795,2,4
+VNA.DE,Vonovia SE                    N,Real Estate,Real Estate Services,16.97,0.60118,-0.338,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,-0.0093,2,4
+VOD.L,VODAFONE GROUP PLC ORD USD0.20 ,Communication Services,Telecom Services,29.65,0.3147,,ABSOLUTE_PASS,True,RECOVERED,0.0241,1,4
+VOLV-B.ST,"Volvo, AB ser. B",Industrials,Farm & Heavy Construction Machinery,56.81,0.23527001,-0.091,RELATIVE_RESCUE,True,MULTI_YEAR_DECLINE,0.004,2,4
+WBD,"Warner Bros. Discovery, Inc. - ",Communication Services,Entertainment,57.61,0.45748,-0.01,ABSOLUTE_PASS,True,MULTI_YEAR_DECLINE,0.0332,2,4
+WFRD,Weatherford International plc,Energy,Oil & Gas Equipment & Services,6.3,0.30757,-0.034,ABSOLUTE_PASS,False,SINGLE_YEAR_DIP,0.0433,1,4
+WIE.VI,Wienerberger AG,Basic Materials,Building Materials,2.45,0.34794998,-0.068,ABSOLUTE_PASS,False,RECOVERED,-0.0283,1,4
