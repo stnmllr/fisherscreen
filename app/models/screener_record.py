@@ -56,6 +56,10 @@ class ScreenerRecord(BaseModel):
     filter_passed_basis: bool | None = None
     filter_passed_edgar: bool | None = None
     filter_failed_reason: str | None = None
+    # Punkt 2 Phase E: how a basis-passing record cleared the gross-margin gate.
+    # "ABSOLUTE_PASS" (gm >= floor) | "RELATIVE_RESCUE" (sub-floor, rescued by the
+    # relative arm) | None (not applicable / did not pass the basis filter).
+    gross_margin_pass_reason: str | None = None
     resolution_detail: str | None = None  # 0b: sub-reason when diverted (NO_RAW_MC|NO_CURRENCY|NO_VOLUME|NO_PRICE|NO_FX)
     # CT-A: definedness verdict from the basis-stage income-statement pre-pass.
     # None = not assessed (non-suspect, or record did not reach the assessment).

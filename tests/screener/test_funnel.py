@@ -143,6 +143,21 @@ def test_reconciliation_invariant_full_run():
     assert summary.pass_through_count == 1
 
 
+def test_relative_rescues_surfaced_on_summary():
+    # Among basis-passers, the ones tagged RELATIVE_RESCUE are surfaced for prod audit;
+    # ABSOLUTE_PASS is the implicit majority and is NOT listed.
+    abs_pass = _resolved("ABS")
+    abs_pass.gross_margin_pass_reason = "ABSOLUTE_PASS"
+    rescue = _resolved("RES")
+    rescue.gross_margin_pass_reason = "RELATIVE_RESCUE"
+    untagged = _resolved("UNT")  # gross_margin_pass_reason stays None
+    basis = BasisFilterResult(passed=[abs_pass, rescue, untagged], unresolved=[],
+                              resolved=[abs_pass, rescue, untagged], degraded=[])
+    summary, _ = build_funnel(universe=["ABS", "RES", "UNT"], basis=basis, scored=None,
+                              score_threshold=4.0, crosshits_min_dimensions=2)
+    assert summary.relative_rescues == ["RES"]
+
+
 def test_dry_run_omits_scoring_stages():
     vol = _resolved("VOL", basis_reason="avg_volume")
     ok = _resolved("OK")

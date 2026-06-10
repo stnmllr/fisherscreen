@@ -8,6 +8,7 @@ from app.screener.filters import (
     _get_fail_reason,
     _node_chain,
     apply_basis_filters,
+    gross_margin_pass_reason,
     passes_gross_margin_filter,
     passes_market_cap_filter,
     passes_revenue_growth_filter,
@@ -454,3 +455,100 @@ def test_apply_basis_filters_rescues_with_table():
     result = filters.apply_basis_filters([rec], sector_table=table, relative_k=0.5)
     assert rec.filter_passed_basis is True
     assert result and result[0].ticker == "MAERSK"
+
+
+# --- gross_margin_pass_reason: ABSOLUTE_PASS vs RELATIVE_RESCUE (Punkt 2 Phase E) ---
+# A passing record must be auditable as either an absolute pass or a relative rescue.
+# RELATIVE_RESCUE is tagged ONLY for a SUB-FLOOR name (gm < MIN_GROSS_MARGIN AND
+# gm >= k*median). gm >= MIN_GROSS_MARGIN is always ABSOLUTE_PASS, never RELATIVE_RESCUE.
+
+def _bucket_table(median=0.30, n_min=1):
+    return SectorMedianTable(
+        entries={"Marine Shipping": median},
+        n_min=n_min,
+        counts={"Marine Shipping": 40},
+    )
+
+
+def test_pass_reason_absolute_above_floor():
+    rec = _record(gross_margin=0.40, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=None) == "ABSOLUTE_PASS"
+
+
+def test_pass_reason_relative_rescue_sub_floor():
+    # gm=0.20, k=0.5, median=0.30 -> bar=0.15, 0.20>=0.15 -> rescue
+    rec = _record(gross_margin=0.20, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=_bucket_table(0.30), k=0.5) == "RELATIVE_RESCUE"
+
+
+def test_pass_reason_none_sub_floor_below_relative_bar():
+    # gm=0.20, k=0.5, median=0.50 -> bar=0.25, 0.20<0.25 -> fails the gate
+    rec = _record(gross_margin=0.20, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=_bucket_table(0.50), k=0.5) is None
+
+
+def test_pass_reason_none_dormant_no_table():
+    # sub-floor, no table -> relative arm dormant -> None
+    rec = _record(gross_margin=0.20, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=None) is None
+
+
+def test_pass_reason_absolute_even_when_table_present():
+    # gm=0.40 clears k*median trivially but must NOT be tagged RELATIVE_RESCUE.
+    rec = _record(gross_margin=0.40, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=_bucket_table(0.30), k=0.5) == "ABSOLUTE_PASS"
+
+
+def test_pass_reason_none_when_gross_margin_missing():
+    rec = _record(gross_margin=None)
+    assert gross_margin_pass_reason(rec, table=_bucket_table(0.30), k=0.5) is None
+
+
+def test_pass_reason_none_when_bucket_median_none():
+    # thin bucket, no group mapping -> bucket_median None -> no rescue
+    table = SectorMedianTable(entries={"Marine Shipping": 0.20}, n_min=10,
+                              counts={"Marine Shipping": 2})
+    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
+    assert gross_margin_pass_reason(rec, table=table, k=0.5) is None
+
+
+# --- delegation regression: passes_gross_margin_filter == (pass_reason is not None) ---
+
+def test_passes_filter_delegates_to_pass_reason():
+    table = _bucket_table(0.30)
+    cases = [
+        (_record(gross_margin=0.40, gics_industry="Marine Shipping"), None, None),
+        (_record(gross_margin=0.40, gics_industry="Marine Shipping"), table, 0.5),
+        (_record(gross_margin=0.20, gics_industry="Marine Shipping"), table, 0.5),
+        (_record(gross_margin=0.20, gics_industry="Marine Shipping"),
+         _bucket_table(0.50), 0.5),
+        (_record(gross_margin=0.20, gics_industry="Marine Shipping"), None, None),
+        (_record(gross_margin=None), table, 0.5),
+    ]
+    for rec, tbl, k in cases:
+        expected = gross_margin_pass_reason(rec, tbl, k) is not None
+        assert passes_gross_margin_filter(rec, tbl, k) is expected
+
+
+# --- apply_basis_filters tags gross_margin_pass_reason on PASSING records only ---
+
+def test_apply_basis_filters_tags_absolute_pass():
+    rec = _record(ticker="ABS", gross_margin=0.45)
+    apply_basis_filters([rec])
+    assert rec.filter_passed_basis is True
+    assert rec.gross_margin_pass_reason == "ABSOLUTE_PASS"
+
+
+def test_apply_basis_filters_tags_relative_rescue():
+    table = _bucket_table(0.30)
+    rec = _record(ticker="RES", gross_margin=0.20, gics_industry="Marine Shipping")
+    filters.apply_basis_filters([rec], sector_table=table, relative_k=0.5)
+    assert rec.filter_passed_basis is True
+    assert rec.gross_margin_pass_reason == "RELATIVE_RESCUE"
+
+
+def test_apply_basis_filters_does_not_tag_failing_record():
+    rec = _record(ticker="SMALL", market_cap_eur=1_000_000_000)  # fails market_cap
+    apply_basis_filters([rec])
+    assert rec.filter_passed_basis is False
+    assert rec.gross_margin_pass_reason is None

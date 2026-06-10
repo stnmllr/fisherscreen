@@ -15,8 +15,10 @@ MIN_MARKET_CAP_EUR: float = 2_000_000_000
 MIN_AVG_DAILY_VALUE_EUR: float | None = 1_000_000.0
 MIN_GROSS_MARGIN: float = 0.30
 MIN_REVENUE_GROWTH: float = 0.0
-# Fail-loud-Sentinel bis Gate-A k setzt. None => relativer Arm feuert nicht (fail-safe).
-GROSS_MARGIN_RELATIVE_K: float | None = None
+# Phase E (2026-06): relative-arm factor calibrated against the v4-clean pinned table.
+# k=0.5 is the maximal-clean ceiling (the first healthy name, AES, falls at k>0.514);
+# the sub-k band below it is broken-dominated. See calibration.md (Punkt 2 Phase E).
+GROSS_MARGIN_RELATIVE_K: float | None = 0.5
 
 
 def passes_market_cap_filter(record: ScreenerRecord) -> bool:
@@ -60,23 +62,45 @@ def _node_chain(record: ScreenerRecord) -> list[str]:
     return [n for n in (industry, group) if n]
 
 
+ABSOLUTE_PASS = "ABSOLUTE_PASS"
+RELATIVE_RESCUE = "RELATIVE_RESCUE"
+
+
+def gross_margin_pass_reason(
+    record: ScreenerRecord,
+    table: SectorMedianTable | None = None,
+    k: float | None = None,
+) -> str | None:
+    """Why a record clears (or fails) the gross-margin gate — the audit primitive.
+
+    Returns ABSOLUTE_PASS (gm >= MIN_GROSS_MARGIN), RELATIVE_RESCUE (sub-floor name
+    rescued by the relative arm: gm < MIN_GROSS_MARGIN AND gm >= k*bucket_median), or
+    None (fails the gate / relative arm dormant / no valid bucket reference).
+
+    RELATIVE_RESCUE is reserved for SUB-FLOOR names only: a gm >= MIN_GROSS_MARGIN name
+    clears k*median trivially but is ABSOLUTE_PASS — tagging it RELATIVE_RESCUE would
+    inflate the rescue count and break the Gate-B additivity identity. Branch structure
+    mirrors passes_gross_margin_filter exactly (single source of truth)."""
+    gm = record.gross_margin
+    if gm is None:
+        logger.warning("ticker=%s gross_margin missing", record.ticker)
+        return None
+    if gm >= MIN_GROSS_MARGIN:          # absolute arm
+        return ABSOLUTE_PASS
+    if table is None or k is None:      # relative arm fail-safe: dormant
+        return None
+    median = bucket_median(_node_chain(record), table)
+    if median is None:                  # thin sector / no valid reference -> no rescue
+        return None
+    return RELATIVE_RESCUE if gm >= k * median else None
+
+
 def passes_gross_margin_filter(
     record: ScreenerRecord,
     table: SectorMedianTable | None = None,
     k: float | None = None,
 ) -> bool:
-    gm = record.gross_margin
-    if gm is None:
-        logger.warning("ticker=%s gross_margin missing", record.ticker)
-        return False
-    if gm >= MIN_GROSS_MARGIN:          # absolute arm
-        return True
-    if table is None or k is None:      # relative arm fail-safe: dormant
-        return False
-    median = bucket_median(_node_chain(record), table)
-    if median is None:                  # thin sector / no valid reference -> no rescue
-        return False
-    return gm >= k * median
+    return gross_margin_pass_reason(record, table, k) is not None
 
 
 def passes_revenue_growth_filter(record: ScreenerRecord) -> bool:
@@ -122,6 +146,13 @@ def apply_basis_filters(
             record.filter_passed_basis = False
         else:
             record.filter_passed_basis = True
+            # Tag HOW this record cleared the gross-margin gate (prod audit primitive):
+            # ABSOLUTE_PASS (>= floor) or RELATIVE_RESCUE (sub-floor, rescued by the
+            # relative arm). Only set on basis-passers — a record that failed an earlier
+            # gate never reached/cleared the gross-margin gate.
+            record.gross_margin_pass_reason = gross_margin_pass_reason(
+                record, sector_table, relative_k
+            )
             passed.append(record)
 
     us_passed = sum(1 for r in passed if "." not in r.ticker)
