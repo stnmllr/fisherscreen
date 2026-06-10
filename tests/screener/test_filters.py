@@ -493,6 +493,75 @@ def test_pass_reason_none_dormant_no_table():
     assert gross_margin_pass_reason(rec, table=None) is None
 
 
+# --- revenue_growth_outcome: pure gamma-trajectory outcome (Punkt 3 / Task 4) ---
+# TTM_PASS (positive snapshot, lazy short-circuit) | DECLINE_DROP (DEFINED gamma, the
+# only drop) | TRAJECTORY_RESCUE (DEFINED non-gamma) | UNASSESSABLE_PASS (criterion
+# could not apply). A missing TTM is data-absence judged on the trajectory, never an
+# auto-pass (the inverse of the original missing-data bug).
+
+from app.screener.filters import revenue_growth_outcome
+
+
+def _rg_rec(**kw):
+    from app.models.screener_record import ScreenerRecord
+    return ScreenerRecord(ticker="X", **kw)
+
+
+def test_outcome_ttm_pass_positive_snapshot():
+    r = _rg_rec(revenue_growth_yoy=0.01)
+    assert revenue_growth_outcome(r) == "TTM_PASS"
+    assert passes_revenue_growth_filter(r) is True
+
+
+def test_outcome_ttm_zero_passes():
+    assert revenue_growth_outcome(_rg_rec(revenue_growth_yoy=0.0)) == "TTM_PASS"
+
+
+def test_outcome_decline_drop_gamma():
+    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.DEFINED,
+                multiyear_revenue_cagr=-0.06, revenue_down_years=2)
+    assert revenue_growth_outcome(r) == "DECLINE_DROP"
+    assert passes_revenue_growth_filter(r) is False
+
+
+def test_outcome_trajectory_rescue_positive_cagr():
+    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.DEFINED,
+                multiyear_revenue_cagr=0.03, revenue_down_years=2)
+    assert revenue_growth_outcome(r) == "TRAJECTORY_RESCUE"
+    assert passes_revenue_growth_filter(r) is True
+
+
+def test_outcome_trajectory_rescue_single_down_year():
+    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.DEFINED,
+                multiyear_revenue_cagr=-0.02, revenue_down_years=1)
+    assert revenue_growth_outcome(r) == "TRAJECTORY_RESCUE"
+
+
+def test_outcome_unassessable_pass():
+    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.UNASSESSABLE)
+    assert revenue_growth_outcome(r) == "UNASSESSABLE_PASS"
+    assert passes_revenue_growth_filter(r) is True
+
+
+def test_outcome_missing_ttm_judged_on_trajectory_drop():
+    r = _rg_rec(revenue_growth_yoy=None, revenue_growth_definedness=DefinednessOutcome.DEFINED,
+                multiyear_revenue_cagr=-0.10, revenue_down_years=3)
+    assert revenue_growth_outcome(r) == "DECLINE_DROP"
+    assert passes_revenue_growth_filter(r) is False
+
+
+def test_outcome_missing_ttm_trajectory_rescue():
+    r = _rg_rec(revenue_growth_yoy=None, revenue_growth_definedness=DefinednessOutcome.DEFINED,
+                multiyear_revenue_cagr=0.02, revenue_down_years=2)
+    assert revenue_growth_outcome(r) == "TRAJECTORY_RESCUE"
+
+
+def test_outcome_missing_ttm_unassessable_pass():
+    r = _rg_rec(revenue_growth_yoy=None, revenue_growth_definedness=DefinednessOutcome.UNASSESSABLE)
+    assert revenue_growth_outcome(r) == "UNASSESSABLE_PASS"
+    assert passes_revenue_growth_filter(r) is True
+
+
 def test_pass_reason_absolute_even_when_table_present():
     # gm=0.40 clears k*median trivially but must NOT be tagged RELATIVE_RESCUE.
     rec = _record(gross_margin=0.40, gics_industry="Marine Shipping")
