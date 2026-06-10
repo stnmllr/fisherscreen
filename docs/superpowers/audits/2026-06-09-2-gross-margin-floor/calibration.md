@@ -5,6 +5,93 @@
 > `diagnose_k_calibration.py` (A3). Roh-Output: `k_calibration.txt`, `metrik_na_tickers.json`,
 > `sector_median_table.candidate.json` (dieser Ordner).
 
+## ✅ PHASE E — FINAL & GESHIPPT (2026-06-10) — supersedes ALLES darunter
+
+Dies ist der kanonische Record der live geshippten Punkt-2-Config. Alle Abschnitte darunter
+(KORREKTUR, A1/A2/A3-Erstlauf, k=0,3) sind **historischer Verlauf**, NICHT bindend.
+
+### Akzeptanz-Test: absoluter Below-Median-Regime-Gap (v4)
+
+Der finale Akzeptanz-Test (`app/screener/bucket_acceptance.py::is_bucket_acceptable`) rejectet einen
+Bucket gdw. **constituent-median-spread > 0,15** (Multi-Industry-Heterogenität) **ODER** es eine
+**Bruttomargen-Lücke ≥ 0,10 (10 Pp) UNTER dem Bucket-Median mit ≥ 20 % der Masse darunter** gibt
+(`has_below_median_regime_gap`). Eine Lücke ÜBER dem Median feuert nie (schützt kontinuierlich-weite
+Buckets wie Aerospace & Defense, Median im dichten Kern).
+
+**Warum absolut, nicht relativ — der entscheidende Befund (Stephan-Beweis):** JEDE skalen-relative
+Normierung kollabiert an den zwei kritischen Buckets, weil Gap und Streuung ko-skalieren —
+das benigne **Grocery** erscheint **anomaler** als das schädliche **SBS**:
+
+| Maß | Grocery (benign) | SBS (schädlich) |
+|---|---|---|
+| gap/median | 0,064/0,210 = **0,30** | 0,15/0,475 = 0,32 |
+| gap/IQR | 0,064/0,193 = **0,33** | 0,15/0,408 = 0,37 |
+| gap/std | 0,064/0,105 = **0,61** | 0,15/0,224 = 0,67 |
+| KDE-Trog (gap/Silverman-h) | h≈0,062, gap≈1×h | h≈0,117, gap≈1×h — SBS' breite bw glättet die eigene Lücke weg |
+
+Alle drei Relativ-Maße ranken Grocery ≈ SBS oder Grocery **drüber**; KDE-Silverman ist `gap/h` mit
+Glättung = wieder relativ, mit derselben Rückwärts-Sortierung. **Nur der rohe absolute Gap trennt**
+(0,064 vs 0,15). Konsequenz: margenblinde Akzeptanz ist hier nicht „schwer", sondern **unmöglich** —
+Grocery und SBS sind strukturell identisch, separierbar nur durch Gap-Magnitude in Margen-Prozentpunkten.
+**Margenblindheit fällt daher NUR für den Akzeptanz-Test, NICHT fürs Bucketing** (GICS-Achse bleibt
+exogen, Buckets werden nicht margen-gerrymandert → kein `adaptive-stat-swallows-judgment`-Loop; der
+Akzeptanz-Test ist ein nachgelagerter Eigenschafts-Check auf den fixen Bucket). Schwellen 0,10/0,20
+sind a-priori interpretierbar deklariert (10 Pp = echter Kostenstruktur-/Regime-Bruch), nicht
+verdikt-getunt. Voll-68-Bucket-Scan beidseitig validiert: SBS/Computer-Hardware → REJECT,
+Airlines/Auto-Mfrs → ACCEPT (Antimode über Median), Specialty Chemicals → ACCEPT (kontinuierlich, der
+k-Arm sortiert den Commodity-Tail). Asset Management ACCEPT bei Gap ≈ 0,09 < 0,10 (Schwellen-Borderline,
+bewusst nicht getunt).
+
+### Table + k
+
+- **`data/sector_median_table.json`**: **52 PINNED Buckets** (16 rejected-fail-safe), n_min = 8,
+  vintage 2026-06. Cleaning vereinheitlicht (`clean_universe`: METRIK_NA + gm≤0 raus, KEIN Sektor-String).
+- **`GROSS_MARGIN_RELATIVE_K = 0.5`** (`app/screener/filters.py`). **Decke bei ~0,51:** der erste gesunde
+  Name (AES, gm 0,193 / Utilities-Diversified 0,3757) kippt bei k > 0,514; das Sub-k-Band darunter ist
+  broken-dominiert (OCI 0,022 / Boeing 0,048 / ATOS 0,042 / commodity chem). k=0,5 ist die maximal-clean
+  Rundzahl an der Kante. k=0,6 zieht die Specialty-Chem/Utility-Mittelschicht (Arkema/Albemarle/LANXESS)
+  rein → über dem Kriterium. k=0,3 war maskierend (kontaminierter Lauf).
+
+### Gate-B Cold-Run ($0, echte aktivierte Config) — GRÜN
+
+`scripts/diagnose_gateB_additivity.py`:
+- **Additivität:** Pass(k=0,5) ⊇ Pass(k=None), **884 → 1059**, kein Vor-Passer fällt (OR-Arm rein additiv).
+- **Identity:** RELATIVE_RESCUE-Tag-Count == |DELTA| == **175** (Sub-Floor-Def korrekt; kein Absolut-Passer
+  fehl-getaggt — sonst Count > Delta).
+- **Vorhersage-Match:** |DELTA| 175 == A3-k=0,5-Rescue-Vorhersage 175.
+- Prod-Audit: `gross_margin_pass_reason` taggt `ABSOLUTE_PASS` / `RELATIVE_RESCUE`; `FunnelSummary.relative_rescues`.
+
+### Harte False-Negatives — bewusst, KEIN Bug (Future-Stef: nicht debuggen)
+
+`gross_margin` ist ein **Pre-Scoring-Knock-out** (Basis-Filter vor Gemini, `runner.py` scoring läuft nur auf
+basis-passed). Diese realen Namen fallen hart und erreichen den Scorer NIE — strukturell erzwungen, **kein k
+rettet sie ohne Floor-Masking:**
+- **Costco** (gm 0,129, Discount Stores 0,281) — Membership-Modell, Niedrig-Brutto-by-design; bräuchte k≤0,46.
+- **Accor** (gm 0,224, Lodging 0,6125) — bräuchte k≤0,37.
+- **Tesco/Sainsbury** (gm 0,076/0,068, Grocery 0,2102) — UK-Accounting-Regime unter US-gewichtetem Median
+  (akzeptierter Regime-Spread); bräuchte k≤0,36.
+Es gibt kein k, das diese rettet, ohne den Floor aufzuweichen (= Masking-Regime). Akzeptierte Kasualitäten der
+Viability-Floor-Philosophie (Gate irrt bewusst Richtung Ausschluss). Membership-Carve-out (Costco) wäre separat
+& modell-bewusst, außerhalb dieses Zyklus.
+
+### Provenance (vintage 2026-06, eingefroren in diesem Ordner, Commit `0552582`)
+
+- `metrik_na_tickers.json` — A1-METRIK_NA-Set, **220 Ticker** (REIT-korrigiert), git-blob **`293ea92d`**.
+- `sector_median_table.candidate.json` — A2-v4-Candidate, git-blob **`e0f884c7`**, **bit-identisch** zur
+  geshippten `data/sector_median_table.json`.
+- yfinance ist live → ein Re-Run reproduziert diese Inputs NICHT exakt; daher eingefroren als Input-of-Record.
+- Kette: live-config (`data/`, blob e0f884c7) ← Provenance (`audits/`, blobs e0f884c7 + 293ea92d) ← diese Rationale.
+
+### Reversibilität
+
+Arm ist rein additiv + config-gated: bei Prod-Smoke-Auffälligkeit `GROSS_MARGIN_RELATIVE_K=None` → sofort
+zurück im verifiziert-dormanten Zustand, kein Code-Revert. **Merge ≠ verifiziert** — der kalte Prod-Smoke
+(`POST /run/monthly?dry_run=true`, $0) ist Gate-B-in-Prod (Pass = `relative_rescues`-Liste erscheint ~175 &
+reconciliert, NICHT „200 OK"; `relative_rescues=[]` = stiller Dormant-Arm = der Fehler, siehe
+`prod-logging-dormant-and-cache-masks-verification`).
+
+---
+
 ## ⚠️ KORREKTUR (Stephan-Review 2026-06-09) — supersedes A2/A3 unten
 
 Die untenstehende A2/A3-Erstlesung („CT-B deferred", „k=0,30") ist **widerlegt** und NICHT bindend.
