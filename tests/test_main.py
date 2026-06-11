@@ -94,6 +94,28 @@ def test_dry_run_returns_report_and_skips_paid_pipeline() -> None:
     mock_run_screener.assert_not_called()
 
 
+def test_selftest_push_pushes_sentinel_file_once() -> None:
+    mock_github = MagicMock()
+
+    with patch("app.main.build_github_client", return_value=mock_github):
+        resp = client.post("/selftest/push")
+
+    assert resp.status_code == 200
+
+    mock_github.push_file.assert_called_once()
+    path, _content, commit_message = mock_github.push_file.call_args[0]
+    assert path == "output/.smoke/push_selftest.md"
+    assert "self-test" in commit_message
+    assert "[skip ci]" in commit_message
+
+    data = resp.json()
+    assert data["selftest"] == "push"
+    assert data["pushed_path"] == "output/.smoke/push_selftest.md"
+    assert "repo" in data
+    assert "branch" in data
+    assert "timestamp" in data
+
+
 def test_monthly_run_commit_message_includes_skip_ci(tmp_path: Path) -> None:
     output_file = tmp_path / "2026-05-Dimensions.md"
     output_file.write_text("# test content", encoding="utf-8")

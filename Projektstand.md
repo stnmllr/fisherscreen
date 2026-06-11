@@ -8,7 +8,7 @@
 
 ---
 
-## Letztes Update: 2026-06-10
+## Letztes Update: 2026-06-11
 
 ## Top of mind
 
@@ -72,7 +72,7 @@ D:\programme\stef-vault\Wissen\Finanzen\FisherScreen\Universum
 D:\programme\fisherscreen\output\Universum
 ```
 
-Angelegt 2026-05-16 via `mklink /J`. Voraussetzung für Sichtbarkeit in Obsidian: regelmäßiges `git pull origin main` in `D:\programme\fisherscreen`. Der Junction-Ordner ist in `stef-vault/.gitignore` eingetragen, damit `stnmllr/stef-vault` die Files nicht doppelt versioniert.
+Angelegt 2026-05-16 via `mklink /J`. **Voraussetzung für Sichtbarkeit in Obsidian: `git -C D:\programme\fisherscreen pull` als Schritt 1 der monatlichen Sichtungsroutine** — es gibt KEINEN automatischen remote→lokal-Sync (das Obsidian-Git-Plugin verwaltet ausschließlich `stef-vault`, nicht `fisherscreen`). Der Junction-Ordner ist in `stef-vault/.gitignore` eingetragen, damit `stnmllr/stef-vault` die Files nicht doppelt versioniert. Die Vault-README (`FisherScreen_Output_README.md`) wurde 2026-06-11 korrigiert: entfernte die Phantom-Behauptung „mounted via Obsidian Git Plugin" und die veralteten Dateinamen (Top30/HoldCheck → Dimensions/Crosshits/Changes; Portfolio-HoldCheck als „geplant, nicht implementiert" markiert).
 
 **Single-Machine-Setup:** Aktuell nur auf der Workstation. Falls Vault auf einem zweiten Gerät genutzt werden soll, müsste der Service zusätzlich nach `stnmllr/stef-vault` pushen (Phase-2-TODO #5-Variante).
 
