@@ -949,6 +949,21 @@ def test_revenue_prepass_fetches_and_drops_gamma():
     assert rec.filter_passed_basis is False
 
 
+def test_revenue_prepass_fetch_threshold_tracks_min_revenue_growth(monkeypatch):
+    # If the floor is recalibrated above 0, a record with 0 <= TTM < floor must STILL be
+    # fetched+assessed by the pre-pass (not skipped), because the gate will not TTM_PASS it.
+    import app.screener.filters as _filters
+    monkeypatch.setattr(_filters, "MIN_REVENUE_GROWTH", 0.05)
+    infos = {"MID": _growth_info(0.02)}  # 0 <= 0.02 < 0.05
+    stmts = {"MID": _make_revenue_stmt([60.0, 80.0, 90.0, 100.0])}  # falling -> gamma decline
+    mock = _make_full_yf_mock(infos, stmts=stmts)
+    result = run_basis_filter(["MID"], mock)
+    mock.get_annual_statements.assert_called_once_with("MID")  # was fetched, not skipped
+    rec = result.resolved[0]
+    assert rec.revenue_growth_definedness is DefinednessOutcome.DEFINED
+    assert rec.filter_failed_reason == "revenue_growth"  # assessed -> gamma drop
+
+
 def test_revenue_prepass_fetches_and_rescues_positive_cagr():
     infos = {"RESC": _growth_info(-0.05)}
     stmts = {"RESC": _make_revenue_stmt([130.0, 90.0, 105.0, 100.0])}  # net growth, choppy

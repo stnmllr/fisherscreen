@@ -207,8 +207,8 @@ def _assess_revenue_growth_trajectory(
         if not passes_gross_margin_filter(record, table, relative_k):
             continue
         ttm = record.revenue_growth_yoy
-        if ttm is not None and ttm >= 0:
-            continue  # TTM-pass: lazy short-circuit, no fetch
+        if ttm is not None and ttm >= _filters.MIN_REVENUE_GROWTH:
+            continue  # TTM-pass: lazy short-circuit, no fetch (same floor the gate uses)
         revenues: list[float] = []
         try:
             income_stmt = yfinance.get_annual_statements(record.ticker)[0]
