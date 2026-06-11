@@ -58,15 +58,15 @@ def test_run_skips_tickers_with_data_source_errors():
 
 
 def test_run_processes_multiple_tickers():
-    mock_yf = MagicMock()
-    mock_yf.get_fx_rate.return_value = _FX_USD_EUR
-
-    def side_effect(ticker):
-        if ticker == "GOOD":
-            return _PASSING_INFO
-        return {**_PASSING_INFO, "revenueGrowth": -0.10}  # declining revenue fails V3
-
-    mock_yf.get_ticker_info.side_effect = side_effect
+    # SHRK has a negative TTM, so the pre-pass fetches its income statement. A falling
+    # newest-first revenue series makes it a real gamma decline (CAGR < 0, down_years >= 2)
+    # -> dropped on the revenue_growth viability floor. GOOD has positive TTM (no fetch).
+    infos = {
+        "GOOD": _PASSING_INFO,
+        "SHRK": {**_PASSING_INFO, "revenueGrowth": -0.10},  # declining revenue
+    }
+    stmts = {"SHRK": _make_revenue_stmt([60.0, 80.0, 90.0, 100.0])}  # newest-first, falling
+    mock_yf = _make_full_yf_mock(infos, stmts=stmts)
     result = run_basis_filter(["GOOD", "SHRK"], mock_yf).passed
 
     assert len(result) == 1
@@ -909,3 +909,96 @@ def test_assess_basket_datasourceerror_still_unassessable():
     _assess_definedness_basket([record], yf)
 
     assert record.definedness is DefinednessOutcome.UNASSESSABLE
+
+
+# --- Punkt-3 revenue-growth trajectory pre-pass ---
+
+
+def _make_revenue_stmt(revs_newest_first: list[float]):
+    import pandas as pd
+    cols = {str(2024 - i): {"Total Revenue": v} for i, v in enumerate(revs_newest_first)}
+    return pd.DataFrame(cols)
+
+
+def _growth_info(ttm, gm=0.5, **ov):
+    # a clean non-suspect record (positive gm so it clears the gross-margin gate) with a
+    # settable revenueGrowth; gm>=0.30 so the record reaches the revenue_growth pre-pass.
+    info = _non_suspect_info(**ov)
+    info["revenueGrowth"] = ttm
+    info["grossMargins"] = gm
+    return info
+
+
+def test_revenue_prepass_no_fetch_when_ttm_positive():
+    infos = {"GROW": _growth_info(0.05)}
+    mock = _make_full_yf_mock(infos)  # get_annual_statements raises if called
+    result = run_basis_filter(["GROW"], mock)
+    mock.get_annual_statements.assert_not_called()
+    assert result.resolved[0].revenue_growth_pass_reason == "TTM_PASS"
+
+
+def test_revenue_prepass_fetches_and_drops_gamma():
+    infos = {"DECL": _growth_info(-0.05)}
+    stmts = {"DECL": _make_revenue_stmt([70.0, 80.0, 90.0, 100.0])}  # newest-first, falling
+    mock = _make_full_yf_mock(infos, stmts=stmts)
+    result = run_basis_filter(["DECL"], mock)
+    mock.get_annual_statements.assert_called_once_with("DECL")
+    rec = result.resolved[0]
+    assert rec.revenue_growth_definedness is DefinednessOutcome.DEFINED
+    assert rec.filter_failed_reason == "revenue_growth"
+    assert rec.filter_passed_basis is False
+
+
+def test_revenue_prepass_fetch_threshold_tracks_min_revenue_growth(monkeypatch):
+    # If the floor is recalibrated above 0, a record with 0 <= TTM < floor must STILL be
+    # fetched+assessed by the pre-pass (not skipped), because the gate will not TTM_PASS it.
+    import app.screener.filters as _filters
+    monkeypatch.setattr(_filters, "MIN_REVENUE_GROWTH", 0.05)
+    infos = {"MID": _growth_info(0.02)}  # 0 <= 0.02 < 0.05
+    stmts = {"MID": _make_revenue_stmt([60.0, 80.0, 90.0, 100.0])}  # falling -> gamma decline
+    mock = _make_full_yf_mock(infos, stmts=stmts)
+    result = run_basis_filter(["MID"], mock)
+    mock.get_annual_statements.assert_called_once_with("MID")  # was fetched, not skipped
+    rec = result.resolved[0]
+    assert rec.revenue_growth_definedness is DefinednessOutcome.DEFINED
+    assert rec.filter_failed_reason == "revenue_growth"  # assessed -> gamma drop
+
+
+def test_revenue_prepass_fetches_and_rescues_positive_cagr():
+    infos = {"RESC": _growth_info(-0.05)}
+    stmts = {"RESC": _make_revenue_stmt([130.0, 90.0, 105.0, 100.0])}  # net growth, choppy
+    mock = _make_full_yf_mock(infos, stmts=stmts)
+    result = run_basis_filter(["RESC"], mock)
+    rec = result.resolved[0]
+    assert rec.revenue_growth_pass_reason == "TRAJECTORY_RESCUE"
+    assert rec.filter_passed_basis is True
+
+
+def test_revenue_prepass_fetch_failure_unassessable_pass():
+    infos = {"FAIL": _growth_info(-0.05)}
+    mock = MagicMock()
+    mock.get_ticker_info.side_effect = lambda t: infos[t]
+    mock.get_fx_rate.return_value = 1.0
+    mock.get_annual_statements.side_effect = DataSourceError("timeout")
+    result = run_basis_filter(["FAIL"], mock)
+    rec = result.resolved[0]
+    assert rec.revenue_growth_definedness is DefinednessOutcome.UNASSESSABLE
+    assert rec.revenue_growth_pass_reason == "UNASSESSABLE_PASS"
+    assert rec.filter_passed_basis is True
+
+
+def test_revenue_prepass_missing_ttm_fetches_and_drops():
+    infos = {"NONE": _growth_info(None)}
+    stmts = {"NONE": _make_revenue_stmt([60.0, 80.0, 90.0, 100.0])}
+    mock = _make_full_yf_mock(infos, stmts=stmts)
+    result = run_basis_filter(["NONE"], mock)
+    mock.get_annual_statements.assert_called_once_with("NONE")
+    assert result.resolved[0].filter_failed_reason == "revenue_growth"
+
+
+def test_revenue_prepass_no_fetch_when_gross_margin_fails():
+    infos = {"LOWGM": _growth_info(-0.05, gm=0.05)}  # gm below 0.30 floor
+    mock = _make_full_yf_mock(infos)
+    result = run_basis_filter(["LOWGM"], mock)
+    mock.get_annual_statements.assert_not_called()
+    assert result.resolved[0].filter_failed_reason == "gross_margin"

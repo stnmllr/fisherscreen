@@ -61,3 +61,29 @@ def extract_waterfall_inputs(
     gross_profit = _first_col_value(income_stmt, "Gross Profit")
 
     return True, total_revenue, cost_of_revenue, gross_profit, cor_present
+
+
+def extract_revenue_series(income_stmt: Any) -> list[float]:
+    """Return annual Total Revenue oldest->newest from a yfinance income_stmt DataFrame.
+
+    yfinance columns are newest-first; we reverse to oldest->newest for trajectory
+    reasoning. NaN and non-positive values are dropped (a non-positive revenue is a
+    data artefact, not a real fiscal year). Returns [] when the frame is None/empty/
+    non-2-D (SEAM-4 contract guard) or the 'Total Revenue' row is absent.
+    """
+    if getattr(income_stmt, "ndim", None) != 2:
+        return []
+    if income_stmt is None or getattr(income_stmt, "empty", True):
+        return []
+    if "Total Revenue" not in income_stmt.index:
+        return []
+    row = income_stmt.loc["Total Revenue"]
+    series: list[float] = []
+    for val in reversed(list(row)):  # newest-first -> oldest-first
+        try:
+            f = float(val)
+        except (TypeError, ValueError):
+            continue
+        if f == f and f > 0:  # NaN guard (f != f) + positive only
+            series.append(f)
+    return series

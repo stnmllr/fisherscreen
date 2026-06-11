@@ -131,11 +131,28 @@ def test_revenue_growth_passes_at_zero():
 
 
 def test_revenue_growth_fails_negative_growth():
-    assert passes_revenue_growth_filter(_record(revenue_growth_yoy=-0.01)) is False
+    # A negative TTM snapshot is only a drop when the multi-year trajectory confirms a
+    # genuine gamma decline (CAGR < 0 AND down_years >= 2). Encode that real decline.
+    rec = _record(
+        revenue_growth_yoy=-0.01,
+        revenue_growth_definedness=DefinednessOutcome.DEFINED,
+        multiyear_revenue_cagr=-0.06,
+        revenue_down_years=2,
+    )
+    assert passes_revenue_growth_filter(rec) is False
 
 
-def test_revenue_growth_fails_when_none():
-    assert passes_revenue_growth_filter(_record(revenue_growth_yoy=None)) is False
+def test_revenue_growth_missing_ttm_with_gamma_trajectory_drops():
+    # Missing TTM is data-absence, judged on the trajectory: a DEFINED gamma decline
+    # (CAGR < 0 AND down_years >= 2) is a DECLINE_DROP. (A missing TTM *without* a gamma
+    # trajectory is TRAJECTORY_RESCUE — covered by test_outcome_missing_ttm_trajectory_rescue.)
+    rec = _record(
+        revenue_growth_yoy=None,
+        revenue_growth_definedness=DefinednessOutcome.DEFINED,
+        multiyear_revenue_cagr=-0.10,
+        revenue_down_years=3,
+    )
+    assert passes_revenue_growth_filter(rec) is False
 
 
 # --- apply_basis_filters ---
@@ -170,7 +187,15 @@ def test_apply_basis_filters_sets_failed_reason_gross_margin():
 
 
 def test_apply_basis_filters_sets_failed_reason_revenue_growth():
-    record = _record(ticker="SHRINKING", revenue_growth_yoy=-0.05)
+    # apply_basis_filters does not run the trajectory pre-pass, so set the trajectory
+    # fields directly to express a real gamma decline that fails the viability floor.
+    record = _record(
+        ticker="SHRINKING",
+        revenue_growth_yoy=-0.05,
+        revenue_growth_definedness=DefinednessOutcome.DEFINED,
+        multiyear_revenue_cagr=-0.06,
+        revenue_down_years=2,
+    )
     apply_basis_filters([record])
     assert record.filter_failed_reason == "revenue_growth"
 
@@ -189,7 +214,17 @@ def test_apply_basis_filters_checks_volume_before_market_cap():
 
 
 def test_apply_basis_filters_returns_empty_for_all_failures():
-    records = [_record(ticker="SHRINKING", revenue_growth_yoy=-0.50)]
+    # All records fail -> empty result. The lone record is a real gamma decline
+    # (DEFINED, CAGR < 0, down_years >= 2) so it drops on the revenue_growth floor.
+    records = [
+        _record(
+            ticker="SHRINKING",
+            revenue_growth_yoy=-0.50,
+            revenue_growth_definedness=DefinednessOutcome.DEFINED,
+            multiyear_revenue_cagr=-0.40,
+            revenue_down_years=3,
+        )
+    ]
     assert apply_basis_filters(records) == []
 
 
@@ -491,6 +526,75 @@ def test_pass_reason_none_dormant_no_table():
     # sub-floor, no table -> relative arm dormant -> None
     rec = _record(gross_margin=0.20, gics_industry="Marine Shipping")
     assert gross_margin_pass_reason(rec, table=None) is None
+
+
+# --- revenue_growth_outcome: pure gamma-trajectory outcome (Punkt 3 / Task 4) ---
+# TTM_PASS (positive snapshot, lazy short-circuit) | DECLINE_DROP (DEFINED gamma, the
+# only drop) | TRAJECTORY_RESCUE (DEFINED non-gamma) | UNASSESSABLE_PASS (criterion
+# could not apply). A missing TTM is data-absence judged on the trajectory, never an
+# auto-pass (the inverse of the original missing-data bug).
+
+from app.screener.filters import revenue_growth_outcome
+
+
+def _rg_rec(**kw):
+    from app.models.screener_record import ScreenerRecord
+    return ScreenerRecord(ticker="X", **kw)
+
+
+def test_outcome_ttm_pass_positive_snapshot():
+    r = _rg_rec(revenue_growth_yoy=0.01)
+    assert revenue_growth_outcome(r) == "TTM_PASS"
+    assert passes_revenue_growth_filter(r) is True
+
+
+def test_outcome_ttm_zero_passes():
+    assert revenue_growth_outcome(_rg_rec(revenue_growth_yoy=0.0)) == "TTM_PASS"
+
+
+def test_outcome_decline_drop_gamma():
+    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.DEFINED,
+                multiyear_revenue_cagr=-0.06, revenue_down_years=2)
+    assert revenue_growth_outcome(r) == "DECLINE_DROP"
+    assert passes_revenue_growth_filter(r) is False
+
+
+def test_outcome_trajectory_rescue_positive_cagr():
+    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.DEFINED,
+                multiyear_revenue_cagr=0.03, revenue_down_years=2)
+    assert revenue_growth_outcome(r) == "TRAJECTORY_RESCUE"
+    assert passes_revenue_growth_filter(r) is True
+
+
+def test_outcome_trajectory_rescue_single_down_year():
+    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.DEFINED,
+                multiyear_revenue_cagr=-0.02, revenue_down_years=1)
+    assert revenue_growth_outcome(r) == "TRAJECTORY_RESCUE"
+
+
+def test_outcome_unassessable_pass():
+    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.UNASSESSABLE)
+    assert revenue_growth_outcome(r) == "UNASSESSABLE_PASS"
+    assert passes_revenue_growth_filter(r) is True
+
+
+def test_outcome_missing_ttm_judged_on_trajectory_drop():
+    r = _rg_rec(revenue_growth_yoy=None, revenue_growth_definedness=DefinednessOutcome.DEFINED,
+                multiyear_revenue_cagr=-0.10, revenue_down_years=3)
+    assert revenue_growth_outcome(r) == "DECLINE_DROP"
+    assert passes_revenue_growth_filter(r) is False
+
+
+def test_outcome_missing_ttm_trajectory_rescue():
+    r = _rg_rec(revenue_growth_yoy=None, revenue_growth_definedness=DefinednessOutcome.DEFINED,
+                multiyear_revenue_cagr=0.02, revenue_down_years=2)
+    assert revenue_growth_outcome(r) == "TRAJECTORY_RESCUE"
+
+
+def test_outcome_missing_ttm_unassessable_pass():
+    r = _rg_rec(revenue_growth_yoy=None, revenue_growth_definedness=DefinednessOutcome.UNASSESSABLE)
+    assert revenue_growth_outcome(r) == "UNASSESSABLE_PASS"
+    assert passes_revenue_growth_filter(r) is True
 
 
 def test_pass_reason_absolute_even_when_table_present():

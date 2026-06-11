@@ -4,7 +4,7 @@ import math
 import pandas as pd
 import pytest
 
-from app.services.income_statement import extract_waterfall_inputs
+from app.services.income_statement import extract_revenue_series, extract_waterfall_inputs
 
 
 def _make_stmt(rows: dict) -> pd.DataFrame:
@@ -116,3 +116,33 @@ def test_scalar_input_returns_not_available():
     assert cor is None
     assert gp is None
     assert cor_present is False
+
+
+# --- extract_revenue_series: multi-year Total Revenue, oldest->newest ---
+
+def _multi_year_stmt(rev_by_year: dict) -> pd.DataFrame:
+    """rev_by_year keyed newest-first, e.g. {'2024': 100, '2023': 90}. One row: Total Revenue."""
+    return pd.DataFrame({col: {"Total Revenue": v} for col, v in rev_by_year.items()})
+
+
+def test_extract_revenue_series_oldest_to_newest():
+    stmt = _multi_year_stmt({"2024": 130.0, "2023": 120.0, "2022": 110.0, "2021": 100.0})
+    assert extract_revenue_series(stmt) == [100.0, 110.0, 120.0, 130.0]
+
+
+def test_extract_revenue_series_drops_nan_and_nonpositive():
+    stmt = _multi_year_stmt({"2024": 130.0, "2023": float("nan"), "2022": -5.0, "2021": 100.0})
+    assert extract_revenue_series(stmt) == [100.0, 130.0]
+
+
+def test_extract_revenue_series_none_stmt_empty():
+    assert extract_revenue_series(None) == []
+
+
+def test_extract_revenue_series_missing_row_empty():
+    stmt = pd.DataFrame({"2024": {"Gross Profit": 50.0}})
+    assert extract_revenue_series(stmt) == []
+
+
+def test_extract_revenue_series_series_input_empty():
+    assert extract_revenue_series(pd.Series({"Total Revenue": 100.0})) == []

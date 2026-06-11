@@ -4,6 +4,7 @@ from app.errors import FilterConfigError
 from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
 from app.screener.industry_group_map import INDUSTRY_GROUP_MAP
+from app.screener.revenue_trajectory import is_gamma_decline
 from app.screener.sector_buckets import SectorMedianTable, bucket_median
 
 logger = logging.getLogger(__name__)
@@ -103,11 +104,37 @@ def passes_gross_margin_filter(
     return gross_margin_pass_reason(record, table, k) is not None
 
 
+TTM_PASS = "TTM_PASS"
+TRAJECTORY_RESCUE = "TRAJECTORY_RESCUE"
+DECLINE_DROP = "DECLINE_DROP"
+UNASSESSABLE_PASS = "UNASSESSABLE_PASS"
+
+
+def revenue_growth_outcome(record: ScreenerRecord) -> str:
+    """Why a record clears (or fails) the multi-year revenue-growth viability floor — the
+    audit primitive. Reads the pre-computed trajectory (set by the runner pre-pass); does
+    NO I/O. Returns one of TTM_PASS | TRAJECTORY_RESCUE | DECLINE_DROP | UNASSESSABLE_PASS.
+
+    - TTM_PASS: revenue_growth_yoy >= 0 — positive snapshot is affirmative recovery
+      evidence; the multi-year look is never triggered (lazy, monotone).
+    - Otherwise (TTM < 0 OR TTM is None) the verdict rests on the trajectory:
+        UNASSESSABLE_PASS  - criterion could not apply (no statement / <4 GJ) -> pass (floor).
+        DECLINE_DROP       - DEFINED and gamma (CAGR<0 AND down_years>=2) -> the ONLY drop.
+        TRAJECTORY_RESCUE  - DEFINED but not gamma (positive CAGR or single down-year).
+    A missing TTM is data-absence, never a down-signal: it is judged on the trajectory,
+    not auto-passed (the inverse of the original missing-data bug)."""
+    ttm = record.revenue_growth_yoy
+    if ttm is not None and ttm >= MIN_REVENUE_GROWTH:
+        return TTM_PASS
+    if record.revenue_growth_definedness is DefinednessOutcome.UNASSESSABLE:
+        return UNASSESSABLE_PASS
+    if is_gamma_decline(record.multiyear_revenue_cagr, record.revenue_down_years):
+        return DECLINE_DROP
+    return TRAJECTORY_RESCUE
+
+
 def passes_revenue_growth_filter(record: ScreenerRecord) -> bool:
-    if record.revenue_growth_yoy is None:
-        logger.warning("ticker=%s revenue_growth_yoy missing", record.ticker)
-        return False
-    return record.revenue_growth_yoy >= MIN_REVENUE_GROWTH
+    return revenue_growth_outcome(record) != DECLINE_DROP
 
 
 def _get_fail_reason(
@@ -153,6 +180,7 @@ def apply_basis_filters(
             record.gross_margin_pass_reason = gross_margin_pass_reason(
                 record, sector_table, relative_k
             )
+            record.revenue_growth_pass_reason = revenue_growth_outcome(record)
             passed.append(record)
 
     us_passed = sum(1 for r in passed if "." not in r.ticker)

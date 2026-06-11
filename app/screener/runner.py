@@ -16,10 +16,17 @@ from app.models.screener_record import ScreenerRecord
 from app.screener import filters as _filters
 from app.screener.compose import build_sector_median_table
 from app.screener.filter_report import FilterReport, build_filter_report
-from app.screener.filters import apply_basis_filters, apply_edgar_filters, passes_market_cap_filter, passes_volume_filter
+from app.screener.filters import (
+    apply_basis_filters,
+    apply_edgar_filters,
+    passes_gross_margin_filter,
+    passes_market_cap_filter,
+    passes_volume_filter,
+)
 from app.screener.metric_definedness import assess_definedness
+from app.screener.revenue_trajectory import classify_revenue_trajectory
 from app.screener.sector_buckets import SectorMedianTable
-from app.services.income_statement import extract_waterfall_inputs
+from app.services.income_statement import extract_revenue_series, extract_waterfall_inputs
 
 if TYPE_CHECKING:
     from app.models.run_record import RunRecord
@@ -176,6 +183,58 @@ def _assess_definedness_basket(
     )
 
 
+def _assess_revenue_growth_trajectory(
+    records: list["ScreenerRecord"],
+    yfinance: "YFinanceClient",
+    table: "SectorMedianTable | None",
+    relative_k: float | None,
+) -> None:
+    """Lazy multi-year fetch for the revenue-growth viability floor (Punkt 3).
+
+    Fetch the annual income statement and classify the trajectory ONLY for the cohort that
+    will actually reach the revenue_growth gate AND needs the multi-year look:
+      vol+cap survivors, not diverted by definedness, clearing the gross-margin gate,
+      with revenue_growth_yoy < 0 or None.
+    A positive TTM short-circuits (no fetch — affirmative recovery evidence, monotone).
+    Sets multiyear_revenue_cagr / revenue_down_years / revenue_growth_definedness in place.
+    """
+    n_fetched = n_decline = n_rescue = n_unassessable = 0
+    for record in records:
+        if not (passes_volume_filter(record) and passes_market_cap_filter(record)):
+            continue
+        if record.definedness in (DefinednessOutcome.UNASSESSABLE, DefinednessOutcome.METRIK_NA):
+            continue
+        if not passes_gross_margin_filter(record, table, relative_k):
+            continue
+        ttm = record.revenue_growth_yoy
+        if ttm is not None and ttm >= _filters.MIN_REVENUE_GROWTH:
+            continue  # TTM-pass: lazy short-circuit, no fetch (same floor the gate uses)
+        revenues: list[float] = []
+        try:
+            income_stmt = yfinance.get_annual_statements(record.ticker)[0]
+            revenues = extract_revenue_series(income_stmt)
+            n_fetched += 1
+        except DataSourceError as exc:
+            logger.warning(
+                "ticker=%s income_stmt fetch failed (revenue_growth UNASSESSABLE): %s",
+                record.ticker, exc,
+            )
+        cagr, down_years, definedness = classify_revenue_trajectory(revenues)
+        record.multiyear_revenue_cagr = cagr
+        record.revenue_down_years = down_years
+        record.revenue_growth_definedness = definedness
+        if definedness is DefinednessOutcome.UNASSESSABLE:
+            n_unassessable += 1
+        elif cagr is not None and cagr < 0 and (down_years or 0) >= 2:
+            n_decline += 1
+        else:
+            n_rescue += 1
+    logger.info(
+        "revenue_growth_prepass: fetched=%d DECLINE=%d RESCUE=%d UNASSESSABLE=%d",
+        n_fetched, n_decline, n_rescue, n_unassessable,
+    )
+
+
 def run_basis_filter(
     tickers: list[str],
     yfinance: "YFinanceClient",
@@ -251,6 +310,7 @@ def run_basis_filter(
     _assess_definedness_basket(records, yfinance)
 
     table = sector_table if sector_table is not None else build_sector_median_table()
+    _assess_revenue_growth_trajectory(records, yfinance, table, _filters.GROSS_MARGIN_RELATIVE_K)
     return BasisFilterResult(
         passed=apply_basis_filters(
             records,
