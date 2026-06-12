@@ -158,11 +158,15 @@ folgenden nicht-verhandelbaren Bedingungen:
    Bei Überschreitung: Ticker übersprungen, Warning geloggt,
    Run läuft weiter.
 
-3. GCP Budget-Alerts (Setup ist Teil von Phase 1.3):
-   - $5/Monat → E-Mail-Warnung
-   - $10/Monat → Hard Stop via Cloud Function (deaktiviert
+3. GCP Budget-Alerts (Setup ist Teil von Phase 1.3; Abrechnungskonto in EUR):
+   - €5/Monat → E-Mail-Warnung
+   - €10/Monat → Hard Stop via Cloud Function (deaktiviert
      Cloud Scheduler). Reaktivierung erfolgt ausschließlich manuell
      in der GCP Console nach Ursachenanalyse.
+   - Ehrliche Garantie: GCP-Budget-Alerts laufen auf Billing-Daten, die
+     Stunden nachhängen. Der Hard Stop begrenzt den Schaden auf grob
+     Budgethöhe + Billing-Lag — er stoppt NICHT punktgenau bei €10.
+     Schadensbegrenzer, kein präziser Deckel.
 
 4. Erlaubte APIs in Tool A: yfinance (kostenfrei), Gemini Flash Lite.
    Verboten in Tool A: Gemini Pro, Search Grounding, andere
