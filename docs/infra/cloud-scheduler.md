@@ -1,6 +1,6 @@
 # Cloud Scheduler Setup
 
-Cloud Scheduler calls POST /run/monthly on the first of each month at 06:00 CET.
+Cloud Scheduler calls POST /run/monthly on the first of each month at 05:00 Europe/Berlin (cron `0 5 1 * *`, see Step 2).
 
 ## Prerequisites
 
@@ -73,7 +73,7 @@ After a successful run, check the repo for three new files:
 - `output/Universum/YYYY-MM-Crosshits.md`
 - `output/Universum/YYYY-MM-Changes.md`
 
-## Reactivation after $10 budget hard stop
+## Reactivation after €10 budget hard stop
 
 If the budget Cloud Function pauses the Scheduler job:
 1. Investigate cost spike in GCP Console → Billing

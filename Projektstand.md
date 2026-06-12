@@ -145,7 +145,7 @@ Wichtig: Portfolio Hold-Check (V3 Abschnitt 4.3) ist konzeptionell Tool A, aber 
 **Cloud Run**: `fisherscreen-service` Revision `00035-htn` in europe-west3 (Projekt `fisherscreen-prod`, Projektnummer 896012696952).
 **Gemini-Modell**: `gemini-2.5-flash-lite` (konfigurierbar via `FISHERSCREEN_GEMINI_MODEL`)
 **Cloud Scheduler**: `fisherscreen-monthly` aktiv — läuft automatisch am 1. jeden Monats um 05:00 Europe/Berlin. Retry-Policy gehärtet: max 2 Retries, 60s minBackoff.
-**Hard-Stop**: Cloud Function + $10-Budget mit Pub/Sub-Hook — verifiziert.
+**Hard-Stop**: Cloud Function + €10-Budget mit Pub/Sub-Hook — verifiziert.
 **EDGAR CIK-Lookup**: Funktioniert in Production ✅ — CIKs für US-Ticker aus `company_tickers.json`.
 **Universe**: 1.389 Ticker (S&P 500 + S&P 400 + STOXX Europe 600) in `data/universe.json` ✅
 **Erster Output**: Top-Crosshit NOVO-B.CO (Score 4.6, alle 5 Dimensionen), 50 Crosshit-Kandidaten aus 160 Vorfilter-Tickern.
@@ -642,8 +642,8 @@ und „N/N Downgrades" sind beide Alarmsignale — zuerst prüfen, *ob die Regex
 | Secrets | `fisherscreen-gemini-api-key`, `fisherscreen-github-token` (läuft ab: 2027-05-15) |
 | Gemini SDK | `google-genai` mit API-Key (nicht Vertex AI) |
 | Gemini Modell | `gemini-2.5-flash-lite` (via `FISHERSCREEN_GEMINI_MODEL` Env-Var) |
-| Budget Warning | $5/Monat actual spend → E-Mail stn.mueller@gmail.com (aktiv) |
-| Budget Hard Stop | ✅ $10/Monat + Pub/Sub `fisherscreen-budget-alerts` → Cloud Function (verifiziert) |
+| Budget Warning | €5/Monat actual spend → E-Mail stn.mueller@gmail.com (aktiv) |
+| Budget Hard Stop | ✅ €10/Monat + Pub/Sub `fisherscreen-budget-alerts` → Cloud Function (verifiziert) |
 | Cloud Function | `fisherscreen-budget-stop` (Gen 2, europe-west3, `infra/main.py`) |
 | Cloud Scheduler | `fisherscreen-monthly` — `0 5 1 * *` Europe/Berlin → POST `/run/monthly` (max 2 Retries, 60s–300s Backoff) |
 | Konsolidiertes Budget | €10/Monat alle Projekte — grobes Sicherheitsnetz |
