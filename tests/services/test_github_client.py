@@ -1,6 +1,7 @@
 import base64
 from unittest.mock import MagicMock
 
+import httpx
 import pytest
 
 from app.errors import DataSourceError
@@ -61,6 +62,34 @@ def test_push_file_wraps_http_error_in_data_source_error():
     client = GitHubClientImpl(token="tok", repo="org/repo", http=http)
     with pytest.raises(DataSourceError, match="GitHub push failed"):
         client.push_file("output/test.md", "content", "msg")
+
+
+def test_push_file_http_error_includes_status_code_and_response_body():
+    """A failing PUT must surface GitHub's status code AND response body.
+
+    Regression for the 2026-06-12 prod incident: a 409 driven by a repo
+    ruleset only carried its real cause in the response body, which httpx's
+    generic HTTPStatusError message swallows.
+    """
+    http = _mock_http()
+    put_resp = http.put.return_value
+    put_resp.status_code = 409
+    put_resp.text = '{"message": "Changes must be made through a pull request"}'
+    request = httpx.Request("PUT", "https://api.github.com/repos/org/repo/contents/output/test.md")
+    response = httpx.Response(409, request=request, text=put_resp.text)
+    put_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "Client error '409 Conflict' for url '...'",
+        request=request,
+        response=response,
+    )
+
+    client = GitHubClientImpl(token="tok", repo="org/repo", http=http)
+    with pytest.raises(DataSourceError) as exc_info:
+        client.push_file("output/test.md", "content", "msg")
+
+    message = str(exc_info.value)
+    assert "409" in message
+    assert "Changes must be made through a pull request" in message
 
 
 def test_raises_on_empty_token():
