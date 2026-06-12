@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,39 @@ def _load_universe() -> list[str]:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+_SELFTEST_PUSH_PATH = "output/.smoke/push_selftest.md"
+
+
+@app.post("/selftest/push")
+def selftest_push() -> dict[str, str]:
+    """Push one sentinel file to origin to prove prod GitHub egress works.
+
+    Timeboxed proof-of-egress: $0, no Gemini/run-tracker/screener/yfinance/EDGAR.
+    Side effect is limited to a single GitHub Contents-API PUT. Lets
+    DataSourceError propagate so a failed push surfaces as a 500."""
+    github = build_github_client()
+    timestamp = datetime.now(timezone.utc).isoformat()
+    content = (
+        f"# Prod push self-test\n\n"
+        f"Automated prod-egress self-test — this file proves the running service "
+        f"can push to origin/main. Safe to delete.\n\n"
+        f"timestamp: {timestamp}\n"
+    )
+    github.push_file(
+        _SELFTEST_PUSH_PATH,
+        content,
+        f"chore: prod push self-test {timestamp} [skip ci]",
+    )
+    logger.info("selftest push complete: path=%s timestamp=%s", _SELFTEST_PUSH_PATH, timestamp)
+    return {
+        "selftest": "push",
+        "pushed_path": _SELFTEST_PUSH_PATH,
+        "repo": settings.github_repo,
+        "branch": settings.github_branch,
+        "timestamp": timestamp,
+    }
 
 
 @app.post("/run/monthly")
