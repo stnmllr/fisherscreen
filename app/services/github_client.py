@@ -52,6 +52,13 @@ class GitHubClientImpl:
         try:
             put_resp = self._http.put(url, json=payload, headers=self._headers)
             put_resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            # Surface the response body: httpx's generic message omits GitHub's
+            # actual reason (e.g. a ruleset 409), which only lives in the body.
+            raise DataSourceError(
+                f"GitHub push failed for {path}: "
+                f"{exc.response.status_code} {exc.response.text}"
+            ) from exc
         except Exception as exc:
             raise DataSourceError(f"GitHub push failed for {path}: {exc}") from exc
 
