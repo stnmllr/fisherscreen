@@ -61,6 +61,19 @@ def test_crosshits_sorted_by_dimension_count_desc(tmp_path):
     assert content.index("THREE") < content.index("TWO")
 
 
+def test_crosshits_ranked_by_number_of_fives(tmp_path):
+    # All three records are crosshits at min_dimensions=3 (all three merit axes >=4).
+    # Within equal qualifying-dim count, more 5s ranks higher: 5/5/5 > 5/5/4 > 4/4/4.
+    records = [
+        _record("MID", growth=5, profitability=5, resilience=4),
+        _record("TOP", growth=5, profitability=5, resilience=5),
+        _record("LOW", growth=4, profitability=4, resilience=4),
+    ]
+    path = generate(records, _run_record(), tmp_path, score_threshold=4.0, min_dimensions=3)
+    content = path.read_text(encoding="utf-8")
+    assert content.index("TOP") < content.index("MID") < content.index("LOW")
+
+
 def test_cap_limits_crosshits_output(tmp_path):
     records = [_record(f"T{i}", growth=5, profitability=5) for i in range(60)]
     path = generate(records, _run_record(), tmp_path, score_threshold=4.0, min_dimensions=2, cap=10)

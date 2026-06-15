@@ -130,7 +130,13 @@ def test_reads_crosshits_score_threshold(monkeypatch):
     assert settings.crosshits_score_threshold == 4.5
 
 
-def test_crosshits_min_dimensions_defaults_to_2():
+def test_crosshits_min_dimensions_defaults_to_3():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.crosshits_min_dimensions == 3
+
+
+def test_reads_crosshits_min_dimensions(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_CROSSHITS_MIN_DIMENSIONS", "2")
     settings = FisherScreenSettings(_env_file=None)
     assert settings.crosshits_min_dimensions == 2
 

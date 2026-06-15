@@ -51,12 +51,17 @@ def _compute_crosshits(
         if len(qualifying) >= min_dimensions:
             dims = record.gemini_dimensions or {}
             avg = sum(dims.get(d, 0) for d in qualifying) / len(qualifying)
+            # Ranking sharpener: more top scores (5) among the qualifying merit
+            # dimensions ranks higher. Monotonic with avg today, but stays correct
+            # if the threshold/min_dimensions knobs change later.
+            num_fives = sum(1 for d in qualifying if dims.get(d) == 5)
             result.append({
                 "record": record,
                 "qualifying_dims": qualifying,
                 "avg_score": round(avg, 2),
+                "num_fives": num_fives,
             })
-    result.sort(key=lambda x: (-len(x["qualifying_dims"]), -x["avg_score"]))
+    result.sort(key=lambda x: (-len(x["qualifying_dims"]), -x["num_fives"], -x["avg_score"]))
     return result[:cap]
 
 

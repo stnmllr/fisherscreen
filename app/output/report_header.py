@@ -12,7 +12,7 @@ _STAGE_LABEL = {
 }
 
 
-def render_header(summary: FunnelSummary, run_month: str) -> str:
+def render_header(summary: FunnelSummary, run_month: str, *, min_dimensions: int) -> str:
     prov = summary.provenance or {}
     stoxx_tier = prov.get("stoxx_tier", "nicht erfasst")
     universe_size = summary.stage(Stage.UNIVERSE).entered
@@ -40,10 +40,15 @@ def render_header(summary: FunnelSummary, run_month: str) -> str:
         f"`{run_month}-dropouts.csv`)",
         "",
         "> Tool A ist ein Drei-Achsen-Screen: growth, profitability, resilience "
-        "werden datengedeckt 0–5 bewertet. management wird upstream im EDGAR-Gate "
-        "geprüft (jeder Survivor hat es passiert), innovation ist auf den Deep Dive "
-        "verschoben — beide zählen nicht als Crosshit-Treffer. Crosshit = ≥2 der "
-        "drei aktiven Achsen ≥4.0 — über mehrere unabhängige Achsen bestätigte Qualität.",
+        "werden datengedeckt 0–5 bewertet — evidenzpflichtig: jeder Score ≥4.0 "
+        "zitiert eine Kennzahl. management wird upstream im EDGAR-Gate geprüft, "
+        "innovation ist auf den Deep Dive verschoben — beide zählen nicht als "
+        f"Crosshit-Treffer. Crosshit = ≥{min_dimensions} der drei aktiven Achsen "
+        "≥4.0. Hinweis: Das Gate ist bewusst locker — die Survivor sind durch die "
+        "Negativ-Filter vorselektiert überdurchschnittlich, daher klumpen die "
+        "Merit-Scores; gearbeitet wird mit der gerankten Top-Liste, nicht dem "
+        "Gate-Count. Kalibrierte Selektivität folgt mit sektor-relativem "
+        "(Perzentil-)Scoring.",
         "",
     ]
     return "\n".join(lines)

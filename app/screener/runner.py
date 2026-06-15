@@ -438,7 +438,7 @@ def run_screener(
         provenance=_load_provenance(),
     )
     funnel_paths = write_funnel_artifacts(summary, dropouts, output_dir, run_month)
-    header = render_header(summary, run_month)
+    header = render_header(summary, run_month, min_dimensions=min_dims)
 
     paths = [
         generate_dimensions(scored, run_record, output_dir, score_threshold=threshold, cap=cap),
