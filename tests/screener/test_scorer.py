@@ -16,8 +16,10 @@ def _record(ticker: str = "TEST") -> ScreenerRecord:
 
 def _score_result() -> GeminiScoreResult:
     return GeminiScoreResult(
-        dimensions={"growth": 4, "profitability": 3, "management": 4, "innovation": 5, "resilience": 3},
-        summary="Good",
+        dimensions={"growth": 4, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3},
+        evidence={"growth": "revenue_growth_yoy: 18.4%"},
+        weakest_dimension="profitability",
+        data_gaps=["operating_margin"],
         tokens_in=500,
         tokens_out=80,
     )
@@ -49,7 +51,10 @@ def test_populates_gemini_dimensions_on_success():
     mock_gemini.score_ticker.return_value = _score_result()
     run_gemini_scoring(records, mock_gemini, _mock_tracker())
     assert records[0].gemini_dimensions == _score_result().dimensions
-    assert records[0].gemini_summary == "Good"
+    assert records[0].gemini_evidence == {"growth": "revenue_growth_yoy: 18.4%"}
+    assert records[0].gemini_weakest_dimension == "profitability"
+    assert records[0].gemini_data_gaps == ["operating_margin"]
+    assert not hasattr(records[0], "gemini_summary")
 
 
 def test_skips_ticker_on_gemini_error_and_continues():
@@ -104,6 +109,25 @@ def test_stops_when_token_cap_reached():
     assert result[0].gemini_dimensions is not None
     assert result[1].gemini_dimensions is not None
     assert result[2].gemini_dimensions is None
+
+
+def test_marks_tracker_truncated_when_token_cap_reached():
+    # _score_result() yields 580 tokens; cap=1000 → cap reached after 2nd ticker
+    records = [_record("A"), _record("B"), _record("C")]
+    mock_gemini = MagicMock()
+    mock_gemini.score_ticker.return_value = _score_result()
+    tracker = _mock_tracker()
+    run_gemini_scoring(records, mock_gemini, tracker, token_cap=1000)
+    assert tracker._truncated is True
+
+
+def test_does_not_mark_truncated_when_cap_not_reached():
+    records = [_record("A")]
+    mock_gemini = MagicMock()
+    mock_gemini.score_ticker.return_value = _score_result()
+    tracker = _mock_tracker()
+    run_gemini_scoring(records, mock_gemini, tracker, token_cap=1_000_000)
+    assert tracker._truncated is False
 
 
 def test_warns_at_80_pct_token_cap(caplog):

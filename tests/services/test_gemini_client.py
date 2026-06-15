@@ -31,21 +31,32 @@ def _mock_token_resp(count: int) -> MagicMock:
     return r
 
 
+def _flat_payload(dims: dict) -> dict:
+    """Build the FLAT v2 JSON payload from a dimensions dict."""
+    payload: dict = {"ticker": "TEST"}
+    for dim, score in dims.items():
+        payload[dim] = score
+        payload[f"{dim}_evidence"] = f"{dim} cites a figure"
+    payload["weakest_dimension"] = "profitability"
+    payload["data_gaps"] = []
+    return payload
+
+
 def _mock_generate_resp(
     dims: dict,
-    summary: str = "Solid company",
     tokens_in: int = 500,
     tokens_out: int = 80,
+    raw_text: str | None = None,
 ) -> MagicMock:
     r = MagicMock()
-    r.text = json.dumps({"dimensions": dims, "summary": summary})
+    r.text = raw_text if raw_text is not None else json.dumps(_flat_payload(dims))
     r.usage_metadata.prompt_token_count = tokens_in
     r.usage_metadata.candidates_token_count = tokens_out
     return r
 
 
 def _valid_dims() -> dict:
-    return {"growth": 4, "profitability": 3, "management": 4, "innovation": 5, "resilience": 3}
+    return {"growth": 4, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3}
 
 
 def _server_error(code: int) -> ServerError:
@@ -116,13 +127,95 @@ def test_clamps_out_of_range_dimension_scores(mock_genai):
     mock_genai.Client.return_value = mock_client
     mock_client.models.count_tokens.return_value = _mock_token_resp(500)
     mock_client.models.generate_content.return_value = _mock_generate_resp(
-        {"growth": 10, "profitability": 0, "management": 3, "innovation": 3, "resilience": 3}
+        {"growth": 10, "profitability": -3, "management": 3, "innovation": 3, "resilience": 3}
     )
 
     impl = GeminiClientImpl(api_key="key")
     result = impl.score_ticker("TEST", _record())
     assert result.dimensions["growth"] == 5
-    assert result.dimensions["profitability"] == 1
+    assert result.dimensions["profitability"] == 0  # clamped to 0-floor, not 1
+
+
+@patch("app.services.gemini_client._genai")
+def test_zero_red_flag_score_is_preserved(mock_genai):
+    mock_client = MagicMock()
+    mock_genai.Client.return_value = mock_client
+    mock_client.models.count_tokens.return_value = _mock_token_resp(500)
+    mock_client.models.generate_content.return_value = _mock_generate_resp(
+        {"growth": 0, "profitability": 2, "management": 3, "innovation": 3, "resilience": 1}
+    )
+
+    impl = GeminiClientImpl(api_key="key")
+    result = impl.score_ticker("TEST", _record())
+    assert result.dimensions["growth"] == 0
+    assert result.dimensions["resilience"] == 1
+
+
+@patch("app.services.gemini_client._genai")
+def test_parses_flat_schema_with_evidence_weakest_and_gaps(mock_genai):
+    mock_client = MagicMock()
+    mock_genai.Client.return_value = mock_client
+    mock_client.models.count_tokens.return_value = _mock_token_resp(500)
+    payload = _flat_payload(_valid_dims())
+    payload["weakest_dimension"] = "resilience"
+    payload["data_gaps"] = ["operating_margin", "return_on_equity"]
+    resp = MagicMock()
+    resp.text = json.dumps(payload)
+    resp.usage_metadata.prompt_token_count = 500
+    resp.usage_metadata.candidates_token_count = 80
+    mock_client.models.generate_content.return_value = resp
+
+    impl = GeminiClientImpl(api_key="key")
+    result = impl.score_ticker("TEST", _record())
+
+    assert result.dimensions == _valid_dims()
+    assert result.evidence["growth"] == "growth cites a figure"
+    assert result.weakest_dimension == "resilience"
+    assert result.data_gaps == ["operating_margin", "return_on_equity"]
+
+
+@patch("app.services.gemini_client._genai")
+def test_management_and_innovation_present_in_output(mock_genai):
+    mock_client = MagicMock()
+    mock_genai.Client.return_value = mock_client
+    mock_client.models.count_tokens.return_value = _mock_token_resp(500)
+    mock_client.models.generate_content.return_value = _mock_generate_resp(_valid_dims())
+
+    impl = GeminiClientImpl(api_key="key")
+    result = impl.score_ticker("TEST", _record())
+    assert result.dimensions["management"] == 3
+    assert result.dimensions["innovation"] == 3
+
+
+@patch("app.services.gemini_client._genai")
+def test_truncate_retry_recovers_from_trailing_extra_data(mock_genai):
+    mock_client = MagicMock()
+    mock_genai.Client.return_value = mock_client
+    mock_client.models.count_tokens.return_value = _mock_token_resp(500)
+    valid_json = json.dumps(_flat_payload(_valid_dims()))
+    # Model appended prose after the JSON → bare json.loads raises "Extra data".
+    polluted = valid_json + "\n\nHere is my reasoning: the company looks solid."
+    mock_client.models.generate_content.return_value = _mock_generate_resp(
+        _valid_dims(), raw_text=polluted
+    )
+
+    impl = GeminiClientImpl(api_key="key")
+    result = impl.score_ticker("TEST", _record())
+    assert result.dimensions == _valid_dims()
+
+
+@patch("app.services.gemini_client._genai")
+def test_truncate_retry_still_raises_on_unrecoverable_json(mock_genai):
+    mock_client = MagicMock()
+    mock_genai.Client.return_value = mock_client
+    mock_client.models.count_tokens.return_value = _mock_token_resp(500)
+    bad = MagicMock()
+    bad.text = "{not even close to json"
+    mock_client.models.generate_content.return_value = bad
+
+    impl = GeminiClientImpl(api_key="key")
+    with pytest.raises(GeminiError, match="invalid JSON"):
+        impl.score_ticker("TEST", _record())
 
 
 @patch("app.services.gemini_client._genai")

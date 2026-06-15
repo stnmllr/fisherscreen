@@ -203,7 +203,7 @@ Cost-Caps sind **Hard-Limits im Code**, nicht nur Config-Werte. Nimm nie an, das
 Aufrufer sie setzt.
 
 ```python
-GEMINI_MAX_TOKENS_PER_RUN = int(os.environ.get("FISHERSCREEN_GEMINI_TOKEN_CAP", "500000"))
+GEMINI_MAX_TOKENS_PER_RUN = int(os.environ.get("FISHERSCREEN_GEMINI_TOKEN_CAP", "1500000"))
 APIFY_MAX_RUNS_PER_DEEPDIVE = int(os.environ.get("FISHERSCREEN_APIFY_RUN_CAP", "3"))
 ```
 

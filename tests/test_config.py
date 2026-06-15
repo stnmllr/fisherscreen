@@ -72,7 +72,7 @@ def test_reads_gemini_token_cap(monkeypatch):
 
 def test_gemini_token_cap_default():
     settings = FisherScreenSettings(_env_file=None)
-    assert settings.gemini_token_cap == 500_000
+    assert settings.gemini_token_cap == 1_500_000
 
 
 def test_reads_ticker_collection(monkeypatch):
@@ -130,7 +130,13 @@ def test_reads_crosshits_score_threshold(monkeypatch):
     assert settings.crosshits_score_threshold == 4.5
 
 
-def test_crosshits_min_dimensions_defaults_to_2():
+def test_crosshits_min_dimensions_defaults_to_3():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.crosshits_min_dimensions == 3
+
+
+def test_reads_crosshits_min_dimensions(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_CROSSHITS_MIN_DIMENSIONS", "2")
     settings = FisherScreenSettings(_env_file=None)
     assert settings.crosshits_min_dimensions == 2
 

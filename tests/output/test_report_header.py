@@ -17,7 +17,7 @@ def _summary():
 
 
 def test_header_contains_key_facts():
-    out = render_header(_summary(), run_month="2026-06")
+    out = render_header(_summary(), run_month="2026-06", min_dimensions=3)
     assert "2026-06" in out
     assert "Review-Flags: 3" in out
     assert "ishares-b" in out
@@ -26,10 +26,31 @@ def test_header_contains_key_facts():
     assert "yfinance" in out and "SEC EDGAR" in out
 
 
+def test_header_states_three_axes_reality():
+    out = render_header(_summary(), run_month="2026-06", min_dimensions=3)
+    assert "Drei-Achsen-Screen" in out
+    assert "growth, profitability, resilience" in out
+    assert "EDGAR-Gate" in out
+    assert "Deep Dive" in out
+
+
+def test_header_crosshit_rule_uses_min_dimensions_param():
+    out = render_header(_summary(), run_month="2026-06", min_dimensions=3)
+    assert "≥3 der drei aktiven Achsen ≥4.0" in out
+    # Honest caveats about the loose interim gate must be present.
+    assert "bewusst locker" in out
+    assert "sektor-relativem" in out
+
+
+def test_header_min_dimensions_param_is_reflected():
+    out = render_header(_summary(), run_month="2026-06", min_dimensions=2)
+    assert "≥2 der drei aktiven Achsen ≥4.0" in out
+
+
 def test_header_graceful_without_provenance():
     s = _summary()
     s.provenance = None
-    out = render_header(s, run_month="2026-06")
+    out = render_header(s, run_month="2026-06", min_dimensions=3)
     assert "nicht erfasst" in out        # graceful fallback
 
 

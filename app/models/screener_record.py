@@ -48,9 +48,11 @@ class ScreenerRecord(BaseModel):
     edgar_skipped: bool = False
     edgar_skipped_reason: str | None = None  # "no_cik" | "data_source_error" — set in run_edgar_filter
 
-    # Gemini scoring (populated in Phase 1.3)
+    # Gemini scoring (populated in Phase 1.3; v2.1 flat, evidence-driven prompt)
     gemini_dimensions: dict[str, int] | None = None  # {"growth": 3, "profitability": 4, ...}
-    gemini_summary: str | None = None
+    gemini_evidence: dict[str, str] | None = None  # per-dimension one-line evidence notes
+    gemini_weakest_dimension: str | None = None  # the lowest-scoring merit axis (self-reported)
+    gemini_data_gaps: list[str] | None = None  # DATA fields the model flagged as missing
 
     # Filter tracking
     filter_passed_basis: bool | None = None

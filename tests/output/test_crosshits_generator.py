@@ -61,12 +61,46 @@ def test_crosshits_sorted_by_dimension_count_desc(tmp_path):
     assert content.index("THREE") < content.index("TWO")
 
 
+def test_crosshits_ranked_by_number_of_fives(tmp_path):
+    # All three records are crosshits at min_dimensions=3 (all three merit axes >=4).
+    # Within equal qualifying-dim count, more 5s ranks higher: 5/5/5 > 5/5/4 > 4/4/4.
+    records = [
+        _record("MID", growth=5, profitability=5, resilience=4),
+        _record("TOP", growth=5, profitability=5, resilience=5),
+        _record("LOW", growth=4, profitability=4, resilience=4),
+    ]
+    path = generate(records, _run_record(), tmp_path, score_threshold=4.0, min_dimensions=3)
+    content = path.read_text(encoding="utf-8")
+    assert content.index("TOP") < content.index("MID") < content.index("LOW")
+
+
 def test_cap_limits_crosshits_output(tmp_path):
     records = [_record(f"T{i}", growth=5, profitability=5) for i in range(60)]
     path = generate(records, _run_record(), tmp_path, score_threshold=4.0, min_dimensions=2, cap=10)
     content = path.read_text(encoding="utf-8")
     table_rows = [l for l in content.splitlines() if l.startswith("| ") and "---" not in l and "#" not in l]
     assert len(table_rows) <= 10
+
+
+def test_management_innovation_do_not_create_crosshit(tmp_path):
+    # Only growth is a merit hit; management/innovation maxed must not form a crosshit.
+    records = [_record("NOPE", growth=4, profitability=3, management=5, innovation=5, resilience=3)]
+    path = generate(records, _run_record(), tmp_path, score_threshold=4.0, min_dimensions=2)
+    content = path.read_text(encoding="utf-8")
+    assert "Keine Crosshits" in content
+    assert "NOPE" not in content
+
+
+def test_management_innovation_do_not_inflate_qualifying_count(tmp_path):
+    # Two merit hits → crosshit, but management/innovation must not be listed/counted.
+    records = [_record("REAL", growth=4, profitability=4, management=5, innovation=5, resilience=3)]
+    path = generate(records, _run_record(), tmp_path, score_threshold=4.0, min_dimensions=2)
+    content = path.read_text(encoding="utf-8")
+    assert "REAL" in content
+    assert "management" not in content
+    assert "innovation" not in content
+    # Crosshit count column reflects only the two merit dims.
+    assert "| 2 | growth, profitability |" in content
 
 
 def test_records_without_gemini_dimensions_are_excluded(tmp_path):

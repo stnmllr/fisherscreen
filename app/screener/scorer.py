@@ -28,8 +28,10 @@ def run_gemini_scoring(
 
     Hard cap: raises FisherScreenError if len(records) > MAX_TICKERS_PER_RUN.
     Token cap: warns at 80% of token_cap, stops loop at 100% (remaining records
-    keep gemini_dimensions=None). Returns partial results — caller must call
-    run_tracker.finish() in a try/finally to persist partial run data.
+    keep gemini_dimensions=None). On cap truncation, calls run_tracker.mark_truncated()
+    so the run is persisted as status=partial — the runner still owns finish().
+    Returns partial results — caller must call run_tracker.finish() in a try/finally
+    to persist partial run data.
     Per-ticker: GeminiError is caught, logged as WARNING, and the ticker is skipped
     (gemini_dimensions stays None). All records are returned, including skipped ones.
 
@@ -53,7 +55,9 @@ def run_gemini_scoring(
                 max_output_tokens=MAX_OUTPUT_TOKENS_PER_TICKER,
             )
             record.gemini_dimensions = result.dimensions
-            record.gemini_summary = result.summary
+            record.gemini_evidence = result.evidence
+            record.gemini_weakest_dimension = result.weakest_dimension
+            record.gemini_data_gaps = result.data_gaps
             run_tracker.record_ticker(result.tokens_in, result.tokens_out)
             tokens_used += result.tokens_in + result.tokens_out
         except GeminiError as exc:
@@ -72,6 +76,7 @@ def run_gemini_scoring(
                 "run token cap %d reached — stopping after %d tickers processed",
                 token_cap, run_tracker._tickers_processed,
             )
+            run_tracker.mark_truncated()
             break
 
     logger.info("scorer: gemini scoring complete for %d records", len(records))

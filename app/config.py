@@ -8,13 +8,13 @@ class FisherScreenSettings(BaseSettings):
     gemini_api_key: str = ""
     apify_api_key: str = ""
     github_token: str = ""
-    gemini_token_cap: int = 500_000
+    gemini_token_cap: int = 1_500_000
     ticker_collection: str = "dev_ticker_cache"
     edgar_collection: str = "dev_edgar_cache"
     gemini_score_collection: str = "dev_gemini_scores"
     screener_runs_collection: str = "dev_screener_runs"
     crosshits_score_threshold: float = 4.0
-    crosshits_min_dimensions: int = 2
+    crosshits_min_dimensions: int = 3
     crosshits_cap: int = 50
     output_dir: str = "output"
     github_repo: str = ""

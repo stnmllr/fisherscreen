@@ -36,16 +36,22 @@ class CachedGeminiClient:
         cached = self._firestore.get(self._collection, ticker)
         dims = cached.get("dimensions") if cached else None
         if cached and dims is not None and self._is_fresh(cached):
+            # Defensive: pre-v2 entries lack evidence/weakest/data_gaps — fall back
+            # to empty so old cache docs don't crash. Still usable iff dimensions present.
             return GeminiScoreResult(
                 dimensions=dims,
-                summary=cached.get("summary", ""),
+                evidence=cached.get("evidence") or {},
+                weakest_dimension=cached.get("weakest_dimension", ""),
+                data_gaps=cached.get("data_gaps") or [],
                 tokens_in=0,
                 tokens_out=0,
             )
         result = self._gemini.score_ticker(ticker, record, max_input_tokens, max_output_tokens)
         self._firestore.set(self._collection, ticker, {
             "dimensions": result.dimensions,
-            "summary": result.summary,
+            "evidence": result.evidence,
+            "weakest_dimension": result.weakest_dimension,
+            "data_gaps": result.data_gaps,
             "_cached_at": datetime.now(timezone.utc).isoformat(),
         })
         return result

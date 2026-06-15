@@ -635,8 +635,10 @@ def _full_mock_suite(ticker: str = "AAPL"):
     edgar.has_active_enforcement.return_value = False
     gemini = MagicMock()
     gemini.score_ticker.return_value = GeminiScoreResult(
-        dimensions={"growth": 4, "profitability": 4, "management": 4, "innovation": 4, "resilience": 4},
-        summary="Good",
+        dimensions={"growth": 4, "profitability": 4, "management": 3, "innovation": 3, "resilience": 4},
+        evidence={"growth": "revenue_growth_yoy: 18.4%"},
+        weakest_dimension="profitability",
+        data_gaps=[],
         tokens_in=500,
         tokens_out=80,
     )
