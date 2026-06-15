@@ -63,6 +63,32 @@ def test_finish_sets_status():
     assert record.status == "partial"
 
 
+def test_mark_truncated_then_finish_derives_partial():
+    tracker, _ = _tracker()
+    tracker.mark_truncated()
+    record = tracker.finish()
+    assert record.status == "partial"
+
+
+def test_finish_without_truncation_derives_success():
+    tracker, _ = _tracker()
+    record = tracker.finish()
+    assert record.status == "success"
+
+
+def test_explicit_status_wins_over_truncation_flag():
+    tracker, _ = _tracker()
+    tracker.mark_truncated()
+    record = tracker.finish(status="aborted")
+    assert record.status == "aborted"
+
+
+def test_explicit_partial_honored_without_truncation():
+    tracker, _ = _tracker()
+    record = tracker.finish(status="partial")
+    assert record.status == "partial"
+
+
 def test_finish_sets_completed_at():
     tracker, _ = _tracker()
     record = tracker.finish()

@@ -428,7 +428,7 @@ def run_screener(
 
     basis = run_basis_filter(tickers, yfinance)
     edgar_passed = run_edgar_filter(basis.passed, edgar)
-    scored = run_gemini_scoring(edgar_passed, gemini, run_tracker)
+    scored = run_gemini_scoring(edgar_passed, gemini, run_tracker, token_cap=settings.gemini_token_cap)
     run_record = run_tracker.finish()
     run_month = run_record.run_id[:7]
 

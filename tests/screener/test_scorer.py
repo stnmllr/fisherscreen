@@ -111,6 +111,25 @@ def test_stops_when_token_cap_reached():
     assert result[2].gemini_dimensions is None
 
 
+def test_marks_tracker_truncated_when_token_cap_reached():
+    # _score_result() yields 580 tokens; cap=1000 → cap reached after 2nd ticker
+    records = [_record("A"), _record("B"), _record("C")]
+    mock_gemini = MagicMock()
+    mock_gemini.score_ticker.return_value = _score_result()
+    tracker = _mock_tracker()
+    run_gemini_scoring(records, mock_gemini, tracker, token_cap=1000)
+    assert tracker._truncated is True
+
+
+def test_does_not_mark_truncated_when_cap_not_reached():
+    records = [_record("A")]
+    mock_gemini = MagicMock()
+    mock_gemini.score_ticker.return_value = _score_result()
+    tracker = _mock_tracker()
+    run_gemini_scoring(records, mock_gemini, tracker, token_cap=1_000_000)
+    assert tracker._truncated is False
+
+
 def test_warns_at_80_pct_token_cap(caplog):
     # _score_result() yields 580 tokens; 80% of 700 = 560 → warning after 1st ticker
     records = [_record()]

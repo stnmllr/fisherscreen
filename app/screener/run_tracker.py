@@ -24,6 +24,7 @@ class RunTracker:
         self._tokens_in = 0
         self._tokens_out = 0
         self._finished = False
+        self._truncated = False
 
     def record_ticker(self, tokens_in: int, tokens_out: int) -> None:
         self._tickers_processed += 1
@@ -33,10 +34,18 @@ class RunTracker:
     def record_skip(self) -> None:
         self._tickers_skipped += 1
 
-    def finish(self, status: Literal["success", "partial", "aborted"] = "success") -> RunRecord:
+    def mark_truncated(self) -> None:
+        """Signal that the run stopped early (e.g. token cap hit) — derives status=partial."""
+        self._truncated = True
+
+    def finish(
+        self, status: Literal["success", "partial", "aborted"] | None = None
+    ) -> RunRecord:
         if self._finished:
             raise RuntimeError("RunTracker.finish() called more than once")
         self._finished = True
+        if status is None:
+            status = "partial" if self._truncated else "success"
         completed_at = datetime.now(timezone.utc)
         record = RunRecord(
             run_id=self._run_id,

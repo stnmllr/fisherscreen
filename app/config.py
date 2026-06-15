@@ -8,7 +8,7 @@ class FisherScreenSettings(BaseSettings):
     gemini_api_key: str = ""
     apify_api_key: str = ""
     github_token: str = ""
-    gemini_token_cap: int = 500_000
+    gemini_token_cap: int = 1_500_000
     ticker_collection: str = "dev_ticker_cache"
     edgar_collection: str = "dev_edgar_cache"
     gemini_score_collection: str = "dev_gemini_scores"

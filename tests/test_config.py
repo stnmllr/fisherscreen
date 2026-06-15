@@ -72,7 +72,7 @@ def test_reads_gemini_token_cap(monkeypatch):
 
 def test_gemini_token_cap_default():
     settings = FisherScreenSettings(_env_file=None)
-    assert settings.gemini_token_cap == 500_000
+    assert settings.gemini_token_cap == 1_500_000
 
 
 def test_reads_ticker_collection(monkeypatch):
