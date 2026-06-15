@@ -16,6 +16,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# management/innovation are sentinel-3 (not merit). Render an explicit n/a note
+# instead of a "no ticker reached the threshold" list, since the threshold is N/A.
+_NON_MERIT_BODY: dict[str, str] = {
+    "management": "*n/a — Governance wird upstream im EDGAR-Gate geprüft (kein Merit-Score).*",
+    "innovation": "*n/a — keine R&D-Daten; verschoben auf Deep Dive (kein Merit-Score).*",
+}
+
 
 def generate(
     records: list[ScreenerRecord],
@@ -119,6 +126,12 @@ def _build_markdown_body(
     for dim in DIMENSIONS:
         tickers = dim_data[dim]["tickers"]
         count = dim_data[dim]["qualifying_count"]
+        if dim in _NON_MERIT_BODY:
+            lines.append(f"## {dim.capitalize()}")
+            lines.append("")
+            lines.append(_NON_MERIT_BODY[dim])
+            lines.append("")
+            continue
         lines.append(f"## {dim.capitalize()} (n={count})")
         lines.append("")
         if not tickers:

@@ -16,8 +16,10 @@ def _record(ticker: str = "TEST") -> ScreenerRecord:
 
 def _score_result() -> GeminiScoreResult:
     return GeminiScoreResult(
-        dimensions={"growth": 4, "profitability": 3, "management": 4, "innovation": 5, "resilience": 3},
-        summary="Good",
+        dimensions={"growth": 4, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3},
+        evidence={"growth": "revenue_growth_yoy: 18.4%"},
+        weakest_dimension="profitability",
+        data_gaps=["operating_margin"],
         tokens_in=500,
         tokens_out=80,
     )
@@ -49,7 +51,10 @@ def test_populates_gemini_dimensions_on_success():
     mock_gemini.score_ticker.return_value = _score_result()
     run_gemini_scoring(records, mock_gemini, _mock_tracker())
     assert records[0].gemini_dimensions == _score_result().dimensions
-    assert records[0].gemini_summary == "Good"
+    assert records[0].gemini_evidence == {"growth": "revenue_growth_yoy: 18.4%"}
+    assert records[0].gemini_weakest_dimension == "profitability"
+    assert records[0].gemini_data_gaps == ["operating_margin"]
+    assert not hasattr(records[0], "gemini_summary")
 
 
 def test_skips_ticker_on_gemini_error_and_continues():

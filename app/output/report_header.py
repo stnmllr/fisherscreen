@@ -39,9 +39,11 @@ def render_header(summary: FunnelSummary, run_month: str) -> str:
         f"**Review-Flags: {summary.review_flags}** (Aufschlüsselung in "
         f"`{run_month}-dropouts.csv`)",
         "",
-        "> Jede Aktie wird auf mehreren Fisher-Dimensionen 0–5 bewertet. "
-        "Crosshit = ≥2 Dimensionen ≥4.0 — kein Einzelausreißer, sondern über "
-        "mehrere unabhängige Achsen bestätigte Qualität.",
+        "> Tool A ist ein Drei-Achsen-Screen: growth, profitability, resilience "
+        "werden datengedeckt 0–5 bewertet. management wird upstream im EDGAR-Gate "
+        "geprüft (jeder Survivor hat es passiert), innovation ist auf den Deep Dive "
+        "verschoben — beide zählen nicht als Crosshit-Treffer. Crosshit = ≥2 der "
+        "drei aktiven Achsen ≥4.0 — über mehrere unabhängige Achsen bestätigte Qualität.",
         "",
     ]
     return "\n".join(lines)

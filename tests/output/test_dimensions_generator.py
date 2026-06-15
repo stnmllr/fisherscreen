@@ -98,6 +98,26 @@ def test_markdown_body_contains_all_five_dimension_sections(tmp_path):
         assert dim.capitalize() in body or dim in body.lower()
 
 
+def test_management_section_renders_na_explanation(tmp_path):
+    path = generate([_record("AAPL", management=5)], _run_record(), tmp_path)
+    body = frontmatter.load(str(path)).content
+    assert "Governance wird upstream im EDGAR-Gate geprüft" in body
+    assert "kein Merit-Score" in body
+
+
+def test_innovation_section_renders_na_explanation(tmp_path):
+    path = generate([_record("AAPL", innovation=5)], _run_record(), tmp_path)
+    body = frontmatter.load(str(path)).content
+    assert "keine R&D-Daten" in body
+    assert "verschoben auf Deep Dive" in body
+
+
+def test_merit_sections_still_list_top_tickers(tmp_path):
+    path = generate([_record("GROW", growth=5)], _run_record(), tmp_path, score_threshold=4.0)
+    body = frontmatter.load(str(path)).content
+    assert "GROW" in body
+
+
 def test_records_without_gemini_dimensions_are_excluded(tmp_path):
     records = [
         _record("SCORED", growth=5),

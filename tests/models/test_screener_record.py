@@ -116,14 +116,28 @@ def test_financial_ratios_default_to_none_when_missing():
 def test_gemini_dimension_fields_default_to_none():
     record = ScreenerRecord(ticker="TEST")
     assert record.gemini_dimensions is None
-    assert record.gemini_summary is None
+    assert record.gemini_evidence is None
+    assert record.gemini_weakest_dimension is None
+    assert record.gemini_data_gaps is None
+
+
+def test_gemini_summary_field_removed():
+    assert "gemini_summary" not in ScreenerRecord.model_fields
 
 
 def test_gemini_dimensions_can_be_set():
-    dims = {"growth": 4, "profitability": 3, "management": 4, "innovation": 5, "resilience": 3}
-    record = ScreenerRecord(ticker="TEST", gemini_dimensions=dims, gemini_summary="Good company")
+    dims = {"growth": 4, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3}
+    record = ScreenerRecord(
+        ticker="TEST",
+        gemini_dimensions=dims,
+        gemini_evidence={"growth": "revenue_growth_yoy: 18.4%"},
+        gemini_weakest_dimension="profitability",
+        gemini_data_gaps=["operating_margin"],
+    )
     assert record.gemini_dimensions["growth"] == 4
-    assert record.gemini_summary == "Good company"
+    assert record.gemini_evidence["growth"] == "revenue_growth_yoy: 18.4%"
+    assert record.gemini_weakest_dimension == "profitability"
+    assert record.gemini_data_gaps == ["operating_margin"]
 
 
 def test_gemini_dimensions_accepts_any_dict_values():

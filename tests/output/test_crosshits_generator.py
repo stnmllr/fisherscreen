@@ -69,6 +69,27 @@ def test_cap_limits_crosshits_output(tmp_path):
     assert len(table_rows) <= 10
 
 
+def test_management_innovation_do_not_create_crosshit(tmp_path):
+    # Only growth is a merit hit; management/innovation maxed must not form a crosshit.
+    records = [_record("NOPE", growth=4, profitability=3, management=5, innovation=5, resilience=3)]
+    path = generate(records, _run_record(), tmp_path, score_threshold=4.0, min_dimensions=2)
+    content = path.read_text(encoding="utf-8")
+    assert "Keine Crosshits" in content
+    assert "NOPE" not in content
+
+
+def test_management_innovation_do_not_inflate_qualifying_count(tmp_path):
+    # Two merit hits → crosshit, but management/innovation must not be listed/counted.
+    records = [_record("REAL", growth=4, profitability=4, management=5, innovation=5, resilience=3)]
+    path = generate(records, _run_record(), tmp_path, score_threshold=4.0, min_dimensions=2)
+    content = path.read_text(encoding="utf-8")
+    assert "REAL" in content
+    assert "management" not in content
+    assert "innovation" not in content
+    # Crosshit count column reflects only the two merit dims.
+    assert "| 2 | growth, profitability |" in content
+
+
 def test_records_without_gemini_dimensions_are_excluded(tmp_path):
     records = [
         _record("SCORED", growth=5, profitability=5),

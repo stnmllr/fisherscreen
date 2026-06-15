@@ -53,7 +53,9 @@ def run_gemini_scoring(
                 max_output_tokens=MAX_OUTPUT_TOKENS_PER_TICKER,
             )
             record.gemini_dimensions = result.dimensions
-            record.gemini_summary = result.summary
+            record.gemini_evidence = result.evidence
+            record.gemini_weakest_dimension = result.weakest_dimension
+            record.gemini_data_gaps = result.data_gaps
             run_tracker.record_ticker(result.tokens_in, result.tokens_out)
             tokens_used += result.tokens_in + result.tokens_out
         except GeminiError as exc:

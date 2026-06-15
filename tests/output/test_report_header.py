@@ -26,6 +26,14 @@ def test_header_contains_key_facts():
     assert "yfinance" in out and "SEC EDGAR" in out
 
 
+def test_header_states_three_axes_reality():
+    out = render_header(_summary(), run_month="2026-06")
+    assert "Drei-Achsen-Screen" in out
+    assert "growth, profitability, resilience" in out
+    assert "EDGAR-Gate" in out
+    assert "Deep Dive" in out
+
+
 def test_header_graceful_without_provenance():
     s = _summary()
     s.provenance = None
