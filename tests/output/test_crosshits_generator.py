@@ -146,3 +146,12 @@ def test_flags_clean_record_empty():
                                     "resilience": "sector_relative"},
                        data_confidence="ok")
     assert _flags(r) == ""
+
+
+def test_flags_partial_evidence_marker():
+    from app.models.screener_record import ScreenerRecord
+    r = ScreenerRecord(ticker="X",
+                       score_basis={"growth": "global", "profitability": "sector_relative",
+                                    "resilience": "sector_relative"},
+                       data_confidence="ok", partial_evidence_axes=["profitability"])
+    assert "~" in _flags(r)

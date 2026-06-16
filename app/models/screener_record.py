@@ -59,6 +59,7 @@ class ScreenerRecord(BaseModel):
     growth_consistency: float | None = None            # positive_years_ratio; None = UNASSESSABLE (<4 GJ)
     score_basis: dict[str, str] | None = None          # per axis: "global" | "sector_relative" | "global_fallback"
     data_confidence: str = "ok"                        # "ok" | "low"
+    partial_evidence_axes: list[str] | None = None  # merit axes scored on only 1 of 2 inputs
 
     # Filter tracking
     filter_passed_basis: bool | None = None

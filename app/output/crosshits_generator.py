@@ -15,13 +15,16 @@ logger = logging.getLogger(__name__)
 
 def _flags(record) -> str:
     """Audit markers: ⌖ = a sector-relative axis fell back to the global pool;
-    ⚠ = low data confidence (e.g. <4 fiscal years / consistency unprovable)."""
+    ⚠ = low data confidence (e.g. <4 fiscal years / consistency unprovable);
+    ~ = an axis scored on only one of its two inputs (partial evidence)."""
     basis = record.score_basis or {}
     flags = ""
     if any(v == "global_fallback" for v in basis.values()):
         flags += "⌖"
     if getattr(record, "data_confidence", "ok") == "low":
         flags += "⚠"
+    if getattr(record, "partial_evidence_axes", None):
+        flags += "~"
     return flags
 
 

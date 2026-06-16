@@ -194,3 +194,8 @@ def test_scoring_annotation_fields_default_none_and_ok():
     assert r.growth_consistency is None
     assert r.score_basis is None
     assert r.data_confidence == "ok"
+
+
+def test_partial_evidence_axes_defaults_none():
+    r = ScreenerRecord(ticker="AAA")
+    assert r.partial_evidence_axes is None

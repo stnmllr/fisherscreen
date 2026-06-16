@@ -89,6 +89,24 @@ def test_growth_data_gap_when_no_percentile():
     assert "revenue_growth_yoy" in r.gemini_data_gaps
 
 
+def test_partial_evidence_axes_flagged():
+    # profitability has only operating_margin percentile (ROE absent) -> partial;
+    # resilience has both gross_margin + d/e -> not partial
+    r = _scored(input_percentiles={"operating_margin": 80.0, "gross_margin": 60.0,
+                                   "debt_to_equity": 30.0},
+                operating_margin=0.2, gross_margin=0.5, debt_to_equity=40.0,
+                growth_consistency=1.0)
+    assert r.partial_evidence_axes == ["profitability"]
+
+
+def test_no_partial_when_both_inputs_present():
+    r = _scored(input_percentiles={"operating_margin": 80.0, "return_on_equity": 75.0,
+                                   "gross_margin": 60.0, "debt_to_equity": 30.0},
+                operating_margin=0.2, return_on_equity=0.2, gross_margin=0.5,
+                debt_to_equity=40.0, growth_consistency=1.0)
+    assert r.partial_evidence_axes == []
+
+
 def test_run_deterministic_scoring_end_to_end():
     from app.screener.deterministic_scorer import run_deterministic_scoring
     recs = [ScreenerRecord(ticker=f"I{i}", gics_sector="Industrials",

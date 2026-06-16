@@ -111,6 +111,13 @@ def score_record(record: "ScreenerRecord") -> None:
     record.gemini_data_gaps = data_gaps
     record.data_confidence = "low" if (record.growth_consistency is None or data_gaps) else "ok"
 
+    partial = []
+    if sum(1 for f in ("operating_margin", "return_on_equity") if f in pcts) == 1:
+        partial.append("profitability")
+    if sum(1 for f in ("gross_margin", "debt_to_equity") if f in pcts) == 1:
+        partial.append("resilience")
+    record.partial_evidence_axes = partial
+
 
 def run_deterministic_scoring(records, revenue_cache, run_tracker):
     """Tool-A scoring entry point (replaces run_gemini_scoring). For each record:
