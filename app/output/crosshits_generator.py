@@ -13,6 +13,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _flags(record) -> str:
+    """Audit markers: ⌖ = a sector-relative axis fell back to the global pool;
+    ⚠ = low data confidence (e.g. <4 fiscal years / consistency unprovable)."""
+    basis = record.score_basis or {}
+    flags = ""
+    if any(v == "global_fallback" for v in basis.values()):
+        flags += "⌖"
+    if getattr(record, "data_confidence", "ok") == "low":
+        flags += "⚠"
+    return flags
+
+
 def generate(
     records: list[ScreenerRecord],
     run_record: RunRecord,
@@ -93,7 +105,7 @@ def _build_body(
             r = entry["record"]
             dims_str = ", ".join(entry["qualifying_dims"])
             lines.append(
-                f"| {i} | {r.ticker} | {r.name or ''} | {r.gics_sector or ''} "
+                f"| {i} | {r.ticker} {_flags(r)} | {r.name or ''} | {r.gics_sector or ''} "
                 f"| {len(entry['qualifying_dims'])} | {dims_str} | {entry['avg_score']} |"
             )
     return "\n".join(lines) + "\n"

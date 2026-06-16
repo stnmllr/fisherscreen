@@ -123,3 +123,26 @@ def test_header_injected_after_title(tmp_path):
     header_idx = text.index("HEADER_MARKER")
     schwelle_idx = text.index("*Schwelle")
     assert title_idx < header_idx < schwelle_idx  # header between title and threshold note
+
+
+from app.output.crosshits_generator import _flags  # helper added in this task
+
+
+def test_flags_global_fallback_and_low_confidence():
+    from app.models.screener_record import ScreenerRecord
+    r = ScreenerRecord(ticker="X",
+                       score_basis={"growth": "global", "profitability": "global_fallback",
+                                    "resilience": "sector_relative"},
+                       data_confidence="low")
+    out = _flags(r)
+    assert "⌖" in out  # global fallback on >=1 sector-relative axis
+    assert "⚠" in out  # low data confidence
+
+
+def test_flags_clean_record_empty():
+    from app.models.screener_record import ScreenerRecord
+    r = ScreenerRecord(ticker="Y",
+                       score_basis={"growth": "global", "profitability": "sector_relative",
+                                    "resilience": "sector_relative"},
+                       data_confidence="ok")
+    assert _flags(r) == ""
