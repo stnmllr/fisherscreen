@@ -490,6 +490,35 @@ def test_run_edgar_filter_sets_no_cik_reason_when_lookup_returns_none():
     assert record.edgar_skipped_reason == "no_cik"
 
 
+def test_run_edgar_filter_no_cik_skip_logged_at_debug_not_warning(caplog):
+    import logging
+
+    from app.screener.runner import run_edgar_filter
+
+    mock_edgar = MagicMock()
+    mock_edgar.get_cik.return_value = None
+    record = _passing_basis_record(cik=None)
+    record.cik = None
+
+    caplog.set_level(logging.DEBUG, logger="app.screener.runner")
+    run_edgar_filter([record], mock_edgar)
+
+    # Record state still reflects the benign no_cik skip.
+    assert record.edgar_skipped is True
+    assert record.edgar_skipped_reason == "no_cik"
+
+    # The per-ticker no-CIK skip is benign and aggregated elsewhere → DEBUG, not WARNING.
+    no_cik_records = [
+        r for r in caplog.records if "has no CIK" in r.getMessage()
+    ]
+    assert no_cik_records, "expected a no-CIK skip log record"
+    assert all(r.levelno == logging.DEBUG for r in no_cik_records)
+    assert not any(
+        r.levelno >= logging.WARNING and "has no CIK" in r.getMessage()
+        for r in caplog.records
+    )
+
+
 def test_run_edgar_filter_sets_data_source_error_reason_on_edgar_failure():
     from app.screener.runner import run_edgar_filter
     mock_edgar = _clean_edgar_mock()
