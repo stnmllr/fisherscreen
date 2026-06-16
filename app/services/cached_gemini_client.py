@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.services.firestore_client import FirestoreClient
     from app.services.gemini_client import GeminiClient
 
+
 class CachedGeminiClient:
     """Firestore-backed cache wrapper for GeminiClient.
 
