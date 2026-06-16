@@ -64,7 +64,7 @@ FisherScreen ist ein persönliches Werkzeug, das Phil Fishers 15 Prinzipien aus
 | Datenbank | Firestore (Native Mode) | 2 Collections |
 | Scheduler | Cloud Scheduler | 1 Job, gratis |
 | Secrets | Secret Manager | Nie `.env` auf Cloud Run |
-| LLM Bulk | Gemini Flash Lite | Tool A (Scoring, mit Hard-Caps) + Tool B |
+| LLM Bulk | Gemini Flash Lite | Nur Tool B — Tool A scort seit 2026-06 deterministisch (kein LLM) |
 | LLM Synthesis | Gemini Pro | Nur Tool B |
 | Package Manager | uv | Nur FisherScreen — RechPro/telefon-agent bleiben pip |
 | CI/CD | GitHub Actions | Deploy auf Cloud Run |
@@ -150,8 +150,9 @@ auf einzelne Stocks.
 
 > **Update (2026-06):** Tool A nutzt seit dem sektor-relativen Perzentil-Scoring deterministisch kein LLM mehr — die Gemini-Token-Caps gelten nur noch für Tool B.
 
-Tool A darf Gemini Flash Lite für Massen-Scoring verwenden, unter
-folgenden nicht-verhandelbaren Bedingungen:
+> **Historisch (vor 2026-06):** Solange Tool A Gemini Flash Lite für Massen-Scoring nutzte,
+> galten folgende nicht-verhandelbaren Bedingungen (jetzt nur noch für etwaige künftige
+> LLM-Nutzung relevant; das Live-Scoring ist deterministisch):
 
 1. Hard Cap Ticker-Anzahl: max. 3.000 Ticker pro Run.
    Bei Überschreitung: Run-Abbruch mit AppError, kein Fallback.
@@ -170,7 +171,7 @@ folgenden nicht-verhandelbaren Bedingungen:
      Budgethöhe + Billing-Lag — er stoppt NICHT punktgenau bei €10.
      Schadensbegrenzer, kein präziser Deckel.
 
-4. Erlaubte APIs in Tool A: yfinance (kostenfrei), Gemini Flash Lite.
+4. Erlaubte APIs in Tool A: yfinance (kostenfrei). (Gemini Flash Lite war hier erlaubt, solange Tool A LLM-scorte — heute deterministisch, kein LLM.)
    Verboten in Tool A: Gemini Pro, Search Grounding, andere
    LLM-Modelle, jede API mit Per-Request-Kosten über $0.001.
 
