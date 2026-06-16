@@ -31,19 +31,19 @@
     {
       "stage": "scoring",
       "entered": 832,
-      "dropped": 1,
-      "remaining": 831,
+      "dropped": 0,
+      "remaining": 832,
       "ran": true
     },
     {
       "stage": "crosshits",
-      "entered": 831,
-      "dropped": 370,
-      "remaining": 461,
+      "entered": 832,
+      "dropped": 551,
+      "remaining": 281,
       "ran": true
     }
   ],
-  "review_flags": 61,
+  "review_flags": 63,
   "pass_through_count": 213,
   "relative_rescues": [
     "8TRA.DE",
