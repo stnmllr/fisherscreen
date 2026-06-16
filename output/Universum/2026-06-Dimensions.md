@@ -467,8 +467,8 @@ dimensions:
     - ARGX.BR
     - ASML.AS
     - ASSA-B.ST
-generated_at: '2026-06-16T06:32:48.187936+00:00'
-run_id: '2026-06-16T06:17:07.476721+00:00'
+generated_at: '2026-06-16T13:32:09.541543+00:00'
+run_id: '2026-06-16T13:08:39.682268+00:00'
 score_threshold: 4.0
 universum_size: 832
 ---
