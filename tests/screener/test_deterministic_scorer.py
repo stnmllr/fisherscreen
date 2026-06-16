@@ -73,6 +73,22 @@ class _FakeTracker:
     def record_ticker(self, tin, tout): self.calls.append((tin, tout))
 
 
+def test_resilience_inversion_lower_leverage_scores_higher():
+    # identical gross_margin percentile; lower d/e percentile (less levered) -> higher resilience
+    low_lev = _scored(input_percentiles={"gross_margin": 50.0, "debt_to_equity": 20.0},
+                      gross_margin=0.4, debt_to_equity=30.0)
+    high_lev = _scored(input_percentiles={"gross_margin": 50.0, "debt_to_equity": 80.0},
+                       gross_margin=0.4, debt_to_equity=120.0)
+    assert low_lev.gemini_dimensions["resilience"] > high_lev.gemini_dimensions["resilience"]
+
+
+def test_growth_data_gap_when_no_percentile():
+    r = _scored(input_percentiles={"operating_margin": 50.0}, operating_margin=0.1,
+                growth_consistency=1.0)
+    assert r.gemini_dimensions["growth"] == 3
+    assert "revenue_growth_yoy" in r.gemini_data_gaps
+
+
 def test_run_deterministic_scoring_end_to_end():
     from app.screener.deterministic_scorer import run_deterministic_scoring
     recs = [ScreenerRecord(ticker=f"I{i}", gics_sector="Industrials",

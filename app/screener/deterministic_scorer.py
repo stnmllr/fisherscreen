@@ -65,7 +65,7 @@ def score_record(record: "ScreenerRecord") -> None:
     if "revenue_growth_yoy" in pcts:
         growth = percentile_to_score(pcts["revenue_growth_yoy"])
     else:
-        growth = 3
+        growth = 3  # no percentile available: neutral sentinel (same as profitability/resilience)
         data_gaps.append("revenue_growth_yoy")
     growth = min(growth, consistency_cap(record.growth_consistency))
     dims["growth"] = growth
