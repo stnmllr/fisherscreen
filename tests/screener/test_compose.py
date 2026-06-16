@@ -63,6 +63,7 @@ def test_build_gemini_pipeline_wires_components():
         mock_settings.gcp_project_id = "test-project"
         mock_settings.gemini_score_collection = "dev_gemini_scores"
         mock_settings.gemini_model = "gemini-2.5-flash-lite"
+        mock_settings.gemini_score_cache_ttl_days = 2
 
         result = compose_module.build_gemini_pipeline()
 
@@ -72,6 +73,7 @@ def test_build_gemini_pipeline_wires_components():
             gemini=mock_gemini_cls.return_value,
             firestore=mock_fs_cls.return_value,
             collection="dev_gemini_scores",
+            ttl_days=2,
         )
         assert result == mock_cached_cls.return_value
 
