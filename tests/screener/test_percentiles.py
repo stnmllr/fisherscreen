@@ -16,8 +16,11 @@ def test_percentile_rank_max_and_min():
 
 def test_percentile_to_score_anchor_bands():
     assert percentile_to_score(95.0) == 5
-    assert percentile_to_score(90.0) == 5
-    assert percentile_to_score(75.0) == 4
+    assert percentile_to_score(88.0) == 5
+    assert percentile_to_score(87.9) == 4
+    assert percentile_to_score(70.0) == 4
+    assert percentile_to_score(69.9) == 3
     assert percentile_to_score(40.0) == 3
+    assert percentile_to_score(39.9) == 2
     assert percentile_to_score(15.0) == 2
     assert percentile_to_score(14.9) == 1

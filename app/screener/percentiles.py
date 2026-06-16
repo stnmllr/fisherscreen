@@ -5,7 +5,8 @@ stable under duplicate metric values. No I/O, no record types."""
 from __future__ import annotations
 
 # Pinned percentile -> score anchor bands (descending). P below the lowest band -> 1.
-_ANCHOR_BANDS: tuple[tuple[float, int], ...] = ((90.0, 5), (75.0, 4), (40.0, 3), (15.0, 2))
+# Adjusted thresholds: 90→88 (≥5), 75→70 (≥4) for a modestly larger crosshit set (~25 vs 15).
+_ANCHOR_BANDS: tuple[tuple[float, int], ...] = ((88.0, 5), (70.0, 4), (40.0, 3), (15.0, 2))
 
 
 def percentile_rank(value: float, distribution: list[float]) -> float:
