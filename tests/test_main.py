@@ -29,7 +29,7 @@ def test_monthly_run_endpoint_exists() -> None:
     with (
         patch("app.main.build_screener_pipeline"),
         patch("app.main.build_edgar_pipeline"),
-        patch("app.main.build_gemini_pipeline"),
+        patch("app.main.build_revenue_series_cache"),
         patch("app.main.build_run_tracker"),
         patch("app.main.build_github_client"),
         patch("app.main.run_screener", return_value=_mock_run_result()),
@@ -43,7 +43,7 @@ def test_monthly_run_returns_run_record_json() -> None:
     with (
         patch("app.main.build_screener_pipeline"),
         patch("app.main.build_edgar_pipeline"),
-        patch("app.main.build_gemini_pipeline"),
+        patch("app.main.build_revenue_series_cache"),
         patch("app.main.build_run_tracker"),
         patch("app.main.build_github_client"),
         patch("app.main.run_screener", return_value=_mock_run_result()),
@@ -70,7 +70,7 @@ def test_dry_run_returns_report_and_skips_paid_pipeline() -> None:
     with (
         patch("app.main.build_screener_pipeline") as mock_screener,
         patch("app.main.build_edgar_pipeline") as mock_edgar,
-        patch("app.main.build_gemini_pipeline") as mock_gemini,
+        patch("app.main.build_revenue_series_cache") as mock_revenue_cache,
         patch("app.main.build_run_tracker") as mock_tracker,
         patch("app.main.build_github_client") as mock_github,
         patch("app.main.run_screener") as mock_run_screener,
@@ -88,7 +88,7 @@ def test_dry_run_returns_report_and_skips_paid_pipeline() -> None:
     mock_preview.assert_called_once()
     mock_screener.assert_called_once()  # yfinance pipeline still built
     mock_edgar.assert_called_once()     # edgar pipeline still built
-    mock_gemini.assert_not_called()
+    mock_revenue_cache.assert_not_called()
     mock_tracker.assert_not_called()
     mock_github.assert_not_called()
     mock_run_screener.assert_not_called()
@@ -125,7 +125,7 @@ def test_monthly_run_commit_message_includes_skip_ci(tmp_path: Path) -> None:
     with (
         patch("app.main.build_screener_pipeline"),
         patch("app.main.build_edgar_pipeline"),
-        patch("app.main.build_gemini_pipeline"),
+        patch("app.main.build_revenue_series_cache"),
         patch("app.main.build_run_tracker"),
         patch("app.main.build_github_client", return_value=mock_github),
         patch("app.main.run_screener", return_value=_mock_run_result(paths=[output_file])),

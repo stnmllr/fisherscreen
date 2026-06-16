@@ -16,7 +16,6 @@ from app.screener.runner import (
     _resolve_market_cap_eur,
     run_basis_filter,
 )
-from app.services.gemini_client import GeminiScoreResult
 
 _FX_USD_EUR = 0.92  # approximate USD → EUR rate for tests
 
@@ -662,29 +661,22 @@ def _full_mock_suite(ticker: str = "AAPL"):
     edgar.has_restatement.return_value = False
     edgar.has_going_concern.return_value = False
     edgar.has_active_enforcement.return_value = False
-    gemini = MagicMock()
-    gemini.score_ticker.return_value = GeminiScoreResult(
-        dimensions={"growth": 4, "profitability": 4, "management": 3, "innovation": 3, "resilience": 4},
-        evidence={"growth": "revenue_growth_yoy: 18.4%"},
-        weakest_dimension="profitability",
-        data_gaps=[],
-        tokens_in=500,
-        tokens_out=80,
-    )
+    revenue_cache = MagicMock()
+    revenue_cache.get_revenue_series.return_value = [100.0, 110.0, 120.0, 130.0]
     tracker = MagicMock()
     tracker.finish.return_value = RunRecord(run_id="2026-05-13T08:00:00+00:00")
-    return yfinance, edgar, gemini, tracker
+    return yfinance, edgar, revenue_cache, tracker
 
 
 def test_run_screener_returns_records_run_record_and_paths(tmp_path):
     from app.screener.runner import run_screener
-    yfinance, edgar, gemini, tracker = _full_mock_suite()
+    yfinance, edgar, revenue_cache, tracker = _full_mock_suite()
 
     records, run_record, paths = run_screener(
         tickers=["AAPL"],
         yfinance=yfinance,
         edgar=edgar,
-        gemini=gemini,
+        revenue_cache=revenue_cache,
         run_tracker=tracker,
         output_dir=tmp_path,
     )
@@ -696,13 +688,13 @@ def test_run_screener_returns_records_run_record_and_paths(tmp_path):
 
 def test_run_screener_writes_funnel_artifacts(tmp_path):
     from app.screener.runner import run_screener
-    yfinance, edgar, gemini, tracker = _full_mock_suite()
+    yfinance, edgar, revenue_cache, tracker = _full_mock_suite()
 
     _, _, paths = run_screener(
         tickers=["AAPL"],
         yfinance=yfinance,
         edgar=edgar,
-        gemini=gemini,
+        revenue_cache=revenue_cache,
         run_tracker=tracker,
         output_dir=tmp_path,
     )
@@ -714,13 +706,13 @@ def test_run_screener_writes_funnel_artifacts(tmp_path):
 
 def test_run_screener_creates_three_named_output_files(tmp_path):
     from app.screener.runner import run_screener
-    yfinance, edgar, gemini, tracker = _full_mock_suite()
+    yfinance, edgar, revenue_cache, tracker = _full_mock_suite()
 
     _, _, paths = run_screener(
         tickers=["AAPL"],
         yfinance=yfinance,
         edgar=edgar,
-        gemini=gemini,
+        revenue_cache=revenue_cache,
         run_tracker=tracker,
         output_dir=tmp_path,
     )
