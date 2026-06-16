@@ -169,3 +169,10 @@ def test_deepdive_settings_defaults():
     assert s.deepdive_token_cap == 200_000
     assert s.filing_cache_ttl_days == 30
     assert s.historical_cache_ttl_days == 90
+
+
+def test_gemini_score_cache_ttl_days_default_is_2():
+    from app.config import FisherScreenSettings
+
+    settings = FisherScreenSettings()
+    assert settings.gemini_score_cache_ttl_days == 2

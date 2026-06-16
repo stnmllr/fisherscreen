@@ -24,6 +24,7 @@ class FisherScreenSettings(BaseSettings):
     deepdive_token_cap: int = 200_000
     filing_cache_ttl_days: int = 30
     historical_cache_ttl_days: int = 90
+    gemini_score_cache_ttl_days: int = 2  # < monthly cadence so each monthly run re-scores fresh
     insider_lookback_days: int = 365
     deepdive_peers_collection: str = "dev_deepdive_peers"
 

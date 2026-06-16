@@ -42,6 +42,7 @@ def build_gemini_pipeline() -> GeminiClient:
         gemini=gemini,
         firestore=firestore,
         collection=settings.gemini_score_collection,
+        ttl_days=settings.gemini_score_cache_ttl_days,
     )
 
 

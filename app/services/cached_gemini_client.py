@@ -10,21 +10,27 @@ if TYPE_CHECKING:
     from app.services.firestore_client import FirestoreClient
     from app.services.gemini_client import GeminiClient
 
-_TTL_SECONDS = 30 * 24 * 3600  # 30 days
-
 
 class CachedGeminiClient:
     """Firestore-backed cache wrapper for GeminiClient.
 
-    A fresh cache entry (within 30-day TTL) is returned with tokens_in=0 and
-    tokens_out=0 to signal that no Gemini API call was made, keeping cost
-    accounting accurate at the call site.
+    A fresh cache entry (within the configurable TTL, default 2 days) is returned
+    with tokens_in=0 and tokens_out=0 to signal that no Gemini API call was made,
+    keeping cost accounting accurate at the call site. TTL is kept below the monthly
+    run cadence so each monthly run re-scores with current numbers.
     """
 
-    def __init__(self, gemini: GeminiClient, firestore: FirestoreClient, collection: str) -> None:
+    def __init__(
+        self,
+        gemini: GeminiClient,
+        firestore: FirestoreClient,
+        collection: str,
+        ttl_days: int = 2,
+    ) -> None:
         self._gemini = gemini
         self._firestore = firestore
         self._collection = collection
+        self._ttl_seconds = ttl_days * 24 * 3600
 
     def score_ticker(
         self,
@@ -66,4 +72,4 @@ class CachedGeminiClient:
             return False
         if cached_at.tzinfo is None:
             cached_at = cached_at.replace(tzinfo=timezone.utc)
-        return (datetime.now(timezone.utc) - cached_at).total_seconds() < _TTL_SECONDS
+        return (datetime.now(timezone.utc) - cached_at).total_seconds() < self._ttl_seconds

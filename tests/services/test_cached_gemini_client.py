@@ -152,6 +152,45 @@ def test_is_fresh_returns_false_when_cached_at_missing():
     mock_gemini.score_ticker.assert_called_once()
 
 
+def _cached_age_days(days: float) -> dict:
+    dt = datetime.now(timezone.utc) - timedelta(days=days)
+    return {
+        "dimensions": {"growth": 3, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3},
+        "evidence": {"growth": "cached evidence"},
+        "weakest_dimension": "resilience",
+        "data_gaps": [],
+        "_cached_at": dt.isoformat(),
+    }
+
+
+def test_entry_older_than_default_ttl_is_stale_and_rescored():
+    """A 5-day-old entry is stale under the 2-day default (was fresh under old 30d)."""
+    mock_gemini = MagicMock()
+    mock_gemini.score_ticker.return_value = _result(growth=4)
+    mock_fs = MagicMock()
+    mock_fs.get.return_value = _cached_age_days(5)
+
+    client = CachedGeminiClient(gemini=mock_gemini, firestore=mock_fs, collection="col")
+    result = client.score_ticker("AAPL", _record())
+
+    mock_gemini.score_ticker.assert_called_once()
+    assert result.dimensions["growth"] == 4
+
+
+def test_ttl_days_constructor_param_is_honored():
+    """With ttl_days=10, a 5-day-old entry is fresh -> served from cache, no Gemini call."""
+    mock_gemini = MagicMock()
+    mock_fs = MagicMock()
+    mock_fs.get.return_value = _cached_age_days(5)
+
+    client = CachedGeminiClient(gemini=mock_gemini, firestore=mock_fs, collection="col", ttl_days=10)
+    result = client.score_ticker("AAPL", _record())
+
+    mock_gemini.score_ticker.assert_not_called()
+    assert result.dimensions["growth"] == 3
+    assert result.tokens_in == 0
+
+
 @patch("app.services.gemini_client._genai")
 def test_retry_survives_cache_layer_on_503(mock_genai):
     """503→Erfolg im echten GeminiClientImpl, durch CachedGeminiClient hindurch."""
