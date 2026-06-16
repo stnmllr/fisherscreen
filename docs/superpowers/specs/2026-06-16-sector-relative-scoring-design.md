@@ -93,7 +93,9 @@ Neue Felder auf `ScreenerRecord`:
 ```python
 input_percentiles: dict[str, float] | None  # {"operating_margin": 82.0, "revenue_growth_yoy": 71.0, ...}
 growth_consistency: float | None            # positive_years_ratio; None = UNASSESSABLE (<4 GJ)
-score_basis: str | None                     # "sector_relative" | "global_fallback"  (per axis: prof/resil)
+score_basis: dict[str, str] | None          # PER ACHSE: {"growth":"global",
+                                            #   "profitability":"sector_relative"|"global_fallback",
+                                            #   "resilience":"sector_relative"|"global_fallback"}
 data_confidence: str                        # "ok" | "low"  (default "ok")
 ```
 
@@ -110,14 +112,17 @@ schemastabil) aus den Annotationen, setzt `gemini_evidence` (code-getemplatet), 
   weniger). Dies betrifft **nur** die sektor-relativen Achsen (profitability, resilience).
 - **Min-Sektor-N-Guard: N = 30.** Sektor mit < 30 Membern in der Pre-Scoring-Kohorte → Sektor-
   Perzentile instabil → profitability/resilience fallen für diesen Sektor auf **kohorten-globales
-  Perzentil** (sektor-blind, dieselbe Ankertabelle) zurück, `score_basis = "global_fallback"`. Kein
-  Magic-Number-Absolut-Anker (es gibt mit A1 keinen v2.1-Prompt mehr) — der globale Perzentil-
+  Perzentil** (sektor-blind, dieselbe Ankertabelle) zurück, `score_basis[axis] = "global_fallback"`.
+  Kein Magic-Number-Absolut-Anker (es gibt mit A1 keinen v2.1-Prompt mehr) — der globale Perzentil-
   Fallback bleibt deterministisch und entklumpt, genau wie growth.
 - **Sektor fehlt/unmappbar** (die ~10 Titel ohne `sector`-Label): ebenfalls globaler Perzentil-
-  Fallback, `score_basis = "global_fallback"`, Sektor-Anzeige `n/a`. **Nicht gedroppt, crosshit-fähig**
-  — bekommt nur die sektor-relative Behandlung nicht (keine vergleichbare Peer-Group). Kein
-  „various"-Sammeltopf (heterogene Peer-Group → bedeutungsloses Perzentil); der globale Pool ist die
-  ehrlichere Vergleichsbasis.
+  Fallback, `score_basis[axis] = "global_fallback"`, Sektor-Anzeige `n/a`. **Nicht gedroppt,
+  crosshit-fähig** — bekommt nur die sektor-relative Behandlung nicht (keine vergleichbare
+  Peer-Group). Kein „various"-Sammeltopf (heterogene Peer-Group → bedeutungsloses Perzentil); der
+  globale Pool ist die ehrlichere Vergleichsbasis.
+- **`score_basis` ist PER ACHSE** (dict), nicht ein Titel-String: profitability und resilience können
+  unabhängig auf global_fallback fallen (heute v. a. via N-Guard gemeinsam, aber der dict hält das
+  Audit-Trail eindeutig und ist v2-fest). `growth` ist konstruktionsbedingt immer `"global"`.
 - **growth** ist sektor-blind und damit vom N-Guard **nicht** betroffen — immer kohorten-global.
 
 ## 5. Score-Mechanik je Achse (deterministisch, 0–5)
@@ -150,10 +155,23 @@ Uniform verteilte Perzentile ⇒ grob 10 % → 5, 15 % → 4, 35 % → 3, 25 % �
   `return_on_equity < 0`.
 
 ### resilience (sektor-relativ)
+> **Einheiten-Warnung (`[[quant-field-guard-data-layer]]`):** `debt_to_equity` ist als rohe
+> yfinance-Zahl in **Prozent-Punkten** (z. B. `45.0` = 45 % = 0,45×; Fixtures: 45/30/40), während
+> `operating_margin`/`return_on_equity`/`gross_margin`/`revenue_growth_yoy` **Dezimal** sind
+> (0,18 = 18 %). Absolute d/e-Schwellen daher in Prozent-Punkten. Perzentil-Ränge sind
+> skaleninvariant — nur die absoluten Red-Flag-/Vorzeichen-Schwellen sind einheitenabhängig.
+
 - `mean(P_sector(gross_margin), 100 − P_sector(debt_to_equity))` → Ankertabelle.
   (Der invertierte d/e-Term: niedriger Hebel = höheres Perzentil = besser.)
-- **Red-Flag-Overlay → 0** (absolut): `debt_to_equity > 3.0` (>300 %) **oder** negatives
-  Eigenkapital (d/e < 0).
+- **`debt_to_equity < 0` → aus dem resilience-Perzentil ganz ausschließen** (Titel-Wert *und*
+  Sektor-/Global-Verteilung): resilience dann nur aus `P(gross_margin)`, Evidenz vermerkt
+  `„d/e n/a (negatives Buchkapital)"`. **Kein** Red-Flag. Begründung: negatives d/e ist überwiegend
+  **buyback-getriebenes negatives Buchkapital** (SBUX/MCD/HD/AZO — Qualitäts-Cash-Generatoren, nicht
+  Distressed); es als 0 zu werten würde sie fälschlich killen, und negative Werte in der Verteilung
+  würden „am negativsten = am sichersten" ranken. Echte Distress-Fälle (going concern) sind upstream
+  im EDGAR-Gate gefangen.
+- **Red-Flag-Overlay → 0** (absolut, nur positiver Extrem-Hebel): `debt_to_equity > 300`
+  (= >300 % = 3× Eigenkapital; Prozent-Punkte!). Kalibrierbar im Akzeptanzlauf.
 
 ### management / innovation
 - Unverändert Sentinel-3, zählen nicht zum Crosshit (siehe `dimensions.py`).
@@ -179,10 +197,15 @@ Uniform verteilte Perzentile ⇒ grob 10 % → 5, 15 % → 4, 35 % → 3, 25 % �
   | ≥ 0.75 | 5 |
   | ≥ 0.50 | 4 |
   | < 0.50 | 3 |
-  | `None` (UNASSESSABLE) | kein Cap; `data_confidence = "low"` |
+  | `None` (UNASSESSABLE, <4 GJ) | **4** (konservative Schranke) + `data_confidence = "low"` |
 
   `growth = min(anchor_score, consistency_cap)`. Beispiel: P90-Einjahres-Spike (anchor 5) mit
   ratio 0.25 (1 von 4 Jahren gewachsen) → growth = 3.
+  **UNASSESSABLE-Schranke (Spin-off-Blindfleck):** Ein Titel mit zu kurzer Historie (z. B. SNDK,
+  1 Datenpunkt) kann strukturell *nicht* belegen, dass ein hohes Perzentil-Wachstum dauerhaft ist —
+  ein Superzyklus-Spinoff-Jahr darf daher nicht growth=5 erzeugen. Cap=4 deckelt das deterministisch,
+  ohne neue Logikschicht, und lässt den Titel via `data_confidence=low`-Flag sichtbar (§8). Echte
+  Mehrjahres-Konsistenz (≥0,75) bleibt nötig, um growth=5 zu erreichen.
 - Punkt 3 droppt γ-Decline (cagr<0 ∧ down_years≥2) bereits upstream; der Cap fängt den **Rest**
   (flach + ein Spike). **Margen-Konsistenz ist v2** (bräuchte Mehrjahres-Margendaten).
 
@@ -205,9 +228,10 @@ Uniform verteilte Perzentile ⇒ grob 10 % → 5, 15 % → 4, 35 % → 3, 25 % �
 - < 4 GJ als eigenständige Gesellschaft → `growth_consistency = None` (UNASSESSABLE) →
   `data_confidence = "low"`.
 - **Verhalten:** weiter gescort, **crosshit-fähig, aber mit sichtbarem `data_confidence=low`-Flag**
-  in der Ausgabe. Kein Konsistenz-Cap (kann nicht berechnet werden). Erfüllt das Backlog-Kriterium
-  „kein Spin-off erreicht Crosshit *ohne* Flag", ohne genuine Qualitäts-Spin-offs dauerhaft zu
-  verlieren (Recall-Ziel). Beispiel: SNDK (Abspaltung 2024).
+  in der Ausgabe. **Konsistenz-Cap = 4** (konservative Schranke, §6) — growth kann ohne belegbare
+  Mehrjahres-Konsistenz nicht 5 erreichen (schließt den Spin-off-Superzyklus-Blindfleck). Erfüllt das
+  Backlog-Kriterium „kein Spin-off erreicht Crosshit *ohne* Flag", ohne genuine Qualitäts-Spin-offs
+  dauerhaft zu verlieren (Recall-Ziel). Beispiel: SNDK (Abspaltung 2024).
 
 ## 9. Tool A wird LLM-frei (Approach B / A1)
 
@@ -224,8 +248,9 @@ wird in einem Doc-Update nachgezogen (Tool A = deterministisch, kein LLM).
 
 ## 10. Output / Audit
 
-- `crosshits_generator` / `dimensions_generator`: zusätzliche Spalten/Marker `score_basis`
-  (sector_relative / global_fallback) und `data_confidence` (Flag nur wenn `low`).
+- `crosshits_generator` / `dimensions_generator`: zusätzliche Marker aus `score_basis` (per-Achse;
+  ein Titel wird als `global_fallback` markiert, sobald *eine* sektor-relative Achse global gefallen
+  ist) und `data_confidence` (Flag nur wenn `low`).
 - Evidenz-Note zitiert **Absolutzahl + Perzentil** (Auditierbarkeit bleibt erhalten — die
   Backlog-Anforderung).
 - **Die Crosshit-Quote fällt deutlich** (von 33.8 %): bei ~25 % je Achse über P75 und drei
@@ -246,10 +271,12 @@ wird in einem Doc-Update nachgezogen (Tool A = deterministisch, kein LLM).
   `None`-Ausschluss aus der Verteilung, Min-N=30-Fallback, fehlender Sektor → absoluter Fallback,
   growth global vs. profitability/resilience sektoral.
 - **Unit — Anker-Mapping:** Grenz-P-Werte exakt (90/75/40/15), Monotonie.
-- **Unit — Konsistenz:** ratio-Berechnung, Cap-Bänder (0.75/0.50), `None`→kein Cap+low,
+- **Unit — Konsistenz:** ratio-Berechnung, Cap-Bänder (0.75/0.50), `None`→**cap=4**+low,
   `min(anchor, cap)`.
-- **Unit — Red-Flag-Overlay:** `op_margin<0` / `roe<0` → profitability 0; `d/e>3.0` / `d/e<0` →
-  resilience 0; growth ohne Overlay.
+- **Unit — Red-Flag-Overlay & d/e-Einheit:** `op_margin<0` / `roe<0` → profitability 0;
+  `d/e>300` (Prozent-Punkte) → resilience 0; `d/e<0` → **aus Perzentil ausgeschlossen** (Titel +
+  Verteilung), resilience aus `gross_margin` allein (**nicht** 0); growth ohne Overlay. Fixture mit
+  d/e=45.0 (=45 %) als Einheits-Anker.
 - **Unit — Evidenz-Template:** zitiert Absolut + Perzentil, deterministisch.
 - **Unit — Cache:** `dev_revenue_series` get/set, TTL-Frische, Backfill-Pfad.
 - **Integration (kalter Dry-Run, $0):** misst die **Entklumpung** (Score-Verteilung je Achse ~uniform
