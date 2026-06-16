@@ -110,3 +110,27 @@ def test_build_github_client_wires_components():
 
         mock_cls.assert_called_once_with(token="tok", repo="org/repo", branch="main")
         assert result == mock_cls.return_value
+
+
+def test_build_revenue_series_cache_wires_components():
+    with (
+        patch("app.screener.compose.YFinanceClientImpl") as mock_yf_cls,
+        patch("app.screener.compose.FirestoreClientImpl") as mock_fs_cls,
+        patch("app.screener.compose.CachedRevenueSeries") as mock_cached_cls,
+        patch("app.screener.compose.settings", spec=True) as mock_settings,
+    ):
+        mock_settings.gcp_project_id = "test-project"
+        mock_settings.revenue_series_collection = "dev_revenue_series"
+        mock_settings.revenue_series_ttl_days = 400
+
+        result = compose_module.build_revenue_series_cache()
+
+        mock_yf_cls.assert_called_once_with()
+        mock_fs_cls.assert_called_once_with(project_id="test-project")
+        mock_cached_cls.assert_called_once_with(
+            yfinance=mock_yf_cls.return_value,
+            firestore=mock_fs_cls.return_value,
+            collection="dev_revenue_series",
+            ttl_days=400,
+        )
+        assert result == mock_cached_cls.return_value
