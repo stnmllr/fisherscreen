@@ -14,6 +14,11 @@
 > Grounding-Artefakt: `scripts/analyze_sector_relative_evidence.py` (read-only Firestore-Härtung,
 > reproduziert den 2026-06-Lauf bit-genau: growth≥4=573, profitability≥4=602, resilience≥4=460,
 > Crosshit(all-3)=281).
+> **As-built-Deltas (Validierung 2026-06-16, siehe `docs/superpowers/audits/2026-06-16-sector-relative-scoring/validation.md`):**
+> (1) Anker-Bänder nach Kalibrierung auf **88/70** gelockert (statt 90/75 in §5) → 25 Crosshits.
+> (2) Partielle Evidenz (Achse auf 1 von 2 Inputs gescort) wird jetzt mit eigenem Marker `~`
+> geflaggt (war hier offene Frage) — implementiert. (3) Zyklik-Cap bleibt v1-partiell (NEM
+> gedeckelt, HL/EDV nicht); Voll-Fix bewusst v2.
 
 ---
 
