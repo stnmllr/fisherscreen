@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from app.models.run_record import RunRecord
     from app.screener.run_tracker import RunTracker
     from app.services.edgar_client import EdgarClient
-    from app.services.gemini_client import GeminiClient
+    from app.services.revenue_series_cache import CachedRevenueSeries
     from app.services.yfinance_client import YFinanceClient
 
 logger = logging.getLogger(__name__)
@@ -402,21 +402,21 @@ def run_filter_preview(
 
 def run_screener(
     tickers: list[str],
-    yfinance: YFinanceClient,
-    edgar: EdgarClient,
-    gemini: GeminiClient,
-    run_tracker: RunTracker,
+    yfinance: "YFinanceClient",
+    edgar: "EdgarClient",
+    revenue_cache: "CachedRevenueSeries",
+    run_tracker: "RunTracker",
     output_dir: Path,
     *,
     score_threshold: float | None = None,
     crosshits_min_dimensions: int | None = None,
     crosshits_cap: int | None = None,
-) -> tuple[list[ScreenerRecord], RunRecord, list[Path]]:
+) -> tuple[list[ScreenerRecord], "RunRecord", list[Path]]:
     from app.config import settings
     from app.output.changes_generator import generate as generate_changes
     from app.output.crosshits_generator import generate as generate_crosshits
     from app.output.dimensions_generator import generate as generate_dimensions
-    from app.screener.scorer import run_gemini_scoring
+    from app.screener.deterministic_scorer import run_deterministic_scoring
 
     threshold = score_threshold if score_threshold is not None else settings.crosshits_score_threshold
     min_dims = crosshits_min_dimensions if crosshits_min_dimensions is not None else settings.crosshits_min_dimensions
@@ -428,7 +428,7 @@ def run_screener(
 
     basis = run_basis_filter(tickers, yfinance)
     edgar_passed = run_edgar_filter(basis.passed, edgar)
-    scored = run_gemini_scoring(edgar_passed, gemini, run_tracker, token_cap=settings.gemini_token_cap)
+    scored = run_deterministic_scoring(edgar_passed, revenue_cache, run_tracker)
     run_record = run_tracker.finish()
     run_month = run_record.run_id[:7]
 

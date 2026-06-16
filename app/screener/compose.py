@@ -9,6 +9,7 @@ from app.services.edgar_client import EdgarClient, EdgarClientImpl
 from app.services.firestore_client import FirestoreClientImpl
 from app.services.gemini_client import GeminiClient, GeminiClientImpl
 from app.services.github_client import GitHubClient, GitHubClientImpl
+from app.services.revenue_series_cache import CachedRevenueSeries
 from app.services.yfinance_client import YFinanceClient, YFinanceClientImpl
 
 
@@ -59,6 +60,18 @@ def build_github_client() -> GitHubClient:
         token=settings.github_token,
         repo=settings.github_repo,
         branch=settings.github_branch,
+    )
+
+
+def build_revenue_series_cache() -> CachedRevenueSeries:
+    """Build the Firestore-backed revenue series cache used by the deterministic scorer."""
+    yfinance = YFinanceClientImpl()
+    firestore = FirestoreClientImpl(project_id=settings.gcp_project_id)
+    return CachedRevenueSeries(
+        yfinance=yfinance,
+        firestore=firestore,
+        collection=settings.revenue_series_collection,
+        ttl_days=settings.revenue_series_ttl_days,
     )
 
 

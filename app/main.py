@@ -12,8 +12,8 @@ from app.config import settings
 from app.logging_config import configure_logging
 from app.screener.compose import (
     build_edgar_pipeline,
-    build_gemini_pipeline,
     build_github_client,
+    build_revenue_series_cache,
     build_run_tracker,
     build_screener_pipeline,
 )
@@ -86,7 +86,7 @@ def run_monthly(dry_run: bool = False) -> dict[str, Any]:
         logger.info("monthly run: free dry-run (filters only, $0) — funnel artifacts written, no Gemini/GitHub")
         return {"dry_run": True, **report.to_dict()}
 
-    gemini = build_gemini_pipeline()
+    revenue_cache = build_revenue_series_cache()
     tracker = build_run_tracker()
     github = build_github_client()
     output_dir = Path(settings.output_dir)
@@ -95,7 +95,7 @@ def run_monthly(dry_run: bool = False) -> dict[str, Any]:
         tickers=tickers,
         yfinance=yfinance,
         edgar=edgar,
-        gemini=gemini,
+        revenue_cache=revenue_cache,
         run_tracker=tracker,
         output_dir=output_dir,
     )

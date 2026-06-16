@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import frontmatter
 
+from app.output.crosshits_generator import _flags
 from app.screener.dimensions import DIMENSIONS
 
 if TYPE_CHECKING:
@@ -144,6 +145,6 @@ def _build_markdown_body(
                 name = (r.name or "") if r else ""
                 sector = (r.gics_sector or "") if r else ""
                 score = (r.gemini_dimensions or {}).get(dim, "") if r else ""
-                lines.append(f"| {i} | {ticker} | {name} | {sector} | {score} |")
+                lines.append(f"| {i} | {ticker} {_flags(r) if r else ''} | {name} | {sector} | {score} |")
         lines.append("")
     return "\n".join(lines)

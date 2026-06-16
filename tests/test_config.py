@@ -176,3 +176,9 @@ def test_gemini_score_cache_ttl_days_default_is_2():
 
     settings = FisherScreenSettings()
     assert settings.gemini_score_cache_ttl_days == 2
+
+
+def test_revenue_series_cache_defaults():
+    s = FisherScreenSettings(_env_file=None)
+    assert s.revenue_series_collection == "dev_revenue_series"
+    assert s.revenue_series_ttl_days == 400  # annual data -> long TTL (unlike Gemini 2d)

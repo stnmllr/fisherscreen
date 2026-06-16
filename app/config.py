@@ -25,6 +25,8 @@ class FisherScreenSettings(BaseSettings):
     filing_cache_ttl_days: int = 30
     historical_cache_ttl_days: int = 90
     gemini_score_cache_ttl_days: int = 2  # < monthly cadence so each monthly run re-scores fresh
+    revenue_series_collection: str = "dev_revenue_series"
+    revenue_series_ttl_days: int = 400  # annual revenue changes yearly; long TTL is correct here
     insider_lookback_days: int = 365
     deepdive_peers_collection: str = "dev_deepdive_peers"
 

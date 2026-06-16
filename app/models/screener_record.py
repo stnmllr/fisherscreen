@@ -54,6 +54,13 @@ class ScreenerRecord(BaseModel):
     gemini_weakest_dimension: str | None = None  # the lowest-scoring merit axis (self-reported)
     gemini_data_gaps: list[str] | None = None  # DATA fields the model flagged as missing
 
+    # Sector-relative deterministic scoring (2026-06): set in percentile_prep + scorer.
+    input_percentiles: dict[str, float] | None = None  # metric -> within-run percentile (0..100)
+    growth_consistency: float | None = None            # positive_years_ratio; None = UNASSESSABLE (<4 GJ)
+    score_basis: dict[str, str] | None = None          # per axis: "global" | "sector_relative" | "global_fallback"
+    data_confidence: str = "ok"                        # "ok" | "low"
+    partial_evidence_axes: list[str] | None = None  # merit axes scored on only 1 of 2 inputs
+
     # Filter tracking
     filter_passed_basis: bool | None = None
     filter_passed_edgar: bool | None = None

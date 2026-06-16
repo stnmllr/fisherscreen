@@ -43,6 +43,7 @@ markers = [
 [tool.coverage.run]
 omit = [
     "app/services/*",
+    "scripts/*",
 ]
 
 [tool.coverage.report]
