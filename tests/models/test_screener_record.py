@@ -186,3 +186,11 @@ def test_revenue_trajectory_fields_accept_values():
     )
     assert r.revenue_down_years == 2
     assert r.revenue_growth_definedness is DefinednessOutcome.DEFINED
+
+
+def test_scoring_annotation_fields_default_none_and_ok():
+    r = ScreenerRecord(ticker="AAA")
+    assert r.input_percentiles is None
+    assert r.growth_consistency is None
+    assert r.score_basis is None
+    assert r.data_confidence == "ok"
