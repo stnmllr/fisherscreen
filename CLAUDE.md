@@ -47,7 +47,7 @@ FisherScreen ist ein persönliches Werkzeug, das Phil Fishers 15 Prinzipien aus
 
 **Zwei Tools:**
 - **Tool A — Monthly Screener:** Monatlich automatisch via Cloud Scheduler. Negativ-Filter-Kaskade,
-  Gemini Flash Lite Scoring (mit Hard-Caps), fünf Dimensions-Listen + Querliste als Markdown in Obsidian.
+  deterministisches sektor-relatives Perzentil-Scoring (kein LLM), fünf Dimensions-Listen + Querliste als Markdown in Obsidian.
 - **Tool B — Deep Dive:** Manuell via `fisherscreen deepdive <ticker>`. Hard + Soft Scuttlebutt,
   Sprach-/Tonalitäts-Analyse CEO-Briefe + Earnings Calls, Gemini-Synthesis gegen Fishers 15 Punkte.
 
@@ -148,6 +148,8 @@ auf einzelne Stocks.
 
 #### Kostenkontrolle Tool A
 
+> **Update (2026-06):** Tool A nutzt seit dem sektor-relativen Perzentil-Scoring deterministisch kein LLM mehr — die Gemini-Token-Caps gelten nur noch für Tool B.
+
 Tool A darf Gemini Flash Lite für Massen-Scoring verwenden, unter
 folgenden nicht-verhandelbaren Bedingungen:
 
@@ -192,7 +194,7 @@ durch manuelle Bedienung implizit gekappt.
 | SEC EDGAR | ✅ | ✅ |
 | Firestore | ✅ | ✅ |
 | GitHub | ✅ | ✅ |
-| Gemini Flash Lite | ✅ (mit Hard-Caps) | ✅ |
+| Gemini Flash Lite | ❌ (Tool A jetzt deterministisch, kein LLM) | ✅ |
 | Gemini Pro | ❌ BUG | ✅ |
 | Apify (Glassdoor/Kununu) | ❌ BUG | ✅ |
 | Marketaux | ❌ BUG | ✅ |
