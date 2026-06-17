@@ -94,8 +94,18 @@ def _same_issuer(line_name: str, ident_norm: str) -> bool:
 def pick_us_adr_line(lines: list[dict], ident_norm: str) -> dict | None:
     """Among the issuer's US-listed lines, prefer the Depositary-Receipt line;
     else the first US line. None if the issuer has no US listing (pure-EU,
-    EU-Native gap). Operative output downstream is the CIK (consistent across
-    lines per the pre-flight); the chosen ticker also serves as adr_ticker."""
+    EU-Native gap).
+
+    Operative output downstream is the CIK — it is identical across an issuer's
+    US lines (same SEC registrant) and is authoritative. The chosen ticker also
+    serves as adr_ticker, but that is BEST-EFFORT DISPLAY ONLY: the live
+    acceptance (2026-06-17) showed OpenFIGI's single /search page does not always
+    contain the canonical NYSE ADR (NVO, UL), so adr_ticker can fall back to the
+    issuer's OTC foreign-ordinary 'F' line (NONOF for Novo, UNLYF for Unilever).
+    Same CIK, same 20-F — only the displayed symbol differs. Getting the canonical
+    ADR reliably needs a paginated/better search and yields no CIK gain (deferred,
+    YAGNI). A `detect_annual_form` None downstream fail-louds an OTC line whose
+    issuer files no annual form (e.g. RTMVF for Rightmove)."""
     us = [
         ln for ln in lines
         if (ln.get("exchCode") or "").strip() in US_EXCH
