@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from app.deepdive.dossier_generator import generate_dossier
-from app.errors import DataSourceError, DeepDiveError
+from app.errors import DataSourceError
 from app.deepdive.filing_parser import parse_filing
 from app.deepdive.insider_block import insider_coverage_label
 from app.deepdive.insider_summary import compute_insider_summary
@@ -68,12 +68,6 @@ def run_deep_dive(
 
     # [1] ADR-Lookup
     resolved = resolver.resolve(ticker)
-    if not resolved.cik:
-        raise DeepDiveError(
-            f"No CIK for {ticker}: US-passthrough CIK resolution is Phase B.2. "
-            f"Add an entry to data/adr_table.json or pick a ticker with a "
-            f"known CIK."
-        )
 
     # [2] EDGAR-Pull (local-FS cache, ADR-4)
     raw = filing_fetcher.get(resolved.cik, resolved.form_type, use_cache=use_cache)
