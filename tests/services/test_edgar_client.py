@@ -1086,3 +1086,40 @@ def test_rate_limiter_acquire_invoked_on_request_path(mock_httpx):
     client.has_restatement("320193")
 
     assert spy.acquire.called
+
+
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_returns_10k(mock_httpx):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"filings": {"recent": {"form": ["8-K", "10-K", "4"]}}}
+    mock_httpx.get.return_value = mock_resp
+    assert _make_client().detect_annual_form("320193") == "10-K"
+
+
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_returns_20f(mock_httpx):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"filings": {"recent": {"form": ["6-K", "20-F"]}}}
+    mock_httpx.get.return_value = mock_resp
+    assert _make_client().detect_annual_form("353278") == "20-F"
+
+
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_returns_none_when_no_annual(mock_httpx):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"filings": {"recent": {"form": ["8-K", "4", "S-1"]}}}
+    mock_httpx.get.return_value = mock_resp
+    assert _make_client().detect_annual_form("111") is None
+
+
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_most_recent_wins(mock_httpx):
+    # recent[] is reverse-chronological -> first annual form encountered wins.
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"filings": {"recent": {"form": ["20-F", "10-K"]}}}
+    mock_httpx.get.return_value = mock_resp
+    assert _make_client().detect_annual_form("999") == "20-F"

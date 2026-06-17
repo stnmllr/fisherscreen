@@ -45,6 +45,7 @@ class EdgarClient(Protocol):
     def going_concern_hit(self, cik: str, months: int = 24) -> "GoingConcernHit | None": ...
     def has_active_enforcement(self, cik: str) -> bool: ...
     def get_latest_annual_filing(self, cik: str, form_type: str) -> RawFiling: ...
+    def detect_annual_form(self, cik: str) -> str | None: ...
     def get_form4_index(self, cik: str, since: str) -> list["Form4Ref"]: ...
     def get_form4_document(
         self, cik: str, accession_number: str, primary_document: str
@@ -375,6 +376,19 @@ class EdgarClientImpl:
         raise DataSourceError(
             f"no {form_type} filing found for CIK {padded} in recent submissions"
         )
+
+    def detect_annual_form(self, cik: str) -> str | None:
+        """Most recent annual form the filer uses: '10-K' (US domestic) or
+        '20-F' (foreign private issuer). None if neither appears in recent
+        submissions. A network failure raises DataSourceError via self._get
+        (failure != empty, ADR-BF-5) — None means 'genuinely no annual form'."""
+        padded = cik.zfill(10)
+        data = self._get(f"{self._SEC_BASE}/submissions/CIK{padded}.json")
+        forms = data.get("filings", {}).get("recent", {}).get("form", [])
+        for form in forms:
+            if form in ("10-K", "20-F"):
+                return form
+        return None
 
     def get_form4_index(self, cik: str, since: str) -> list[Form4Ref]:
         """Form-4 refs filed on/after `since` (ISO date). Deliberate single
