@@ -14,8 +14,16 @@ def test_github_client_builder_is_reused_not_duplicated():
 
 
 def test_build_adr_resolver_resolves_seed():
+    from unittest.mock import patch
+
     from app.deepdive.compose import build_adr_resolver
-    assert build_adr_resolver().resolve("NOVO-B.CO").adr_ticker == "NVO"
+
+    # EdgarClientImpl requires a non-empty SEC user agent (settings.edgar_user_agent),
+    # which is absent in CI. NOVO-B.CO is a static-table (override) hit, so the edgar
+    # client is never invoked by resolve() — patch only its construction so the
+    # table-override path stays the real thing under test (mirrors the insider test).
+    with patch("app.deepdive.compose.EdgarClientImpl"):
+        assert build_adr_resolver().resolve("NOVO-B.CO").adr_ticker == "NVO"
 
 
 def test_build_insider_fetcher_returns_cached_fetcher():
