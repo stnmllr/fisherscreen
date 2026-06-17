@@ -64,3 +64,63 @@ def test_pick_us_adr_line_none_when_no_us_line():
     from app.deepdive.eu_adr_resolution import pick_us_adr_line, norm_issuer
     lines = [{"ticker": "RMV", "exchCode": "LN", "securityType2": "Common Stock", "name": "RIGHTMOVE PLC"}]
     assert pick_us_adr_line(lines, norm_issuer("RIGHTMOVE PLC")) is None
+
+
+def _deps(longname="ASML Holding N.V."):
+    openfigi = MagicMock()
+    openfigi.map_ticker.return_value = {"name": "ASML HOLDING NV"}
+    openfigi.search_issuer.return_value = [
+        {"ticker": "ASML", "exchCode": "US", "securityType2": "Depositary Receipt",
+         "name": "ASML HOLDING NV-NY REG SHS"},
+    ]
+    edgar = MagicMock()
+    edgar.get_cik.return_value = "937966"
+    edgar.detect_annual_form.return_value = "20-F"
+    yfinance = MagicMock()
+    yfinance.get_ticker_info.return_value = {"longName": longname}
+    return openfigi, edgar, yfinance
+
+
+def test_resolve_eu_adr_happy_path(tmp_path):
+    from app.deepdive.eu_adr_resolution import resolve_eu_adr
+    openfigi, edgar, yfinance = _deps()
+    r = resolve_eu_adr("ASML.AS", openfigi=openfigi, edgar=edgar, yfinance=yfinance,
+                       cache_path=tmp_path / "adr.json", ttl_days=180)
+    assert r.adr_ticker == "ASML"
+    assert r.cik == "0000937966"
+    assert r.form_type == "20-F"
+
+
+def test_resolve_eu_adr_persists_and_reads_cache(tmp_path):
+    from app.deepdive.eu_adr_resolution import resolve_eu_adr
+    cache = tmp_path / "adr.json"
+    openfigi, edgar, yfinance = _deps()
+    resolve_eu_adr("ASML.AS", openfigi=openfigi, edgar=edgar, yfinance=yfinance,
+                   cache_path=cache, ttl_days=180)
+    # second call: OpenFIGI must NOT be hit again (served from cache).
+    openfigi2 = MagicMock()
+    r = resolve_eu_adr("ASML.AS", openfigi=openfigi2, edgar=edgar, yfinance=yfinance,
+                       cache_path=cache, ttl_days=180)
+    assert r.cik == "0000937966"
+    openfigi2.map_ticker.assert_not_called()
+
+
+def test_resolve_eu_adr_no_us_line_fail_loud(tmp_path):
+    from app.deepdive.eu_adr_resolution import resolve_eu_adr
+    openfigi, edgar, yfinance = _deps(longname="Rightmove plc")
+    openfigi.map_ticker.return_value = {"name": "RIGHTMOVE PLC"}
+    openfigi.search_issuer.return_value = [
+        {"ticker": "RMV", "exchCode": "LN", "securityType2": "Common Stock", "name": "RIGHTMOVE PLC"},
+    ]
+    with pytest.raises(DeepDiveError, match="no US ADR"):
+        resolve_eu_adr("RMV.L", openfigi=openfigi, edgar=edgar, yfinance=yfinance,
+                       cache_path=tmp_path / "adr.json", ttl_days=180)
+
+
+def test_resolve_eu_adr_no_reference_name_fail_loud(tmp_path):
+    from app.deepdive.eu_adr_resolution import resolve_eu_adr
+    openfigi, edgar, yfinance = _deps()
+    yfinance.get_ticker_info.return_value = {}  # no longName/shortName
+    with pytest.raises(DeepDiveError, match="no reference name"):
+        resolve_eu_adr("ASML.AS", openfigi=openfigi, edgar=edgar, yfinance=yfinance,
+                       cache_path=tmp_path / "adr.json", ttl_days=180)

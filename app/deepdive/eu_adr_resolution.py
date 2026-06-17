@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import json
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from app.deepdive.adr_resolver import ResolvedTicker
 from app.errors import DeepDiveError
 
 if TYPE_CHECKING:
+    from app.services.edgar_client import EdgarClient
     from app.services.openfigi_client import OpenFIGIClient
+    from app.services.yfinance_client import YFinanceClient
 
 # Home-exchange codes per Yahoo suffix (lifted from the dual-line audit).
 SUFFIX_HOME_EXCH: dict[str, list[str]] = {
@@ -101,3 +107,93 @@ def pick_us_adr_line(lines: list[dict], ident_norm: str) -> dict | None:
         if (ln.get("securityType2") or "") == "Depositary Receipt":
             return ln
     return us[0]
+
+
+def _cache_get(cache_path: Path, ticker: str, ttl_days: int) -> ResolvedTicker | None:
+    if not cache_path.exists():
+        return None
+    try:
+        data = json.loads(cache_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, ValueError):
+        return None  # corrupt cache -> miss (fail-soft, mirrors filing_cache)
+    entry = data.get(ticker.upper())
+    if not entry:
+        return None
+    ts = datetime.fromisoformat(entry["_cached_at"])
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    if (datetime.now(timezone.utc) - ts).days >= ttl_days:
+        return None
+    return ResolvedTicker(ticker, entry["adr_ticker"], entry["cik"], entry["form_type"])
+
+
+def _cache_put(cache_path: Path, resolved: ResolvedTicker) -> None:
+    data = {}
+    if cache_path.exists():
+        try:
+            data = json.loads(cache_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError):
+            data = {}
+    data[resolved.ticker.upper()] = {
+        "adr_ticker": resolved.adr_ticker,
+        "cik": resolved.cik,
+        "form_type": resolved.form_type,
+        "_cached_at": datetime.now(timezone.utc).isoformat(),
+    }
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = cache_path.with_suffix(cache_path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data), encoding="utf-8")
+    tmp.replace(cache_path)
+
+
+def resolve_eu_adr(
+    ticker: str,
+    *,
+    openfigi: "OpenFIGIClient",
+    edgar: "EdgarClient",
+    yfinance: "YFinanceClient",
+    cache_path: Path,
+    ttl_days: int,
+) -> ResolvedTicker:
+    """Live EU-ADR resolution (cache layer 2 + live layer 3). Failure != empty:
+    transient OpenFIGI/EDGAR/yfinance errors propagate as DataSourceError;
+    genuine no-match -> DeepDiveError."""
+    cached = _cache_get(cache_path, ticker, ttl_days)
+    if cached is not None:
+        return cached
+
+    info = yfinance.get_ticker_info(ticker)  # DataSourceError on transient failure
+    ref = info.get("longName") or info.get("shortName")
+    if not ref:
+        raise DeepDiveError(
+            f"{ticker}: no reference name from yfinance — cannot verify an OpenFIGI "
+            f"match; fail-loud rather than accept an unverified identity."
+        )
+    ref_norm = norm_issuer(ref)
+
+    ident = find_home_identity(ticker, ref_norm, openfigi=openfigi)
+    us = pick_us_adr_line(
+        openfigi.search_issuer(ident["name"]),
+        norm_issuer(issuer_name(ident["name"])),
+    )
+    if us is None:
+        raise DeepDiveError(
+            f"{ticker}: no US ADR line for {ident['name']!r} — pure-EU listing, "
+            f"EU-Native source layer is Phase 2."
+        )
+    us_ticker = (us.get("ticker") or "").strip()
+    cik = edgar.get_cik(us_ticker)
+    if not cik:
+        raise DeepDiveError(
+            f"{ticker}: US-ADR {us_ticker} not in SEC company_tickers map."
+        )
+    form = edgar.detect_annual_form(cik)
+    if form is None:
+        raise DeepDiveError(
+            f"{ticker} (ADR {us_ticker}, CIK {cik}) files neither 10-K nor 20-F."
+        )
+    resolved = ResolvedTicker(
+        ticker=ticker, adr_ticker=us_ticker, cik=cik.zfill(10), form_type=form
+    )
+    _cache_put(cache_path, resolved)
+    return resolved
