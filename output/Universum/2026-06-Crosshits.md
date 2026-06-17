@@ -13,7 +13,7 @@
 | Basis-Gates | 1314 | 474 | 840 |
 | EDGAR-Gates | 840 | 8 | 832 |
 | Scoring | 832 | 0 | 832 |
-| Crosshits | 832 | 551 | 281 |
+| Crosshits | 832 | 807 | 25 |
 
 **Review-Flags: 63** (Aufschlüsselung in `2026-06-dropouts.csv`)
 
@@ -23,53 +23,28 @@
 
 | # | Ticker | Name | Sektor | Crosshits | Dimensionen | Ø Score |
 |---|---|---|---|---|---|---|
-| 1 | APH | Amphenol Corporation | Technology | 3 | growth, profitability, resilience | 4.67 |
-| 2 | APP | Applovin Corporation | Communication Services | 3 | growth, profitability, resilience | 4.67 |
-| 3 | AVGO | Broadcom Inc. | Technology | 3 | growth, profitability, resilience | 4.67 |
-| 4 | CME | CME Group Inc. | Financial Services | 3 | growth, profitability, resilience | 4.67 |
-| 5 | EQT | EQT Corporation | Energy | 3 | growth, profitability, resilience | 4.67 |
-| 6 | EXEL | Exelixis, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.67 |
-| 7 | FICO | Fair Isaac Corporation | Technology | 3 | growth, profitability, resilience | 4.67 |
-| 8 | HL | Hecla Mining Company | Basic Materials | 3 | growth, profitability, resilience | 4.67 |
-| 9 | LLY | Eli Lilly and Company | Healthcare | 3 | growth, profitability, resilience | 4.67 |
-| 10 | MU | Micron Technology, Inc. | Technology | 3 | growth, profitability, resilience | 4.67 |
-| 11 | NEM | Newmont Corporation | Basic Materials | 3 | growth, profitability, resilience | 4.67 |
-| 12 | NVDA | NVIDIA Corporation | Technology | 3 | growth, profitability, resilience | 4.67 |
-| 13 | PLTR | Palantir Technologies Inc. | Technology | 3 | growth, profitability, resilience | 4.67 |
-| 14 | RMV.L | RIGHTMOVE PLC ORD 0.1P | Communication Services | 3 | growth, profitability, resilience | 4.67 |
-| 15 | SCT.L | SOFTCAT PLC | Technology | 3 | growth, profitability, resilience | 4.67 |
-| 16 | SNDK | Sandisk Corporation | Technology | 3 | growth, profitability, resilience | 4.67 |
-| 17 | STRL | Sterling Infrastructure, Inc. | Industrials | 3 | growth, profitability, resilience | 4.67 |
-| 18 | STX | Seagate Technology Holdings PLC | Technology | 3 | growth, profitability, resilience | 4.67 |
-| 19 | WDC | Western Digital Corporation | Technology | 3 | growth, profitability, resilience | 4.67 |
-| 20 | AAON | AAON, Inc. | Industrials | 3 | growth, profitability, resilience | 4.33 |
-| 21 | AAPL | Apple Inc. | Technology | 3 | growth, profitability, resilience | 4.33 |
-| 22 | ABBN.SW | ABB LTD N | Industrials | 3 | growth, profitability, resilience | 4.33 |
-| 23 | ADBE | Adobe Inc. | Technology | 3 | growth, profitability, resilience | 4.33 |
-| 24 | ADI | Analog Devices, Inc. | Technology | 3 | growth, profitability, resilience | 4.33 |
-| 25 | ADP | Automatic Data Processing, Inc. | Technology | 3 | growth, profitability, resilience | 4.33 |
-| 26 | ADSK | Autodesk, Inc. | Technology | 3 | growth, profitability, resilience | 4.33 |
-| 27 | ADYEN.AS | ADYEN | Technology | 3 | growth, profitability, resilience | 4.33 |
-| 28 | ALLE | Allegion plc | Industrials | 3 | growth, profitability, resilience | 4.33 |
-| 29 | ALV | Autoliv, Inc. | Consumer Cyclical | 3 | growth, profitability, resilience | 4.33 |
-| 30 | AMAT | Applied Materials, Inc. | Technology | 3 | growth, profitability, resilience | 4.33 |
-| 31 | AMCR | Amcor plc | Consumer Cyclical | 3 | growth, profitability, resilience | 4.33 |
-| 32 | ANET | Arista Networks, Inc. | Technology | 3 | growth, profitability, resilience | 4.33 |
-| 33 | AON | Aon plc | Financial Services | 3 | growth, profitability, resilience | 4.33 |
-| 34 | ARGX.BR | ARGENX SE | Healthcare | 3 | growth, profitability, resilience | 4.33 |
-| 35 | ASML.AS | ASML HOLDING | Technology | 3 | growth, profitability, resilience | 4.33 |
-| 36 | AVY | Avery Dennison Corporation | Consumer Cyclical | 3 | growth, profitability, resilience | 4.33 |
-| 37 | AZN.L | ASTRAZENECA PLC ORD SHS $0.25 | Healthcare | 3 | growth, profitability, resilience | 4.33 |
-| 38 | CAT | Caterpillar, Inc. | Industrials | 3 | growth, profitability, resilience | 4.33 |
-| 39 | CBOE | Cboe Global Markets, Inc. | Financial Services | 3 | growth, profitability, resilience | 4.33 |
-| 40 | CELH | Celsius Holdings, Inc. | Consumer Defensive | 3 | growth, profitability, resilience | 4.33 |
-| 41 | CF | CF Industries Holdings, Inc. | Basic Materials | 3 | growth, profitability, resilience | 4.33 |
-| 42 | CNX | CNX Resources Corporation | Energy | 3 | growth, profitability, resilience | 4.33 |
-| 43 | CTAS | Cintas Corporation | Industrials | 3 | growth, profitability, resilience | 4.33 |
-| 44 | DCI | Donaldson Company, Inc. | Industrials | 3 | growth, profitability, resilience | 4.33 |
-| 45 | DECK | Deckers Outdoor Corporation | Consumer Cyclical | 3 | growth, profitability, resilience | 4.33 |
-| 46 | DKS | Dick's Sporting Goods Inc | Consumer Cyclical | 3 | growth, profitability, resilience | 4.33 |
-| 47 | DXCM | DexCom, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.33 |
-| 48 | EDV.L | ENDEAVOUR MINING PLC ORD USD0.0 | Basic Materials | 3 | growth, profitability, resilience | 4.33 |
-| 49 | EXE | Expand Energy Corporation | Energy | 3 | growth, profitability, resilience | 4.33 |
-| 50 | EXPD | Expeditors International of Was | Industrials | 3 | growth, profitability, resilience | 4.33 |
+| 1 | EDV.L  | ENDEAVOUR MINING PLC ORD USD0.0 | Basic Materials | 3 | growth, profitability, resilience | 5.0 |
+| 2 | FICO ~ | Fair Isaac Corporation | Technology | 3 | growth, profitability, resilience | 5.0 |
+| 3 | HL  | Hecla Mining Company | Basic Materials | 3 | growth, profitability, resilience | 4.67 |
+| 4 | INDV ~ | Indivior Pharmaceuticals, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.67 |
+| 5 | NEM  | Newmont Corporation | Basic Materials | 3 | growth, profitability, resilience | 4.67 |
+| 6 | NVDA  | NVIDIA Corporation | Technology | 3 | growth, profitability, resilience | 4.67 |
+| 7 | PLTR  | Palantir Technologies Inc. | Technology | 3 | growth, profitability, resilience | 4.67 |
+| 8 | RGLD  | Royal Gold, Inc. | Basic Materials | 3 | growth, profitability, resilience | 4.67 |
+| 9 | TDG ~ | Transdigm Group Incorporated | Industrials | 3 | growth, profitability, resilience | 4.67 |
+| 10 | TPL  | Texas Pacific Land Corporation | Energy | 3 | growth, profitability, resilience | 4.67 |
+| 11 | ARGX.BR ~ | ARGENX SE | Healthcare | 3 | growth, profitability, resilience | 4.33 |
+| 12 | BKNG ~ | Booking Holdings Inc. Common St | Consumer Cyclical | 3 | growth, profitability, resilience | 4.33 |
+| 13 | MEDP  | Medpace Holdings, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.33 |
+| 14 | META  | Meta Platforms, Inc. | Communication Services | 3 | growth, profitability, resilience | 4.33 |
+| 15 | MNST  | Monster Beverage Corporation | Consumer Defensive | 3 | growth, profitability, resilience | 4.33 |
+| 16 | PLNT ~ | Planet Fitness, Inc. | Consumer Cyclical | 3 | growth, profitability, resilience | 4.33 |
+| 17 | SNDK ⚠ | Sandisk Corporation | Technology | 3 | growth, profitability, resilience | 4.33 |
+| 18 | ADYEN.AS  | ADYEN | Technology | 3 | growth, profitability, resilience | 4.0 |
+| 19 | EQT  | EQT Corporation | Energy | 3 | growth, profitability, resilience | 4.0 |
+| 20 | G24.DE  | Scout24 SE                    N | Communication Services | 3 | growth, profitability, resilience | 4.0 |
+| 21 | GOOG  | Alphabet Inc. | Communication Services | 3 | growth, profitability, resilience | 4.0 |
+| 22 | GOOGL  | Alphabet Inc. | Communication Services | 3 | growth, profitability, resilience | 4.0 |
+| 23 | MSCI ~ | MSCI Inc. | Financial Services | 3 | growth, profitability, resilience | 4.0 |
+| 24 | PTC  | PTC Inc. | Technology | 3 | growth, profitability, resilience | 4.0 |
+| 25 | TER  | Teradyne, Inc. | Technology | 3 | growth, profitability, resilience | 4.0 |
