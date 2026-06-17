@@ -115,13 +115,9 @@ def test_pipeline_propagates_resolver_error(tmp_path):
         _run(tmp_path, resolver, filings, quant, synth)
 
 
-def test_pipeline_raises_actionable_error_on_empty_cik(tmp_path):
-    import pytest
-    from app.errors import DeepDiveError
-    resolver, filings, quant, synth = _deps()
-    resolver.resolve.return_value = ResolvedTicker("AAPL", None, "", "10-K")
-    with pytest.raises(DeepDiveError, match="US-passthrough CIK resolution is Phase B.2"):
-        _run(tmp_path, resolver, filings, quant, synth)
+# Removed: the pipeline-level empty-CIK guard test. The ADRResolver now
+# guarantees a non-empty CIK or raises (see tests/deepdive/test_adr_resolver.py);
+# a ResolvedTicker with cik="" can no longer occur, so the guard is gone (Task 4).
 
 
 from app.deepdive import pipeline as pipeline_mod

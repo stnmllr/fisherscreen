@@ -39,7 +39,8 @@ def build_adr_table() -> dict[str, dict[str, str]]:
 
 
 def build_adr_resolver() -> ADRResolver:
-    return ADRResolver(table=load_adr_table())
+    edgar = EdgarClientImpl(user_agent=settings.edgar_user_agent)
+    return ADRResolver(table=load_adr_table(), edgar=edgar)
 
 
 def build_filing_fetcher() -> CachedFilingFetcher:
