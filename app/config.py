@@ -29,6 +29,8 @@ class FisherScreenSettings(BaseSettings):
     revenue_series_ttl_days: int = 400  # annual revenue changes yearly; long TTL is correct here
     insider_lookback_days: int = 365
     deepdive_peers_collection: str = "dev_deepdive_peers"
+    openfigi_api_key: str = ""
+    adr_cache_ttl_days: int = 180  # ADR mappings drift rarely; long TTL is correct
 
     model_config = {
         "env_prefix": "FISHERSCREEN_",

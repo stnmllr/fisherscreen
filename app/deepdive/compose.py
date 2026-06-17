@@ -6,6 +6,7 @@ from typing import Any, Callable
 from app.config import settings
 from app.deepdive.adr_resolver import ADRResolver
 from app.deepdive.adr_table import load_adr_table
+from app.deepdive.eu_adr_resolution import resolve_eu_adr
 from app.deepdive.filing_cache import CachedFilingFetcher
 from app.deepdive.historical_cache import CachedHistoricalData
 from app.deepdive.insider_cache import CachedInsiderFetcher
@@ -14,6 +15,7 @@ from app.deepdive.quant_join import build_quant_snapshot
 from app.screener.compose import build_github_client
 from app.services.edgar_client import EdgarClientImpl
 from app.services.firestore_client import FirestoreClientImpl
+from app.services.openfigi_client import OpenFIGIClientImpl
 from app.services.gemini_deepdive_client import GeminiDeepDiveClient
 from app.services.historical_data_service import HistoricalDataServiceImpl
 from app.services.yfinance_client import YFinanceClientImpl
@@ -22,6 +24,8 @@ __all__ = [
     "build_adr_table",
     "build_github_client",
     "build_adr_resolver",
+    "build_openfigi_client",
+    "build_eu_resolver",
     "build_filing_fetcher",
     "build_insider_fetcher",
     "build_quant_builder",
@@ -32,15 +36,40 @@ __all__ = [
 _FILING_CACHE_DIR = Path("cache/filings")
 _HISTORICAL_CACHE_DIR = Path("cache/yfinance_historical")
 _INSIDER_CACHE_DIR = Path("cache/insider")
+_ADR_CACHE_PATH = Path("cache/adr_resolved.json")
 
 
 def build_adr_table() -> dict[str, dict[str, str]]:
     return load_adr_table()
 
 
+def build_openfigi_client() -> OpenFIGIClientImpl:
+    return OpenFIGIClientImpl(api_key=settings.openfigi_api_key)
+
+
+def build_eu_resolver() -> Callable[[str], Any]:
+    openfigi = build_openfigi_client()
+    edgar = EdgarClientImpl(user_agent=settings.edgar_user_agent)
+    yfinance = YFinanceClientImpl()
+
+    def _resolve(ticker: str):
+        return resolve_eu_adr(
+            ticker,
+            openfigi=openfigi,
+            edgar=edgar,
+            yfinance=yfinance,
+            cache_path=_ADR_CACHE_PATH,
+            ttl_days=settings.adr_cache_ttl_days,
+        )
+
+    return _resolve
+
+
 def build_adr_resolver() -> ADRResolver:
     edgar = EdgarClientImpl(user_agent=settings.edgar_user_agent)
-    return ADRResolver(table=load_adr_table(), edgar=edgar)
+    return ADRResolver(
+        table=load_adr_table(), edgar=edgar, eu_resolver=build_eu_resolver()
+    )
 
 
 def build_filing_fetcher() -> CachedFilingFetcher:
