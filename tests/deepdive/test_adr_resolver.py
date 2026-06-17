@@ -5,12 +5,14 @@ from app.deepdive.adr_resolver import ADRResolver, ResolvedTicker
 from app.errors import DeepDiveError
 
 
-def _resolver(table=None, edgar=None):
+def _resolver(table=None, edgar=None, eu_resolver=None):
     if table is None:
         table = {"NOVO-B.CO": {"adr_ticker": "NVO", "cik": "0000353278", "form_type": "20-F"}}
     if edgar is None:
         edgar = MagicMock()
-    return ADRResolver(table=table, edgar=edgar)
+    if eu_resolver is None:
+        eu_resolver = MagicMock()
+    return ADRResolver(table=table, edgar=edgar, eu_resolver=eu_resolver)
 
 
 def test_resolves_eu_adr_entry():
@@ -49,12 +51,15 @@ def test_us_filer_without_annual_form_raises():
         _resolver(edgar=edgar).resolve("WEIRD")
 
 
-def test_unknown_eu_ticker_raises_postgate_message():
-    with pytest.raises(DeepDiveError, match="post-gate B-Fast step"):
-        _resolver().resolve("SAP.DE")
+def test_eu_ticker_delegates_to_eu_resolver():
+    eu = MagicMock(return_value=ResolvedTicker("ASML.AS", "ASML", "0000937966", "20-F"))
+    r = _resolver(table={}, eu_resolver=eu).resolve("ASML.AS")
+    assert r.adr_ticker == "ASML"
+    eu.assert_called_once_with("ASML.AS")
 
 
 def test_di_mockable_via_injected_table():
     r = ADRResolver(table={"X.CO": {"adr_ticker": "X", "cik": "0000000001",
-                                    "form_type": "20-F"}}, edgar=MagicMock())
+                                    "form_type": "20-F"}},
+                    edgar=MagicMock(), eu_resolver=MagicMock())
     assert r.resolve("X.CO").adr_ticker == "X"

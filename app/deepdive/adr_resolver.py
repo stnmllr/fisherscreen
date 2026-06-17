@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from app.errors import DeepDiveError
 
@@ -33,9 +33,15 @@ class ADRResolver:
     resolution via the EDGAR client. Dynamic EU-ADR resolution (OpenFIGI) is
     the post-gate B-Fast step."""
 
-    def __init__(self, table: dict[str, dict[str, str]], edgar: "EdgarClient") -> None:
+    def __init__(
+        self,
+        table: dict[str, dict[str, str]],
+        edgar: "EdgarClient",
+        eu_resolver: Callable[[str], ResolvedTicker],
+    ) -> None:
         self._table = {k.upper(): v for k, v in table.items()}
         self._edgar = edgar
+        self._eu_resolver = eu_resolver
 
     def resolve(self, ticker: str) -> ResolvedTicker:
         key = ticker.upper()
@@ -48,16 +54,10 @@ class ADRResolver:
                 form_type=entry["form_type"],
             )
         if _EU_MARKER in ticker:
-            # EU-ADR dynamic resolution is the post-gate B-Fast step (OpenFIGI,
-            # pending the ADR-resolution pre-flight). Until then: override table
-            # or a US-listed ticker. Distinct, actionable message — never a
-            # silent wrong match.
-            raise DeepDiveError(
-                f"Ticker {ticker} is a non-US listing not in the ADR table. "
-                f"Dynamic EU-ADR resolution is the post-gate B-Fast step (pending "
-                f"the OpenFIGI pre-flight) — add an entry to data/adr_table.json "
-                f"or pick a US-listed ticker."
-            )
+            # Dynamic EU-ADR resolution (OpenFIGI). The delegate raises DeepDiveError
+            # for a genuine no-US-ADR (EU-Native gap, Phase 2) or DataSourceError on
+            # a transient API failure — failure != empty, never a silent wrong match.
+            return self._eu_resolver(ticker)
         # US path: resolve the CIK + detect the annual form from EDGAR.
         cik = self._edgar.get_cik(ticker)
         if not cik:

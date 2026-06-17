@@ -18,11 +18,13 @@ def test_build_adr_resolver_resolves_seed():
 
     from app.deepdive.compose import build_adr_resolver
 
-    # EdgarClientImpl requires a non-empty SEC user agent (settings.edgar_user_agent),
-    # which is absent in CI. NOVO-B.CO is a static-table (override) hit, so the edgar
-    # client is never invoked by resolve() — patch only its construction so the
-    # table-override path stays the real thing under test (mirrors the insider test).
-    with patch("app.deepdive.compose.EdgarClientImpl"):
+    # NOVO-B.CO is a static-table (override) hit -> edgar/eu_resolver never invoked.
+    # Patch the config-dependent construction (UA, OpenFIGI, yfinance), which is
+    # absent in CI, so the table-override path stays the real thing under test
+    # (mirrors the insider compose test).
+    with patch("app.deepdive.compose.EdgarClientImpl"), \
+         patch("app.deepdive.compose.OpenFIGIClientImpl"), \
+         patch("app.deepdive.compose.YFinanceClientImpl"):
         assert build_adr_resolver().resolve("NOVO-B.CO").adr_ticker == "NVO"
 
 
