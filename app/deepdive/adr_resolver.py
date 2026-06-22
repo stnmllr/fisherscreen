@@ -14,9 +14,10 @@ if TYPE_CHECKING:
 # PRECONDITION: tickers are yfinance/Yahoo-suffix style (the convention used by
 # data/universe.json) — US class shares are "BRK-B", NOT "BRK.B". Under that
 # convention a "." reliably marks a non-US exchange suffix. Feeding a dotted US
-# class-share ticker (BRK.B) would raise DeepDiveError; that is acceptable for
-# B.1 (Novo Nordisk EU-ADR slice) and matches the ADR-1 heuristic. Dynamic
-# EU-ADR resolution that removes this heuristic is the post-gate B-Fast step.
+# class-share ticker (BRK.B) would raise DeepDiveError; that is acceptable and
+# matches the ADR-1 heuristic. The marker routes dotted EU tickers to the dynamic
+# OpenFIGI EU-ADR resolver (delegate `eu_resolver`, wired in PR #43); it is a
+# routing signal, not a fallback awaiting removal.
 _EU_MARKER = "."
 
 
@@ -30,8 +31,8 @@ class ResolvedTicker:
 
 class ADRResolver:
     """Resolver: static ADR table (override, Master ADR-1) -> US-path CIK
-    resolution via the EDGAR client. Dynamic EU-ADR resolution (OpenFIGI) is
-    the post-gate B-Fast step."""
+    resolution via the EDGAR client -> dynamic EU-ADR resolution (OpenFIGI,
+    delegated to `eu_resolver`, wired in PR #43) for dotted EU tickers."""
 
     def __init__(
         self,
