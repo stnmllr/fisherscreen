@@ -43,3 +43,16 @@ def test_deepdive_catchable_as_base():
 
     with pytest.raises(FisherScreenError):
         raise DeepDiveError("ticker NOVO-B.CO not resolvable")
+
+
+def test_viewer_subclass_base():
+    from app.errors import ViewerError
+
+    assert issubclass(ViewerError, FisherScreenError)
+
+
+def test_viewer_catchable_as_base():
+    from app.errors import ViewerError
+
+    with pytest.raises(FisherScreenError):
+        raise ViewerError("dossier directory not found")

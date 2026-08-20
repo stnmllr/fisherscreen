@@ -23,3 +23,9 @@ class FilterConfigError(FisherScreenError):
 
 class DeepDiveError(FisherScreenError):
     """Raised on Tool B deep-dive failures: unresolvable ticker, missing filing."""
+
+
+class ViewerError(FisherScreenError):
+    """Raised on viewer/static-site failures: unreadable input directory,
+    unrenderable dossier set. Never raised for a single malformed dossier —
+    those are skipped with a warning so one bad file cannot abort a build."""
