@@ -18,7 +18,7 @@ from typing import AbstractSet, Final, Sequence
 from urllib.parse import quote
 
 from app.viewer.assets import CSS_FILENAME, JS_FILENAME
-from app.viewer.html import esc, tag
+from app.viewer.html import esc, scrollable_table, tag
 from app.viewer.models import Dossier
 
 logger = logging.getLogger(__name__)
@@ -279,10 +279,15 @@ def _table_html(rows: Sequence[OverviewRow]) -> str:
         ),
     )
     body = "".join(_row_html(row) for row in rows)
-    return tag(
-        "table",
-        tag("thead", header) + tag("tbody", body),
-        data_sortable_table="1",
+    # Same scroll container as the peer table, from the same function: eight
+    # columns do not fit a phone, and a table that overflows on its own
+    # takes the whole page sideways with it.
+    return scrollable_table(
+        tag(
+            "table",
+            tag("thead", header) + tag("tbody", body),
+            data_sortable_table="1",
+        )
     )
 
 

@@ -8,7 +8,15 @@ browser.
 import pytest
 from markdown_it import MarkdownIt
 
-from app.viewer.html import attrs, esc, md_to_html, table_html, tag
+from app.viewer.html import (
+    TABLE_SCROLL_CLASS,
+    attrs,
+    esc,
+    md_to_html,
+    scrollable_table,
+    table_html,
+    tag,
+)
 
 
 def test_esc_renders_missing_value_as_dash():
@@ -176,6 +184,42 @@ def test_md_to_html_renders_pipe_table_in_free_text():
     assert "<td>1</td>" in rendered
 
 
+def test_md_to_html_wraps_pipe_table_in_scroll_container():
+    """The third table path. `table_html` and the overview table are
+    wrapped, but `.enable("table")` lets a pipe table in Stef's hand-written
+    notes reach the page past `table_html` — unwrapped, it drags the whole
+    phone page into sideways scrolling."""
+    rendered = md_to_html("| a | b |\n| --- | --- |\n| 1 | 2 |")
+
+    assert "<table>" in rendered
+    assert rendered.startswith(
+        f'<div class="{TABLE_SCROLL_CLASS}" tabindex="0"><table>'
+    )
+    assert rendered.endswith("</table></div>")
+
+
+def test_md_to_html_wraps_each_table_exactly_once():
+    """Counter-check against double wrapping: two tables give two
+    containers, one each, and no container inside a container."""
+    two_tables = "| a |\n| --- |\n| 1 |\n\ntext\n\n| b |\n| --- |\n| 2 |"
+
+    rendered = md_to_html(two_tables)
+
+    assert rendered.count("<table") == 2
+    assert rendered.count(TABLE_SCROLL_CLASS) == 2
+    assert "<div" not in rendered.split("<table", 1)[1].split("</table>", 1)[0]
+
+
+def test_md_to_html_does_not_wrap_escaped_table_text():
+    """Proves the wrapper hangs off the table tokens, not off a string
+    search: prose that only looks like a table tag stays plain text. A
+    regex over the finished HTML would wrap this escaped literal."""
+    rendered = md_to_html(r"Ein \<table\> ist kein Element.")
+
+    assert TABLE_SCROLL_CLASS not in rendered
+    assert "&lt;table&gt;" in rendered
+
+
 # --- md_to_html: the parser configuration is a security boundary ----------
 # Dossier prose is Gemini output; nothing validates it between generator and
 # browser. The tests below pin the two options that make that safe.
@@ -264,3 +308,25 @@ def test_table_html_renders_header_only_table():
 
     assert "<th>Ticker</th>" in rendered
     assert "<tbody></tbody>" in rendered
+
+
+def test_table_html_wraps_the_table_in_a_scroll_container():
+    """A bare table pushes its overflow onto the page. The wrapper keeps the
+    sideways scrolling inside the table, and `tabindex` makes that scroll
+    reachable by keyboard."""
+    rendered = table_html([["Ticker", "P/E"], ["FICO", "37.9"]])
+
+    assert rendered.startswith(f'<div class="{TABLE_SCROLL_CLASS}" tabindex="0">')
+    assert rendered.endswith("</table></div>")
+
+
+def test_scrollable_table_stays_empty_for_empty_markup():
+    """The wrapper never invents a box: a caller with nothing to show gets
+    nothing, not an empty bordered frame on the page."""
+    assert scrollable_table("") == ""
+
+
+def test_table_html_returns_no_scroll_container_without_rows():
+    """The empty case stays empty — an empty wrapper is still a box on the
+    page suggesting a comparison that was never made."""
+    assert TABLE_SCROLL_CLASS not in table_html([])

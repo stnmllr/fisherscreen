@@ -5,6 +5,7 @@ the design tokens are pinned by value here: a silent drift of --navy or
 --accent would make two sites that claim to be one look like two.
 """
 from app.viewer.assets import SITE_CSS, SORT_JS
+from app.viewer.html import TABLE_SCROLL_CLASS
 
 _MACRO_DASHBOARD_TOKENS = (
     "--paper:#f4f3ef",
@@ -92,3 +93,13 @@ def test_section_headings_keep_their_top_margin():
     otherwise collapse the spacing between all sections at once."""
     assert "section>h2:first-child{margin-top:26px}" in SITE_CSS
     assert "main>section:first-child>h2{margin-top:0}" in SITE_CSS
+
+
+def test_css_lets_wide_tables_scroll_instead_of_the_page():
+    """Both tables are wider than a phone viewport (the 7-column peer table
+    needs ~532px at 12px against 343px usable on a 375px screen). Without
+    these rules the overflow moves the whole page, not just the table."""
+    assert f".{TABLE_SCROLL_CLASS}{{" in SITE_CSS
+    assert "overflow-x:auto" in SITE_CSS
+    assert "max-width:100%" in SITE_CSS
+    assert f".{TABLE_SCROLL_CLASS} table{{min-width:max-content}}" in SITE_CSS

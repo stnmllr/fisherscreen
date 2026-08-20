@@ -69,6 +69,14 @@ h2:first-child{margin-top:0}
 .tag{display:inline-block;font-size:10.5px;letter-spacing:.4px;padding:2px 7px;border:1px solid var(--line);border-radius:3px;color:var(--ink-soft);background:var(--paper);margin-left:6px;white-space:nowrap}
 .defect{color:var(--yellow);cursor:help;font-size:12px}
 /* ---------- Tabellen ---------- */
+/* Beide Tabellen sind breiter als ein Telefon (Peer-Tabelle ~532px bei
+   12px gegen 343px nutzbar auf 375px). Ohne diesen Container schiebt der
+   Überlauf die GANZE Seite ins Querscrollen. max-width begrenzt den
+   Container auf die Spaltenbreite — sonst wächst er einfach mit und das
+   Problem wandert nur; min-width lässt die Tabelle ihre natürliche Breite
+   behalten, statt auf Wortbreite gestaucht zu werden. */
+.table-scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+.table-scroll table{min-width:max-content}
 table{border-collapse:collapse;width:100%;background:var(--card);border:1px solid var(--line);font-size:13px}
 th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 th{background:var(--navy);color:#f2f0ea;font-weight:500;font-size:12px}

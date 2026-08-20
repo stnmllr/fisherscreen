@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from app.viewer.html import esc
+from app.viewer.html import TABLE_SCROLL_CLASS, esc
 from app.viewer.models import Dossier, ParsedPoint
 from app.viewer.render_detail import (
     BACK_HREF,
@@ -714,3 +714,11 @@ def test_overview_page_escapes_injection_from_every_field():
 
     assert "<script>alert" not in page
     assert "&lt;script&gt;" in page
+
+
+def test_peer_table_sits_in_a_scroll_container():
+    """Seven columns need ~532px even at the 12px mobile size; on a 375px
+    screen that is 125px of overflow. The wrapper keeps it off the page."""
+    page = render(peer_table=PEER_TABLE)
+
+    assert f'<div class="{TABLE_SCROLL_CLASS}" tabindex="0"><table' in page

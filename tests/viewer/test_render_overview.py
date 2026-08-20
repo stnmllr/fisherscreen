@@ -9,6 +9,7 @@ Two invariants run through all of them:
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+from app.viewer.html import TABLE_SCROLL_CLASS
 from app.viewer.models import Dossier, ParsedPoint
 from app.viewer.render_overview import (
     FRESHNESS_RED_DAYS,
@@ -382,3 +383,12 @@ def test_page_escapes_markup_from_dossier_content():
     assert "<script>" not in page
     assert "alert(1)" not in page.replace("&lt;script&gt;alert(1)&lt;/script&gt;", "")
     assert page.count("&lt;script&gt;alert(1)&lt;/script&gt;") == 3
+
+
+def test_overview_table_sits_in_a_scroll_container():
+    """Eight columns do not fit a phone viewport. Without the wrapper the
+    whole page scrolls sideways instead of the table alone — the spec asks
+    for the opposite, and the pages are read on a phone."""
+    page = render_overview([row_of()], generated_at=GENERATED_AT)
+
+    assert f'<div class="{TABLE_SCROLL_CLASS}" tabindex="0"><table' in page
