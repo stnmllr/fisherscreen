@@ -1,0 +1,14 @@
+# Commits, die `git blame` überspringen soll: rein mechanische Umformatierungen,
+# die keine inhaltliche Autorschaft tragen. Ohne diese Datei zeigt `git blame`
+# für 150 Dateien unter app/ und tests/ den Formatierungs-Commit statt der
+# Änderung, die die Zeile fachlich gesetzt hat.
+#
+# Format: eine volle 40-stellige SHA pro Zeile, Kommentar in der Zeile darüber.
+# Kurz-SHAs funktionieren NICHT — git bricht mit einem Fehler ab.
+#
+# Lokal einmalig aktivieren (cmd.exe, gilt pro Repo):
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub wertet die Datei im Repo-Root automatisch aus, ohne Konfiguration.
+
+# Reformat app/ and tests/ with black (2026-08-20, 150 Dateien, rein mechanisch)
+3d244d282c78e70e0643849d8d65575396014ff9
