@@ -55,3 +55,40 @@ def test_sort_js_is_a_standalone_file_not_an_inline_snippet():
     """Served as its own file so the pages need no script-src 'unsafe-inline'."""
     assert "<script" not in SORT_JS
     assert "data-sort" in SORT_JS
+
+
+_DETAIL_PAGE_RULES = (
+    ".point-grid{",
+    ".point.muted{",
+    ".point.absent{",
+    ".dot.green{",
+    ".dot.yellow{",
+    ".dot.red{",
+    ".dot.na{",
+    ".kpi.hero ",
+    ".range-line{",
+    ".extras{",
+    ".peer-note{",
+    ".hd-badges{",
+    "details{",
+    "dl.kv{",
+)
+
+
+def test_css_styles_every_class_the_detail_page_emits():
+    """A class without a rule renders as unstyled markup; the detail page
+    would silently lose its layout while every test still passes."""
+    for rule in _DETAIL_PAGE_RULES:
+        assert rule in SITE_CSS, rule
+
+
+def test_point_grid_uses_the_specified_card_width():
+    assert "repeat(auto-fill,minmax(280px,1fr))" in SITE_CSS
+
+
+def test_section_headings_keep_their_top_margin():
+    """The detail page wraps every block in a <section>, which makes each
+    h2 a first-child — the shared `h2:first-child{margin-top:0}` rule would
+    otherwise collapse the spacing between all sections at once."""
+    assert "section>h2:first-child{margin-top:26px}" in SITE_CSS
+    assert "main>section:first-child>h2{margin-top:0}" in SITE_CSS

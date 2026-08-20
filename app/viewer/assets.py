@@ -83,6 +83,54 @@ tbody tr:hover{background:#faf9f6}
 .t-sub{color:var(--ink-soft);font-size:12px}
 .age-yellow{color:var(--yellow);font-weight:600}
 .age-red{color:var(--red);font-weight:600}
+/* ---------- Detailseite ---------- */
+h3{font-family:var(--sans);font-weight:600;font-size:13px;letter-spacing:.4px;color:var(--ink-soft);margin:18px 0 8px;text-transform:uppercase}
+section{margin-bottom:8px}
+/* Jede Sektions-Überschrift ist ein first-child; ohne diese beiden Regeln
+   zieht h2:first-child oben allen Sektionen den Abstand weg. */
+section>h2:first-child{margin-top:26px}
+main>section:first-child>h2{margin-top:0}
+.hd-badges{padding:0 0 14px}
+.kpi.hero{border-left-color:var(--navy)}
+.kpi.hero .k-val{font-size:25px}
+.kpi.hero .k-name{min-height:0}
+.extras{margin-top:8px}
+.extras .tag{margin:0 6px 0 0}
+.range-line{margin-top:12px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:4px;font-family:var(--mono);font-size:12px;line-height:1.7}
+.peer-note{margin-top:8px;color:var(--ink-soft);font-size:12.5px;font-style:italic}
+/* Fisher-Karten: 280px ist die Breite, bei der die Begründung ohne
+   Silbentrennung umbricht — schmaler wird der Fließtext unlesbar. */
+.point-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.point{display:flex;flex-direction:column;gap:6px}
+.point .p-num{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+.point .p-title{font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.35}
+.point .p-text{font-size:12.5px;color:var(--ink)}
+.point .p-text p{margin-bottom:6px}
+.point .p-sources{margin-top:auto;padding-top:6px}
+.point .p-sources .tag{margin:0 6px 4px 0}
+.point .stars{font-family:var(--mono);font-size:13px;color:var(--ink-soft)}
+/* 🔴 = dünne Quellenlage. Gedämpft, damit die Karte nicht wie ein Urteil
+   über das Unternehmen gelesen wird; der Hinweistext sagt es zusätzlich. */
+.point.muted{background:#f7f6f2;border-style:dashed;border-color:#d8d5cc;color:var(--ink-soft)}
+.point.muted .p-title{color:var(--ink-soft)}
+.point .p-note{font-size:11.5px;color:var(--ink-soft);border-top:1px dotted var(--line);padding-top:6px}
+.point.absent{background:#f2f1ec;border-style:dashed;border-color:var(--line)}
+.point .p-absent{font-size:12.5px;color:var(--ink-soft);font-style:italic}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:6px;vertical-align:middle}
+.dot.green{background:var(--green)}
+.dot.yellow{background:var(--yellow)}
+.dot.red{background:var(--red)}
+.dot.na{background:var(--grey)}
+details{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:10px 14px;font-size:12.5px}
+details summary{cursor:pointer;color:var(--accent);font-size:12.5px}
+details ul{margin:10px 0 0 18px}
+details li{margin-bottom:3px;line-height:1.45}
+.pills .pill{margin:0 6px 6px 0}
+dl.kv{margin-top:12px;display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:12.5px}
+dl.kv dt{color:var(--ink-soft)}
+dl.kv dd{overflow-wrap:anywhere}
+.foot.defects ul{margin-left:18px}
+.foot.defects li{margin-bottom:6px}
 /* ---------- Fuß ---------- */
 .foot{margin-top:22px;padding:14px 16px;background:#eceae3;border-radius:4px;color:var(--ink-soft);font-size:12.5px;max-width:900px}
 @media(max-width:900px){main{padding:20px 16px 48px}.kpi-grid{grid-template-columns:1fr 1fr}}
