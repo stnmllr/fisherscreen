@@ -474,7 +474,13 @@ Diese Punkte sind bewusst noch offen — vor dem jeweiligen Phasen-Start klären
 
 ## Was wir NICHT bauen
 
-- Keine eigene Web-UI — Obsidian + Portfolio-Analyzer reichen
+- ~~Keine eigene Web-UI~~ — **revidiert 2026-08-20**: Es gibt einen Read-only-Viewer
+  (`app/viewer/`), der die Tool-B-Dossiers als statisches HTML rendert. Grenze: **nur
+  Anzeige.** Kein Backend, keine Eingabe, keine Auslösung von Läufen, keine Berechnung —
+  der Viewer zeigt an, was im Dossier steht, und rechnet nichts nach. Obsidian bleibt der
+  führende Lesekanal; der Viewer ist ein zusätzlicher Ausgabekanal für unterwegs.
+  Alles darüber hinaus (Deep Dive aus der App anstoßen, Vergleichs-/Verlaufsansichten)
+  fällt weiterhin unter Feature-Creep und braucht eine eigene Entscheidung.
 - Kein Composite-Scoring in Tool A — fünf Dimensions-Listen nebeneinander (V3-Entscheidung)
 - Kein tägliches Monitoring, kein automatisches Watchlist-Monitoring
 - Kein Backtesting
