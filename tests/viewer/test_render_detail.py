@@ -26,6 +26,7 @@ from app.viewer.render_detail import (
     PENDING_SECTIONS,
     PLACEHOLDER_POINT_NOTE,
     SUMMARY_PENDING_NOTE,
+    has_display_value,
     render_detail,
 )
 from app.viewer.render_overview import (
@@ -219,6 +220,43 @@ def test_missing_valuation_range_line_is_omitted():
     assert "Bewertungs-Range" not in page
 
 
+# --- "is there a value at all" --------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "display",
+    [
+        None,
+        "",
+        "   ",
+        "—",
+        "n/a",
+        "n/a (Div n/a aktuell + Ø 5J Buyback n/a)",
+        "n/a (Interest Expense fehlt)",
+    ],
+)
+def test_absent_display_values_are_recognised(display):
+    """`n/a` as a prefix counts too: ARGX writes `n/a (Div n/a aktuell + …)`
+    — the metric is missing, the parenthesis only spells out why."""
+    assert has_display_value(display) is False
+
+
+@pytest.mark.parametrize(
+    "display",
+    [
+        "0",
+        "0.0%",
+        "24.2% (Div 23.0% aktuell + Ø 4J Buyback 1.2%)",
+        "1528.55 (Median 1521.5)",
+    ],
+)
+def test_present_display_values_are_recognised(display):
+    """Presence, not plausibility: `0` is a value and stays one. The check
+    never looks at how big the number is — the viewer still computes
+    nothing."""
+    assert has_display_value(display) is True
+
+
 # --- defect markers -------------------------------------------------------
 
 
@@ -274,14 +312,81 @@ def test_range_line_carries_its_own_defect():
     assert "EV-Definitionen" in page
 
 
-def test_dossier_without_quant_date_gets_no_markers():
-    """Without a quant date a defect window cannot be checked, so no claim
-    is made."""
+def test_dossier_without_quant_date_keeps_the_undated_markers():
+    """Corrected expectation: this used to assert that no marker at all
+    appears without a quant date.
+
+    Only the *dated* defect windows are uncheckable without the field. The
+    EV rules carry no date, so suspending them too would have hidden a known
+    defect the moment a dossier generation stops writing `quant_date`.
+    """
     page = render(
-        quant_date=None, ticker="ARGX", metrics={"Bewertung": {"EV/EBIT": "1254.9"}}
+        quant_date=None,
+        ticker="ARGX",
+        metrics={"Bewertung": {"EV/EBIT": "1254.9", "Div-Yield": "23.0%"}},
+    )
+
+    assert DEFECT_MARKER in page
+    assert "floatShares" in page
+    assert "Div-Yield-Bug" not in page
+
+
+def test_metric_without_a_value_gets_no_marker():
+    """FICO's dossier says `D/E n/a`. A unit warning on a value that is not
+    there qualifies nothing — it is noise, and `⚠ n/a` reads as if the
+    absence itself were suspect."""
+    page = render(ticker="FICO", metrics={"Kapitalstruktur": {"D/E": "n/a"}})
+
+    assert "n/a" in page
+    assert DEFECT_MARKER not in page
+    assert "Einheiten-Mismatch" not in page
+
+
+def test_metric_whose_value_is_only_an_explanation_gets_no_marker():
+    """ARGX: `Total Shareholder Yield: n/a (Div n/a aktuell + Ø 5J Buyback
+    n/a)` — inside the div-yield window, but there is no yield to qualify."""
+    page = render(
+        ticker="ARGX",
+        quant_date=date(2026, 6, 1),
+        metrics={
+            "Kapitalstruktur": {
+                "Total Shareholder Yield": "n/a (Div n/a aktuell + Ø 5J Buyback n/a)"
+            }
+        },
     )
 
     assert DEFECT_MARKER not in page
+    assert "Div-Yield-Bug" not in page
+
+
+def test_metric_with_a_real_value_stays_marked():
+    """Counter-check to the two above: GOOGL's `24.2% (Div 23.0% aktuell +
+    Ø 4J Buyback 1.2%)` is a value from the buggy window and must keep both
+    marker and footnote."""
+    page = render(
+        ticker="GOOGL",
+        quant_date=date(2026, 6, 1),
+        metrics={
+            "Kapitalstruktur": {
+                "Total Shareholder Yield": "24.2% (Div 23.0% aktuell + Ø 4J Buyback 1.2%)"
+            }
+        },
+    )
+
+    assert DEFECT_MARKER in page
+    assert "Div-Yield-Bug" in page
+
+
+def test_valueless_metric_does_not_suppress_its_neighbour():
+    """One missing metric must not clear the block: D/E has no value, the
+    range line does."""
+    page = render(
+        metrics={"Kapitalstruktur": {"D/E": "n/a"}},
+        raw_metric_lines={"Bewertungs-Range": "Bewertungs-Range (~3J): P/E TTM 37.9"},
+    )
+
+    assert "EV-Definitionen" in page
+    assert "Einheiten-Mismatch" not in page
 
 
 @pytest.mark.parametrize("metric_key", sorted(DEFECT_METRIC_LABELS))

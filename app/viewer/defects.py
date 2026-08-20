@@ -110,21 +110,26 @@ KNOWN_DATA_DEFECTS: Final[tuple[DataDefect, ...]] = (
 )
 
 
-def _applies(defect: DataDefect, ticker: str, quant_date: date) -> bool:
+def _applies(defect: DataDefect, ticker: str, quant_date: date | None) -> bool:
     if defect.tickers is not None and ticker not in defect.tickers:
         return False
-    return defect.quant_date_until is None or quant_date <= defect.quant_date_until
+    if defect.quant_date_until is None:
+        return True
+    if quant_date is None:
+        return False
+    return quant_date <= defect.quant_date_until
 
 
 def defects_for(ticker: str, quant_date: date | None) -> dict[str, DataDefect]:
     """Known defects for one dossier, keyed by metric key. Empty dict = clean.
 
-    A dossier without `quant_date` cannot be placed on the timeline at all,
-    so no entry is claimed for it — a marker whose window we cannot check
-    would be a guess. Every dossier the parser accepts carries the field.
+    A dossier without `quant_date` suspends only the *dated* rules: their
+    window cannot be checked, and a marker whose window we cannot check
+    would be a guess. Rules with `quant_date_until is None` never consulted
+    the date in the first place and stay in force — dropping them along with
+    the dated ones would hide known defects the moment a dossier generation
+    stops writing the field, i.e. exactly when nobody is looking.
     """
-    if quant_date is None:
-        return {}
     return {
         defect.metric_key: defect
         for defect in KNOWN_DATA_DEFECTS

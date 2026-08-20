@@ -15,7 +15,7 @@ from typing import Final
 
 from app.viewer.assets import CSS_FILENAME
 from app.viewer.defects import DataDefect, defects_for
-from app.viewer.html import esc, md_to_html, table_html, tag
+from app.viewer.html import MISSING, esc, md_to_html, table_html, tag
 from app.viewer.models import MAX_RATING, Dossier, ParsedPoint
 from app.viewer.render_overview import freshness_flag
 
@@ -79,6 +79,13 @@ _DEFECT_KEY_BY_LABEL: Final[dict[tuple[str, str], str]] = {
     target: key for key, target in DEFECT_METRIC_LABELS.items()
 }
 
+# Display strings that mean "the dossier carries no value for this metric".
+# `n/a` also counts as a prefix: ARGX writes
+# `n/a (Div n/a aktuell + Ø 5J Buyback n/a)`, where the parenthesis only
+# spells out why the metric itself is missing.
+NO_VALUE_EXACT: Final[frozenset[str]] = frozenset({"", MISSING})
+NO_VALUE_PREFIX: Final[str] = "n/a"
+
 _TIMESTAMP_FORMAT: Final[str] = "%Y-%m-%d %H:%M %Z"
 _AGE_SUFFIX: Final[str] = "Tage seit Filing"
 _SEGMENT_SEPARATOR: Final[str] = " · "
@@ -132,6 +139,23 @@ $body
 )
 
 
+def has_display_value(display: str | None) -> bool:
+    """True when the dossier actually shows something for this metric.
+
+    This is NOT the viewer computing: it asks whether a value is there at
+    all, never how large it is or whether it is plausible. `0` and `0.0%`
+    are values and stay values. The rule "the viewer parses, it never
+    computes" is untouched — the next reader should not mistake this for a
+    judgement about numbers.
+    """
+    if display is None:
+        return False
+    text = display.strip()
+    if text in NO_VALUE_EXACT:
+        return False
+    return not text.lower().startswith(NO_VALUE_PREFIX)
+
+
 class _DefectCollector:
     """Collects the defects that actually reached a rendered cell.
 
@@ -143,8 +167,15 @@ class _DefectCollector:
         self._defects = defects_for(ticker, quant_date)
         self._applied: list[tuple[str, DataDefect]] = []
 
-    def take(self, block: str, label: str) -> DataDefect | None:
-        """Defect for one cell, remembered for the footnote. None = clean."""
+    def take(self, block: str, label: str, value: str | None) -> DataDefect | None:
+        """Defect for one cell, remembered for the footnote. None = clean.
+
+        A cell without a value is left alone: `D/E ⚠ n/a` warns about a
+        number that is not on the page. Same reason as the missing-block
+        case above, one level finer.
+        """
+        if not has_display_value(value):
+            return None
         key = _DEFECT_KEY_BY_LABEL.get((block, label))
         if key is None:
             return None
@@ -202,7 +233,7 @@ def _metric_block(dossier: Dossier, block: str, defects: _DefectCollector) -> st
     if not values and not extras:
         return ""
     tiles = [
-        _kpi_tile(label, value, defects.take(block, label), "kpi")
+        _kpi_tile(label, value, defects.take(block, label, value), "kpi")
         for label, value in values.items()
     ]
     unlabelled = "".join(tag("span", esc(extra), class_="tag") for extra in extras)
@@ -218,7 +249,7 @@ def _range_line(dossier: Dossier, defects: _DefectCollector) -> str:
     raw = dossier.raw_metric_lines.get(RANGE_BLOCK)
     if raw is None:
         return ""
-    marker = _defect_marker(defects.take(RANGE_BLOCK, RANGE_BLOCK))
+    marker = _defect_marker(defects.take(RANGE_BLOCK, RANGE_BLOCK, raw))
     return tag("div", esc(raw) + marker, class_="range-line")
 
 

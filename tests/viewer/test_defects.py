@@ -22,8 +22,37 @@ def test_data_defect_is_frozen():
         defect.metric_key = "y"
 
 
-def test_unknown_ticker_without_quant_date_is_clean():
-    assert defects_for("X", None) == {}
+def test_undated_dossier_keeps_the_date_independent_defects():
+    """Corrected expectation: this used to assert `== {}`.
+
+    Suspending *every* rule without a quant date suspended rules that never
+    looked at the date — D/E and the range line have `quant_date_until is
+    None`, they apply to every dossier by construction. A dossier
+    generation that stopped writing the quant date would have dropped those
+    markers silently, which is the one thing this module exists to prevent.
+    Only the dated rules are suspended, because only their window is
+    uncheckable.
+    """
+    marked = defects_for("ARGX", None)
+
+    assert "ev_ebit" in marked
+    assert "ev_sales" in marked
+    assert "debt_to_equity" in marked
+    assert "valuation_range" in marked
+    assert "dividend_yield" not in marked
+    assert "total_shareholder_yield" not in marked
+
+
+def test_undated_dossier_still_respects_the_ticker_scope():
+    """The ARGX-only EV rules stay ARGX-only when the date is missing."""
+    marked = defects_for("GOOGL", None)
+
+    assert "debt_to_equity" in marked
+    assert "valuation_range" in marked
+    assert "ev_ebit" not in marked
+    assert "ev_sales" not in marked
+    assert "dividend_yield" not in marked
+    assert "total_shareholder_yield" not in marked
 
 
 def test_dividend_yield_defect_applies_inside_the_buggy_window():
