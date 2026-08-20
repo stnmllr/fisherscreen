@@ -564,7 +564,7 @@ def test_insider_details_keep_their_nesting():
         insider_summary_line="48 Form-4-Filings", insider_detail_lines=INSIDER_DETAILS
     )
 
-    assert "<li>LANSING WILLIAM J (CEO) — 124 signifikante Transaktionen:<ul>" in page
+    assert "<li>LANSING WILLIAM J (CEO) — 124 signifikante Transaktionen:\n<ul>" in page
 
 
 def test_insider_section_states_a_missing_block_honestly():
@@ -633,7 +633,9 @@ def test_coverage_section_is_omitted_when_empty():
 def test_notes_are_rendered_as_markdown():
     page = render(notes="- erster Punkt\n  - Unterpunkt")
 
-    assert "<ul><li>erster Punkt<ul><li>Unterpunkt</li></ul></li></ul>" in page
+    expected = "<ul>\n<li>erster Punkt\n<ul>\n<li>Unterpunkt</li>\n</ul>\n</li>\n</ul>"
+
+    assert expected in page
 
 
 def test_empty_notes_say_where_they_are_maintained():

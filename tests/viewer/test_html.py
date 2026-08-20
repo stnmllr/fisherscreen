@@ -5,6 +5,9 @@ Dossier prose is Gemini output and Stef's hand-written notes — untrusted
 input by construction, since nothing validates it between generator and
 browser.
 """
+import pytest
+from markdown_it import MarkdownIt
+
 from app.viewer.html import attrs, esc, md_to_html, table_html, tag
 
 
@@ -77,8 +80,13 @@ def test_tag_leaves_void_element_unclosed():
 
 
 # --- md_to_html -----------------------------------------------------------
-# The dossier body is Gemini prose plus Stef's notes. Only three structures
-# occur there; everything else must survive as visible text, never as markup.
+# The dossier body is Gemini prose plus Stef's notes — Markdown whose exact
+# shape drifts between generator versions. It is parsed as CommonMark, so
+# the assertions below pin structure and escaping, not a hand-built subset.
+# The parser puts each block-level tag on its own line; that whitespace is
+# incidental, the nesting it surrounds is not.
+
+NESTED_UL = "<ul>\n<li>a\n<ul>\n<li>b</li>\n</ul>\n</li>\n</ul>"
 
 
 def test_md_to_html_returns_empty_string_for_none():
@@ -94,27 +102,27 @@ def test_md_to_html_returns_empty_string_for_blank_text():
 def test_md_to_html_nests_two_space_indented_bullets():
     """The generator's insider block encodes owner -> transactions as
     indentation; flattening it would merge two levels of meaning."""
-    assert md_to_html("- a\n  - b") == "<ul><li>a<ul><li>b</li></ul></li></ul>"
+    assert md_to_html("- a\n  - b") == NESTED_UL
 
 
 def test_md_to_html_renders_flat_bullets_side_by_side():
-    assert md_to_html("- a\n- b") == "<ul><li>a</li><li>b</li></ul>"
+    assert md_to_html("- a\n- b") == "<ul>\n<li>a</li>\n<li>b</li>\n</ul>"
 
 
 def test_md_to_html_treats_deeper_indentation_as_second_level():
-    """Only two levels exist; a four-space bullet is still a child, not a
-    dropped line."""
-    assert md_to_html("- a\n    - b") == "<ul><li>a<ul><li>b</li></ul></li></ul>"
+    """A four-space bullet is a child, not a dropped line — and not a code
+    block either, which is what a naive indentation rule would make of it."""
+    assert md_to_html("- a\n    - b") == NESTED_UL
 
 
 def test_md_to_html_keeps_orphan_child_bullet_visible():
     """An indented bullet with no parent above it is malformed input; it
     becomes a top-level item so its text cannot vanish."""
-    assert md_to_html("  - lonely") == "<ul><li>lonely</li></ul>"
+    assert md_to_html("  - lonely") == "<ul>\n<li>lonely</li>\n</ul>"
 
 
 def test_md_to_html_escapes_bullet_text():
-    assert md_to_html("- <b>x</b>") == "<ul><li>&lt;b&gt;x&lt;/b&gt;</li></ul>"
+    assert md_to_html("- <b>x</b>") == "<ul>\n<li>&lt;b&gt;x&lt;/b&gt;</li>\n</ul>"
 
 
 def test_md_to_html_splits_paragraphs_on_blank_line():
@@ -122,7 +130,7 @@ def test_md_to_html_splits_paragraphs_on_blank_line():
 
 
 def test_md_to_html_keeps_paragraph_and_following_list_apart():
-    assert md_to_html("intro\n- a") == "<p>intro</p>\n<ul><li>a</li></ul>"
+    assert md_to_html("intro\n- a") == "<p>intro</p>\n<ul>\n<li>a</li>\n</ul>"
 
 
 def test_md_to_html_escapes_script_tag():
@@ -134,15 +142,10 @@ def test_md_to_html_escapes_script_tag():
     assert "<script>" not in rendered
 
 
-def test_md_to_html_does_not_interpret_emphasis():
-    """No bold/italic/link support: interpreting a stray `*` would silently
-    swallow characters the dossier actually wrote."""
-    assert md_to_html("**bold** and *em*") == "<p>**bold** and *em*</p>"
-
-
-def test_md_to_html_does_not_interpret_pipe_table():
-    """Peer tables reach the page pre-split via `dossier.peer_table`; a pipe
-    line in free text stays text."""
+def test_md_to_html_keeps_lone_pipe_line_as_text():
+    """A pipe line without a delimiter row is not a table in any Markdown
+    dialect; peer tables reach the page pre-split via `dossier.peer_table`
+    anyway, so a stray pipe in prose must stay readable text."""
     rendered = md_to_html("| a | b |")
 
     assert "<table>" not in rendered
@@ -151,6 +154,84 @@ def test_md_to_html_does_not_interpret_pipe_table():
 
 def test_md_to_html_does_not_treat_dash_without_space_as_bullet():
     assert md_to_html("-5% Umsatz") == "<p>-5% Umsatz</p>"
+
+
+def test_md_to_html_renders_emphasis():
+    """A real Markdown parser is the point of the switch: `**` is emphasis in
+    the dossier's own source format, so it renders as emphasis instead of
+    being shown as punctuation."""
+    rendered = md_to_html("**bold** and *em*")
+
+    assert rendered == "<p><strong>bold</strong> and <em>em</em></p>"
+
+
+def test_md_to_html_renders_pipe_table_in_free_text():
+    """Pins `.enable("table")`. Peer tables arrive pre-split via
+    `table_html`, but Stef's notes are free text and may contain a table;
+    without the plugin it would degrade into pipe-littered prose."""
+    rendered = md_to_html("| a | b |\n| --- | --- |\n| 1 | 2 |")
+
+    assert "<table>" in rendered
+    assert "<th>a</th>" in rendered
+    assert "<td>1</td>" in rendered
+
+
+# --- md_to_html: the parser configuration is a security boundary ----------
+# Dossier prose is Gemini output; nothing validates it between generator and
+# browser. The tests below pin the two options that make that safe.
+
+
+def test_md_to_html_escapes_raw_html_attribute_injection():
+    """`html=False` is what neutralises this — the escaping is the parser's,
+    not a caller's."""
+    rendered = md_to_html("<img src=x onerror=alert(1)>")
+
+    assert "<img" not in rendered
+    assert "&lt;img src=x onerror=alert(1)&gt;" in rendered
+
+
+def test_md_to_html_does_not_link_javascript_url():
+    """A `javascript:` target fails the parser's link validation, so the
+    construct stays visible text rather than becoming a clickable payload."""
+    rendered = md_to_html("[klick](javascript:alert(1))")
+
+    assert "javascript:" not in rendered.split(">", 1)[0]
+    assert "<a " not in rendered
+    assert "href=" not in rendered
+    assert "[klick](javascript:alert(1))" in rendered
+
+
+def test_md_to_html_links_ordinary_url():
+    """Counterpart to the test above: link handling is validated, not
+    switched off, so a normal source URL in the prose still works."""
+    rendered = md_to_html("[k](https://example.com)")
+
+    assert rendered == '<p><a href="https://example.com">k</a></p>'
+
+
+def test_markdownit_default_config_would_pass_raw_html_through():
+    """Guard against a later "cleanup" of the `{"html": False}` option.
+
+    `MarkdownIt("commonmark")` alone is NOT safe for untrusted input: the
+    CommonMark preset sets `html=True`, and raw HTML then reaches the page
+    verbatim. This test documents the exact failure that option prevents.
+    """
+    unsafe = MarkdownIt("commonmark").render("<script>alert(1)</script>")
+
+    assert "<script>alert(1)</script>" in unsafe
+    assert "&lt;script&gt;" not in unsafe
+
+
+def test_markdownit_gfm_like_preset_is_unusable_without_linkify():
+    """The other trap: `gfm-like` looks like the natural preset for the
+    table support, but it enables linkify, and `linkify-it-py` is not a
+    dependency. Construction succeeds — it only fails at render time, i.e.
+    on a real dossier rather than at import.
+    """
+    md = MarkdownIt("gfm-like")
+
+    with pytest.raises(ModuleNotFoundError):
+        md.render("harmloser text")
 
 
 # --- table_html -----------------------------------------------------------
