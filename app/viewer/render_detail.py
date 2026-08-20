@@ -6,6 +6,7 @@ absence: an unfilled summary, a missing insider block or a metric from a
 known-buggy run is stated as such instead of being left to look like a
 value that simply does not exist.
 """
+
 from __future__ import annotations
 
 import logging
@@ -112,8 +113,7 @@ _FLAG_RED: Final[str] = "missing"
 _FLAG_YELLOW: Final[tuple[str, ...]] = ("ambiguous", "fallback_used", "truncated")
 _FLAG_GREEN: Final[frozenset[str]] = frozenset({"ok"})
 
-_PAGE = Template(
-    """<!DOCTYPE html>
+_PAGE = Template("""<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
@@ -135,8 +135,7 @@ $body
 </main>
 </body>
 </html>
-"""
-)
+""")
 
 
 def has_display_value(display: str | None) -> bool:
@@ -255,9 +254,7 @@ def _range_line(dossier: Dossier, defects: _DefectCollector) -> str:
 
 def _quant_section(dossier: Dossier) -> str:
     defects = _DefectCollector(dossier.ticker, dossier.quant_date)
-    blocks = "".join(
-        _metric_block(dossier, block, defects) for block in METRIC_BLOCKS
-    )
+    blocks = "".join(_metric_block(dossier, block, defects) for block in METRIC_BLOCKS)
     body = (
         _headline_grid(dossier)
         + blocks
@@ -313,7 +310,9 @@ def _point_card(point: ParsedPoint) -> str:
         return tag("div", head + title + body, class_="card point absent")
 
     is_low = point.confidence == _LOW_CONFIDENCE
-    sources = "".join(tag("span", esc(source), class_="tag") for source in point.sources)
+    sources = "".join(
+        tag("span", esc(source), class_="tag") for source in point.sources
+    )
     body = (
         head
         + _confidence_dot(point.confidence)

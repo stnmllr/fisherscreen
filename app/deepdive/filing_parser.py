@@ -21,17 +21,17 @@ _CHARS_PER_TOKEN = 4  # heuristic cap (no Gemini call in this stage)
 
 @dataclass
 class SectionFlag:
-    extraction: str        # "ok" (anchor path) | "fallback_used" (pattern path)
-    missing: bool          # True when no body was extracted (absent from sections)
+    extraction: str  # "ok" (anchor path) | "fallback_used" (pattern path)
+    missing: bool  # True when no body was extracted (absent from sections)
     truncated: bool
     anchor_id: str | None  # set for extraction == "ok" only
 
     def __post_init__(self) -> None:
         # ok+missing is contradictory: a section cleanly located via its anchor
         # cannot also be absent.
-        assert not (self.extraction == "ok" and self.missing), (
-            "SectionFlag: extraction='ok' excludes missing=True"
-        )
+        assert not (
+            self.extraction == "ok" and self.missing
+        ), "SectionFlag: extraction='ok' excludes missing=True"
 
 
 @dataclass

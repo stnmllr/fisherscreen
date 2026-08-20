@@ -13,7 +13,13 @@ def test_dimensions_constant_has_five_elements():
 
 
 def test_dimensions_are_the_expected_names():
-    assert set(DIMENSIONS) == {"growth", "profitability", "management", "innovation", "resilience"}
+    assert set(DIMENSIONS) == {
+        "growth",
+        "profitability",
+        "management",
+        "innovation",
+        "resilience",
+    }
 
 
 def test_merit_dimensions_are_the_three_active_axes():

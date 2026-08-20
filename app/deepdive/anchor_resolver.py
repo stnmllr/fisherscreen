@@ -8,6 +8,7 @@ the result is empty.
 Stage 1 of Punkt 5 (filing-parser-anchor-tracing). Plan-Doc:
 `docs/superpowers/plans/punkt-5-filing-parser.md`.
 """
+
 from __future__ import annotations
 
 import re

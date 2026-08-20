@@ -6,6 +6,7 @@ computes, so a rounding or unit decision always stays with the generator.
 Sorting needs a comparable value, which is why each numeric cell carries a
 separate `data-sort` attribute derived from the same string.
 """
+
 from __future__ import annotations
 
 import logging
@@ -170,8 +171,7 @@ _COLUMNS: Final[tuple[tuple[str, bool], ...]] = (
     ("Frische", True),
 )
 
-_PAGE = Template(
-    """<!DOCTYPE html>
+_PAGE = Template("""<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
@@ -193,8 +193,7 @@ $body
 <script src="$js" defer></script>
 </body>
 </html>
-"""
-)
+""")
 
 
 def _sort_attribute(display: str | None) -> str:

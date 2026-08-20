@@ -8,6 +8,7 @@ gets no group node and the relative arm simply does not fire — dormant by
 construction, mirroring sector_median_table's None sentinel).
 Malformed/corrupt committed data => FilterConfigError (fail loud). Mirrors the
 sector_median_table loader pattern."""
+
 from __future__ import annotations
 
 import json

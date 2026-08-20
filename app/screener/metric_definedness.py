@@ -2,17 +2,22 @@
 gross_margin gate (Punkt 2). The waterfall classifier and assess_definedness are
 the runtime predicates wired by the basis-stage pre-pass (CT-A).
 """
+
 from __future__ import annotations
 
 from enum import Enum
 
-from app.models.definedness import DefinednessOutcome  # noqa: F401 — re-export for callers
+from app.models.definedness import (
+    DefinednessOutcome,
+)  # noqa: F401 — re-export for callers
 
 
 class WaterfallVerdict(str, Enum):
-    DEFINED = "DEFINED"                     # real revenue->COGS->gross-profit waterfall
-    UNDEFINED = "UNDEFINED"                 # no real COGS structure -> METRIK_NA
-    DEFINED_NEGATIVE = "DEFINED_NEGATIVE"   # real waterfall, COGS>revenue -> FAIL (not NA)
+    DEFINED = "DEFINED"  # real revenue->COGS->gross-profit waterfall
+    UNDEFINED = "UNDEFINED"  # no real COGS structure -> METRIK_NA
+    DEFINED_NEGATIVE = (
+        "DEFINED_NEGATIVE"  # real waterfall, COGS>revenue -> FAIL (not NA)
+    )
 
 
 # Relative tolerance for the consistency check gp == revenue - cost_of_revenue.
@@ -71,7 +76,9 @@ def assess_definedness(
         return DefinednessOutcome.METRIK_NA
     if not statement_available or total_revenue is None:
         return DefinednessOutcome.UNASSESSABLE
-    verdict = classify_waterfall(total_revenue, cost_of_revenue, gross_profit, cost_of_revenue_present)
+    verdict = classify_waterfall(
+        total_revenue, cost_of_revenue, gross_profit, cost_of_revenue_present
+    )
     if verdict is WaterfallVerdict.UNDEFINED:
         return DefinednessOutcome.METRIK_NA
     return DefinednessOutcome.DEFINED

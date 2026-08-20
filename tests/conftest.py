@@ -8,6 +8,7 @@ contributors who may not know the convention.
 
 Opt-in for legitimate cases: @pytest.mark.allow_output_write (rare, e.g.
 end-to-end integration smoke tests). Caller owns cleanup."""
+
 import builtins
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -48,12 +49,16 @@ def _output_write_guard(request, monkeypatch):
     orig_write_bytes = Path.write_bytes
 
     def guarded_open(file, mode="r", *args, **kwargs):
-        if any(c in mode for c in _WRITE_MODE_CHARS) and _is_forbidden_output_write(file):
+        if any(c in mode for c in _WRITE_MODE_CHARS) and _is_forbidden_output_write(
+            file
+        ):
             raise AssertionError(_block_message(file))
         return orig_open(file, mode, *args, **kwargs)
 
     def guarded_path_open(self, mode="r", *args, **kwargs):
-        if any(c in mode for c in _WRITE_MODE_CHARS) and _is_forbidden_output_write(self):
+        if any(c in mode for c in _WRITE_MODE_CHARS) and _is_forbidden_output_write(
+            self
+        ):
             raise AssertionError(_block_message(self))
         return orig_path_open(self, mode, *args, **kwargs)
 

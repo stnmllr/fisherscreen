@@ -10,6 +10,7 @@ dossier format is model-generated and drifts, so a hand-rolled subset
 parser would quietly mis-render what it has not seen. `md_to_html` is the
 single place that library is used.
 """
+
 from __future__ import annotations
 
 import html

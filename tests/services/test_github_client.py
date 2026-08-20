@@ -24,7 +24,11 @@ def _mock_http(get_status: int = 200, get_sha: str | None = "abc123") -> MagicMo
 def test_push_file_calls_get_for_sha():
     http = _mock_http()
     client = GitHubClientImpl(token="tok", repo="org/repo", http=http)
-    client.push_file("output/Universum/2026-05-Dimensions.md", "# content", "chore: add monthly output")
+    client.push_file(
+        "output/Universum/2026-05-Dimensions.md",
+        "# content",
+        "chore: add monthly output",
+    )
     http.get.assert_called_once()
 
 
@@ -75,7 +79,9 @@ def test_push_file_http_error_includes_status_code_and_response_body():
     put_resp = http.put.return_value
     put_resp.status_code = 409
     put_resp.text = '{"message": "Changes must be made through a pull request"}'
-    request = httpx.Request("PUT", "https://api.github.com/repos/org/repo/contents/output/test.md")
+    request = httpx.Request(
+        "PUT", "https://api.github.com/repos/org/repo/contents/output/test.md"
+    )
     response = httpx.Response(409, request=request, text=put_resp.text)
     put_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
         "Client error '409 Conflict' for url '...'",
@@ -151,7 +157,9 @@ def test_push_file_does_not_retry_http_status_error():
     put_resp = http.put.return_value
     put_resp.status_code = 409
     put_resp.text = '{"message": "Changes must be made through a pull request"}'
-    request = httpx.Request("PUT", "https://api.github.com/repos/org/repo/contents/output/test.md")
+    request = httpx.Request(
+        "PUT", "https://api.github.com/repos/org/repo/contents/output/test.md"
+    )
     response = httpx.Response(409, request=request, text=put_resp.text)
     put_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
         "Client error '409 Conflict' for url '...'",

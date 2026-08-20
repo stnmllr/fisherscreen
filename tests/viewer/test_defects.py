@@ -4,6 +4,7 @@ Invariant under test: a defect marks a value, it never hides one. The table
 is therefore consulted by key + ticker + quant_date only — it must not look
 at the value itself, because the viewer does not compute.
 """
+
 import dataclasses
 from datetime import date
 
@@ -13,9 +14,7 @@ from app.viewer.defects import DataDefect, defects_for
 
 
 def test_data_defect_is_frozen():
-    defect = DataDefect(
-        metric_key="x", tickers=None, quant_date_until=None, note="n"
-    )
+    defect = DataDefect(metric_key="x", tickers=None, quant_date_until=None, note="n")
 
     assert dataclasses.is_dataclass(defect)
     with pytest.raises(dataclasses.FrozenInstanceError):

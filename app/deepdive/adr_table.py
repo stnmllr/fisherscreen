@@ -43,9 +43,13 @@ def _validate_entry(ticker: str, entry: Any) -> None:
     cik = entry.get("cik")
     form = entry.get("form_type")
     if not isinstance(adr, str) or not adr:
-        raise DeepDiveError(f"ADR entry for {ticker}: 'adr_ticker' must be a non-empty string")
+        raise DeepDiveError(
+            f"ADR entry for {ticker}: 'adr_ticker' must be a non-empty string"
+        )
     if not isinstance(cik, str) or not (cik.isdigit() and len(cik) == 10):
-        raise DeepDiveError(f"ADR entry for {ticker}: 'cik' must be a 10-digit zero-padded string")
+        raise DeepDiveError(
+            f"ADR entry for {ticker}: 'cik' must be a 10-digit zero-padded string"
+        )
     if form not in _VALID_FORM_TYPES:
         raise DeepDiveError(
             f"ADR entry for {ticker}: 'form_type' must be one of {sorted(_VALID_FORM_TYPES)}"

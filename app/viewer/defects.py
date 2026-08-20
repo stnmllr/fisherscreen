@@ -15,6 +15,7 @@ Two consequences of "the viewer does not compute":
 * `defects_for` never raises. It is called once per rendered cell; an
   exception there would take down a whole page over a footnote.
 """
+
 from __future__ import annotations
 
 import logging

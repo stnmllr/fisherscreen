@@ -8,8 +8,8 @@ from datetime import date, timedelta
 from app.models.deep_dive_record import MultipleStats, ValuationHistory
 
 # POLICY — fixiert, NICHT an Ticker-Pulls kalibriert (Spec §5).
-VALUATION_COMPLETE_MIN_DENSITY = 40     # obs pro Jahr
-VALUATION_PARTIAL_MIN_OBS = 52          # >= 1 Jahr wöchentlich
+VALUATION_COMPLETE_MIN_DENSITY = 40  # obs pro Jahr
+VALUATION_PARTIAL_MIN_OBS = 52  # >= 1 Jahr wöchentlich
 
 # DATEN-GEDECKELT — der realen GJ-Fundamental-Tiefe folgend (Task 0 / Spec §5).
 # Probe-Pull: freie yfinance income_stmt = nur 4 GJ -> mit Lag ~3,1J nutzbare
@@ -33,9 +33,7 @@ def _median_p25(values: list[float]) -> tuple[float | None, float | None]:
     return float(med), float(p25)
 
 
-def _cum_split_factor(
-    fy_end: date, splits: list[tuple[date, float]]
-) -> float:
+def _cum_split_factor(fy_end: date, splits: list[tuple[date, float]]) -> float:
     """Kumulativer Split-Faktor für ein GJ: Produkt aller Split-Ratios mit
     Ex-Datum NACH dem GJ-Periodenende. EPS_current = EPS_reported / factor
     bringt as-reported EPS auf current (back-adjusted) Basis (Spec §3a)."""
@@ -60,6 +58,7 @@ class AnnualFundamental:
     """Ein GJ-Datensatz (newest-first geliefert). diluted_eps ist as-reported
     (wird via cum_split auf current basis gebracht); net_income/ebit/debt/cash
     sind Währungs-Aggregate (split-invariant)."""
+
     fy_end: date
     net_income: float | None
     diluted_eps: float | None
@@ -86,17 +85,21 @@ def _classify(values: list[float], obs_weeks: list[date]) -> MultipleStats:
         return MultipleStats(n_obs=n, span_years=span or None, status="na_data")
     med, p25 = _median_p25(values)
     density = (n / span) if span > 0 else 0.0
-    if span >= VALUATION_COMPLETE_MIN_SPAN_YEARS and density >= VALUATION_COMPLETE_MIN_DENSITY:
+    if (
+        span >= VALUATION_COMPLETE_MIN_SPAN_YEARS
+        and density >= VALUATION_COMPLETE_MIN_DENSITY
+    ):
         status = "complete"
     else:
         status = "partial"
-    return MultipleStats(median=med, p25=p25, n_obs=n,
-                         span_years=round(span, 2), status=status)
+    return MultipleStats(
+        median=med, p25=p25, n_obs=n, span_years=round(span, 2), status=status
+    )
 
 
 def compute_valuation_history(
     weekly_close: list[tuple[date, float]],
-    annual: list[AnnualFundamental],          # newest-first
+    annual: list[AnnualFundamental],  # newest-first
     splits: list[tuple[date, float]],
     listing_ccy: str | None,
     financial_ccy: str | None,
@@ -109,18 +112,23 @@ def compute_valuation_history(
         return ValuationHistory(
             pe=MultipleStats(status="na_data"),
             ev_ebit=MultipleStats(status="na_data"),
-            fcf_yield=MultipleStats(status="na_data"))
+            fcf_yield=MultipleStats(status="na_data"),
+        )
     if listing_ccy != financial_ccy:
         return ValuationHistory(
             pe=MultipleStats(status="skipped_fx"),
             ev_ebit=MultipleStats(status="skipped_fx"),
-            fcf_yield=MultipleStats(status="skipped_fx"))
+            fcf_yield=MultipleStats(status="skipped_fx"),
+        )
 
     fy_ends = [a.fy_end for a in annual]
 
-    pe_vals: list[float] = []; pe_weeks: list[date] = []
-    ev_vals: list[float] = []; ev_weeks: list[date] = []
-    fcf_vals: list[float] = []; fcf_weeks: list[date] = []
+    pe_vals: list[float] = []
+    pe_weeks: list[date] = []
+    ev_vals: list[float] = []
+    ev_weeks: list[date] = []
+    fcf_vals: list[float] = []
+    fcf_weeks: list[date] = []
 
     for week, price in weekly_close:
         if not _finite(price) or price <= 0:
@@ -139,21 +147,19 @@ def compute_valuation_history(
                 pe_weeks.append(week)
 
         # implizite Shares -> Markt-Kap -> EV (Spec §3b)
-        if (_finite(a.diluted_eps, a.net_income) and a.diluted_eps != 0):
+        if _finite(a.diluted_eps, a.net_income) and a.diluted_eps != 0:
             eps_cur = a.diluted_eps / factor
             if eps_cur != 0:
                 shares = a.net_income / eps_cur
                 # Vorzeichen-Mismatch -> shares negativ/unsinnig: überspringen
-                if shares > 0 and _finite(a.ebit, a.total_debt, a.cash) \
-                        and a.ebit > 0:
+                if shares > 0 and _finite(a.ebit, a.total_debt, a.cash) and a.ebit > 0:
                     mcap = price * shares
                     ev = mcap + a.total_debt - a.cash
                     ev_vals.append(ev / a.ebit)
                     ev_weeks.append(week)
 
         # FCF-Yield — Negative behalten (Spec §2)
-        if (_finite(a.diluted_eps, a.net_income, a.free_cashflow)
-                and a.diluted_eps != 0):
+        if _finite(a.diluted_eps, a.net_income, a.free_cashflow) and a.diluted_eps != 0:
             eps_cur = a.diluted_eps / factor
             if eps_cur != 0:
                 shares = a.net_income / eps_cur
@@ -166,4 +172,5 @@ def compute_valuation_history(
     return ValuationHistory(
         pe=_classify(pe_vals, pe_weeks),
         ev_ebit=_classify(ev_vals, ev_weeks),
-        fcf_yield=_classify(fcf_vals, fcf_weeks))
+        fcf_yield=_classify(fcf_vals, fcf_weeks),
+    )

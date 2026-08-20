@@ -7,7 +7,9 @@ from app.errors import DeepDiveError
 
 def _resolver(table=None, edgar=None, eu_resolver=None):
     if table is None:
-        table = {"NOVO-B.CO": {"adr_ticker": "NVO", "cik": "0000353278", "form_type": "20-F"}}
+        table = {
+            "NOVO-B.CO": {"adr_ticker": "NVO", "cik": "0000353278", "form_type": "20-F"}
+        }
     if edgar is None:
         edgar = MagicMock()
     if eu_resolver is None:
@@ -17,8 +19,9 @@ def _resolver(table=None, edgar=None, eu_resolver=None):
 
 def test_resolves_eu_adr_entry():
     r = _resolver().resolve("NOVO-B.CO")
-    assert r == ResolvedTicker(ticker="NOVO-B.CO", adr_ticker="NVO",
-                               cik="0000353278", form_type="20-F")
+    assert r == ResolvedTicker(
+        ticker="NOVO-B.CO", adr_ticker="NVO", cik="0000353278", form_type="20-F"
+    )
 
 
 def test_is_case_insensitive_on_ticker():
@@ -59,7 +62,9 @@ def test_eu_ticker_delegates_to_eu_resolver():
 
 
 def test_di_mockable_via_injected_table():
-    r = ADRResolver(table={"X.CO": {"adr_ticker": "X", "cik": "0000000001",
-                                    "form_type": "20-F"}},
-                    edgar=MagicMock(), eu_resolver=MagicMock())
+    r = ADRResolver(
+        table={"X.CO": {"adr_ticker": "X", "cik": "0000000001", "form_type": "20-F"}},
+        edgar=MagicMock(),
+        eu_resolver=MagicMock(),
+    )
     assert r.resolve("X.CO").adr_ticker == "X"

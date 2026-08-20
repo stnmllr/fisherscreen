@@ -15,9 +15,13 @@ class FirestoreClientImpl:
     def __init__(self, project_id: str) -> None:
         try:
             self._db = firestore.Client(project=project_id)
-            next(self._db.collections(), None)  # force credential validation at init time
+            next(
+                self._db.collections(), None
+            )  # force credential validation at init time
         except Exception as exc:
-            raise DataSourceError(f"ADC not configured or Firestore unreachable: {exc}") from exc
+            raise DataSourceError(
+                f"ADC not configured or Firestore unreachable: {exc}"
+            ) from exc
 
     def get(self, collection: str, document_id: str) -> dict[str, Any] | None:
         try:

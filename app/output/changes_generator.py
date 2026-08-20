@@ -57,7 +57,9 @@ def _compute_current_dim_tickers(
     return result
 
 
-def _load_prior_frontmatter(universum_dir: Path, current_month: str) -> dict[str, Any] | None:
+def _load_prior_frontmatter(
+    universum_dir: Path, current_month: str
+) -> dict[str, Any] | None:
     candidates = sorted(universum_dir.glob("????-??-Dimensions.md"))
     candidates = [p for p in candidates if p.stem[:7] < current_month]
     if not candidates:
@@ -70,7 +72,11 @@ def _load_prior_frontmatter(universum_dir: Path, current_month: str) -> dict[str
             return None
         return {"path": prior_path, "dimensions": dims}
     except Exception as exc:
-        logger.warning("changes: failed to parse %s — treating as no prior: %s", prior_path.name, exc)
+        logger.warning(
+            "changes: failed to parse %s — treating as no prior: %s",
+            prior_path.name,
+            exc,
+        )
         return None
 
 

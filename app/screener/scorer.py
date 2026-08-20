@@ -68,13 +68,15 @@ def run_gemini_scoring(
         if not warned_at_80pct and tokens_used >= token_cap * _TOKEN_WARN_PCT:
             logger.warning(
                 "run token budget at 80%%: %d/%d tokens used",
-                tokens_used, token_cap,
+                tokens_used,
+                token_cap,
             )
             warned_at_80pct = True
         if tokens_used >= token_cap:
             logger.warning(
                 "run token cap %d reached — stopping after %d tickers processed",
-                token_cap, run_tracker._tickers_processed,
+                token_cap,
+                run_tracker._tickers_processed,
             )
             run_tracker.mark_truncated()
             break

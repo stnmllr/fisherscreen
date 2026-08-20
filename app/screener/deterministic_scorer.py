@@ -4,6 +4,7 @@ Maps the percentile annotations (sector_percentiles.annotate_percentiles) + the 
 growth-consistency cap + absolute red-flag overlays to the ScreenerRecord.gemini_*
 fields (schema name kept for output stability). Evidence is code-templated, citing the
 absolute figure AND its percentile. debt_to_equity is in percent-points (45.0 = 45%)."""
+
 from __future__ import annotations
 
 import logging
@@ -21,8 +22,9 @@ _RED_FLAG = 0
 _DE_REDFLAG_THRESHOLD = 300.0  # percent-points: >300% (3x equity)
 
 
-def _mean_axis_score(pcts: dict[str, float], fields: tuple[str, ...],
-                     invert: tuple[str, ...] = ()) -> int | None:
+def _mean_axis_score(
+    pcts: dict[str, float], fields: tuple[str, ...], invert: tuple[str, ...] = ()
+) -> int | None:
     vals = []
     for f in fields:
         if f in pcts:
@@ -37,8 +39,9 @@ def _pct_decimal(v: float | None) -> str:
     return "n/a" if v is None else f"{v:.1%}"
 
 
-def _evidence(record: "ScreenerRecord", pcts: dict[str, float],
-              specs: list[tuple[str, str, str]]) -> str:
+def _evidence(
+    record: "ScreenerRecord", pcts: dict[str, float], specs: list[tuple[str, str, str]]
+) -> str:
     """specs: list of (field, label, formatter) where formatter in {"decimal","de"}."""
     parts = []
     for field, label, kind in specs:
@@ -70,8 +73,11 @@ def score_record(record: "ScreenerRecord") -> None:
     growth = min(growth, consistency_cap(record.growth_consistency))
     dims["growth"] = growth
     cons = record.growth_consistency
-    evidence["growth"] = _evidence(record, pcts, [("revenue_growth_yoy", "rev growth", "decimal")]) + (
-        f", consistency {cons:.2f}" if cons is not None else ", consistency n/a (<4 GJ)")
+    evidence["growth"] = _evidence(
+        record, pcts, [("revenue_growth_yoy", "rev growth", "decimal")]
+    ) + (
+        f", consistency {cons:.2f}" if cons is not None else ", consistency n/a (<4 GJ)"
+    )
 
     # profitability — sector/global percentile; red-flag on absolute losses
     prof = _mean_axis_score(pcts, ("operating_margin", "return_on_equity"))
@@ -79,23 +85,38 @@ def score_record(record: "ScreenerRecord") -> None:
         prof = 3
         data_gaps.append("operating_margin/return_on_equity")
     if (record.operating_margin is not None and record.operating_margin < 0) or (
-            record.return_on_equity is not None and record.return_on_equity < 0):
+        record.return_on_equity is not None and record.return_on_equity < 0
+    ):
         prof = _RED_FLAG
     dims["profitability"] = prof
-    evidence["profitability"] = _evidence(record, pcts, [
-        ("operating_margin", "op margin", "decimal"), ("return_on_equity", "ROE", "decimal")])
+    evidence["profitability"] = _evidence(
+        record,
+        pcts,
+        [
+            ("operating_margin", "op margin", "decimal"),
+            ("return_on_equity", "ROE", "decimal"),
+        ],
+    )
 
     # resilience — gross_margin + inverted d/e (d/e<0 already excluded upstream);
     # red-flag on extreme positive leverage
-    resil = _mean_axis_score(pcts, ("gross_margin", "debt_to_equity"), invert=("debt_to_equity",))
+    resil = _mean_axis_score(
+        pcts, ("gross_margin", "debt_to_equity"), invert=("debt_to_equity",)
+    )
     if resil is None:
         resil = 3
         data_gaps.append("gross_margin/debt_to_equity")
-    if record.debt_to_equity is not None and record.debt_to_equity > _DE_REDFLAG_THRESHOLD:
+    if (
+        record.debt_to_equity is not None
+        and record.debt_to_equity > _DE_REDFLAG_THRESHOLD
+    ):
         resil = _RED_FLAG
     dims["resilience"] = resil
-    evidence["resilience"] = _evidence(record, pcts, [
-        ("gross_margin", "gross margin", "decimal"), ("debt_to_equity", "d/e", "de")])
+    evidence["resilience"] = _evidence(
+        record,
+        pcts,
+        [("gross_margin", "gross margin", "decimal"), ("debt_to_equity", "d/e", "de")],
+    )
 
     # sentinels (not merit; mirror dimensions.py)
     dims["management"] = 3
@@ -103,13 +124,18 @@ def score_record(record: "ScreenerRecord") -> None:
     evidence["management"] = "insufficient data: governance screened upstream"
     evidence["innovation"] = "insufficient data: no R&D data"
 
-    merit = {"growth": dims["growth"], "profitability": dims["profitability"],
-             "resilience": dims["resilience"]}
+    merit = {
+        "growth": dims["growth"],
+        "profitability": dims["profitability"],
+        "resilience": dims["resilience"],
+    }
     record.gemini_dimensions = dims
     record.gemini_evidence = evidence
     record.gemini_weakest_dimension = min(merit, key=lambda k: merit[k])
     record.gemini_data_gaps = data_gaps
-    record.data_confidence = "low" if (record.growth_consistency is None or data_gaps) else "ok"
+    record.data_confidence = (
+        "low" if (record.growth_consistency is None or data_gaps) else "ok"
+    )
 
     partial = []
     if sum(1 for f in ("operating_margin", "return_on_equity") if f in pcts) == 1:

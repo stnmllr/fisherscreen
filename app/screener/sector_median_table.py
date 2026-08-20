@@ -2,6 +2,7 @@
 (Punkt 2 Mechanism 2). Absent file => None (fail-safe: relative arm stays dormant).
 Malformed/version-mismatched file => FilterConfigError (fail loud). Mirrors the
 ADR-table loader pattern (app/deepdive/adr_table.py)."""
+
 from __future__ import annotations
 
 import json
@@ -37,14 +38,22 @@ def load_sector_median_table(path: Path | None = None) -> SectorMedianTable | No
     entries = data["entries"]
     counts = data.get("counts", {})
     n_min = data.get("n_min")
-    if (not isinstance(entries, dict) or not isinstance(counts, dict)
-            or not isinstance(n_min, int) or isinstance(n_min, bool)):
+    if (
+        not isinstance(entries, dict)
+        or not isinstance(counts, dict)
+        or not isinstance(n_min, int)
+        or isinstance(n_min, bool)
+    ):
         raise FilterConfigError("sector_median_table: bad entries/counts/n_min types")
     for node, med in entries.items():
         if not isinstance(med, (int, float)) or isinstance(med, bool):
-            raise FilterConfigError(f"sector_median_table: non-numeric median for {node!r}")
+            raise FilterConfigError(
+                f"sector_median_table: non-numeric median for {node!r}"
+            )
         if node not in counts:
-            raise FilterConfigError(f"sector_median_table: entry {node!r} missing from counts")
+            raise FilterConfigError(
+                f"sector_median_table: entry {node!r} missing from counts"
+            )
     return SectorMedianTable(
         entries={k: float(v) for k, v in entries.items()},
         n_min=n_min,

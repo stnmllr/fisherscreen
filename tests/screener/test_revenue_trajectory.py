@@ -1,5 +1,8 @@
 from app.models.definedness import DefinednessOutcome
-from app.screener.revenue_trajectory import classify_revenue_trajectory, is_gamma_decline
+from app.screener.revenue_trajectory import (
+    classify_revenue_trajectory,
+    is_gamma_decline,
+)
 
 
 def test_genuine_multiyear_decline_is_defined():

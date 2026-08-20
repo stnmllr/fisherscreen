@@ -6,6 +6,7 @@ insider block and a valuation-range line over time, and old files are never
 regenerated. Rule of thumb: parse what is there, return None for what is
 not, and never invent a value.
 """
+
 from __future__ import annotations
 
 import logging
@@ -136,9 +137,7 @@ def _parse_headline_metrics(lines: list[str]) -> dict[str, str]:
         for segment in payload.split(_SEGMENT_SEPARATOR):
             key, separator, value = segment.partition(":")
             if not separator:
-                logger.warning(
-                    "viewer: headline segment without label: %r", segment
-                )
+                logger.warning("viewer: headline segment without label: %r", segment)
                 continue
             metrics[key.strip()] = value.strip()
         return metrics
@@ -168,7 +167,7 @@ def parse_metric_line(
         if label is None:
             extras.append(segment)
             continue
-        known[label] = segment[len(label):].lstrip(": ").strip()
+        known[label] = segment[len(label) :].lstrip(": ").strip()
     return known, extras
 
 
@@ -177,7 +176,7 @@ def _match_label(segment: str, ordered_labels: list[str]) -> str | None:
     for label in ordered_labels:
         if not segment.startswith(label):
             continue
-        rest = segment[len(label):]
+        rest = segment[len(label) :]
         if not rest or rest[0] in " :":
             return label
     return None
@@ -267,7 +266,7 @@ def _parse_insider_section(lines: list[str]) -> tuple[str | None, list[str]]:
         if not line.strip():
             continue
         if line.strip().startswith(_INSIDER_PREFIX):
-            summary = line.strip()[len(_INSIDER_PREFIX):].strip()
+            summary = line.strip()[len(_INSIDER_PREFIX) :].strip()
             continue
         details.append(line.rstrip())
     return summary, details
@@ -324,7 +323,7 @@ def _parse_point_block(number: int, title: str | None, block: list[str]) -> Pars
     for index, line in enumerate(prose_lines):
         if _RATING_LINE_RE.match(line.strip()):
             rating, confidence = _parse_rating_line(line)
-            prose_lines = prose_lines[index + 1:]
+            prose_lines = prose_lines[index + 1 :]
             break
     reasoning, sources = _split_reasoning_and_sources("\n".join(prose_lines))
     return ParsedPoint(
@@ -376,9 +375,7 @@ def _parse_points(lines: list[str]) -> list[ParsedPoint]:
             )
         points.append(point)
     for leftover in sorted(parsed):
-        logger.warning(
-            "viewer: point number %s outside 1..15 — not rendered", leftover
-        )
+        logger.warning("viewer: point number %s outside 1..15 — not rendered", leftover)
     return points
 
 
@@ -407,12 +404,8 @@ def _build_dossier(path: Path, meta: dict[str, Any], body: str) -> Dossier:
         insider_detail_lines=insider_detail_lines,
         source_coverage=_parse_source_coverage(sections.get(_HEADING_COVERAGE, [])),
         company_name=_parse_company_name(sections.get("", [])),
-        headline_metrics=_parse_headline_metrics(
-            sections.get(_HEADING_BEWERTUNG, [])
-        ),
-        executive_summary=_parse_prose_section(
-            sections.get(_HEADING_SUMMARY, [])
-        ),
+        headline_metrics=_parse_headline_metrics(sections.get(_HEADING_BEWERTUNG, [])),
+        executive_summary=_parse_prose_section(sections.get(_HEADING_SUMMARY, [])),
         metrics=metrics,
         raw_metric_lines=raw_metric_lines,
         metric_extras=metric_extras,

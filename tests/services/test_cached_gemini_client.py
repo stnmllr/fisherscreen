@@ -15,7 +15,13 @@ def _record() -> ScreenerRecord:
 
 def _result(growth: int = 4) -> GeminiScoreResult:
     return GeminiScoreResult(
-        dimensions={"growth": growth, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3},
+        dimensions={
+            "growth": growth,
+            "profitability": 3,
+            "management": 3,
+            "innovation": 3,
+            "resilience": 3,
+        },
         evidence={"growth": "revenue_growth_yoy: 18.4%"},
         weakest_dimension="profitability",
         data_gaps=["operating_margin"],
@@ -26,7 +32,13 @@ def _result(growth: int = 4) -> GeminiScoreResult:
 
 def _fresh_cached(growth: int = 3) -> dict:
     return {
-        "dimensions": {"growth": growth, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3},
+        "dimensions": {
+            "growth": growth,
+            "profitability": 3,
+            "management": 3,
+            "innovation": 3,
+            "resilience": 3,
+        },
         "evidence": {"growth": "cached evidence"},
         "weakest_dimension": "resilience",
         "data_gaps": ["debt_to_equity"],
@@ -37,7 +49,13 @@ def _fresh_cached(growth: int = 3) -> dict:
 def _stale_cached() -> dict:
     stale_dt = datetime.now(timezone.utc) - timedelta(days=31)
     return {
-        "dimensions": {"growth": 1, "profitability": 1, "management": 1, "innovation": 1, "resilience": 1},
+        "dimensions": {
+            "growth": 1,
+            "profitability": 1,
+            "management": 1,
+            "innovation": 1,
+            "resilience": 1,
+        },
         "evidence": {},
         "weakest_dimension": "growth",
         "data_gaps": [],
@@ -115,7 +133,13 @@ def test_old_cache_entry_without_new_keys_is_usable():
     mock_gemini = MagicMock()
     mock_fs = MagicMock()
     mock_fs.get.return_value = {
-        "dimensions": {"growth": 4, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3},
+        "dimensions": {
+            "growth": 4,
+            "profitability": 3,
+            "management": 3,
+            "innovation": 3,
+            "resilience": 3,
+        },
         "_cached_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -155,7 +179,13 @@ def test_is_fresh_returns_false_when_cached_at_missing():
 def _cached_age_days(days: float) -> dict:
     dt = datetime.now(timezone.utc) - timedelta(days=days)
     return {
-        "dimensions": {"growth": 3, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3},
+        "dimensions": {
+            "growth": 3,
+            "profitability": 3,
+            "management": 3,
+            "innovation": 3,
+            "resilience": 3,
+        },
         "evidence": {"growth": "cached evidence"},
         "weakest_dimension": "resilience",
         "data_gaps": [],
@@ -183,7 +213,9 @@ def test_ttl_days_constructor_param_is_honored():
     mock_fs = MagicMock()
     mock_fs.get.return_value = _cached_age_days(5)
 
-    client = CachedGeminiClient(gemini=mock_gemini, firestore=mock_fs, collection="col", ttl_days=10)
+    client = CachedGeminiClient(
+        gemini=mock_gemini, firestore=mock_fs, collection="col", ttl_days=10
+    )
     result = client.score_ticker("AAPL", _record())
 
     mock_gemini.score_ticker.assert_not_called()

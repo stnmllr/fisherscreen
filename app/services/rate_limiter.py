@@ -1,7 +1,9 @@
 import time
 from typing import Callable, Optional
 
-DEFAULT_EDGAR_MAX_REQUESTS_PER_SECOND: float = 8.0  # SEC fair-access limit is 10 req/s; 8 is the conservative target
+DEFAULT_EDGAR_MAX_REQUESTS_PER_SECOND: float = (
+    8.0  # SEC fair-access limit is 10 req/s; 8 is the conservative target
+)
 
 
 class RateLimiter:

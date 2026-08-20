@@ -29,7 +29,9 @@ class FilterReport:
     yfinance_unresolved: list[str] = field(default_factory=list)
 
     def total_skipped(self) -> int:
-        return len(self.edgar_skipped_no_cik) + len(self.edgar_skipped_data_source_error)
+        return len(self.edgar_skipped_no_cik) + len(
+            self.edgar_skipped_data_source_error
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {

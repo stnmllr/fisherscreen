@@ -6,6 +6,7 @@ place where a missing insider block, an unfilled summary or a metric from a
 known-buggy run would otherwise look like a value that simply does not
 exist.
 """
+
 from datetime import date, datetime, timezone
 from pathlib import Path
 

@@ -35,8 +35,7 @@ def load_peer_quants(tickers: list[str], yfinance: Any) -> list[PeerQuant]:
         try:
             info = yfinance.get_ticker_info(t)
         except DataSourceError as exc:
-            logger.warning(
-                "peer_quant: %s info unavailable — %s (ticker-only)", t, exc)
+            logger.warning("peer_quant: %s info unavailable — %s (ticker-only)", t, exc)
             peers.append(PeerQuant(ticker=t))
             continue
         peers.append(_peer_from_info(t, info))

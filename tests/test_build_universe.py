@@ -11,7 +11,6 @@ from scripts.build_universe import (
     _normalise_us_ticker,
 )
 
-
 # --- ITEM 1: trailing-dot fix on LSE tickers --------------------------------
 
 
@@ -69,16 +68,16 @@ def test_class_suffix_is_normalised(raw, expected):
 @pytest.mark.parametrize(
     "ticker",
     [
-        "BRK-B",   # already hyphenated -> not [A-Z0-9]{2,}[abc]$
-        "AAPL",    # plain US ticker, no trailing lowercase
-        "NESN",    # plain EU ticker
-        "HMB",     # all-caps concatenated class form -> deliberately NOT split
+        "BRK-B",  # already hyphenated -> not [A-Z0-9]{2,}[abc]$
+        "AAPL",  # plain US ticker, no trailing lowercase
+        "NESN",  # plain EU ticker
+        "HMB",  # all-caps concatenated class form -> deliberately NOT split
         "MSFT",
         "NOVO-B",  # already hyphenated
-        "A",       # too short
-        "Ab",      # base length 1 -> must NOT transform
-        "ABCd",    # trailing 'd' not in a/b/c
-        "",        # empty -> unchanged
+        "A",  # too short
+        "Ab",  # base length 1 -> must NOT transform
+        "ABCd",  # trailing 'd' not in a/b/c
+        "",  # empty -> unchanged
     ],
 )
 def test_non_class_suffix_unchanged(ticker):

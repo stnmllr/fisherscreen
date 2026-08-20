@@ -22,9 +22,9 @@ def compute_insider_summary(
     owner_sell_total: dict[str, float] = {}
     for t in transactions:
         if t.bucket == "sell" and t.value is not None:
-            owner_sell_total[t.owner_name] = (
-                owner_sell_total.get(t.owner_name, 0.0) + abs(t.value)
-            )
+            owner_sell_total[t.owner_name] = owner_sell_total.get(
+                t.owner_name, 0.0
+            ) + abs(t.value)
 
     sig_buys: list[InsiderTransaction] = []
     sig_sells: list[InsiderTransaction] = []
@@ -49,12 +49,10 @@ def compute_insider_summary(
             routine += 1
 
     net_buy = sum(
-        t.value for t in sig_buys
-        if t.value is not None and t.acquired_disposed == "A"
+        t.value for t in sig_buys if t.value is not None and t.acquired_disposed == "A"
     )
     net_sell = sum(
-        t.value for t in sig_sells
-        if t.value is not None and t.acquired_disposed == "D"
+        t.value for t in sig_sells if t.value is not None and t.acquired_disposed == "D"
     )
     by_role: dict[str, dict[str, float]] = {}
     for t in sig_buys:

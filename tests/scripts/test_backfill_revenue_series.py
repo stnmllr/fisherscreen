@@ -1,4 +1,5 @@
 """Unit tests for the backfill_revenue_series script."""
+
 from scripts.backfill_revenue_series import backfill
 
 

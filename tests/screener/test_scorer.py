@@ -16,7 +16,13 @@ def _record(ticker: str = "TEST") -> ScreenerRecord:
 
 def _score_result() -> GeminiScoreResult:
     return GeminiScoreResult(
-        dimensions={"growth": 4, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3},
+        dimensions={
+            "growth": 4,
+            "profitability": 3,
+            "management": 3,
+            "innovation": 3,
+            "resilience": 3,
+        },
         evidence={"growth": "revenue_growth_yoy: 18.4%"},
         weakest_dimension="profitability",
         data_gaps=["operating_margin"],

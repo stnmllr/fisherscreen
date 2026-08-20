@@ -52,14 +52,20 @@ class CachedGeminiClient:
                 tokens_in=0,
                 tokens_out=0,
             )
-        result = self._gemini.score_ticker(ticker, record, max_input_tokens, max_output_tokens)
-        self._firestore.set(self._collection, ticker, {
-            "dimensions": result.dimensions,
-            "evidence": result.evidence,
-            "weakest_dimension": result.weakest_dimension,
-            "data_gaps": result.data_gaps,
-            "_cached_at": datetime.now(timezone.utc).isoformat(),
-        })
+        result = self._gemini.score_ticker(
+            ticker, record, max_input_tokens, max_output_tokens
+        )
+        self._firestore.set(
+            self._collection,
+            ticker,
+            {
+                "dimensions": result.dimensions,
+                "evidence": result.evidence,
+                "weakest_dimension": result.weakest_dimension,
+                "data_gaps": result.data_gaps,
+                "_cached_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )
         return result
 
     def _is_fresh(self, cached: dict[str, Any]) -> bool:
@@ -72,4 +78,6 @@ class CachedGeminiClient:
             return False
         if cached_at.tzinfo is None:
             cached_at = cached_at.replace(tzinfo=timezone.utc)
-        return (datetime.now(timezone.utc) - cached_at).total_seconds() < self._ttl_seconds
+        return (
+            datetime.now(timezone.utc) - cached_at
+        ).total_seconds() < self._ttl_seconds

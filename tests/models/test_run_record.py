@@ -1,6 +1,10 @@
 import pytest
 
-from app.models.run_record import COST_PER_1M_INPUT_USD, COST_PER_1M_OUTPUT_USD, RunRecord
+from app.models.run_record import (
+    COST_PER_1M_INPUT_USD,
+    COST_PER_1M_OUTPUT_USD,
+    RunRecord,
+)
 
 
 def test_run_record_defaults():
@@ -32,9 +36,8 @@ def test_compute_cost_output_tokens_only():
 def test_compute_cost_realistic_run():
     # 400 tickers x avg 1500 input + 200 output tokens
     record = RunRecord(run_id="test", tokens_in_total=600_000, tokens_out_total=80_000)
-    expected = (
-        (600_000 / 1_000_000 * COST_PER_1M_INPUT_USD)
-        + (80_000 / 1_000_000 * COST_PER_1M_OUTPUT_USD)
+    expected = (600_000 / 1_000_000 * COST_PER_1M_INPUT_USD) + (
+        80_000 / 1_000_000 * COST_PER_1M_OUTPUT_USD
     )
     assert record.compute_cost() == pytest.approx(expected)
 

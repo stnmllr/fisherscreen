@@ -21,7 +21,9 @@ from app.deepdive.trend_metrics import (
 
 logger = logging.getLogger(__name__)
 
-_DY_GLITCH_FACTOR = 10  # normalized yield > 10x payout/PE-implied => .info percent-units glitch
+_DY_GLITCH_FACTOR = (
+    10  # normalized yield > 10x payout/PE-implied => .info percent-units glitch
+)
 
 
 def _norm_dividend_yield(raw: float | None) -> float | None:
@@ -148,8 +150,9 @@ def build_quant_snapshot(
         info = {k: v for k, v in cached.items() if k != "_cached_at"}
         cov.quant_pit_source = "tool-a-cache"
     else:
-        logger.warning("quant: %s not in %s — live yfinance fallback",
-                        ticker, pit_collection)
+        logger.warning(
+            "quant: %s not in %s — live yfinance fallback", ticker, pit_collection
+        )
         info = yfinance.get_ticker_info(ticker)
         cov.quant_pit_source = "live-yfinance"
     pit = _pit_from_info(ticker, info)
@@ -170,12 +173,12 @@ def build_quant_snapshot(
     pit.ebit = _latest_non_none(raw.get("ebit", []))
     pit.interest_expense = _latest_non_none(raw.get("interest_expense", []))
 
-    cov.historical = "complete" if raw.get("complete") else (
-        f"partial (<5J, {len(hist.years)}J)")
+    cov.historical = (
+        "complete" if raw.get("complete") else (f"partial (<5J, {len(hist.years)}J)")
+    )
     fc = raw.get("financial_currency")
     if fc and pit.currency and fc != pit.currency:
-        cov.currency_note = (
-            f"financialCurrency {fc} != Listing-Währung {pit.currency}")
+        cov.currency_note = f"financialCurrency {fc} != Listing-Währung {pit.currency}"
 
     # 4c — trend metrics
     trends = TrendMetrics(
@@ -183,7 +186,8 @@ def build_quant_snapshot(
         operating_margin_slope_5y=compute_margin_slope(hist.operating_margin),
         dilution_pct_5y=compute_dilution_pct(hist.shares_outstanding),
         buyback_intensity_5y=compute_buyback_intensity(
-            hist.buyback_cashflow, pit.market_cap),
+            hist.buyback_cashflow, pit.market_cap
+        ),
     )
 
     # Tool-A Gemini dims (secondary, ADR-5c) — no live re-derivation
@@ -200,8 +204,7 @@ def build_quant_snapshot(
     try:
         forward_estimates = yfinance.get_forward_estimates(ticker)
     except DataSourceError as exc:
-        logger.warning(
-            "quant: %s forward estimates unavailable — %s", ticker, exc)
+        logger.warning("quant: %s forward estimates unavailable — %s", ticker, exc)
         forward_estimates = None
 
     snapshot = QuantSnapshot(

@@ -11,6 +11,7 @@ Generations (verified against output/Watchlist/):
   Gen 2 (2026-06-01)  Bewertungs-Range line present, still no insider
   Gen 3 (2026-07+)    insider frontmatter + "## Insider-Transaktionen"
 """
+
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -427,7 +428,13 @@ def test_peer_table_rows_without_separator_row(tmp_path):
         "FCF-Yield",
     ]
     assert dossier.peer_table[1] == [
-        "ARGX", "39.4", "26.4", "32.0%", "59.1%", "59.3%", "1.2%",
+        "ARGX",
+        "39.4",
+        "26.4",
+        "32.0%",
+        "59.1%",
+        "59.3%",
+        "1.2%",
     ]
     assert len(dossier.peer_table) == 3
 
@@ -794,8 +801,7 @@ def test_dossier_without_h1_has_no_company_name(tmp_path):
 def test_bewertung_section_without_headline_line(tmp_path):
     """Only the vintage line, no `*Market Cap: …*` — no fabricated metrics."""
     text = GEN3_MARKDOWN.replace(
-        "*Market Cap: 64,616,747,008 USD · Gross Margin: 59.1% · "
-        "Op. Margin: 32.0%*",
+        "*Market Cap: 64,616,747,008 USD · Gross Margin: 59.1% · " "Op. Margin: 32.0%*",
         "",
     )
 
@@ -834,9 +840,7 @@ def test_source_coverage_bullet_without_colon_is_ignored(tmp_path):
     assert "freie Notiz ohne Trenner" not in dossier.source_coverage
 
 
-def test_point_number_outside_one_to_fifteen_is_dropped_with_warning(
-    tmp_path, caplog
-):
+def test_point_number_outside_one_to_fifteen_is_dropped_with_warning(tmp_path, caplog):
     text = GEN3_MARKDOWN.replace(
         "### Punkt 2 — Management-Determination",
         "### Punkt 16 — Erfundener Punkt\n**Bewertung:** ⭐ · **Confidence:** 🔴\n\n"

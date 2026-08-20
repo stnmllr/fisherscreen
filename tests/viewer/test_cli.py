@@ -5,6 +5,7 @@ decides on its own: where it reads and writes by default, what it prints,
 and how it ends. Phase 1 has no deploy step — a generator that uploads
 without being asked would be a surprise, and the upload happens outside.
 """
+
 from pathlib import Path
 
 import pytest

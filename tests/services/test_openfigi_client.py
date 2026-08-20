@@ -7,6 +7,7 @@ from app.errors import DataSourceError
 
 def _client():
     from app.services.openfigi_client import OpenFIGIClientImpl
+
     return OpenFIGIClientImpl(sleep=lambda _s: None)
 
 

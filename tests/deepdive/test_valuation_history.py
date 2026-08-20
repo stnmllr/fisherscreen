@@ -89,29 +89,59 @@ def _weekly(start: date, n: int, price: float):
 def _annual_flat():
     # newest-first, 5 FY ending Dec, EPS_current already (no split)
     return [
-        AnnualFundamental(fy_end=date(2024, 12, 31), net_income=1000.0,
-                          diluted_eps=10.0, ebit=1200.0, free_cashflow=900.0,
-                          total_debt=200.0, cash=500.0),
-        AnnualFundamental(fy_end=date(2023, 12, 31), net_income=900.0,
-                          diluted_eps=9.0, ebit=1100.0, free_cashflow=800.0,
-                          total_debt=210.0, cash=480.0),
-        AnnualFundamental(fy_end=date(2022, 12, 31), net_income=800.0,
-                          diluted_eps=8.0, ebit=1000.0, free_cashflow=700.0,
-                          total_debt=220.0, cash=460.0),
-        AnnualFundamental(fy_end=date(2021, 12, 31), net_income=700.0,
-                          diluted_eps=7.0, ebit=900.0, free_cashflow=600.0,
-                          total_debt=230.0, cash=440.0),
-        AnnualFundamental(fy_end=date(2020, 12, 31), net_income=600.0,
-                          diluted_eps=6.0, ebit=800.0, free_cashflow=500.0,
-                          total_debt=240.0, cash=420.0),
+        AnnualFundamental(
+            fy_end=date(2024, 12, 31),
+            net_income=1000.0,
+            diluted_eps=10.0,
+            ebit=1200.0,
+            free_cashflow=900.0,
+            total_debt=200.0,
+            cash=500.0,
+        ),
+        AnnualFundamental(
+            fy_end=date(2023, 12, 31),
+            net_income=900.0,
+            diluted_eps=9.0,
+            ebit=1100.0,
+            free_cashflow=800.0,
+            total_debt=210.0,
+            cash=480.0,
+        ),
+        AnnualFundamental(
+            fy_end=date(2022, 12, 31),
+            net_income=800.0,
+            diluted_eps=8.0,
+            ebit=1000.0,
+            free_cashflow=700.0,
+            total_debt=220.0,
+            cash=460.0,
+        ),
+        AnnualFundamental(
+            fy_end=date(2021, 12, 31),
+            net_income=700.0,
+            diluted_eps=7.0,
+            ebit=900.0,
+            free_cashflow=600.0,
+            total_debt=230.0,
+            cash=440.0,
+        ),
+        AnnualFundamental(
+            fy_end=date(2020, 12, 31),
+            net_income=600.0,
+            diluted_eps=6.0,
+            ebit=800.0,
+            free_cashflow=500.0,
+            total_debt=240.0,
+            cash=420.0,
+        ),
     ]
 
 
 def test_compute_pe_band_basic_same_currency():
     weekly = _weekly(date(2020, 6, 1), 260, 100.0)
     vh = compute_valuation_history(
-        weekly, _annual_flat(), splits=[],
-        listing_ccy="USD", financial_ccy="USD")
+        weekly, _annual_flat(), splits=[], listing_ccy="USD", financial_ccy="USD"
+    )
     assert vh.pe.median is not None and vh.pe.median > 0
     assert vh.pe.n_obs > 0
     assert vh.pe.status in ("complete", "partial")
@@ -120,8 +150,8 @@ def test_compute_pe_band_basic_same_currency():
 def test_compute_skips_fx_when_currencies_differ():
     weekly = _weekly(date(2020, 6, 1), 260, 100.0)
     vh = compute_valuation_history(
-        weekly, _annual_flat(), splits=[],
-        listing_ccy="USD", financial_ccy="DKK")
+        weekly, _annual_flat(), splits=[], listing_ccy="USD", financial_ccy="DKK"
+    )
     assert vh.pe.status == "skipped_fx"
     assert vh.ev_ebit.status == "skipped_fx"
     assert vh.fcf_yield.status == "skipped_fx"
@@ -131,48 +161,74 @@ def test_compute_skips_fx_when_currencies_differ():
 def test_compute_na_data_when_currency_none():
     weekly = _weekly(date(2020, 6, 1), 260, 100.0)
     vh = compute_valuation_history(
-        weekly, _annual_flat(), splits=[],
-        listing_ccy=None, financial_ccy="USD")
+        weekly, _annual_flat(), splits=[], listing_ccy=None, financial_ccy="USD"
+    )
     assert vh.pe.status == "na_data"
 
 
 def test_compute_excludes_nonpositive_eps_and_ebit():
     annual = _annual_flat()
     annual[0] = AnnualFundamental(
-        fy_end=date(2024, 12, 31), net_income=-100.0, diluted_eps=-1.0,
-        ebit=-50.0, free_cashflow=900.0, total_debt=200.0, cash=500.0)
+        fy_end=date(2024, 12, 31),
+        net_income=-100.0,
+        diluted_eps=-1.0,
+        ebit=-50.0,
+        free_cashflow=900.0,
+        total_debt=200.0,
+        cash=500.0,
+    )
     weekly = _weekly(date(2024, 6, 1), 30, 100.0)
     vh = compute_valuation_history(
-        weekly, annual, splits=[], listing_ccy="USD", financial_ccy="USD")
+        weekly, annual, splits=[], listing_ccy="USD", financial_ccy="USD"
+    )
     assert vh.pe.n_obs >= 0  # negatives not counted as valid P/E; no crash
 
 
 def test_compute_keeps_negative_fcf_yield():
     annual = _annual_flat()
     annual[0] = AnnualFundamental(
-        fy_end=date(2024, 12, 31), net_income=1000.0, diluted_eps=10.0,
-        ebit=1200.0, free_cashflow=-900.0, total_debt=200.0, cash=500.0)
+        fy_end=date(2024, 12, 31),
+        net_income=1000.0,
+        diluted_eps=10.0,
+        ebit=1200.0,
+        free_cashflow=-900.0,
+        total_debt=200.0,
+        cash=500.0,
+    )
     weekly = _weekly(date(2024, 6, 1), 30, 100.0)
     vh = compute_valuation_history(
-        weekly, annual, splits=[], listing_ccy="USD", financial_ccy="USD")
+        weekly, annual, splits=[], listing_ccy="USD", financial_ccy="USD"
+    )
     assert vh.fcf_yield.n_obs > 0
 
 
 def test_compute_split_normalizes_pe():
     # GOOGL-like 20:1 at 2022-07-18; pre-split FY EPS reported pre-split basis
     annual = [
-        AnnualFundamental(fy_end=date(2023, 12, 31), net_income=2000.0,
-                          diluted_eps=5.0, ebit=2500.0, free_cashflow=1800.0,
-                          total_debt=100.0, cash=900.0),
-        AnnualFundamental(fy_end=date(2021, 12, 31), net_income=1900.0,
-                          diluted_eps=100.0,  # pre-split (20x larger)
-                          ebit=2300.0, free_cashflow=1700.0,
-                          total_debt=120.0, cash=850.0),
+        AnnualFundamental(
+            fy_end=date(2023, 12, 31),
+            net_income=2000.0,
+            diluted_eps=5.0,
+            ebit=2500.0,
+            free_cashflow=1800.0,
+            total_debt=100.0,
+            cash=900.0,
+        ),
+        AnnualFundamental(
+            fy_end=date(2021, 12, 31),
+            net_income=1900.0,
+            diluted_eps=100.0,  # pre-split (20x larger)
+            ebit=2300.0,
+            free_cashflow=1700.0,
+            total_debt=120.0,
+            cash=850.0,
+        ),
     ]
     splits = [(date(2022, 7, 18), 20.0)]
     weekly = _weekly(date(2020, 6, 1), 260, 100.0)  # constant post-split price
     vh = compute_valuation_history(
-        weekly, annual, splits=splits, listing_ccy="USD", financial_ccy="USD")
+        weekly, annual, splits=splits, listing_ccy="USD", financial_ccy="USD"
+    )
     # pre-split EPS 100 -> 5 (current basis), so P/E those weeks = 100/5 = 20,
     # NOT 100/100 = 1. Median must be ~20, not ~1.
     assert vh.pe.median is not None and vh.pe.median > 10

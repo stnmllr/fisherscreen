@@ -75,7 +75,11 @@ def _compute_dimension_data(
     result: dict = {}
     for dim in DIMENSIONS:
         all_qualifying = sorted(
-            [r for r in scored if (r.gemini_dimensions or {}).get(dim, 0) >= score_threshold],
+            [
+                r
+                for r in scored
+                if (r.gemini_dimensions or {}).get(dim, 0) >= score_threshold
+            ],
             key=lambda r, d=dim: (r.gemini_dimensions or {}).get(d, 0),
             reverse=True,
         )
@@ -145,6 +149,8 @@ def _build_markdown_body(
                 name = (r.name or "") if r else ""
                 sector = (r.gics_sector or "") if r else ""
                 score = (r.gemini_dimensions or {}).get(dim, "") if r else ""
-                lines.append(f"| {i} | {ticker} {_flags(r) if r else ''} | {name} | {sector} | {score} |")
+                lines.append(
+                    f"| {i} | {ticker} {_flags(r) if r else ''} | {name} | {sector} | {score} |"
+                )
         lines.append("")
     return "\n".join(lines)

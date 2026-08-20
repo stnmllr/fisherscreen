@@ -15,18 +15,49 @@ if TYPE_CHECKING:
 
 # Home-exchange codes per Yahoo suffix (lifted from the dual-line audit).
 SUFFIX_HOME_EXCH: dict[str, list[str]] = {
-    "SW": ["SW", "VX"], "DE": ["GY", "GR"], "PA": ["FP"], "MC": ["SM"],
-    "L": ["LN"], "AS": ["NA"], "CO": ["DC"], "VI": ["AV"], "WA": ["PW"],
-    "BR": ["BB"], "ST": ["SS"], "HE": ["FH"], "OL": ["NO"], "MI": ["IM"],
-    "IR": ["ID"], "AT": ["GA"], "LS": ["PL"],
+    "SW": ["SW", "VX"],
+    "DE": ["GY", "GR"],
+    "PA": ["FP"],
+    "MC": ["SM"],
+    "L": ["LN"],
+    "AS": ["NA"],
+    "CO": ["DC"],
+    "VI": ["AV"],
+    "WA": ["PW"],
+    "BR": ["BB"],
+    "ST": ["SS"],
+    "HE": ["FH"],
+    "OL": ["NO"],
+    "MI": ["IM"],
+    "IR": ["ID"],
+    "AT": ["GA"],
+    "LS": ["PL"],
 }
 # US exchange codes for the ADR line (audit "(US)" bucket).
 US_EXCH = {"US", "UN", "UW", "UQ", "UR", "UA", "UV", "PQ"}
 
 _LEGAL_FORMS = (
-    " AG", " SA", " S.A.", " N.V.", " NV", " PLC", " SE", " SPA", " S.P.A.",
-    " ASA", " AB", " OYJ", " A/S", " HOLDING", " GROUP", " INC", " LTD",
-    " LIMITED", " COMPANY", " HLDG", " HLDGS",
+    " AG",
+    " SA",
+    " S.A.",
+    " N.V.",
+    " NV",
+    " PLC",
+    " SE",
+    " SPA",
+    " S.P.A.",
+    " ASA",
+    " AB",
+    " OYJ",
+    " A/S",
+    " HOLDING",
+    " GROUP",
+    " INC",
+    " LTD",
+    " LIMITED",
+    " COMPANY",
+    " HLDG",
+    " HLDGS",
 )
 
 
@@ -66,7 +97,9 @@ def local_symbol_variants(ticker: str) -> list[str]:
     return list(dict.fromkeys(variants))  # order-preserving dedup
 
 
-def find_home_identity(ticker: str, ref_norm: str, *, openfigi: "OpenFIGIClient") -> dict:
+def find_home_identity(
+    ticker: str, ref_norm: str, *, openfigi: "OpenFIGIClient"
+) -> dict:
     """Variant ladder + NAME-SANITY-CHECK: accept the first candidate whose
     OpenFIGI issuer name matches the reference (ADR-EU-2). Never 'first answer
     wins' — guards the variant-ladder false hit (ROCHE -> ROCHE BOBOIS)."""
@@ -107,7 +140,8 @@ def pick_us_adr_line(lines: list[dict], ident_norm: str) -> dict | None:
     YAGNI). A `detect_annual_form` None downstream fail-louds an OTC line whose
     issuer files no annual form (e.g. RTMVF for Rightmove)."""
     us = [
-        ln for ln in lines
+        ln
+        for ln in lines
         if (ln.get("exchCode") or "").strip() in US_EXCH
         and _same_issuer(ln.get("name", ""), ident_norm)
     ]

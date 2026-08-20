@@ -1,5 +1,10 @@
 import pytest
-from app.errors import DataSourceError, FilterConfigError, FisherScreenError, GeminiError
+from app.errors import (
+    DataSourceError,
+    FilterConfigError,
+    FisherScreenError,
+    GeminiError,
+)
 
 
 def test_all_subclass_base():

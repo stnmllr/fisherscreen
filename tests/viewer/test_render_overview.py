@@ -6,6 +6,7 @@ Two invariants run through all of them:
   separate numeric attribute — deriving it is parsing, not computing.
 * Everything that comes out of a dossier is untrusted and must be escaped.
 """
+
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -338,9 +339,7 @@ def test_page_renders_a_dossier_without_a_company_name():
 
 
 def test_page_uses_singular_for_a_single_skipped_file():
-    page = render_overview(
-        [row_of()], generated_at=GENERATED_AT, skipped=["broken.md"]
-    )
+    page = render_overview([row_of()], generated_at=GENERATED_AT, skipped=["broken.md"])
 
     assert "1 Datei übersprungen" in page
 

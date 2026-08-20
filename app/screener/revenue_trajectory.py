@@ -5,11 +5,14 @@ definedness). The >=4-fiscal-years minimum is the SEAM-2 safeguard: with fewer p
 the trajectory criterion cannot apply, so the outcome is UNASSESSABLE (deliberate
 routing to a pass downstream), never a silent verdict.
 """
+
 from __future__ import annotations
 
 from app.models.definedness import DefinednessOutcome
 
-MIN_FISCAL_YEARS = 4  # >=4 GJ == >=3 YoY transitions; needed for a down_years>=2 verdict
+MIN_FISCAL_YEARS = (
+    4  # >=4 GJ == >=3 YoY transitions; needed for a down_years>=2 verdict
+)
 
 
 def classify_revenue_trajectory(
@@ -31,14 +34,17 @@ def classify_revenue_trajectory(
     years = n - 1
     cagr = (revenues[-1] / revenues[0]) ** (1 / years) - 1
     definedness = (
-        DefinednessOutcome.DEFINED if n >= MIN_FISCAL_YEARS else DefinednessOutcome.UNASSESSABLE
+        DefinednessOutcome.DEFINED
+        if n >= MIN_FISCAL_YEARS
+        else DefinednessOutcome.UNASSESSABLE
     )
     return cagr, down_years, definedness
 
 
 def is_gamma_decline(cagr: float | None, down_years: int | None) -> bool:
     """γ core: a genuine multi-year decline requires BOTH endpoint and trajectory to agree —
-    CAGR < 0 AND down_years >= 2. Either signal missing -> not a decline (floor: in dubio pass)."""
+    CAGR < 0 AND down_years >= 2. Either signal missing -> not a decline (floor: in dubio pass).
+    """
     if cagr is None or down_years is None:
         return False
     return cagr < 0 and down_years >= 2

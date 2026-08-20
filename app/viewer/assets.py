@@ -14,6 +14,7 @@ Kept as module constants rather than package data files: the site
 generator writes them out next to the pages, and a constant cannot go
 missing from a wheel or a container image.
 """
+
 from __future__ import annotations
 
 import logging

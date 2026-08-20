@@ -67,7 +67,9 @@ def test_build_gemini_pipeline_wires_components():
 
         result = compose_module.build_gemini_pipeline()
 
-        mock_gemini_cls.assert_called_once_with(api_key="test-key", model="gemini-2.5-flash-lite")
+        mock_gemini_cls.assert_called_once_with(
+            api_key="test-key", model="gemini-2.5-flash-lite"
+        )
         mock_fs_cls.assert_called_once_with(project_id="test-project")
         mock_cached_cls.assert_called_once_with(
             gemini=mock_gemini_cls.return_value,

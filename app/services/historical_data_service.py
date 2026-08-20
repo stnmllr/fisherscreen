@@ -97,10 +97,13 @@ class HistoricalDataServiceImpl:
         if not series["complete"]:
             logger.warning(
                 "historical: %s only %d years (<%d) — flagged partial",
-                ticker, len(years), _MIN_COMPLETE_YEARS,
+                ticker,
+                len(years),
+                _MIN_COMPLETE_YEARS,
             )
         series["valuation_history"] = self._build_valuation_history(
-            ticker, cols, ni, eps, ebit, fcf, td, cce, info)
+            ticker, cols, ni, eps, ebit, fcf, td, cce, info
+        )
         return series
 
     def _build_valuation_history(
@@ -108,6 +111,7 @@ class HistoricalDataServiceImpl:
     ) -> ValuationHistory:
         """Pullt Wochen-Preis + Splits und ruft die pure-Funktion. Preis-/Split-
         Pull-Fehler -> ValuationHistory(all na_data) + WARNING (fail-soft)."""
+
         def col(d, c):
             v = d.get(c)
             return None if v is None else float(v)
@@ -115,9 +119,13 @@ class HistoricalDataServiceImpl:
         annual = [
             AnnualFundamental(
                 fy_end=c.date() if hasattr(c, "date") else c,
-                net_income=col(ni, c), diluted_eps=col(eps, c),
-                ebit=col(ebit, c), free_cashflow=col(fcf, c),
-                total_debt=col(td, c), cash=col(cce, c))
+                net_income=col(ni, c),
+                diluted_eps=col(eps, c),
+                ebit=col(ebit, c),
+                free_cashflow=col(fcf, c),
+                total_debt=col(td, c),
+                cash=col(cce, c),
+            )
             for c in cols
         ]
         try:
@@ -125,11 +133,16 @@ class HistoricalDataServiceImpl:
             splits = self._yf.get_splits(ticker)
         except DataSourceError as exc:
             logger.warning(
-                "valuation history: %s price/split pull failed — %s "
-                "(na_data)", ticker, exc)
+                "valuation history: %s price/split pull failed — %s " "(na_data)",
+                ticker,
+                exc,
+            )
             na = MultipleStats(status="na_data")
             return ValuationHistory(pe=na, ev_ebit=na, fcf_yield=na)
         return compute_valuation_history(
-            weekly, annual, splits,
+            weekly,
+            annual,
+            splits,
             listing_ccy=info.get("currency"),
-            financial_ccy=info.get("financialCurrency"))
+            financial_ccy=info.get("financialCurrency"),
+        )

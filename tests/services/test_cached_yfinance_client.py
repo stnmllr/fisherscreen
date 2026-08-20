@@ -8,6 +8,7 @@ from app.errors import DataSourceError
 
 def _make_client(yfinance_mock, firestore_mock):
     from app.services.cached_yfinance_client import CachedYFinanceClient
+
     return CachedYFinanceClient(
         yfinance=yfinance_mock,
         firestore=firestore_mock,
@@ -58,7 +59,10 @@ def test_expired_cache_refetches_from_yfinance():
         "shortName": "Apple (stale)",
         "_cached_at": stale_ts,
     }
-    mock_yf.get_ticker_info.return_value = {"shortName": "Apple (fresh)", "marketCap": 3e12}
+    mock_yf.get_ticker_info.return_value = {
+        "shortName": "Apple (fresh)",
+        "marketCap": 3e12,
+    }
 
     client = _make_client(mock_yf, mock_fs)
     result = client.get_ticker_info("AAPL")
@@ -97,7 +101,9 @@ def test_yfinance_error_propagates_on_cache_miss():
     mock_yf = MagicMock()
     mock_fs = MagicMock()
     mock_fs.get.return_value = None
-    mock_yf.get_ticker_info.side_effect = DataSourceError("yfinance failed for AAPL: network error")
+    mock_yf.get_ticker_info.side_effect = DataSourceError(
+        "yfinance failed for AAPL: network error"
+    )
 
     client = _make_client(mock_yf, mock_fs)
 
@@ -138,7 +144,10 @@ def test_missing_cached_at_field_triggers_refetch():
     mock_yf = MagicMock()
     mock_fs = MagicMock()
     mock_fs.get.return_value = {"shortName": "Apple"}  # no _cached_at
-    mock_yf.get_ticker_info.return_value = {"shortName": "Apple Fresh", "marketCap": 3e12}
+    mock_yf.get_ticker_info.return_value = {
+        "shortName": "Apple Fresh",
+        "marketCap": 3e12,
+    }
 
     client = _make_client(mock_yf, mock_fs)
     result = client.get_ticker_info("AAPL")

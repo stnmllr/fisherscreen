@@ -67,6 +67,7 @@ def test_parse_form4_extracts_nonderivative_and_derivative():
 
 def test_classify_bucket_unknown_code_warns_routine(caplog):
     import logging
+
     with caplog.at_level(logging.WARNING):
         assert classify_bucket("X", False) == "routine"
     assert any("unknown transactionCode" in r.message for r in caplog.records)

@@ -4,6 +4,7 @@ The Fisher pages must read as the same toolbox as the macro dashboard, so
 the design tokens are pinned by value here: a silent drift of --navy or
 --accent would make two sites that claim to be one look like two.
 """
+
 from app.viewer.assets import SITE_CSS, SORT_JS
 from app.viewer.html import TABLE_SCROLL_CLASS
 

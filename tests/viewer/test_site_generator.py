@@ -8,6 +8,7 @@ dossier that quietly fails to produce a page.
 Everything writes to tmp_path — tests/conftest.py blocks writes below the
 repo's output/.
 """
+
 import logging
 from datetime import date, datetime, timezone
 from pathlib import Path

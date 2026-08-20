@@ -7,9 +7,13 @@ from app.errors import DataSourceError
 
 def _info(**over):
     base = {
-        "shortName": "Pfizer", "trailingPE": 12.0, "forwardPE": 11.0,
-        "operatingMargins": 0.25, "grossMargins": 0.65,
-        "revenueGrowth": 0.03, "freeCashflow": 1.5e10,
+        "shortName": "Pfizer",
+        "trailingPE": 12.0,
+        "forwardPE": 11.0,
+        "operatingMargins": 0.25,
+        "grossMargins": 0.65,
+        "revenueGrowth": 0.03,
+        "freeCashflow": 1.5e10,
         "marketCap": 1.6e11,
     }
     base.update(over)

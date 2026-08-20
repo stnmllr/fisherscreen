@@ -56,15 +56,25 @@ def _mock_generate_resp(
 
 
 def _valid_dims() -> dict:
-    return {"growth": 4, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3}
+    return {
+        "growth": 4,
+        "profitability": 3,
+        "management": 3,
+        "innovation": 3,
+        "resilience": 3,
+    }
 
 
 def _server_error(code: int) -> ServerError:
-    return ServerError(code, {"error": {"status": "UNAVAILABLE", "message": "high demand"}})
+    return ServerError(
+        code, {"error": {"status": "UNAVAILABLE", "message": "high demand"}}
+    )
 
 
 def _client_error(code: int) -> ClientError:
-    return ClientError(code, {"error": {"status": "RESOURCE_EXHAUSTED", "message": "rate"}})
+    return ClientError(
+        code, {"error": {"status": "RESOURCE_EXHAUSTED", "message": "rate"}}
+    )
 
 
 @pytest.fixture
@@ -85,7 +95,9 @@ def test_score_ticker_returns_valid_result(mock_genai):
     mock_client = MagicMock()
     mock_genai.Client.return_value = mock_client
     mock_client.models.count_tokens.return_value = _mock_token_resp(500)
-    mock_client.models.generate_content.return_value = _mock_generate_resp(_valid_dims())
+    mock_client.models.generate_content.return_value = _mock_generate_resp(
+        _valid_dims()
+    )
 
     impl = GeminiClientImpl(api_key="key")
     result = impl.score_ticker("TEST", _record())
@@ -127,7 +139,13 @@ def test_clamps_out_of_range_dimension_scores(mock_genai):
     mock_genai.Client.return_value = mock_client
     mock_client.models.count_tokens.return_value = _mock_token_resp(500)
     mock_client.models.generate_content.return_value = _mock_generate_resp(
-        {"growth": 10, "profitability": -3, "management": 3, "innovation": 3, "resilience": 3}
+        {
+            "growth": 10,
+            "profitability": -3,
+            "management": 3,
+            "innovation": 3,
+            "resilience": 3,
+        }
     )
 
     impl = GeminiClientImpl(api_key="key")
@@ -142,7 +160,13 @@ def test_zero_red_flag_score_is_preserved(mock_genai):
     mock_genai.Client.return_value = mock_client
     mock_client.models.count_tokens.return_value = _mock_token_resp(500)
     mock_client.models.generate_content.return_value = _mock_generate_resp(
-        {"growth": 0, "profitability": 2, "management": 3, "innovation": 3, "resilience": 1}
+        {
+            "growth": 0,
+            "profitability": 2,
+            "management": 3,
+            "innovation": 3,
+            "resilience": 1,
+        }
     )
 
     impl = GeminiClientImpl(api_key="key")
@@ -179,7 +203,9 @@ def test_management_and_innovation_present_in_output(mock_genai):
     mock_client = MagicMock()
     mock_genai.Client.return_value = mock_client
     mock_client.models.count_tokens.return_value = _mock_token_resp(500)
-    mock_client.models.generate_content.return_value = _mock_generate_resp(_valid_dims())
+    mock_client.models.generate_content.return_value = _mock_generate_resp(
+        _valid_dims()
+    )
 
     impl = GeminiClientImpl(api_key="key")
     result = impl.score_ticker("TEST", _record())
@@ -248,7 +274,9 @@ def test_score_ticker_handles_none_financial_ratios(mock_genai):
     mock_client = MagicMock()
     mock_genai.Client.return_value = mock_client
     mock_client.models.count_tokens.return_value = _mock_token_resp(400)
-    mock_client.models.generate_content.return_value = _mock_generate_resp(_valid_dims())
+    mock_client.models.generate_content.return_value = _mock_generate_resp(
+        _valid_dims()
+    )
 
     impl = GeminiClientImpl(api_key="key")
     record = _record(revenue_growth_yoy=None, operating_margin=None, market_cap=None)
@@ -282,7 +310,9 @@ def test_retries_count_tokens_on_503_then_succeeds(mock_genai, fast_retry):
         _server_error(503),
         _mock_token_resp(500),
     ]
-    mock_client.models.generate_content.return_value = _mock_generate_resp(_valid_dims())
+    mock_client.models.generate_content.return_value = _mock_generate_resp(
+        _valid_dims()
+    )
 
     impl = GeminiClientImpl(api_key="key")
     result = impl.score_ticker("TEST", _record())

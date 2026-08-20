@@ -7,6 +7,7 @@ asked is a surprise, not a convenience.
 Local invocation (EPDR blocks the console-script shims):
     uv run python -m app.viewer --in output\\Watchlist --out build\\site
 """
+
 from __future__ import annotations
 
 import argparse

@@ -37,7 +37,9 @@ def build_edgar_pipeline() -> EdgarClient:
 
 
 def build_gemini_pipeline() -> GeminiClient:
-    gemini = GeminiClientImpl(api_key=settings.gemini_api_key, model=settings.gemini_model)
+    gemini = GeminiClientImpl(
+        api_key=settings.gemini_api_key, model=settings.gemini_model
+    )
     firestore = FirestoreClientImpl(project_id=settings.gcp_project_id)
     return CachedGeminiClient(
         gemini=gemini,

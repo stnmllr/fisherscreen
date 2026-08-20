@@ -53,14 +53,18 @@ def test_empty_index_is_empty_not_fetch_failed(tmp_path):
 
 def test_all_xml_fail_is_fetch_failed_not_empty(tmp_path):
     refs = [Form4Ref("a1", "form4.xml", "2026-01-01")]
-    res = _fetcher(tmp_path, _FakeEdgar(refs, docs={})).get_summary_input("1", "2025-01-01")
+    res = _fetcher(tmp_path, _FakeEdgar(refs, docs={})).get_summary_input(
+        "1", "2025-01-01"
+    )
     assert res.coverage_state == "fetch_failed"
     assert res.n_filings_total == 1 and res.n_parsed == 0
 
 
 def test_partial_when_some_xml_fail(tmp_path):
-    refs = [Form4Ref("a1", "form4.xml", "2026-01-01"),
-            Form4Ref("a2", "form4.xml", "2026-02-01")]
+    refs = [
+        Form4Ref("a1", "form4.xml", "2026-01-01"),
+        Form4Ref("a2", "form4.xml", "2026-02-01"),
+    ]
     edgar = _FakeEdgar(refs, docs={"a1": _XML})
     res = _fetcher(tmp_path, edgar).get_summary_input("1", "2025-01-01")
     assert res.coverage_state == "partial"
@@ -80,6 +84,7 @@ def test_ok_and_accession_cache_hit_skips_refetch(tmp_path):
 
 def test_index_error_propagates_for_pipeline_failsoft(tmp_path):
     import pytest
+
     edgar = _FakeEdgar([], index_raises=True)
     with pytest.raises(DataSourceError):
         _fetcher(tmp_path, edgar).get_summary_input("1", "2025-01-01")

@@ -116,8 +116,9 @@ def build_peer_resolver() -> Callable[..., Any]:
     yfinance = YFinanceClientImpl()
     peers_collection = settings.deepdive_peers_collection
 
-    def _resolve(*, ticker: str, peers_arg: str | None,
-                 rationale_arg: str | None, is_tty: bool) -> Any:
+    def _resolve(
+        *, ticker: str, peers_arg: str | None, rationale_arg: str | None, is_tty: bool
+    ) -> Any:
         return resolve_peers(
             ticker=ticker,
             peers_arg=peers_arg,

@@ -42,7 +42,9 @@ class EdgarClient(Protocol):
     def get_cik(self, ticker: str) -> str | None: ...
     def has_restatement(self, cik: str, years: int = 3) -> bool: ...
     def has_going_concern(self, cik: str, months: int = 24) -> bool: ...
-    def going_concern_hit(self, cik: str, months: int = 24) -> "GoingConcernHit | None": ...
+    def going_concern_hit(
+        self, cik: str, months: int = 24
+    ) -> "GoingConcernHit | None": ...
     def has_active_enforcement(self, cik: str) -> bool: ...
     def get_latest_annual_filing(self, cik: str, form_type: str) -> RawFiling: ...
     def detect_annual_form(self, cik: str) -> str | None: ...
@@ -57,8 +59,13 @@ class EdgarClientImpl:
     _EFTS_BASE = "https://efts.sec.gov"
     _EFTS_MAX_ATTEMPTS = 5
     _EFTS_BACKOFF_BASE_SECONDS = 1.0  # full-jitter cap for retry N is base * 2**(N-1)
-    _EFTS_OVERBROAD_CAP = 10000  # EFTS caps hits.total.value here when unscoped/over-broad
-    _GC_PRIMARY_FORMS = ("10-K", "10-Q")  # count the phrase only in the primary filing doc
+    _EFTS_OVERBROAD_CAP = (
+        10000  # EFTS caps hits.total.value here when unscoped/over-broad
+    )
+    _GC_PRIMARY_FORMS = (
+        "10-K",
+        "10-Q",
+    )  # count the phrase only in the primary filing doc
 
     # --- SUB-PHASE 4: going-concern polarity discriminator ---
     # Every 10-K/10-Q carries the ASC-205-40 "substantial doubt" phrase as boilerplate
@@ -125,7 +132,9 @@ class EdgarClientImpl:
         """Fetch SEC company_tickers.json and return a TICKER -> CIK string map."""
         url = "https://www.sec.gov/files/company_tickers.json"
         data = self._get(url)
-        return {entry["ticker"].upper(): str(entry["cik_str"]) for entry in data.values()}
+        return {
+            entry["ticker"].upper(): str(entry["cik_str"]) for entry in data.values()
+        }
 
     def get_cik(self, ticker: str) -> str | None:
         """Return the SEC CIK for ticker, or None if not found or on fetch failure.
@@ -137,7 +146,9 @@ class EdgarClientImpl:
             try:
                 self._ticker_map = self._load_ticker_map()
             except DataSourceError as exc:
-                logger.warning("edgar: failed to load ticker map: %s — CIK lookup disabled", exc)
+                logger.warning(
+                    "edgar: failed to load ticker map: %s — CIK lookup disabled", exc
+                )
                 self._ticker_map = {}  # empty dict prevents repeated retries
         return self._ticker_map.get(ticker.upper())
 
@@ -180,7 +191,10 @@ class EdgarClientImpl:
                 raise DataSourceError(f"EDGAR returned {resp.status_code} for {url}")
             logger.warning(
                 "edgar: EFTS returned %s for %s — transient, retry %d/%d",
-                resp.status_code, url, attempt, self._EFTS_MAX_ATTEMPTS,
+                resp.status_code,
+                url,
+                attempt,
+                self._EFTS_MAX_ATTEMPTS,
             )
             cap = self._EFTS_BACKOFF_BASE_SECONDS * (2 ** (attempt - 1))
             self._efts_sleep(self._rng.uniform(0, cap))
@@ -244,7 +258,9 @@ class EdgarClientImpl:
 
     def going_concern_hit(self, cik: str, months: int = 24) -> "GoingConcernHit | None":
         padded = cik.zfill(10)
-        startdt = (date.today() - timedelta(days=months * 30)).isoformat()  # ~30 days/month approximation
+        startdt = (
+            date.today() - timedelta(days=months * 30)
+        ).isoformat()  # ~30 days/month approximation
         base_url = (
             f"{self._EFTS_BASE}/LATEST/search-index"
             f"?q=%22raise+substantial+doubt%22"
@@ -412,7 +428,9 @@ class EdgarClientImpl:
             logger.warning(
                 "edgar: form-4 window starts %s but oldest recent filing is %s "
                 "(cik=%s) — older Form-4 not in recent (files-overflow not implemented)",
-                since, oldest, cik,
+                since,
+                oldest,
+                cik,
             )
         return refs
 

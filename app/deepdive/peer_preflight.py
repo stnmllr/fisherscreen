@@ -52,25 +52,37 @@ def _validate_resolvable(tokens: list[str], yfinance: Any) -> None:
 
 
 def _persist(
-    firestore: Any, peers_collection: str, ticker: str,
-    tokens: list[str], rationale: str | None,
+    firestore: Any,
+    peers_collection: str,
+    ticker: str,
+    tokens: list[str],
+    rationale: str | None,
 ) -> None:
-    firestore.set(peers_collection, ticker, {
-        "peers": tokens,
-        "rationale": rationale,
-        "last_updated": datetime.now(timezone.utc).isoformat(),
-    })
+    firestore.set(
+        peers_collection,
+        ticker,
+        {
+            "peers": tokens,
+            "rationale": rationale,
+            "last_updated": datetime.now(timezone.utc).isoformat(),
+        },
+    )
 
 
 def _build(
-    tokens: list[str], rationale: str | None, yfinance: Any,
+    tokens: list[str],
+    rationale: str | None,
+    yfinance: Any,
 ) -> PeerComparison:
-    return PeerComparison(
-        peers=load_peer_quants(tokens, yfinance), rationale=rationale)
+    return PeerComparison(peers=load_peer_quants(tokens, yfinance), rationale=rationale)
 
 
 def _interactive(
-    *, ticker: str, firestore: Any, peers_collection: str, yfinance: Any,
+    *,
+    ticker: str,
+    firestore: Any,
+    peers_collection: str,
+    yfinance: Any,
     input_fn: Callable[..., str],
 ) -> tuple[list[str], str | None]:
     stored = firestore.get(peers_collection, ticker)
@@ -89,7 +101,7 @@ def _interactive(
         rtxt = default_rationale if default_rationale is not None else ""
         print(
             f"Letzte Peer-Eingabe ({date}): {', '.join(default_peers)}\n"
-            f"Begründung: \"{rtxt}\"\n"
+            f'Begründung: "{rtxt}"\n'
             f"[Enter] für unverändert, oder neue 3er-Liste:"
         )
 
@@ -157,9 +169,12 @@ def resolve_peers(
 
     if is_tty:
         tokens, rationale = _interactive(
-            ticker=ticker, firestore=firestore,
-            peers_collection=peers_collection, yfinance=yfinance,
-            input_fn=input_fn)
+            ticker=ticker,
+            firestore=firestore,
+            peers_collection=peers_collection,
+            yfinance=yfinance,
+            input_fn=input_fn,
+        )
         _persist(firestore, peers_collection, ticker, tokens, rationale)
         return _build(tokens, rationale, yfinance)
 

@@ -7,6 +7,7 @@ module `app.deepdive.anchor_resolver.resolve_anchors`. Plan-Doc:
 Real-filing tests run against the four authoritative cache filings under
 `cache/filings/<CIK>/...`. Synthetic tests cover edge cases.
 """
+
 from __future__ import annotations
 
 import re
@@ -29,13 +30,33 @@ def test_anchor_resolver_ko_10k_full_coverage():
         encoding="utf-8", errors="replace"
     )
     result = resolve_anchors(raw)
-    expected_items = {"1", "1A", "1B", "1C", "2", "3", "4", "5",
-                      "6", "7", "7A", "8", "9", "9A", "9B", "9C",
-                      "10", "11", "12", "13", "14", "15", "16"}
+    expected_items = {
+        "1",
+        "1A",
+        "1B",
+        "1C",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "7A",
+        "8",
+        "9",
+        "9A",
+        "9B",
+        "9C",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+    }
     found_items = {m.item_label.upper() for m in result}
-    assert expected_items <= found_items, (
-        f"missing: {expected_items - found_items}"
-    )
+    assert expected_items <= found_items, f"missing: {expected_items - found_items}"
     item_1a = next(m for m in result if m.item_label.upper() == "1A")
     assert re.match(
         r"^.{0,80}?\bITEM\s+1A\b", item_1a.next_text_excerpt, re.I | re.DOTALL
@@ -48,13 +69,32 @@ def test_anchor_resolver_googl_10k_with_page_header_prefix():
         encoding="utf-8", errors="replace"
     )
     result = resolve_anchors(raw)
-    expected_items = {"1", "1A", "1B", "1C", "2", "3", "4", "5",
-                      "6", "7", "7A", "8", "9A", "9B", "9C",
-                      "10", "11", "12", "13", "14", "15", "16"}
+    expected_items = {
+        "1",
+        "1A",
+        "1B",
+        "1C",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "7A",
+        "8",
+        "9A",
+        "9B",
+        "9C",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+    }
     found_items = {m.item_label.upper() for m in result}
-    assert expected_items <= found_items, (
-        f"missing: {expected_items - found_items}"
-    )
+    assert expected_items <= found_items, f"missing: {expected_items - found_items}"
     item_1a = next(m for m in result if m.item_label.upper() == "1A")
     assert "Table of Contents" in item_1a.next_text_excerpt
     assert "ITEM 1A" in item_1a.next_text_excerpt.upper()
@@ -83,9 +123,7 @@ def test_anchor_resolver_asml_20f_no_sec_item_anchors():
     )
     result = resolve_anchors(raw)
     sec_items = {m.item_label.upper() for m in result} & {"4", "5", "18"}
-    assert sec_items == set(), (
-        f"unexpected SEC-item anchors found: {sec_items}"
-    )
+    assert sec_items == set(), f"unexpected SEC-item anchors found: {sec_items}"
 
 
 def test_anchor_resolver_empty_html():

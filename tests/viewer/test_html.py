@@ -5,6 +5,7 @@ Dossier prose is Gemini output and Stef's hand-written notes — untrusted
 input by construction, since nothing validates it between generator and
 browser.
 """
+
 import pytest
 from markdown_it import MarkdownIt
 

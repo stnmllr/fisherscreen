@@ -164,6 +164,7 @@ def test_github_branch_defaults_to_main():
 
 def test_deepdive_settings_defaults():
     from app.config import FisherScreenSettings
+
     s = FisherScreenSettings()
     assert s.deepdive_gemini_model == "gemini-2.5-pro"
     assert s.deepdive_token_cap == 200_000
@@ -181,4 +182,6 @@ def test_gemini_score_cache_ttl_days_default_is_2():
 def test_revenue_series_cache_defaults():
     s = FisherScreenSettings(_env_file=None)
     assert s.revenue_series_collection == "dev_revenue_series"
-    assert s.revenue_series_ttl_days == 400  # annual data -> long TTL (unlike Gemini 2d)
+    assert (
+        s.revenue_series_ttl_days == 400
+    )  # annual data -> long TTL (unlike Gemini 2d)

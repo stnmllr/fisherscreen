@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 def _make_client(edgar_mock, firestore_mock):
     from app.services.cached_edgar_client import CachedEdgarClient
+
     return CachedEdgarClient(
         edgar=edgar_mock,
         firestore=firestore_mock,
@@ -74,12 +75,17 @@ def test_second_method_call_reuses_freshly_written_cache():
     mock_edgar.has_going_concern.return_value = False
 
     call_count = {"n": 0}
+
     def get_side_effect(collection, key):
         call_count["n"] += 1
         if call_count["n"] == 1:
             return None  # first call: cache miss
         fresh_ts = datetime.now(timezone.utc).isoformat()
-        return {"has_restatement": False, "has_going_concern": False, "_cached_at": fresh_ts}
+        return {
+            "has_restatement": False,
+            "has_going_concern": False,
+            "_cached_at": fresh_ts,
+        }
 
     mock_fs.get.side_effect = get_side_effect
 

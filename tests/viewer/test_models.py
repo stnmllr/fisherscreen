@@ -4,6 +4,7 @@ Honest-label invariant under test: every content field is optional. A
 missing value must surface as None / empty container, never as a
 fabricated default that a later renderer would print as fact.
 """
+
 from datetime import datetime, timezone
 from pathlib import Path
 

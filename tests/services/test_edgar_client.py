@@ -9,6 +9,7 @@ from app.services.rate_limiter import RateLimiter
 
 def _make_client(user_agent="Test Agent <test@example.com>"):
     from app.services.edgar_client import EdgarClientImpl
+
     return EdgarClientImpl(
         user_agent=user_agent,
         rate_limiter=RateLimiter(8.0, sleep=lambda _s: None),
@@ -17,6 +18,7 @@ def _make_client(user_agent="Test Agent <test@example.com>"):
 
 def test_init_raises_when_user_agent_empty():
     from app.services.edgar_client import EdgarClientImpl
+
     with pytest.raises(DataSourceError, match="user agent"):
         EdgarClientImpl(user_agent="")
 
@@ -218,6 +220,7 @@ def test_has_going_concern_returns_true_when_hits_found(mock_httpx, mock_time):
     # A qualifying hit = in-window AND a primary form document (10-K/10-Q) whose
     # fetched primary doc carries an AFFIRMATIVE going-concern finding.
     from datetime import date
+
     today = date.today().isoformat()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
@@ -267,7 +270,7 @@ def test_has_going_concern_scopes_query_with_ciks_param(mock_httpx, mock_time):
 
     call_url = mock_httpx.get.call_args[0][0]
     assert "ciks=0000320193" in call_url  # padded CIK passed through to the valid param
-    assert "entity=" not in call_url       # the invalid, silently-ignored param is gone
+    assert "entity=" not in call_url  # the invalid, silently-ignored param is gone
 
 
 @patch("app.services.edgar_client.time")
@@ -286,13 +289,16 @@ def test_has_going_concern_false_for_scoped_healthy_eq_zero(mock_httpx, mock_tim
 
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
-def test_has_going_concern_true_for_scoped_genuine_hit_eq_relation(mock_httpx, mock_time):
+def test_has_going_concern_true_for_scoped_genuine_hit_eq_relation(
+    mock_httpx, mock_time
+):
     # Sentinel trennschärfe (the legitimate-positive branch): a correctly-scoped
     # query with a small EXACT count ({'relation': 'eq'}) whose hit is in-window AND
     # in a primary form document → True. Pins the True branch explicitly, since the
     # refactor reworked the True/raise split; relation == 'eq' must reach True (not
     # raise), and the qualifying hit drives it (not the bare total count).
     from datetime import date
+
     today = date.today().isoformat()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
@@ -324,7 +330,9 @@ def test_has_going_concern_raises_on_overbroad_gte_relation(mock_httpx, mock_tim
     # never silently drop the whole universe.
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = {"hits": {"total": {"value": 10000, "relation": "gte"}}}
+    mock_resp.json.return_value = {
+        "hits": {"total": {"value": 10000, "relation": "gte"}}
+    }
     mock_httpx.get.return_value = mock_resp
 
     client = _make_client()
@@ -334,7 +342,9 @@ def test_has_going_concern_raises_on_overbroad_gte_relation(mock_httpx, mock_tim
 
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
-def test_has_going_concern_retries_on_efts_500_then_succeeds(mock_httpx, mock_time, caplog):
+def test_has_going_concern_retries_on_efts_500_then_succeeds(
+    mock_httpx, mock_time, caplog
+):
     # EFTS sporadically returns 500 (observed in diagnosis E5). A transient 5xx
     # must not randomly flip a ticker between dropped/kept — retry with backoff.
     # The retry MUST log a WARNING so a genuine persistent EFTS outage is not masked.
@@ -439,9 +449,7 @@ def test_efts_full_jitter_is_within_bounds(mock_httpx):
     mock_httpx.get.return_value = resp500
 
     delays: list[float] = []
-    client = _make_client_with_efts(
-        efts_sleep=delays.append, rng=random.Random(0)
-    )
+    client = _make_client_with_efts(efts_sleep=delays.append, rng=random.Random(0))
     with pytest.raises(DataSourceError):
         client.going_concern_hit("320193")
 
@@ -520,7 +528,9 @@ def test_has_going_concern_false_when_all_hits_out_of_window(mock_httpx, mock_ti
 
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
-def test_has_going_concern_false_for_in_window_exhibit_boilerplate(mock_httpx, mock_time):
+def test_has_going_concern_false_for_in_window_exhibit_boilerplate(
+    mock_httpx, mock_time
+):
     # Defekt B (observed at AWI): an IN-WINDOW hit can be auditor-responsibility
     # BOILERPLATE ("required to evaluate whether there are conditions … that raise
     # substantial doubt …") living in an EX-99.1 exhibit attached to a 10-K — NOT a
@@ -528,6 +538,7 @@ def test_has_going_concern_false_for_in_window_exhibit_boilerplate(mock_httpx, m
     # count; exhibits (EX-*) are excluded. AWI is mixed: in-window exhibit +
     # out-of-window primary → both rejected → False (proves BOTH axes are required).
     from datetime import date
+
     today = date.today().isoformat()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
@@ -552,6 +563,7 @@ def test_has_going_concern_true_for_in_window_primary_form_hit(mock_httpx, mock_
     # Positive control (FRQN class): genuine going-concern language in an IN-WINDOW
     # PRIMARY 10-Q document → True. The fix must NOT neutralise real detection.
     from datetime import date
+
     today = date.today().isoformat()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
@@ -622,6 +634,7 @@ def test_has_active_enforcement_is_silent(caplog):
 
 
 # --- get_cik ---
+
 
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
@@ -701,18 +714,25 @@ def test_get_cik_returns_none_gracefully_on_http_failure(mock_httpx, mock_time):
 
 # --- get_latest_annual_filing ---
 
+
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
 def test_get_latest_annual_filing_returns_text_for_20f(mock_httpx, mock_time):
     submissions = MagicMock()
     submissions.status_code = 200
     submissions.json.return_value = {
-        "filings": {"recent": {
-            "form": ["6-K", "20-F", "20-F"],
-            "accessionNumber": ["0000-24-1", "0000353278-25-000020", "0000353278-24-000010"],
-            "primaryDocument": ["a.htm", "novo-20f.htm", "old.htm"],
-            "filingDate": ["2025-05-01", "2025-02-05", "2024-02-07"],
-        }}
+        "filings": {
+            "recent": {
+                "form": ["6-K", "20-F", "20-F"],
+                "accessionNumber": [
+                    "0000-24-1",
+                    "0000353278-25-000020",
+                    "0000353278-24-000010",
+                ],
+                "primaryDocument": ["a.htm", "novo-20f.htm", "old.htm"],
+                "filingDate": ["2025-05-01", "2025-02-05", "2024-02-07"],
+            }
+        }
     }
     doc = MagicMock()
     doc.status_code = 200
@@ -735,12 +755,18 @@ def test_get_latest_annual_filing_populates_filing_date(mock_httpx, mock_time):
     submissions = MagicMock()
     submissions.status_code = 200
     submissions.json.return_value = {
-        "filings": {"recent": {
-            "form": ["6-K", "20-F", "20-F"],
-            "accessionNumber": ["0000-24-1", "0000353278-25-000020", "0000353278-24-000010"],
-            "primaryDocument": ["a.htm", "novo-20f.htm", "old.htm"],
-            "filingDate": ["2025-05-01", "2025-02-05", "2024-02-07"],
-        }}
+        "filings": {
+            "recent": {
+                "form": ["6-K", "20-F", "20-F"],
+                "accessionNumber": [
+                    "0000-24-1",
+                    "0000353278-25-000020",
+                    "0000353278-24-000010",
+                ],
+                "primaryDocument": ["a.htm", "novo-20f.htm", "old.htm"],
+                "filingDate": ["2025-05-01", "2025-02-05", "2024-02-07"],
+            }
+        }
     }
     doc = MagicMock()
     doc.status_code = 200
@@ -755,16 +781,20 @@ def test_get_latest_annual_filing_populates_filing_date(mock_httpx, mock_time):
 
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
-def test_get_latest_annual_filing_filing_date_none_when_array_absent(mock_httpx, mock_time):
+def test_get_latest_annual_filing_filing_date_none_when_array_absent(
+    mock_httpx, mock_time
+):
     submissions = MagicMock()
     submissions.status_code = 200
     submissions.json.return_value = {
-        "filings": {"recent": {
-            "form": ["10-K"],
-            "accessionNumber": ["0001-25-1"],
-            "primaryDocument": ["k.htm"],
-            # no filingDate key at all
-        }}
+        "filings": {
+            "recent": {
+                "form": ["10-K"],
+                "accessionNumber": ["0001-25-1"],
+                "primaryDocument": ["k.htm"],
+                # no filingDate key at all
+            }
+        }
     }
     doc = MagicMock()
     doc.status_code = 200
@@ -778,16 +808,20 @@ def test_get_latest_annual_filing_filing_date_none_when_array_absent(mock_httpx,
 
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
-def test_get_latest_annual_filing_filing_date_none_when_array_short(mock_httpx, mock_time):
+def test_get_latest_annual_filing_filing_date_none_when_array_short(
+    mock_httpx, mock_time
+):
     submissions = MagicMock()
     submissions.status_code = 200
     submissions.json.return_value = {
-        "filings": {"recent": {
-            "form": ["6-K", "10-K"],
-            "accessionNumber": ["0000-24-1", "0001-25-1"],
-            "primaryDocument": ["a.htm", "k.htm"],
-            "filingDate": ["2025-05-01"],  # shorter than form[] — index 1 missing
-        }}
+        "filings": {
+            "recent": {
+                "form": ["6-K", "10-K"],
+                "accessionNumber": ["0000-24-1", "0001-25-1"],
+                "primaryDocument": ["a.htm", "k.htm"],
+                "filingDate": ["2025-05-01"],  # shorter than form[] — index 1 missing
+            }
+        }
     }
     doc = MagicMock()
     doc.status_code = 200
@@ -805,8 +839,14 @@ def test_get_latest_annual_filing_missing_form_raises(mock_httpx, mock_time):
     submissions = MagicMock()
     submissions.status_code = 200
     submissions.json.return_value = {
-        "filings": {"recent": {"form": ["6-K"], "accessionNumber": ["x"],
-                               "primaryDocument": ["a.htm"], "filingDate": ["2025-01-01"]}}
+        "filings": {
+            "recent": {
+                "form": ["6-K"],
+                "accessionNumber": ["x"],
+                "primaryDocument": ["a.htm"],
+                "filingDate": ["2025-01-01"],
+            }
+        }
     }
     mock_httpx.get.return_value = submissions
     client = _make_client()
@@ -820,8 +860,14 @@ def test_get_latest_annual_filing_doc_fetch_failure_raises(mock_httpx, mock_time
     submissions = MagicMock()
     submissions.status_code = 200
     submissions.json.return_value = {
-        "filings": {"recent": {"form": ["10-K"], "accessionNumber": ["0001-25-1"],
-                               "primaryDocument": ["k.htm"], "filingDate": ["2025-01-01"]}}
+        "filings": {
+            "recent": {
+                "form": ["10-K"],
+                "accessionNumber": ["0001-25-1"],
+                "primaryDocument": ["k.htm"],
+                "filingDate": ["2025-01-01"],
+            }
+        }
     }
     bad = MagicMock()
     bad.status_code = 404
@@ -845,12 +891,16 @@ def _client():
 
 def test_get_form4_index_filters_form_and_date():
     c = _client()
-    payload = {"filings": {"recent": {
-        "form": ["10-K", "4", "4", "8-K"],
-        "accessionNumber": ["a0", "a1", "a2", "a3"],
-        "primaryDocument": ["d0", "xslF345X06/d1.xml", "d2.xml", "d3"],
-        "filingDate": ["2026-05-01", "2026-04-01", "2024-01-01", "2026-03-01"],
-    }}}
+    payload = {
+        "filings": {
+            "recent": {
+                "form": ["10-K", "4", "4", "8-K"],
+                "accessionNumber": ["a0", "a1", "a2", "a3"],
+                "primaryDocument": ["d0", "xslF345X06/d1.xml", "d2.xml", "d3"],
+                "filingDate": ["2026-05-01", "2026-04-01", "2024-01-01", "2026-03-01"],
+            }
+        }
+    }
     with patch.object(c, "_get", return_value=payload):
         refs = c.get_form4_index("789019", since="2025-06-01")
     assert [r.accession_number for r in refs] == ["a1"]
@@ -866,7 +916,9 @@ def test_get_form4_document_strips_xsl_prefix():
         return "<ownershipDocument/>"
 
     with patch.object(c, "_get_text", side_effect=fake_text):
-        xml = c.get_form4_document("789019", "0000789019-26-000075", "xslF345X06/form4.xml")
+        xml = c.get_form4_document(
+            "789019", "0000789019-26-000075", "xslF345X06/form4.xml"
+        )
     assert xml == "<ownershipDocument/>"
     assert captured["url"].endswith("/000078901926000075/form4.xml")
     assert "xslF345X06" not in captured["url"]
@@ -874,7 +926,9 @@ def test_get_form4_document_strips_xsl_prefix():
 
 @patch("app.services.edgar_client.time")
 @patch("app.services.edgar_client.httpx")
-def test_going_concern_hit_returns_hit_with_accession_for_primary_form(mock_httpx, mock_time):
+def test_going_concern_hit_returns_hit_with_accession_for_primary_form(
+    mock_httpx, mock_time
+):
     from datetime import date
 
     from app.services.edgar_client import GoingConcernHit
@@ -1092,7 +1146,9 @@ def test_rate_limiter_acquire_invoked_on_request_path(mock_httpx):
 def test_detect_annual_form_returns_10k(mock_httpx):
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = {"filings": {"recent": {"form": ["8-K", "10-K", "4"]}}}
+    mock_resp.json.return_value = {
+        "filings": {"recent": {"form": ["8-K", "10-K", "4"]}}
+    }
     mock_httpx.get.return_value = mock_resp
     assert _make_client().detect_annual_form("320193") == "10-K"
 

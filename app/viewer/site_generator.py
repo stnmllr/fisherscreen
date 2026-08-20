@@ -6,6 +6,7 @@ renamed, because the overview already links to the unchanged symbol — and
 visibility: a dossier that cannot become a page is named on the overview
 instead of disappearing between input directory and output directory.
 """
+
 from __future__ import annotations
 
 import logging
@@ -52,9 +53,7 @@ def _duplicate_names(dossiers: Sequence[Dossier]) -> set[str]:
     no ISIN or CIK confirms.
     """
     counts = Counter(
-        dossier.company_name
-        for dossier in dossiers
-        if dossier.company_name is not None
+        dossier.company_name for dossier in dossiers if dossier.company_name is not None
     )
     return {name for name, count in counts.items() if count > 1}
 
