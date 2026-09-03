@@ -45,12 +45,18 @@ class OpenFIGIClientImpl:
                 raise DataSourceError(f"OpenFIGI request failed: {exc}") from exc
             if resp.status_code == 200:
                 return resp.json()
-            if resp.status_code in (429, 500, 502, 503, 504) and attempt < self._MAX_ATTEMPTS:
+            if (
+                resp.status_code in (429, 500, 502, 503, 504)
+                and attempt < self._MAX_ATTEMPTS
+            ):
                 retry_after = (resp.headers or {}).get("Retry-After")
-                wait = int(retry_after) if (retry_after or "").isdigit() else 2 ** attempt
+                wait = int(retry_after) if (retry_after or "").isdigit() else 2**attempt
                 logger.warning(
-                    "OpenFIGI %s for %s — retry %d/%d", resp.status_code, path,
-                    attempt, self._MAX_ATTEMPTS,
+                    "OpenFIGI %s for %s — retry %d/%d",
+                    resp.status_code,
+                    path,
+                    attempt,
+                    self._MAX_ATTEMPTS,
                 )
                 self._sleep(wait)
                 continue
@@ -58,10 +64,17 @@ class OpenFIGIClientImpl:
         raise DataSourceError(f"OpenFIGI exhausted retries for {path}")
 
     def map_ticker(self, local: str, exch_code: str) -> dict | None:
-        res = self._post("mapping", [{
-            "idType": "TICKER", "idValue": local,
-            "exchCode": exch_code, "securityType2": "Common Stock",
-        }])
+        res = self._post(
+            "mapping",
+            [
+                {
+                    "idType": "TICKER",
+                    "idValue": local,
+                    "exchCode": exch_code,
+                    "securityType2": "Common Stock",
+                }
+            ],
+        )
         first = res[0] if isinstance(res, list) and res else {}
         data = first.get("data") if isinstance(first, dict) else None
         return data[0] if data else None

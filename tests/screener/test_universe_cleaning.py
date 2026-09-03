@@ -6,6 +6,7 @@ Decision (DEFECT 2): negatives OUT by default, NO sector-string filter (the
 METRIK_NA set already removes the balance-sheet financials; Capital-Markets
 compounders are DEFINED and must stay).
 """
+
 from __future__ import annotations
 
 from app.models.screener_record import ScreenerRecord

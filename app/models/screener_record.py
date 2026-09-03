@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 from app.models.definedness import DefinednessOutcome
 
-
 # Minor-unit quote normalization: some exchanges quote price in a minor unit while
 # marketCap is in the major unit. London (GBp = pence) is the live case; ZAc (SA cents),
 # ILA (Israeli agorot) are the same class — add when a listing actually appears.
@@ -30,15 +29,17 @@ class ScreenerRecord(BaseModel):
     gics_industry: str | None = None
 
     # Financial ratios (from yfinance info — populated in run_basis_filter)
-    gross_margin: float | None = None          # info['grossMargins'] — decimal (0.45 = 45%)
-    revenue_growth_yoy: float | None = None   # info['revenueGrowth'] — decimal YoY
-    operating_margin: float | None = None      # info['operatingMargins']
-    return_on_equity: float | None = None      # info['returnOnEquity']
-    debt_to_equity: float | None = None        # info['debtToEquity']
+    gross_margin: float | None = None  # info['grossMargins'] — decimal (0.45 = 45%)
+    revenue_growth_yoy: float | None = None  # info['revenueGrowth'] — decimal YoY
+    operating_margin: float | None = None  # info['operatingMargins']
+    return_on_equity: float | None = None  # info['returnOnEquity']
+    debt_to_equity: float | None = None  # info['debtToEquity']
 
     # FX-normalized market cap — computed in run_basis_filter, not from yfinance directly
     market_cap_eur: float | None = None
-    fx_rate: float | None = None  # currency->EUR rate, carried from resolution (Punkt 1: value-gate primitive)
+    fx_rate: float | None = (
+        None  # currency->EUR rate, carried from resolution (Punkt 1: value-gate primitive)
+    )
 
     # EDGAR fields (populated in Phase 1.2)
     cik: str | None = None
@@ -46,20 +47,38 @@ class ScreenerRecord(BaseModel):
     has_going_concern: bool | None = None
     has_active_enforcement: bool = False
     edgar_skipped: bool = False
-    edgar_skipped_reason: str | None = None  # "no_cik" | "data_source_error" — set in run_edgar_filter
+    edgar_skipped_reason: str | None = (
+        None  # "no_cik" | "data_source_error" — set in run_edgar_filter
+    )
 
     # Gemini scoring (populated in Phase 1.3; v2.1 flat, evidence-driven prompt)
-    gemini_dimensions: dict[str, int] | None = None  # {"growth": 3, "profitability": 4, ...}
-    gemini_evidence: dict[str, str] | None = None  # per-dimension one-line evidence notes
-    gemini_weakest_dimension: str | None = None  # the lowest-scoring merit axis (self-reported)
-    gemini_data_gaps: list[str] | None = None  # DATA fields the model flagged as missing
+    gemini_dimensions: dict[str, int] | None = (
+        None  # {"growth": 3, "profitability": 4, ...}
+    )
+    gemini_evidence: dict[str, str] | None = (
+        None  # per-dimension one-line evidence notes
+    )
+    gemini_weakest_dimension: str | None = (
+        None  # the lowest-scoring merit axis (self-reported)
+    )
+    gemini_data_gaps: list[str] | None = (
+        None  # DATA fields the model flagged as missing
+    )
 
     # Sector-relative deterministic scoring (2026-06): set in percentile_prep + scorer.
-    input_percentiles: dict[str, float] | None = None  # metric -> within-run percentile (0..100)
-    growth_consistency: float | None = None            # positive_years_ratio; None = UNASSESSABLE (<4 GJ)
-    score_basis: dict[str, str] | None = None          # per axis: "global" | "sector_relative" | "global_fallback"
-    data_confidence: str = "ok"                        # "ok" | "low"
-    partial_evidence_axes: list[str] | None = None  # merit axes scored on only 1 of 2 inputs
+    input_percentiles: dict[str, float] | None = (
+        None  # metric -> within-run percentile (0..100)
+    )
+    growth_consistency: float | None = (
+        None  # positive_years_ratio; None = UNASSESSABLE (<4 GJ)
+    )
+    score_basis: dict[str, str] | None = (
+        None  # per axis: "global" | "sector_relative" | "global_fallback"
+    )
+    data_confidence: str = "ok"  # "ok" | "low"
+    partial_evidence_axes: list[str] | None = (
+        None  # merit axes scored on only 1 of 2 inputs
+    )
 
     # Filter tracking
     filter_passed_basis: bool | None = None
@@ -73,19 +92,27 @@ class ScreenerRecord(BaseModel):
     # Populated in the runner pre-pass (_assess_revenue_growth_trajectory) ONLY for
     # vol+cap survivors that clear the gross-margin gate AND have revenue_growth_yoy < 0
     # or None (the lazy-fetch cohort). Left None for everyone else (TTM-pass / not reached).
-    multiyear_revenue_cagr: float | None = None      # endpoint CAGR over available fiscal years
-    revenue_down_years: int | None = None            # count of negative YoY transitions (oldest->newest)
-    revenue_growth_definedness: DefinednessOutcome | None = None  # DEFINED | UNASSESSABLE (3-state, never bool)
-    revenue_growth_pass_reason: str | None = None    # TTM_PASS | TRAJECTORY_RESCUE | DECLINE_DROP | UNASSESSABLE_PASS
-    resolution_detail: str | None = None  # 0b: sub-reason when diverted (NO_RAW_MC|NO_CURRENCY|NO_VOLUME|NO_PRICE|NO_FX)
+    multiyear_revenue_cagr: float | None = (
+        None  # endpoint CAGR over available fiscal years
+    )
+    revenue_down_years: int | None = (
+        None  # count of negative YoY transitions (oldest->newest)
+    )
+    revenue_growth_definedness: DefinednessOutcome | None = (
+        None  # DEFINED | UNASSESSABLE (3-state, never bool)
+    )
+    revenue_growth_pass_reason: str | None = (
+        None  # TTM_PASS | TRAJECTORY_RESCUE | DECLINE_DROP | UNASSESSABLE_PASS
+    )
+    resolution_detail: str | None = (
+        None  # 0b: sub-reason when diverted (NO_RAW_MC|NO_CURRENCY|NO_VOLUME|NO_PRICE|NO_FX)
+    )
     # CT-A: definedness verdict from the basis-stage income-statement pre-pass.
     # None = not assessed (non-suspect, or record did not reach the assessment).
     definedness: DefinednessOutcome | None = None
 
     # Metadata
-    screened_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    screened_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @classmethod
     def from_yfinance_info(cls, ticker: str, info: dict[str, Any]) -> ScreenerRecord:

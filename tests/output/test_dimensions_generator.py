@@ -12,7 +12,13 @@ from app.screener.dimensions import DIMENSIONS
 
 
 def _record(ticker: str, **dim_scores) -> ScreenerRecord:
-    dims = {"growth": 3, "profitability": 3, "management": 3, "innovation": 3, "resilience": 3}
+    dims = {
+        "growth": 3,
+        "profitability": 3,
+        "management": 3,
+        "innovation": 3,
+        "resilience": 3,
+    }
     dims.update(dim_scores)
     return ScreenerRecord(
         ticker=ticker,
@@ -33,7 +39,9 @@ def test_generate_creates_file_in_output_dir(tmp_path):
 
 
 def test_generate_filename_uses_run_year_month(tmp_path):
-    path = generate([_record("AAPL")], _run_record("2026-05-13T08:00:00+00:00"), tmp_path)
+    path = generate(
+        [_record("AAPL")], _run_record("2026-05-13T08:00:00+00:00"), tmp_path
+    )
     assert path.name == "2026-05-Dimensions.md"
 
 
@@ -45,7 +53,15 @@ def test_generate_creates_universum_subdirectory(tmp_path):
 def test_frontmatter_has_required_top_level_keys(tmp_path):
     path = generate([_record("AAPL")], _run_record(), tmp_path)
     post = frontmatter.load(str(path))
-    for key in ("run_id", "generated_at", "universum_size", "score_threshold", "cap_per_dimension", "dimensions", "crosshits"):
+    for key in (
+        "run_id",
+        "generated_at",
+        "universum_size",
+        "score_threshold",
+        "cap_per_dimension",
+        "dimensions",
+        "crosshits",
+    ):
         assert key in post.metadata, f"Missing frontmatter key: {key}"
 
 
@@ -66,8 +82,8 @@ def test_frontmatter_dimensions_has_all_five_dimensions(tmp_path):
 
 def test_frontmatter_dimension_tickers_only_includes_qualifying_tickers(tmp_path):
     records = [
-        _record("PASS", growth=4),   # qualifies: growth >= 4
-        _record("FAIL", growth=3),   # does not qualify
+        _record("PASS", growth=4),  # qualifies: growth >= 4
+        _record("FAIL", growth=3),  # does not qualify
     ]
     path = generate(records, _run_record(), tmp_path, score_threshold=4.0)
     post = frontmatter.load(str(path))
@@ -77,7 +93,9 @@ def test_frontmatter_dimension_tickers_only_includes_qualifying_tickers(tmp_path
 
 
 def test_frontmatter_dimension_qualifying_count_is_correct(tmp_path):
-    records = [_record(f"T{i}", growth=4) for i in range(5)] + [_record("LOW", growth=3)]
+    records = [_record(f"T{i}", growth=4) for i in range(5)] + [
+        _record("LOW", growth=3)
+    ]
     path = generate(records, _run_record(), tmp_path, score_threshold=4.0)
     post = frontmatter.load(str(path))
     assert post.metadata["dimensions"]["growth"]["qualifying_count"] == 5
@@ -113,7 +131,9 @@ def test_innovation_section_renders_na_explanation(tmp_path):
 
 
 def test_merit_sections_still_list_top_tickers(tmp_path):
-    path = generate([_record("GROW", growth=5)], _run_record(), tmp_path, score_threshold=4.0)
+    path = generate(
+        [_record("GROW", growth=5)], _run_record(), tmp_path, score_threshold=4.0
+    )
     body = frontmatter.load(str(path)).content
     assert "GROW" in body
 
@@ -141,7 +161,7 @@ def test_generate_overwrites_existing_file(tmp_path):
 def test_frontmatter_crosshits_includes_tickers_qualifying_in_two_dimensions(tmp_path):
     records = [
         _record("MULTI", growth=5, profitability=5),  # qualifies in 2 dims → crosshit
-        _record("SINGLE", growth=5),                   # only 1 dim → not a crosshit
+        _record("SINGLE", growth=5),  # only 1 dim → not a crosshit
     ]
     path = generate(records, _run_record(), tmp_path, score_threshold=4.0)
     post = frontmatter.load(str(path))

@@ -6,12 +6,15 @@ def test_equity_info_is_equity():
 
 
 def test_non_equity_is_contaminant():
-    assert classify_info({"quoteType": "MUTUALFUND", "shortName": "3734810"}) == "CONTAMINANT"
+    assert (
+        classify_info({"quoteType": "MUTUALFUND", "shortName": "3734810"})
+        == "CONTAMINANT"
+    )
 
 
 def test_empty_or_missing_quotetype_is_inconclusive():
     assert classify_info({}) == "INCONCLUSIVE"
-    assert classify_info({"marketCap": 1e9}) == "INCONCLUSIVE"   # no quoteType
+    assert classify_info({"marketCap": 1e9}) == "INCONCLUSIVE"  # no quoteType
     assert classify_info({"quoteType": None}) == "INCONCLUSIVE"
 
 

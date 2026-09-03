@@ -3,6 +3,7 @@
 Annual data changes yearly, so the TTL is long (default 400d) — unlike the deliberately
 short Gemini score TTL. Only non-empty series are persisted: a failed/empty fetch is left
 uncached so it retries next run rather than masking as a 400-day-stale empty."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -59,4 +60,6 @@ class CachedRevenueSeries:
             return False
         if cached_at.tzinfo is None:
             cached_at = cached_at.replace(tzinfo=timezone.utc)
-        return (datetime.now(timezone.utc) - cached_at).total_seconds() < self._ttl_seconds
+        return (
+            datetime.now(timezone.utc) - cached_at
+        ).total_seconds() < self._ttl_seconds

@@ -38,7 +38,12 @@ def test_bad_cik_raises(tmp_path):
     bad = tmp_path / "adr.json"
     bad.write_text(
         json.dumps(
-            {"version": 1, "entries": {"X.CO": {"adr_ticker": "X", "cik": "353278", "form_type": "20-F"}}}
+            {
+                "version": 1,
+                "entries": {
+                    "X.CO": {"adr_ticker": "X", "cik": "353278", "form_type": "20-F"}
+                },
+            }
         ),
         encoding="utf-8",
     )
@@ -50,7 +55,12 @@ def test_bad_form_type_raises(tmp_path):
     bad = tmp_path / "adr.json"
     bad.write_text(
         json.dumps(
-            {"version": 1, "entries": {"X.CO": {"adr_ticker": "X", "cik": "0000000001", "form_type": "8-K"}}}
+            {
+                "version": 1,
+                "entries": {
+                    "X.CO": {"adr_ticker": "X", "cik": "0000000001", "form_type": "8-K"}
+                },
+            }
         ),
         encoding="utf-8",
     )
@@ -79,7 +89,12 @@ def test_empty_adr_ticker_raises(tmp_path):
     bad = tmp_path / "adr.json"
     bad.write_text(
         json.dumps(
-            {"version": 1, "entries": {"X.CO": {"adr_ticker": "", "cik": "0000000001", "form_type": "20-F"}}}
+            {
+                "version": 1,
+                "entries": {
+                    "X.CO": {"adr_ticker": "", "cik": "0000000001", "form_type": "20-F"}
+                },
+            }
         ),
         encoding="utf-8",
     )

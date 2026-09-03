@@ -18,6 +18,7 @@ Decisions baked in:
   to exclude — including them lowers the bar. include_defined_negative=True is the
   opt-in for diagnostics that deliberately want them in.
 """
+
 from __future__ import annotations
 
 from app.models.screener_record import ScreenerRecord

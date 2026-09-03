@@ -103,8 +103,8 @@ def test_set_raises_data_source_error_on_failure(mock_firestore_module):
 def test_delete_raises_data_source_error_on_failure(mock_firestore_module):
     mock_db = MagicMock()
     mock_firestore_module.Client.return_value = mock_db
-    mock_db.collection.return_value.document.return_value.delete.side_effect = Exception(
-        "delete error"
+    mock_db.collection.return_value.document.return_value.delete.side_effect = (
+        Exception("delete error")
     )
 
     client = FirestoreClientImpl(project_id="test-project")

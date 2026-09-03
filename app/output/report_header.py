@@ -12,7 +12,9 @@ _STAGE_LABEL = {
 }
 
 
-def render_header(summary: FunnelSummary, run_month: str, *, min_dimensions: int) -> str:
+def render_header(
+    summary: FunnelSummary, run_month: str, *, min_dimensions: int
+) -> str:
     prov = summary.provenance or {}
     stoxx_tier = prov.get("stoxx_tier", "nicht erfasst")
     universe_size = summary.stage(Stage.UNIVERSE).entered

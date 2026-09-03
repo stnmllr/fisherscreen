@@ -20,7 +20,6 @@ class RunRecord(BaseModel):
     completed_at: datetime | None = None
 
     def compute_cost(self) -> float:
-        return (
-            (self.tokens_in_total / 1_000_000 * COST_PER_1M_INPUT_USD)
-            + (self.tokens_out_total / 1_000_000 * COST_PER_1M_OUTPUT_USD)
+        return (self.tokens_in_total / 1_000_000 * COST_PER_1M_INPUT_USD) + (
+            self.tokens_out_total / 1_000_000 * COST_PER_1M_OUTPUT_USD
         )

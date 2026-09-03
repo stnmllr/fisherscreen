@@ -58,9 +58,7 @@ class CachedFilingFetcher:
             if entry and self._fresh(entry["_cached_at"]):
                 doc = cik_dir / f"{entry['accession']}.txt"
                 if doc.exists():
-                    logger.info(
-                        "filing cache hit: cik=%s form=%s", cik, form_type
-                    )
+                    logger.info("filing cache hit: cik=%s form=%s", cik, form_type)
                     return RawFiling(
                         entry["accession"],
                         doc.read_text(encoding="utf-8"),

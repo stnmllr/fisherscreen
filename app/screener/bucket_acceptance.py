@@ -21,21 +21,24 @@ Margin-awareness here falls ONLY for the acceptance test, not the bucketing (GIC
 stays exogenous) -> no circularity. BC remains an advisory metric (reported, not a
 hard reject).
 """
+
 from __future__ import annotations
 
 import statistics
 
 # --- Transparent thresholds (NOT margin-/ticker-tuned). ---
-CONSTITUENT_SPREAD_THRESHOLD = 0.15   # max-min of constituent-industry medians
-BIMODALITY_THRESHOLD = 0.555          # Pearson/SAS bimodality coefficient cutoff (advisory only)
-HIST_BINS = 10                        # bins for the ASCII histogram (display only)
-_MIN_N_FOR_SHAPE = 6                  # below this, distribution shape cannot be assessed
+CONSTITUENT_SPREAD_THRESHOLD = 0.15  # max-min of constituent-industry medians
+BIMODALITY_THRESHOLD = (
+    0.555  # Pearson/SAS bimodality coefficient cutoff (advisory only)
+)
+HIST_BINS = 10  # bins for the ASCII histogram (display only)
+_MIN_N_FOR_SHAPE = 6  # below this, distribution shape cannot be assessed
 
 # Absolute below-median regime-gap detector (the harm discriminator).
-GROSS_MARGIN_REGIME_GAP = 0.10        # >=10 gross-margin percentage points below the median
-                                      # = a real cost-structure / regime break (contract-mfr vs
-                                      # brand, commodity vs specialty). <10pp = sampling noise.
-BELOW_MEDIAN_MIN_FRACTION = 0.20      # the separated low subpopulation must be non-trivial
+GROSS_MARGIN_REGIME_GAP = 0.10  # >=10 gross-margin percentage points below the median
+# = a real cost-structure / regime break (contract-mfr vs
+# brand, commodity vs specialty). <10pp = sampling noise.
+BELOW_MEDIAN_MIN_FRACTION = 0.20  # the separated low subpopulation must be non-trivial
 
 
 # --------------------------------------------------------------------------- #
@@ -52,7 +55,7 @@ def sample_skewness(values: list[float]) -> float | None:
     m3 = sum((x - mean) ** 3 for x in values) / n
     if m2 == 0:
         return None
-    return m3 / (m2 ** 1.5)
+    return m3 / (m2**1.5)
 
 
 def sample_kurtosis(values: list[float]) -> float | None:
@@ -66,7 +69,7 @@ def sample_kurtosis(values: list[float]) -> float | None:
     m4 = sum((x - mean) ** 4 for x in values) / n
     if m2 == 0:
         return None
-    return m4 / (m2 ** 2)
+    return m4 / (m2**2)
 
 
 def bimodality_coefficient(values: list[float]) -> float | None:
@@ -77,7 +80,7 @@ def bimodality_coefficient(values: list[float]) -> float | None:
     kurt = sample_kurtosis(values)
     if skew is None or kurt is None or kurt == 0:
         return None
-    return (skew ** 2 + 1) / kurt
+    return (skew**2 + 1) / kurt
 
 
 def constituent_median_spread(constituent_medians: list[float]) -> float | None:
@@ -106,7 +109,9 @@ def mad(values: list[float]) -> float | None:
     return statistics.median([abs(x - med) for x in values])
 
 
-def ascii_histogram(values: list[float], *, bins: int = HIST_BINS, width: int = 40) -> list[str]:
+def ascii_histogram(
+    values: list[float], *, bins: int = HIST_BINS, width: int = 40
+) -> list[str]:
     """Compact ASCII histogram so a human can eyeball unimodality directly.
     Returns a list of lines (bin range + bar)."""
     if not values:
@@ -153,9 +158,9 @@ def has_below_median_regime_gap(
     m = statistics.median(s)
     min_below = n * min_below_fraction
     for i in range(n - 1):
-        if s[i + 1] > m:          # sorted: once the gap's upper edge exceeds the median,
-            break                  # no later gap is "below the median" either
-        left = i + 1               # values strictly below the gap (s[0..i])
+        if s[i + 1] > m:  # sorted: once the gap's upper edge exceeds the median,
+            break  # no later gap is "below the median" either
+        left = i + 1  # values strictly below the gap (s[0..i])
         if left < min_below:
             continue
         if s[i + 1] - s[i] >= gap_threshold:

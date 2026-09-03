@@ -37,9 +37,7 @@ class YFinanceClient(Protocol):
     def get_financials(self, ticker: str) -> Any: ...
     def get_annual_statements(self, ticker: str) -> Any: ...
     def get_fx_rate(self, currency: str) -> float: ...
-    def get_forward_estimates(
-        self, ticker: str
-    ) -> ForwardEstimates | None: ...
+    def get_forward_estimates(self, ticker: str) -> ForwardEstimates | None: ...
     def get_weekly_close_5y(self, ticker: str) -> list[tuple[Any, float]]: ...
     def get_splits(self, ticker: str) -> list[tuple[Any, float]]: ...
     def get_isin(self, ticker: str) -> str | None: ...
@@ -65,14 +63,18 @@ class YFinanceClientImpl:
         try:
             return yf.Ticker(ticker).history(period=period)
         except Exception as exc:
-            raise DataSourceError(f"yfinance history failed for {ticker}: {exc}") from exc
+            raise DataSourceError(
+                f"yfinance history failed for {ticker}: {exc}"
+            ) from exc
 
     def get_financials(self, ticker: str) -> Any:
         # Returns a pandas DataFrame, not a dict
         try:
             return yf.Ticker(ticker).financials
         except Exception as exc:
-            raise DataSourceError(f"yfinance financials failed for {ticker}: {exc}") from exc
+            raise DataSourceError(
+                f"yfinance financials failed for {ticker}: {exc}"
+            ) from exc
 
     def get_annual_statements(self, ticker: str) -> Any:
         # Returns (income_stmt, cashflow, balance_sheet) DataFrames.
@@ -89,15 +91,17 @@ class YFinanceClientImpl:
         Leerer Frame (delisted) -> []. Hard yfinance-Fehler -> DataSourceError."""
         try:
             frame = yf.Ticker(ticker).history(
-                period="5y", interval="1wk", auto_adjust=True)
+                period="5y", interval="1wk", auto_adjust=True
+            )
         except Exception as exc:
             raise DataSourceError(
-                f"yfinance weekly history failed for {ticker}: {exc}") from exc
+                f"yfinance weekly history failed for {ticker}: {exc}"
+            ) from exc
         if frame is None or frame.empty or "Close" not in frame.columns:
             return []
-        return [(idx.date(), float(v))
-                for idx, v in frame["Close"].items()
-                if v is not None]
+        return [
+            (idx.date(), float(v)) for idx, v in frame["Close"].items() if v is not None
+        ]
 
     def get_splits(self, ticker: str) -> list[tuple[Any, float]]:
         """Split-Events (Ex-Datum, Ratio). Keine Splits -> []."""
@@ -105,7 +109,8 @@ class YFinanceClientImpl:
             s = yf.Ticker(ticker).splits
         except Exception as exc:
             raise DataSourceError(
-                f"yfinance splits failed for {ticker}: {exc}") from exc
+                f"yfinance splits failed for {ticker}: {exc}"
+            ) from exc
         if s is None or len(s) == 0:
             return []
         return [(idx.date(), float(v)) for idx, v in s.items()]
@@ -153,4 +158,6 @@ class YFinanceClientImpl:
         except DataSourceError:
             raise
         except Exception as exc:
-            raise DataSourceError(f"yfinance FX rate failed for {currency}: {exc}") from exc
+            raise DataSourceError(
+                f"yfinance FX rate failed for {currency}: {exc}"
+            ) from exc

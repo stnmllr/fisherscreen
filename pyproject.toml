@@ -15,6 +15,7 @@ dependencies = [
     "lxml>=6.1.0",
     "html2text>=2024.2.26",
     "tenacity>=9.1.4",
+    "markdown-it-py>=4.2.0",
 ]
 
 [dependency-groups]
@@ -22,6 +23,10 @@ dev = [
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
     "pytest-asyncio>=0.23.0",
+    # Black's stable style is versioned per calendar-year major — an unpinned
+    # major would silently reformat the whole tree and turn CI red without a
+    # single code change. Major pinned, minor/patch free. Config: [tool.black].
+    "black>=26.5.1,<27",
 ]
 
 [tool.uv]
@@ -32,6 +37,29 @@ default-groups = ["dev"]
 
 [project.scripts]
 fisherscreen = "app.deepdive.__main__:main"
+
+[tool.black]
+# Scope is app/ + tests/ — deliberately not scripts/, infra/, docs/.
+# scripts/ is ~60 one-shot diagnostic/backfill artefacts, already treated as a
+# special case ([tool.coverage.run] omit); reformatting them is churn on
+# forensic material. infra/ is deploy glue, docs/superpowers/audits/ holds
+# frozen audit scripts — same character.
+# force-exclude (not exclude/extend-exclude) because it applies to paths passed
+# explicitly on the command line too — so a bare `black .`, `black app tests`
+# and the CI step cannot diverge. Deliberately no line-length override: the
+# Black default (88) is what CLAUDE.md means by "Black-formatiert".
+force-exclude = '''
+(
+    ^/scripts/
+  | ^/infra/
+  | ^/docs/
+)
+'''
+# Pinned instead of inferred: without it Black derives the target range from
+# requires-python = ">=3.12" (py312..py315) and its AST safety check warns on
+# every run under the pinned 3.12 interpreter. The project runs 3.12
+# (.python-version), so formatting output stays identical locally and in CI.
+target-version = ["py312"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=app --cov-report=term-missing --cov-fail-under=90"

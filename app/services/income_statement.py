@@ -3,6 +3,7 @@
 Mirrors the _first_col_value logic from scripts/diagnose_gross_margin_definedness.py
 (the script's copy is intentionally left until it is refactored in a later unit).
 """
+
 from __future__ import annotations
 
 from typing import Any

@@ -5,6 +5,7 @@ against the four authoritative cache filings under `cache/filings/<CIK>/...`
 and asserts the SectionFlag schema from the Stage-2 verification table.
 Plan-Doc: `docs/superpowers/plans/punkt-5-filing-parser.md`.
 """
+
 from __future__ import annotations
 
 import re

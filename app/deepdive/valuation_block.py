@@ -47,16 +47,20 @@ def _fcf_yield_ttm(pit: Any) -> float | None:
 def _range_segment(label: str, ttm: float | None, stats: Any, pct: bool) -> str:
     """Ein Multiple-Segment der Range-Zeile nach status (Spec §10). Die Spanne
     steht im Zeilen-Prefix, daher hier KEIN per-Segment-Wo-Suffix."""
+
     def f(v: float | None) -> str:
         if v is None:
             return "n/a"
         return f"{v:.1%}" if pct else f"{v:.1f}"
+
     if stats.status == "skipped_fx":
         return f"{label} n/a (FX: Listing≠Reporting)"
     if stats.status == "na_data":
         return f"{label} n/a (Historie unvollständig)"
-    return (f"{label} TTM {f(ttm)} vs Median {f(stats.median)} "
-            f"(25-Perz. {f(stats.p25)})")
+    return (
+        f"{label} TTM {f(ttm)} vs Median {f(stats.median)} "
+        f"(25-Perz. {f(stats.p25)})"
+    )
 
 
 def _range_prefix(vh: ValuationHistory) -> str | None:
@@ -81,8 +85,7 @@ def _render_valuation_range(quant: QuantSnapshot) -> str:
     segs = [
         _range_segment("P/E", pit.trailing_pe, vh.pe, pct=False),
         _range_segment("EV/EBIT", _ev_ebit_ttm(pit), vh.ev_ebit, pct=False),
-        _range_segment("FCF-Yield", _fcf_yield_ttm(pit), vh.fcf_yield,
-                       pct=True),
+        _range_segment("FCF-Yield", _fcf_yield_ttm(pit), vh.fcf_yield, pct=True),
     ]
     prefix = _range_prefix(vh)
     head = f"Bewertungs-Range {prefix}: " if prefix else "Bewertungs-Range: "
@@ -179,8 +182,10 @@ def render_valuation_block(quant: QuantSnapshot) -> str:
     valuation_range = _render_valuation_range(quant)
     consensus = _render_consensus(pit)
     forward = _render_forward(quant.forward_estimates)
-    block = (f"{_HEADING}\n\n{bewertung}\n{valuation_range}\n{kapital}\n"
-             f"{consensus}\n{forward}")
+    block = (
+        f"{_HEADING}\n\n{bewertung}\n{valuation_range}\n{kapital}\n"
+        f"{consensus}\n{forward}"
+    )
     peers = _render_peer_table(quant)
     if peers:
         block = f"{block}\n{peers}"
@@ -255,12 +260,12 @@ def _render_consensus(pit: Any) -> str:
     else:
         upside = _fmt_pct((target - price) / price)
     median = (
-        f"{pit.target_median_price}"
-        if pit.target_median_price is not None else "n/a"
+        f"{pit.target_median_price}" if pit.target_median_price is not None else "n/a"
     )
     opinions = (
         f"{pit.number_of_analyst_opinions}"
-        if pit.number_of_analyst_opinions is not None else "n/a"
+        if pit.number_of_analyst_opinions is not None
+        else "n/a"
     )
     return (
         f"Analyst Consensus: {pit.recommendation_key or 'n/a'} · "
@@ -274,9 +279,13 @@ def _render_forward(fe: Any) -> str:
     `Folge-GJ`) — yfinance gives no reliable calendar-year mapping, so no
     fabricated `FY26e` (honest-label precedent from 2a's `Ø 4J Buyback`)."""
     if fe is None or all(
-        v is None for v in (
-            fe.revenue_growth_cy, fe.revenue_growth_ny,
-            fe.eps_growth_cy, fe.eps_growth_ny)
+        v is None
+        for v in (
+            fe.revenue_growth_cy,
+            fe.revenue_growth_ny,
+            fe.eps_growth_cy,
+            fe.eps_growth_ny,
+        )
     ):
         return "Forward-Konsens: n/a"
     return (

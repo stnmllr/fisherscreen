@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="fisherscreen", description="FisherScreen CLI")
+    parser = argparse.ArgumentParser(
+        prog="fisherscreen", description="FisherScreen CLI"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
     deepdive = subparsers.add_parser(
         "deepdive", help="Run a Tool B deep dive on one ticker"

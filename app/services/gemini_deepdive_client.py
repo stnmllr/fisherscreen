@@ -54,7 +54,8 @@ class GeminiDeepDiveClient:
         if tok.total_tokens > max_input_tokens:
             logger.warning(
                 "deepdive prompt too large: %d > %d tokens",
-                tok.total_tokens, max_input_tokens,
+                tok.total_tokens,
+                max_input_tokens,
             )
             raise GeminiError(
                 f"prompt too large: {tok.total_tokens} > {max_input_tokens} tokens"
@@ -62,7 +63,8 @@ class GeminiDeepDiveClient:
         if tok.total_tokens > max_input_tokens * 0.8:
             logger.warning(
                 "deepdive prompt at %d/%d tokens (>80%% of cap)",
-                tok.total_tokens, max_input_tokens,
+                tok.total_tokens,
+                max_input_tokens,
             )
         try:
             resp = self._generate(system_prompt, user_prompt)

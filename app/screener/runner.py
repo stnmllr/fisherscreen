@@ -26,7 +26,10 @@ from app.screener.filters import (
 from app.screener.metric_definedness import assess_definedness
 from app.screener.revenue_trajectory import classify_revenue_trajectory
 from app.screener.sector_buckets import SectorMedianTable
-from app.services.income_statement import extract_revenue_series, extract_waterfall_inputs
+from app.services.income_statement import (
+    extract_revenue_series,
+    extract_waterfall_inputs,
+)
 
 if TYPE_CHECKING:
     from app.models.run_record import RunRecord
@@ -40,9 +43,13 @@ logger = logging.getLogger(__name__)
 
 class ResolveReason(str, Enum):
     OK = "OK"
-    NO_RAW_MC = "NO_RAW_MC"      # raw market_cap missing or 0 (collapsed to None at construction)
-    NO_CURRENCY = "NO_CURRENCY"  # market_cap present but currency missing -> uninterpretable
-    NO_FX = "NO_FX"             # mc + currency present, FX rate unavailable (infra, systemic)
+    NO_RAW_MC = (
+        "NO_RAW_MC"  # raw market_cap missing or 0 (collapsed to None at construction)
+    )
+    NO_CURRENCY = (
+        "NO_CURRENCY"  # market_cap present but currency missing -> uninterpretable
+    )
+    NO_FX = "NO_FX"  # mc + currency present, FX rate unavailable (infra, systemic)
 
 
 def _load_provenance() -> dict | None:
@@ -88,7 +95,9 @@ def _resolve_market_cap_eur(
         try:
             fx_cache[currency] = yfinance.get_fx_rate(currency)
         except DataSourceError:
-            logger.warning("ticker=%s FX rate unavailable for currency=%s", record.ticker, currency)
+            logger.warning(
+                "ticker=%s FX rate unavailable for currency=%s", record.ticker, currency
+            )
             fx_cache[currency] = None  # type: ignore[assignment]
     rate = fx_cache[currency]
     if rate is None:
@@ -153,7 +162,8 @@ def _assess_definedness_basket(
         except DataSourceError as exc:
             logger.warning(
                 "ticker=%s income_stmt fetch failed (UNASSESSABLE): %s",
-                record.ticker, exc,
+                record.ticker,
+                exc,
             )
 
         _, total_revenue, cost_of_revenue, gross_profit, cor_present = (
@@ -179,7 +189,10 @@ def _assess_definedness_basket(
 
     logger.info(
         "definedness_prepass: assessed=%d METRIK_NA=%d UNASSESSABLE=%d DEFINED=%d",
-        n_assessed, n_metrik_na, n_unassessable, n_defined,
+        n_assessed,
+        n_metrik_na,
+        n_unassessable,
+        n_defined,
     )
 
 
@@ -202,7 +215,10 @@ def _assess_revenue_growth_trajectory(
     for record in records:
         if not (passes_volume_filter(record) and passes_market_cap_filter(record)):
             continue
-        if record.definedness in (DefinednessOutcome.UNASSESSABLE, DefinednessOutcome.METRIK_NA):
+        if record.definedness in (
+            DefinednessOutcome.UNASSESSABLE,
+            DefinednessOutcome.METRIK_NA,
+        ):
             continue
         if not passes_gross_margin_filter(record, table, relative_k):
             continue
@@ -217,7 +233,8 @@ def _assess_revenue_growth_trajectory(
         except DataSourceError as exc:
             logger.warning(
                 "ticker=%s income_stmt fetch failed (revenue_growth UNASSESSABLE): %s",
-                record.ticker, exc,
+                record.ticker,
+                exc,
             )
         cagr, down_years, definedness = classify_revenue_trajectory(revenues)
         record.multiyear_revenue_cagr = cagr
@@ -231,7 +248,10 @@ def _assess_revenue_growth_trajectory(
             n_rescue += 1
     logger.info(
         "revenue_growth_prepass: fetched=%d DECLINE=%d RESCUE=%d UNASSESSABLE=%d",
-        n_fetched, n_decline, n_rescue, n_unassessable,
+        n_fetched,
+        n_decline,
+        n_rescue,
+        n_unassessable,
     )
 
 
@@ -242,7 +262,9 @@ def run_basis_filter(
 ) -> BasisFilterResult:
     us_input = sum(1 for t in tickers if "." not in t)
     eu_input = len(tickers) - us_input
-    logger.info("runner: universe input US=%d EU=%d total=%d", us_input, eu_input, len(tickers))
+    logger.info(
+        "runner: universe input US=%d EU=%d total=%d", us_input, eu_input, len(tickers)
+    )
 
     records: list[ScreenerRecord] = []
     unresolved: list[str] = []
@@ -254,7 +276,9 @@ def run_basis_filter(
         try:
             info = yfinance.get_ticker_info(ticker)
             record = ScreenerRecord.from_yfinance_info(ticker, info)
-            record.market_cap_eur, reason = _resolve_market_cap_eur(record, yfinance, fx_cache)
+            record.market_cap_eur, reason = _resolve_market_cap_eur(
+                record, yfinance, fx_cache
+            )
             # 0b: divert unusable-data records out of the gate path (symbol-data first, then FX).
             if reason == ResolveReason.NO_RAW_MC:
                 record.resolution_detail = "NO_RAW_MC"
@@ -284,7 +308,13 @@ def run_basis_filter(
 
     us_fetched = sum(1 for r in records if "." not in r.ticker)
     eu_fetched = len(records) - us_fetched
-    logger.info("runner: fetched US=%d EU=%d total=%d/%d", us_fetched, eu_fetched, len(records), len(tickers))
+    logger.info(
+        "runner: fetched US=%d EU=%d total=%d/%d",
+        us_fetched,
+        eu_fetched,
+        len(records),
+        len(tickers),
+    )
 
     if unresolved:
         unresolved.sort()
@@ -300,7 +330,8 @@ def run_basis_filter(
     if no_symbol_data or fx_unavailable:
         logger.warning(
             "resolution data-quality: %d no_symbol_data, %d fx_unavailable (diverted to REVIEW)",
-            len(no_symbol_data), len(fx_unavailable),
+            len(no_symbol_data),
+            len(fx_unavailable),
         )
 
     # CT-A pre-pass: assess income-statement definedness for the suspect basket
@@ -310,7 +341,9 @@ def run_basis_filter(
     _assess_definedness_basket(records, yfinance)
 
     table = sector_table if sector_table is not None else build_sector_median_table()
-    _assess_revenue_growth_trajectory(records, yfinance, table, _filters.GROSS_MARGIN_RELATIVE_K)
+    _assess_revenue_growth_trajectory(
+        records, yfinance, table, _filters.GROSS_MARGIN_RELATIVE_K
+    )
     return BasisFilterResult(
         passed=apply_basis_filters(
             records,
@@ -344,7 +377,9 @@ def _evaluate_edgar(records: list[ScreenerRecord], edgar: EdgarClient) -> None:
             record.has_going_concern = edgar.has_going_concern(record.cik)
             record.has_active_enforcement = edgar.has_active_enforcement(record.cik)
         except DataSourceError as exc:
-            logger.warning("ticker=%s EDGAR fetch failed: %s — skipping", record.ticker, exc)
+            logger.warning(
+                "ticker=%s EDGAR fetch failed: %s — skipping", record.ticker, exc
+            )
             record.edgar_skipped = True
             record.edgar_skipped_reason = "data_source_error"
     logger.info("runner: EDGAR lookup complete for %d records", len(records))
@@ -389,9 +424,12 @@ def run_filter_preview(
     if output_dir is not None:
         from app.output.funnel_artifacts import write_funnel_artifacts
         from app.screener.funnel import build_funnel
+
         month = run_month or datetime.now(timezone.utc).strftime("%Y-%m")
         summary, dropouts = build_funnel(
-            universe=tickers, basis=basis, scored=None,
+            universe=tickers,
+            basis=basis,
+            scored=None,
             score_threshold=settings.crosshits_score_threshold,
             crosshits_min_dimensions=settings.crosshits_min_dimensions,
             provenance=_load_provenance(),
@@ -418,8 +456,16 @@ def run_screener(
     from app.output.dimensions_generator import generate as generate_dimensions
     from app.screener.deterministic_scorer import run_deterministic_scoring
 
-    threshold = score_threshold if score_threshold is not None else settings.crosshits_score_threshold
-    min_dims = crosshits_min_dimensions if crosshits_min_dimensions is not None else settings.crosshits_min_dimensions
+    threshold = (
+        score_threshold
+        if score_threshold is not None
+        else settings.crosshits_score_threshold
+    )
+    min_dims = (
+        crosshits_min_dimensions
+        if crosshits_min_dimensions is not None
+        else settings.crosshits_min_dimensions
+    )
     cap = crosshits_cap if crosshits_cap is not None else settings.crosshits_cap
 
     from app.output.funnel_artifacts import write_funnel_artifacts
@@ -433,20 +479,36 @@ def run_screener(
     run_month = run_record.run_id[:7]
 
     summary, dropouts = build_funnel(
-        universe=tickers, basis=basis, scored=scored,
-        score_threshold=threshold, crosshits_min_dimensions=min_dims,
+        universe=tickers,
+        basis=basis,
+        scored=scored,
+        score_threshold=threshold,
+        crosshits_min_dimensions=min_dims,
         provenance=_load_provenance(),
     )
     funnel_paths = write_funnel_artifacts(summary, dropouts, output_dir, run_month)
     header = render_header(summary, run_month, min_dimensions=min_dims)
 
     paths = [
-        generate_dimensions(scored, run_record, output_dir, score_threshold=threshold, cap=cap),
-        generate_crosshits(scored, run_record, output_dir, score_threshold=threshold,
-                           min_dimensions=min_dims, cap=cap, header=header),
-        generate_changes(scored, run_record, output_dir, score_threshold=threshold, cap=cap),
+        generate_dimensions(
+            scored, run_record, output_dir, score_threshold=threshold, cap=cap
+        ),
+        generate_crosshits(
+            scored,
+            run_record,
+            output_dir,
+            score_threshold=threshold,
+            min_dimensions=min_dims,
+            cap=cap,
+            header=header,
+        ),
+        generate_changes(
+            scored, run_record, output_dir, score_threshold=threshold, cap=cap
+        ),
         *funnel_paths,
     ]
 
-    logger.info("run_screener: complete — %d records, %d output files", len(scored), len(paths))
+    logger.info(
+        "run_screener: complete — %d records, %d output files", len(scored), len(paths)
+    )
     return scored, run_record, paths

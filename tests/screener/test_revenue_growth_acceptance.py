@@ -1,6 +1,7 @@
 """Network-free acceptance lock: the vintage-2026-06 drop cohort (189) must split
 81 DECLINE_DROP / 107 TRAJECTORY_RESCUE / 1 UNASSESSABLE_PASS under the production gate.
 Reconstructs each record from the committed diagnostic CSV's raw trajectory columns."""
+
 import csv
 from collections import Counter
 from pathlib import Path
@@ -11,7 +12,10 @@ from app.screener.filters import revenue_growth_outcome
 
 _AUDIT_DIR = (
     Path(__file__).resolve().parents[2]
-    / "docs" / "superpowers" / "audits" / "2026-06-10-punkt-3-revenue-growth"
+    / "docs"
+    / "superpowers"
+    / "audits"
+    / "2026-06-10-punkt-3-revenue-growth"
 )
 CSV = _AUDIT_DIR / "revenue_growth_drops.csv"
 SLIP_CSV = _AUDIT_DIR / "full_sweep_slipthrough.csv"
@@ -54,14 +58,17 @@ def test_vintage_2026_06_cohort_splits_81_107_1():
     assert dist["DECLINE_DROP"] == 81
     assert dist["TRAJECTORY_RESCUE"] == 107
     assert dist["UNASSESSABLE_PASS"] == 1
-    assert dist.get("TTM_PASS", 0) == 0  # all 189 had TTM<0 or None -> none short-circuit
+    assert (
+        dist.get("TTM_PASS", 0) == 0
+    )  # all 189 had TTM<0 or None -> none short-circuit
 
 
 def test_residuum_blob_is_gamma_consistent_and_pinned():
     """The frozen residuum provenance blob (full_sweep_slipthrough.csv) must describe EXACTLY
     the gamma set: every row satisfies CAGR<0 AND down_years>=2, and the count is pinned to the
     vintage-2026-06 derivation X. This catches alpha-vs-gamma drift between the diagnostic sweep
-    and the documented residuum (a stale alpha blob carried positive-CAGR / down_years==1 rows)."""
+    and the documented residuum (a stale alpha blob carried positive-CAGR / down_years==1 rows).
+    """
     rows = list(csv.DictReader(SLIP_CSV.open(encoding="utf-8")))
     assert len(rows) == RESIDUUM_X
     offenders = [

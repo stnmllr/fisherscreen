@@ -22,15 +22,16 @@ def _record(**kwargs) -> ScreenerRecord:
         "ticker": "TEST",
         "market_cap_eur": 5_000_000_000,  # 5B EUR — well above €2B threshold
         "avg_daily_volume": 200_000,
-        "price": 100.0,                   # value gate primitive (Punkt 1)
-        "fx_rate": 1.0,                   # value gate primitive (Punkt 1)
-        "gross_margin": 0.45,             # 45% — above 30% threshold (decimal format)
-        "revenue_growth_yoy": 0.05,       # 5% YoY growth — above 0%
+        "price": 100.0,  # value gate primitive (Punkt 1)
+        "fx_rate": 1.0,  # value gate primitive (Punkt 1)
+        "gross_margin": 0.45,  # 45% — above 30% threshold (decimal format)
+        "revenue_growth_yoy": 0.05,  # 5% YoY growth — above 0%
     }
     return ScreenerRecord(**{**defaults, **kwargs})
 
 
 # --- market cap (EUR, V3: >= 2B) ---
+
 
 def test_market_cap_passes_above_threshold():
     assert passes_market_cap_filter(_record(market_cap_eur=2_000_000_001)) is True
@@ -56,7 +57,7 @@ def _rec(vol=500_000.0, price=100.0, fx=1.0):
 
 
 def test_value_floor_passes_high_value():
-    assert passes_volume_filter(_rec()) is True            # 500k x 100 x 1 = 50M >= 1M
+    assert passes_volume_filter(_rec()) is True  # 500k x 100 x 1 = 50M >= 1M
 
 
 def test_value_floor_fails_low_value():
@@ -83,6 +84,7 @@ def test_production_threshold_is_calibrated():
     # calibrated value >= the broken-avgVol ceiling (so FER/1COV stay GATE_VOLUME REVIEW).
     import importlib
     import app.screener.filters as f
+
     importlib.reload(f)
     try:
         assert f.MIN_AVG_DAILY_VALUE_EUR is not None
@@ -92,6 +94,7 @@ def test_production_threshold_is_calibrated():
 
 
 # --- gross margin (V3: >= 0.30, decimal format — 0.30 = 30%) ---
+
 
 def test_gross_margin_passes_above_threshold():
     assert passes_gross_margin_filter(_record(gross_margin=0.31)) is True
@@ -120,6 +123,7 @@ def test_gross_margin_fails_low_margin_not_30_percent_as_whole_number():
 
 
 # --- revenue growth (V3: >= 0.0 YoY) ---
+
 
 def test_revenue_growth_passes_positive_growth():
     assert passes_revenue_growth_filter(_record(revenue_growth_yoy=0.05)) is True
@@ -156,6 +160,7 @@ def test_revenue_growth_missing_ttm_with_gamma_trajectory_drops():
 
 
 # --- apply_basis_filters ---
+
 
 def test_apply_basis_filters_returns_only_passing_records():
     passing = _record(ticker="GOOD")
@@ -208,7 +213,9 @@ def test_apply_basis_filters_sets_filter_passed_basis_false_on_failure():
 
 def test_apply_basis_filters_checks_volume_before_market_cap():
     # Volume is checked first so low-volume small-cap gets "avg_volume" as reason
-    record = _record(ticker="DOUBLE_FAIL", market_cap_eur=100_000_000, avg_daily_volume=10)
+    record = _record(
+        ticker="DOUBLE_FAIL", market_cap_eur=100_000_000, avg_daily_volume=10
+    )
     apply_basis_filters([record])
     assert record.filter_failed_reason == "avg_volume"
 
@@ -254,6 +261,7 @@ def _edgar_record(**kwargs) -> ScreenerRecord:
 
 def test_apply_edgar_filters_passes_clean_record():
     from app.screener.filters import apply_edgar_filters
+
     record = _edgar_record()
     result = apply_edgar_filters([record])
     assert len(result) == 1
@@ -262,6 +270,7 @@ def test_apply_edgar_filters_passes_clean_record():
 
 def test_apply_edgar_filters_fails_on_restatement():
     from app.screener.filters import apply_edgar_filters
+
     record = _edgar_record(has_restatement=True)
     result = apply_edgar_filters([record])
     assert result == []
@@ -271,6 +280,7 @@ def test_apply_edgar_filters_fails_on_restatement():
 
 def test_apply_edgar_filters_fails_on_going_concern():
     from app.screener.filters import apply_edgar_filters
+
     record = _edgar_record(has_going_concern=True)
     result = apply_edgar_filters([record])
     assert result == []
@@ -280,6 +290,7 @@ def test_apply_edgar_filters_fails_on_going_concern():
 
 def test_apply_edgar_filters_fails_on_active_enforcement():
     from app.screener.filters import apply_edgar_filters
+
     record = _edgar_record(has_active_enforcement=True)
     result = apply_edgar_filters([record])
     assert result == []
@@ -289,6 +300,7 @@ def test_apply_edgar_filters_fails_on_active_enforcement():
 
 def test_apply_edgar_filters_passes_through_skipped_records():
     from app.screener.filters import apply_edgar_filters
+
     record = _edgar_record(edgar_skipped=True)
     result = apply_edgar_filters([record])
     assert len(result) == 1
@@ -297,6 +309,7 @@ def test_apply_edgar_filters_passes_through_skipped_records():
 
 def test_apply_edgar_filters_checks_restatement_before_going_concern():
     from app.screener.filters import apply_edgar_filters
+
     record = _edgar_record(has_restatement=True, has_going_concern=True)
     apply_edgar_filters([record])
     assert record.filter_failed_reason == "restatement"
@@ -304,29 +317,37 @@ def test_apply_edgar_filters_checks_restatement_before_going_concern():
 
 def test_apply_edgar_filters_returns_empty_for_empty_input():
     from app.screener.filters import apply_edgar_filters
+
     assert apply_edgar_filters([]) == []
 
 
 # --- metric_na / statement_unavailable divert (Punkt 2 CT-A) ---
 # The runner pre-pass sets record.definedness; filters.py reads the pre-computed field.
 
+
 def test_definedness_metrik_na_diverts_to_metric_na():
     """Pre-computed METRIK_NA on a volume+cap-passing record -> reason 'metric_na'."""
-    rec = _record(ticker="BANK", gross_margin=0.0, definedness=DefinednessOutcome.METRIK_NA)
+    rec = _record(
+        ticker="BANK", gross_margin=0.0, definedness=DefinednessOutcome.METRIK_NA
+    )
     apply_basis_filters([rec])
     assert rec.filter_failed_reason == "metric_na"
 
 
 def test_definedness_unassessable_diverts_to_statement_unavailable():
     """Pre-computed UNASSESSABLE (fetch failed) -> reason 'statement_unavailable'."""
-    rec = _record(ticker="X", gross_margin=None, definedness=DefinednessOutcome.UNASSESSABLE)
+    rec = _record(
+        ticker="X", gross_margin=None, definedness=DefinednessOutcome.UNASSESSABLE
+    )
     apply_basis_filters([rec])
     assert rec.filter_failed_reason == "statement_unavailable"
 
 
 def test_definedness_defined_continues_to_gross_margin_gate():
     """DEFINED -> continues; with passing gross_margin the record passes basis."""
-    rec = _record(ticker="LOW", gross_margin=0.45, definedness=DefinednessOutcome.DEFINED)
+    rec = _record(
+        ticker="LOW", gross_margin=0.45, definedness=DefinednessOutcome.DEFINED
+    )
     result = apply_basis_filters([rec])
     assert rec.filter_passed_basis is True
     assert len(result) == 1
@@ -342,7 +363,9 @@ def test_definedness_none_continues_to_gross_margin_gate():
 
 def test_definedness_defined_low_margin_still_fails_gross_margin():
     """DEFINED with low margin -> continues past metric_na, fails gross_margin gate."""
-    rec = _record(ticker="LOW", gross_margin=0.10, definedness=DefinednessOutcome.DEFINED)
+    rec = _record(
+        ticker="LOW", gross_margin=0.10, definedness=DefinednessOutcome.DEFINED
+    )
     apply_basis_filters([rec])
     assert rec.filter_failed_reason == "gross_margin"
 
@@ -351,7 +374,7 @@ def test_volume_failer_with_unassessable_still_returns_avg_volume():
     """volume gate fires BEFORE definedness check — order must be preserved."""
     rec = _record(
         ticker="ILLIQUID",
-        avg_daily_volume=10,       # fails volume gate
+        avg_daily_volume=10,  # fails volume gate
         definedness=DefinednessOutcome.UNASSESSABLE,
     )
     apply_basis_filters([rec])
@@ -360,7 +383,9 @@ def test_volume_failer_with_unassessable_still_returns_avg_volume():
 
 def test_get_fail_reason_order_volume_before_definedness():
     """Direct _get_fail_reason: UNASSESSABLE does not override a volume failure."""
-    rec = _record(ticker="Z", avg_daily_volume=10, definedness=DefinednessOutcome.UNASSESSABLE)
+    rec = _record(
+        ticker="Z", avg_daily_volume=10, definedness=DefinednessOutcome.UNASSESSABLE
+    )
     assert _get_fail_reason(rec) == "avg_volume"
 
 
@@ -368,6 +393,7 @@ def test_get_fail_reason_order_volume_before_definedness():
 # The GICS *sector* is multimodal (the catch-all contamination CT-B kills); the
 # *industry group* is the exogenous margin-blind intermediate. _node_chain rolls
 # industry up to its mapped group; the sector is never consulted.
+
 
 def test_node_chain_thick_industry_with_group_mapping(monkeypatch):
     monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {"Railroads": "Transportation"})
@@ -392,15 +418,19 @@ def test_node_chain_no_industry_is_empty(monkeypatch):
 
 # --- dual-arm sector-aware gross margin floor (Punkt 2 Mechanism 2 / C3) ---
 
+
 def test_absolute_arm_passes_high_margin():
     assert passes_gross_margin_filter(_record(gross_margin=0.45), table=None) is True
 
 
 def test_no_table_relative_arm_dormant_below_30():
-    assert passes_gross_margin_filter(
-        _record(gross_margin=0.18, gics_industry="Marine Shipping"),
-        table=None,
-    ) is False
+    assert (
+        passes_gross_margin_filter(
+            _record(gross_margin=0.18, gics_industry="Marine Shipping"),
+            table=None,
+        )
+        is False
+    )
 
 
 def test_relative_arm_rescues_at_industry_level():
@@ -417,11 +447,16 @@ def test_relative_arm_rescues_at_industry_level():
 
 def test_relative_arm_rescues_thin_industry_via_group_rollup(monkeypatch):
     # Thin industry (below n_min) WITH a group mapping rolls up to the GROUP median.
-    monkeypatch.setattr(filters, "INDUSTRY_GROUP_MAP", {"Marine Shipping": "Transportation"})
+    monkeypatch.setattr(
+        filters, "INDUSTRY_GROUP_MAP", {"Marine Shipping": "Transportation"}
+    )
     table = SectorMedianTable(
-        entries={"Transportation": 0.20},          # group-level pinned median
+        entries={"Transportation": 0.20},  # group-level pinned median
         n_min=8,
-        counts={"Marine Shipping": 3, "Transportation": 40},  # industry thin, group thick
+        counts={
+            "Marine Shipping": 3,
+            "Transportation": 40,
+        },  # industry thin, group thick
     )
     rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
     assert passes_gross_margin_filter(rec, table=table, k=0.5) is True
@@ -437,8 +472,9 @@ def test_relative_arm_fails_safe_thin_industry_without_mapping(monkeypatch):
         n_min=8,
         counts={"Marine Shipping": 3, "Transportation": 40},
     )
-    rec = _record(gross_margin=0.18, gics_industry="Marine Shipping",
-                  gics_sector="Industrials")
+    rec = _record(
+        gross_margin=0.18, gics_industry="Marine Shipping", gics_sector="Industrials"
+    )
     assert passes_gross_margin_filter(rec, table=table, k=0.5) is False
 
 
@@ -469,16 +505,19 @@ def test_determinism_independent_of_peer_membership():
     # The verdict is a fixed function of the record's gm and the PINNED median, not of
     # peer membership: the same record passes under one pinned table and fails under another.
     rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
-    lenient = SectorMedianTable(entries={"Marine Shipping": 0.20}, n_min=1,
-                                counts={"Marine Shipping": 40})
-    strict = SectorMedianTable(entries={"Marine Shipping": 0.50}, n_min=1,
-                               counts={"Marine Shipping": 40})
+    lenient = SectorMedianTable(
+        entries={"Marine Shipping": 0.20}, n_min=1, counts={"Marine Shipping": 40}
+    )
+    strict = SectorMedianTable(
+        entries={"Marine Shipping": 0.50}, n_min=1, counts={"Marine Shipping": 40}
+    )
     # k=0.5: lenient bar = 0.10 (0.18 passes); strict bar = 0.25 (0.18 fails)
     assert passes_gross_margin_filter(rec, table=lenient, k=0.5) is True
     assert passes_gross_margin_filter(rec, table=strict, k=0.5) is False
 
 
 # --- apply_basis_filters with sector table (Punkt 2 Mechanism 2 / C4) ---
+
 
 def test_apply_basis_filters_rescues_with_table():
     table = SectorMedianTable(
@@ -497,6 +536,7 @@ def test_apply_basis_filters_rescues_with_table():
 # RELATIVE_RESCUE is tagged ONLY for a SUB-FLOOR name (gm < MIN_GROSS_MARGIN AND
 # gm >= k*median). gm >= MIN_GROSS_MARGIN is always ABSOLUTE_PASS, never RELATIVE_RESCUE.
 
+
 def _bucket_table(median=0.30, n_min=1):
     return SectorMedianTable(
         entries={"Marine Shipping": median},
@@ -513,7 +553,10 @@ def test_pass_reason_absolute_above_floor():
 def test_pass_reason_relative_rescue_sub_floor():
     # gm=0.20, k=0.5, median=0.30 -> bar=0.15, 0.20>=0.15 -> rescue
     rec = _record(gross_margin=0.20, gics_industry="Marine Shipping")
-    assert gross_margin_pass_reason(rec, table=_bucket_table(0.30), k=0.5) == "RELATIVE_RESCUE"
+    assert (
+        gross_margin_pass_reason(rec, table=_bucket_table(0.30), k=0.5)
+        == "RELATIVE_RESCUE"
+    )
 
 
 def test_pass_reason_none_sub_floor_below_relative_bar():
@@ -539,6 +582,7 @@ from app.screener.filters import revenue_growth_outcome
 
 def _rg_rec(**kw):
     from app.models.screener_record import ScreenerRecord
+
     return ScreenerRecord(ticker="X", **kw)
 
 
@@ -553,46 +597,72 @@ def test_outcome_ttm_zero_passes():
 
 
 def test_outcome_decline_drop_gamma():
-    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.DEFINED,
-                multiyear_revenue_cagr=-0.06, revenue_down_years=2)
+    r = _rg_rec(
+        revenue_growth_yoy=-0.05,
+        revenue_growth_definedness=DefinednessOutcome.DEFINED,
+        multiyear_revenue_cagr=-0.06,
+        revenue_down_years=2,
+    )
     assert revenue_growth_outcome(r) == "DECLINE_DROP"
     assert passes_revenue_growth_filter(r) is False
 
 
 def test_outcome_trajectory_rescue_positive_cagr():
-    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.DEFINED,
-                multiyear_revenue_cagr=0.03, revenue_down_years=2)
+    r = _rg_rec(
+        revenue_growth_yoy=-0.05,
+        revenue_growth_definedness=DefinednessOutcome.DEFINED,
+        multiyear_revenue_cagr=0.03,
+        revenue_down_years=2,
+    )
     assert revenue_growth_outcome(r) == "TRAJECTORY_RESCUE"
     assert passes_revenue_growth_filter(r) is True
 
 
 def test_outcome_trajectory_rescue_single_down_year():
-    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.DEFINED,
-                multiyear_revenue_cagr=-0.02, revenue_down_years=1)
+    r = _rg_rec(
+        revenue_growth_yoy=-0.05,
+        revenue_growth_definedness=DefinednessOutcome.DEFINED,
+        multiyear_revenue_cagr=-0.02,
+        revenue_down_years=1,
+    )
     assert revenue_growth_outcome(r) == "TRAJECTORY_RESCUE"
 
 
 def test_outcome_unassessable_pass():
-    r = _rg_rec(revenue_growth_yoy=-0.05, revenue_growth_definedness=DefinednessOutcome.UNASSESSABLE)
+    r = _rg_rec(
+        revenue_growth_yoy=-0.05,
+        revenue_growth_definedness=DefinednessOutcome.UNASSESSABLE,
+    )
     assert revenue_growth_outcome(r) == "UNASSESSABLE_PASS"
     assert passes_revenue_growth_filter(r) is True
 
 
 def test_outcome_missing_ttm_judged_on_trajectory_drop():
-    r = _rg_rec(revenue_growth_yoy=None, revenue_growth_definedness=DefinednessOutcome.DEFINED,
-                multiyear_revenue_cagr=-0.10, revenue_down_years=3)
+    r = _rg_rec(
+        revenue_growth_yoy=None,
+        revenue_growth_definedness=DefinednessOutcome.DEFINED,
+        multiyear_revenue_cagr=-0.10,
+        revenue_down_years=3,
+    )
     assert revenue_growth_outcome(r) == "DECLINE_DROP"
     assert passes_revenue_growth_filter(r) is False
 
 
 def test_outcome_missing_ttm_trajectory_rescue():
-    r = _rg_rec(revenue_growth_yoy=None, revenue_growth_definedness=DefinednessOutcome.DEFINED,
-                multiyear_revenue_cagr=0.02, revenue_down_years=2)
+    r = _rg_rec(
+        revenue_growth_yoy=None,
+        revenue_growth_definedness=DefinednessOutcome.DEFINED,
+        multiyear_revenue_cagr=0.02,
+        revenue_down_years=2,
+    )
     assert revenue_growth_outcome(r) == "TRAJECTORY_RESCUE"
 
 
 def test_outcome_missing_ttm_unassessable_pass():
-    r = _rg_rec(revenue_growth_yoy=None, revenue_growth_definedness=DefinednessOutcome.UNASSESSABLE)
+    r = _rg_rec(
+        revenue_growth_yoy=None,
+        revenue_growth_definedness=DefinednessOutcome.UNASSESSABLE,
+    )
     assert revenue_growth_outcome(r) == "UNASSESSABLE_PASS"
     assert passes_revenue_growth_filter(r) is True
 
@@ -600,7 +670,10 @@ def test_outcome_missing_ttm_unassessable_pass():
 def test_pass_reason_absolute_even_when_table_present():
     # gm=0.40 clears k*median trivially but must NOT be tagged RELATIVE_RESCUE.
     rec = _record(gross_margin=0.40, gics_industry="Marine Shipping")
-    assert gross_margin_pass_reason(rec, table=_bucket_table(0.30), k=0.5) == "ABSOLUTE_PASS"
+    assert (
+        gross_margin_pass_reason(rec, table=_bucket_table(0.30), k=0.5)
+        == "ABSOLUTE_PASS"
+    )
 
 
 def test_pass_reason_none_when_gross_margin_missing():
@@ -610,13 +683,15 @@ def test_pass_reason_none_when_gross_margin_missing():
 
 def test_pass_reason_none_when_bucket_median_none():
     # thin bucket, no group mapping -> bucket_median None -> no rescue
-    table = SectorMedianTable(entries={"Marine Shipping": 0.20}, n_min=10,
-                              counts={"Marine Shipping": 2})
+    table = SectorMedianTable(
+        entries={"Marine Shipping": 0.20}, n_min=10, counts={"Marine Shipping": 2}
+    )
     rec = _record(gross_margin=0.18, gics_industry="Marine Shipping")
     assert gross_margin_pass_reason(rec, table=table, k=0.5) is None
 
 
 # --- delegation regression: passes_gross_margin_filter == (pass_reason is not None) ---
+
 
 def test_passes_filter_delegates_to_pass_reason():
     table = _bucket_table(0.30)
@@ -624,8 +699,11 @@ def test_passes_filter_delegates_to_pass_reason():
         (_record(gross_margin=0.40, gics_industry="Marine Shipping"), None, None),
         (_record(gross_margin=0.40, gics_industry="Marine Shipping"), table, 0.5),
         (_record(gross_margin=0.20, gics_industry="Marine Shipping"), table, 0.5),
-        (_record(gross_margin=0.20, gics_industry="Marine Shipping"),
-         _bucket_table(0.50), 0.5),
+        (
+            _record(gross_margin=0.20, gics_industry="Marine Shipping"),
+            _bucket_table(0.50),
+            0.5,
+        ),
         (_record(gross_margin=0.20, gics_industry="Marine Shipping"), None, None),
         (_record(gross_margin=None), table, 0.5),
     ]
@@ -635,6 +713,7 @@ def test_passes_filter_delegates_to_pass_reason():
 
 
 # --- apply_basis_filters tags gross_margin_pass_reason on PASSING records only ---
+
 
 def test_apply_basis_filters_tags_absolute_pass():
     rec = _record(ticker="ABS", gross_margin=0.45)

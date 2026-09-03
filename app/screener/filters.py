@@ -32,7 +32,11 @@ def passes_market_cap_filter(record: ScreenerRecord) -> bool:
 def _avg_daily_value_eur(record: ScreenerRecord) -> float | None:
     """Average daily traded value in EUR = shares/day x price x fx. None if any input
     is missing (an invariant violation at the gate — resolution diverts these)."""
-    if record.avg_daily_volume is None or record.price is None or record.fx_rate is None:
+    if (
+        record.avg_daily_volume is None
+        or record.price is None
+        or record.fx_rate is None
+    ):
         return None
     return record.avg_daily_volume * record.price * record.fx_rate
 
@@ -86,12 +90,12 @@ def gross_margin_pass_reason(
     if gm is None:
         logger.warning("ticker=%s gross_margin missing", record.ticker)
         return None
-    if gm >= MIN_GROSS_MARGIN:          # absolute arm
+    if gm >= MIN_GROSS_MARGIN:  # absolute arm
         return ABSOLUTE_PASS
-    if table is None or k is None:      # relative arm fail-safe: dormant
+    if table is None or k is None:  # relative arm fail-safe: dormant
         return None
     median = bucket_median(_node_chain(record), table)
-    if median is None:                  # thin sector / no valid reference -> no rescue
+    if median is None:  # thin sector / no valid reference -> no rescue
         return None
     return RELATIVE_RESCUE if gm >= k * median else None
 
@@ -189,9 +193,12 @@ def apply_basis_filters(
     eu_total = len(records) - us_total
     logger.info(
         "basis_filter: %d/%d records passed (US %d/%d, EU %d/%d)",
-        len(passed), len(records),
-        us_passed, us_total,
-        eu_passed, eu_total,
+        len(passed),
+        len(records),
+        us_passed,
+        us_total,
+        eu_passed,
+        eu_total,
     )
     return passed
 

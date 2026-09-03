@@ -71,7 +71,8 @@ def render_insider_block(summary: InsiderSummary | None, form_type: str) -> str:
     n_sig = len(summary.significant_buys) + len(summary.significant_sells)
     parsed_note = (
         f" · {summary.n_parsed} von {summary.n_filings_total} geparst"
-        if cs == "partial" else ""
+        if cs == "partial"
+        else ""
     )
     header = (
         f"{_HEAD} {summary.n_filings_total} Form-4-Filings · darin "

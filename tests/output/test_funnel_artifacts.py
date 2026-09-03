@@ -3,20 +3,39 @@ import json
 
 from app.output.funnel_artifacts import write_funnel_artifacts
 from app.screener.funnel import (
-    Dropout, FunnelStage, FunnelSummary, ReasonCode, SeverityBucket, Stage,
+    Dropout,
+    FunnelStage,
+    FunnelSummary,
+    ReasonCode,
+    SeverityBucket,
+    Stage,
 )
 
 
 def _summary():
-    stages = [FunnelStage(Stage.UNIVERSE, 3, 0, 3),
-              FunnelStage(Stage.RESOLUTION, 3, 1, 2)]
-    return FunnelSummary(stages=stages, review_flags=1, pass_through_count=0,
-                         provenance={"stoxx_tier": "wikipedia"})
+    stages = [
+        FunnelStage(Stage.UNIVERSE, 3, 0, 3),
+        FunnelStage(Stage.RESOLUTION, 3, 1, 2),
+    ]
+    return FunnelSummary(
+        stages=stages,
+        review_flags=1,
+        pass_through_count=0,
+        provenance={"stoxx_tier": "wikipedia"},
+    )
 
 
 def _dropout():
-    return Dropout("VOL", Stage.BASIS_GATES, ReasonCode.GATE_VOLUME,
-                   SeverityBucket.REVIEW, True, False, 5e9, "Technology")
+    return Dropout(
+        "VOL",
+        Stage.BASIS_GATES,
+        ReasonCode.GATE_VOLUME,
+        SeverityBucket.REVIEW,
+        True,
+        False,
+        5e9,
+        "Technology",
+    )
 
 
 def test_writes_json_and_csv(tmp_path):
@@ -24,11 +43,19 @@ def test_writes_json_and_csv(tmp_path):
     names = {p.name for p in paths}
     assert names == {"2026-06-funnel_summary.json", "2026-06-dropouts.csv"}
 
-    js = json.loads((tmp_path / "Universum" / "2026-06-funnel_summary.json").read_text("utf-8"))
+    js = json.loads(
+        (tmp_path / "Universum" / "2026-06-funnel_summary.json").read_text("utf-8")
+    )
     assert js["review_flags"] == 1
     assert js["provenance"]["stoxx_tier"] == "wikipedia"
 
-    rows = list(csv.DictReader((tmp_path / "Universum" / "2026-06-dropouts.csv").read_text("utf-8").splitlines()))
+    rows = list(
+        csv.DictReader(
+            (tmp_path / "Universum" / "2026-06-dropouts.csv")
+            .read_text("utf-8")
+            .splitlines()
+        )
+    )
     assert rows[0]["ticker"] == "VOL"
     assert rows[0]["reason_code"] == "GATE_VOLUME"
     assert rows[0]["severity_bucket"] == "REVIEW"
@@ -37,11 +64,27 @@ def test_writes_json_and_csv(tmp_path):
 
 def test_dropouts_csv_has_detail_column(tmp_path):
     from app.screener.funnel import Dropout, Stage, ReasonCode, SeverityBucket
-    d = Dropout("NSD", Stage.RESOLUTION, ReasonCode.RESOLUTION_NO_SYMBOL_DATA,
-                SeverityBucket.REVIEW, False, False, None, "Technology", detail="NO_RAW_MC")
+
+    d = Dropout(
+        "NSD",
+        Stage.RESOLUTION,
+        ReasonCode.RESOLUTION_NO_SYMBOL_DATA,
+        SeverityBucket.REVIEW,
+        False,
+        False,
+        None,
+        "Technology",
+        detail="NO_RAW_MC",
+    )
     paths = write_funnel_artifacts(_summary(), [d], tmp_path, "2026-06")
     import csv as _csv
-    rows = list(_csv.DictReader(
-        (tmp_path / "Universum" / "2026-06-dropouts.csv").read_text("utf-8").splitlines()))
+
+    rows = list(
+        _csv.DictReader(
+            (tmp_path / "Universum" / "2026-06-dropouts.csv")
+            .read_text("utf-8")
+            .splitlines()
+        )
+    )
     assert "detail" in rows[0]
     assert rows[0]["detail"] == "NO_RAW_MC"

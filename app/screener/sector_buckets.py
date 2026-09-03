@@ -2,6 +2,7 @@
 threshold n_min, rolling up finest->coarsest. Returns None when no node clears
 n_min — the dual-arm gate then simply does not fire its relative arm (fail-safe
 by construction, spec §4)."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -31,7 +32,9 @@ class SectorMedianTable:
 
     entries: dict[str, float]  # bucket node -> median gross margin (0–1 scale)
     n_min: int  # minimum peer count for a bucket to qualify
-    counts: dict[str, int]  # bucket node -> population count (mirrors universe snapshot)
+    counts: dict[
+        str, int
+    ]  # bucket node -> population count (mirrors universe snapshot)
 
 
 def bucket_median(

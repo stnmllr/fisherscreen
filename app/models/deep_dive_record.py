@@ -232,11 +232,11 @@ class QuantSnapshot(BaseModel):
 class SourceCoverage(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    quant_pit_source: str = "unknown"          # "tool-a-cache" | "live-yfinance"
-    gemini_dims: str = "absent"                # "present" | "absent (nicht im letzten Monatslauf)"
-    historical: str = "absent"                 # "complete" | "partial (<5J, NJ)" | "absent"
-    currency_note: str | None = None           # financialCurrency != listing currency
-    edgar: str = "unknown"                     # e.g. "20-F via ADR"
+    quant_pit_source: str = "unknown"  # "tool-a-cache" | "live-yfinance"
+    gemini_dims: str = "absent"  # "present" | "absent (nicht im letzten Monatslauf)"
+    historical: str = "absent"  # "complete" | "partial (<5J, NJ)" | "absent"
+    currency_note: str | None = None  # financialCurrency != listing currency
+    edgar: str = "unknown"  # e.g. "20-F via ADR"
     soft: str = "folgt B.3"
     sprache: str = "folgt B.4"
     insider: str = "folgt B.2"
@@ -262,9 +262,7 @@ class DeepDiveRecord(BaseModel):
     source_coverage: SourceCoverage
     filing_date: str | None = None
     insider_summary: InsiderSummary | None = None
-    generated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def days_since_filing(self) -> int | None:

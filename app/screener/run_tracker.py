@@ -59,7 +59,9 @@ class RunTracker:
         )
         record.estimated_cost_usd = record.compute_cost()
         # Firestore failure propagates intentionally — fail loud (CLAUDE.md convention)
-        self._firestore.set(self._collection, self._run_id, record.model_dump(mode="json"))
+        self._firestore.set(
+            self._collection, self._run_id, record.model_dump(mode="json")
+        )
         logger.info(
             "run=%s status=%s tickers=%d skipped=%d tokens_in=%d tokens_out=%d cost=$%.4f",
             self._run_id,

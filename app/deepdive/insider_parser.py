@@ -111,9 +111,7 @@ def parse_form4(xml: str) -> list[InsiderTransaction]:
             shares = _float(tx, "transactionAmounts/transactionShares/value")
             price = _float(tx, "transactionAmounts/transactionPricePerShare/value")
             value = (
-                shares * price
-                if (shares is not None and price is not None)
-                else None
+                shares * price if (shares is not None and price is not None) else None
             )
             txns.append(
                 InsiderTransaction(
@@ -135,7 +133,8 @@ def parse_form4(xml: str) -> list[InsiderTransaction]:
                     security_title=_text(tx, "securityTitle/value"),
                     is_derivative=is_deriv,
                     shares_after=_float(
-                        tx, "postTransactionAmounts/sharesOwnedFollowingTransaction/value"
+                        tx,
+                        "postTransactionAmounts/sharesOwnedFollowingTransaction/value",
                     ),
                     direct_or_indirect=_text(
                         tx, "ownershipNature/directOrIndirectOwnership/value"

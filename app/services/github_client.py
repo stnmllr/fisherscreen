@@ -5,7 +5,12 @@ import logging
 from typing import Protocol
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from app.errors import DataSourceError
 
@@ -42,7 +47,9 @@ class GitHubClientImpl:
         http: httpx.Client | None = None,
     ) -> None:
         if not token:
-            raise DataSourceError("GitHub token not set — configure FISHERSCREEN_GITHUB_TOKEN")
+            raise DataSourceError(
+                "GitHub token not set — configure FISHERSCREEN_GITHUB_TOKEN"
+            )
         self._headers = {
             "Authorization": f"Bearer {token.strip()}",
             "Accept": "application/vnd.github+json",
@@ -76,7 +83,9 @@ class GitHubClientImpl:
         does not 409 on retry with a stale sha.
         """
         url = f"{_GITHUB_API}/repos/{self._repo}/contents/{path}"
-        get_resp = self._http.get(url, params={"ref": self._branch}, headers=self._headers)
+        get_resp = self._http.get(
+            url, params={"ref": self._branch}, headers=self._headers
+        )
         sha = get_resp.json().get("sha") if get_resp.status_code == 200 else None
 
         payload: dict[str, str] = {

@@ -52,9 +52,7 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
             f"Entwicklungen siehe Tool-B Scuttlebutt (B.3)*"
         )
     else:
-        vintage_line = (
-            f"*Filing-Stand: unbekannt · Quant-Stand: {quant_date}*"
-        )
+        vintage_line = f"*Filing-Stand: unbekannt · Quant-Stand: {quant_date}*"
 
     lines: list[str] = [
         f"# Deep Dive: {name} ({record.ticker})",
@@ -113,40 +111,47 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
     peer_rationale = pc.rationale if pc else None
 
     post = frontmatter.Post("\n".join(lines))
-    post.metadata.update({
-        "ticker": record.ticker,
-        "adr_ticker": record.adr_ticker,
-        "cik": record.cik,
-        "form_type": record.form_type,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "filing_date": record.filing_date,
-        "quant_date": record.generated_at.date().isoformat(),
-        "days_since_filing": record.days_since_filing,
-        "section_flags": {
-            key: _flag_str(flag) for key, flag in record.section_flags.items()
-        },
-        "peer_tickers": peer_tickers,
-        "peer_rationale": peer_rationale,
-        "insider_coverage_state": (
-            record.insider_summary.coverage_state
-            if record.insider_summary else None
-        ),
-        "insider_n_filings": (
-            record.insider_summary.n_filings_total
-            if record.insider_summary else None
-        ),
-        "insider_significant_count": (
-            len(record.insider_summary.significant_buys)
-            + len(record.insider_summary.significant_sells)
-            if record.insider_summary else None
-        ),
-        "insider_net_buy": (
-            record.insider_summary.net_buy_value if record.insider_summary else None
-        ),
-        "insider_net_sell": (
-            record.insider_summary.net_sell_value if record.insider_summary else None
-        ),
-    })
+    post.metadata.update(
+        {
+            "ticker": record.ticker,
+            "adr_ticker": record.adr_ticker,
+            "cik": record.cik,
+            "form_type": record.form_type,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "filing_date": record.filing_date,
+            "quant_date": record.generated_at.date().isoformat(),
+            "days_since_filing": record.days_since_filing,
+            "section_flags": {
+                key: _flag_str(flag) for key, flag in record.section_flags.items()
+            },
+            "peer_tickers": peer_tickers,
+            "peer_rationale": peer_rationale,
+            "insider_coverage_state": (
+                record.insider_summary.coverage_state
+                if record.insider_summary
+                else None
+            ),
+            "insider_n_filings": (
+                record.insider_summary.n_filings_total
+                if record.insider_summary
+                else None
+            ),
+            "insider_significant_count": (
+                len(record.insider_summary.significant_buys)
+                + len(record.insider_summary.significant_sells)
+                if record.insider_summary
+                else None
+            ),
+            "insider_net_buy": (
+                record.insider_summary.net_buy_value if record.insider_summary else None
+            ),
+            "insider_net_sell": (
+                record.insider_summary.net_sell_value
+                if record.insider_summary
+                else None
+            ),
+        }
+    )
     out.write_text(frontmatter.dumps(post), encoding="utf-8")
     logger.info("dossier: wrote %s", out.name)
     return out

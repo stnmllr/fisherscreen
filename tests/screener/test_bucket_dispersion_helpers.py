@@ -3,14 +3,15 @@ CT-B acceptance instrument (scripts/diagnose_bucket_dispersion.py) into the shar
 module app.screener.bucket_acceptance; the tests now import the module directly.
 The live sweep is Stephan's calibration run; only the math helpers are unit-tested
 here (no warm cache, no universe)."""
+
 import statistics
 
 import pytest
 
 import app.screener.bucket_acceptance as mod
 
-
 # --- sample_skewness ---
+
 
 def test_skewness_none_for_small_n():
     assert mod.sample_skewness([1.0, 2.0]) is None
@@ -34,6 +35,7 @@ def test_skewness_right_tail_is_positive():
 
 # --- sample_kurtosis ---
 
+
 def test_kurtosis_none_for_small_n():
     assert mod.sample_kurtosis([1.0, 2.0, 3.0]) is None
 
@@ -51,6 +53,7 @@ def test_kurtosis_two_point_is_one():
 
 # --- bimodality_coefficient ---
 
+
 def test_bc_none_when_moments_undefined():
     assert mod.bimodality_coefficient([1.0, 2.0]) is None
 
@@ -66,11 +69,12 @@ def test_bc_matches_definition():
     vals = [0.1, 0.2, 0.2, 0.25, 0.3, 0.31, 0.4, 0.9]
     skew = mod.sample_skewness(vals)
     kurt = mod.sample_kurtosis(vals)
-    expected = (skew ** 2 + 1) / kurt
+    expected = (skew**2 + 1) / kurt
     assert mod.bimodality_coefficient(vals) == pytest.approx(expected)
 
 
 # --- constituent_median_spread ---
+
 
 def test_spread_none_for_single_constituent():
     assert mod.constituent_median_spread([0.30]) is None
@@ -84,6 +88,7 @@ def test_spread_is_max_minus_min():
 
 
 # --- iqr / mad ---
+
 
 def test_iqr_none_for_single_value():
     assert mod.iqr([0.3]) is None
@@ -105,6 +110,7 @@ def test_mad_about_median():
 
 
 # --- ascii_histogram ---
+
 
 def test_histogram_empty():
     assert mod.ascii_histogram([]) == ["  (no values)"]

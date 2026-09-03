@@ -31,7 +31,7 @@ def test_get_isin_returns_isin_string():
 def test_get_isin_returns_none_when_absent_or_dash():
     client = YFinanceClientImpl()
     with patch("app.services.yfinance_client.yf.Ticker") as mock_ticker:
-        mock_ticker.return_value.isin = "-"   # yfinance sentinel for "no isin"
+        mock_ticker.return_value.isin = "-"  # yfinance sentinel for "no isin"
         assert client.get_isin("ZZZZ") is None
 
 
@@ -46,8 +46,14 @@ def test_get_isin_raises_data_source_error_on_exception():
 def _estimate_frame(growth_by_period):
     """Build a yfinance-shaped estimate DataFrame (index='period')."""
     rows = {
-        p: {"avg": 1.0, "low": 0.5, "high": 1.5, "numberOfAnalysts": 10,
-            "growth": g, "currency": "USD"}
+        p: {
+            "avg": 1.0,
+            "low": 0.5,
+            "high": 1.5,
+            "numberOfAnalysts": 10,
+            "growth": g,
+            "currency": "USD",
+        }
         for p, g in growth_by_period.items()
     }
     df = pd.DataFrame.from_dict(rows, orient="index")
@@ -193,9 +199,11 @@ def test_get_financials_raises_data_source_error_on_exception(mock_yf):
 def test_get_forward_estimates_parses_growth_for_cy_and_ny(mock_yf):
     mock_ticker = MagicMock()
     mock_ticker.earnings_estimate = _estimate_frame(
-        {"0q": 0.20, "+1q": 0.08, "0y": 0.1714, "+1y": 0.1023})
+        {"0q": 0.20, "+1q": 0.08, "0y": 0.1714, "+1y": 0.1023}
+    )
     mock_ticker.revenue_estimate = _estimate_frame(
-        {"0q": 0.15, "+1q": 0.11, "0y": 0.1485, "+1y": 0.0809})
+        {"0q": 0.15, "+1q": 0.11, "0y": 0.1485, "+1y": 0.0809}
+    )
     mock_yf.Ticker.return_value = mock_ticker
 
     fe = YFinanceClientImpl().get_forward_estimates("AAPL")
@@ -227,7 +235,8 @@ def test_get_forward_estimates_missing_index_yields_none_fields(mock_yf):
 def test_get_forward_estimates_missing_growth_column_yields_none(mock_yf):
     mock_ticker = MagicMock()
     df = pd.DataFrame.from_dict(
-        {"0y": {"avg": 1.0}, "+1y": {"avg": 2.0}}, orient="index")
+        {"0y": {"avg": 1.0}, "+1y": {"avg": 2.0}}, orient="index"
+    )
     df.index.name = "period"
     mock_ticker.earnings_estimate = df
     mock_ticker.revenue_estimate = df
@@ -242,11 +251,10 @@ def test_get_forward_estimates_missing_growth_column_yields_none(mock_yf):
 @patch("app.services.yfinance_client.yf")
 def test_get_forward_estimates_nan_growth_yields_none(mock_yf):
     import numpy as np
+
     mock_ticker = MagicMock()
-    mock_ticker.earnings_estimate = _estimate_frame(
-        {"0y": np.nan, "+1y": 0.10})
-    mock_ticker.revenue_estimate = _estimate_frame(
-        {"0y": 0.14, "+1y": np.nan})
+    mock_ticker.earnings_estimate = _estimate_frame({"0y": np.nan, "+1y": 0.10})
+    mock_ticker.revenue_estimate = _estimate_frame({"0y": 0.14, "+1y": np.nan})
     mock_yf.Ticker.return_value = mock_ticker
 
     fe = YFinanceClientImpl().get_forward_estimates("AAPL")
@@ -287,7 +295,9 @@ def test_get_weekly_close_5y_returns_date_price_pairs(monkeypatch):
     frame = pd.DataFrame({"Close": [100.0, 101.0, 102.0]}, index=idx)
 
     class _T:
-        def __init__(self, t): pass
+        def __init__(self, t):
+            pass
+
         def history(self, period, interval, auto_adjust):
             assert period == "5y" and interval == "1wk" and auto_adjust is True
             return frame
@@ -303,7 +313,9 @@ def test_get_weekly_close_5y_empty_frame_returns_empty(monkeypatch):
     from app.services import yfinance_client as mod
 
     class _T:
-        def __init__(self, t): pass
+        def __init__(self, t):
+            pass
+
         def history(self, period, interval, auto_adjust):
             return pd.DataFrame()
 
@@ -318,9 +330,12 @@ def test_get_splits_returns_date_ratio_pairs(monkeypatch):
     s = pd.Series([20.0], index=pd.to_datetime(["2022-07-18"]))
 
     class _T:
-        def __init__(self, t): pass
+        def __init__(self, t):
+            pass
+
         @property
-        def splits(self): return s
+        def splits(self):
+            return s
 
     monkeypatch.setattr(mod.yf, "Ticker", _T)
     out = mod.YFinanceClientImpl().get_splits("X")
@@ -333,9 +348,12 @@ def test_get_splits_empty_returns_empty(monkeypatch):
     from app.services import yfinance_client as mod
 
     class _T:
-        def __init__(self, t): pass
+        def __init__(self, t):
+            pass
+
         @property
-        def splits(self): return pd.Series(dtype=float)
+        def splits(self):
+            return pd.Series(dtype=float)
 
     monkeypatch.setattr(mod.yf, "Ticker", _T)
     assert mod.YFinanceClientImpl().get_splits("X") == []

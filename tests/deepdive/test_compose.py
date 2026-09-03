@@ -22,9 +22,11 @@ def test_build_adr_resolver_resolves_seed():
     # Patch the config-dependent construction (UA, OpenFIGI, yfinance), which is
     # absent in CI, so the table-override path stays the real thing under test
     # (mirrors the insider compose test).
-    with patch("app.deepdive.compose.EdgarClientImpl"), \
-         patch("app.deepdive.compose.OpenFIGIClientImpl"), \
-         patch("app.deepdive.compose.YFinanceClientImpl"):
+    with (
+        patch("app.deepdive.compose.EdgarClientImpl"),
+        patch("app.deepdive.compose.OpenFIGIClientImpl"),
+        patch("app.deepdive.compose.YFinanceClientImpl"),
+    ):
         assert build_adr_resolver().resolve("NOVO-B.CO").adr_ticker == "NVO"
 
 
@@ -48,4 +50,5 @@ def test_build_insider_fetcher_returns_cached_fetcher():
 
 def test_insider_lookback_setting_default():
     from app.config import settings
+
     assert settings.insider_lookback_days == 365

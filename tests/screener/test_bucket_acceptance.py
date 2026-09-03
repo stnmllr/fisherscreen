@@ -16,6 +16,7 @@ stays exogenous) -> no circularity.
 Synthetic fixtures only (no real tickers; thresholds are not fitted to them).
 The shapes are labelled by the real bucket they abstract.
 """
+
 from __future__ import annotations
 
 from app.screener.bucket_acceptance import (
@@ -23,14 +24,27 @@ from app.screener.bucket_acceptance import (
     is_bucket_acceptable,
 )
 
-
 # --- has_below_median_regime_gap: acceptance spec (abstract shapes) ---
+
 
 def test_regime_gap_sbs_shape_rejects():
     # SBS-shape: a low cluster + a >=0.10 gap BELOW the median + an upper body.
     # gap 0.30->0.42 = 0.12, below median ~0.52, 5/13 = 38% below -> reject.
-    vals = [0.11, 0.12, 0.13, 0.25, 0.30,
-            0.42, 0.48, 0.52, 0.58, 0.62, 0.66, 0.70, 0.75]
+    vals = [
+        0.11,
+        0.12,
+        0.13,
+        0.25,
+        0.30,
+        0.42,
+        0.48,
+        0.52,
+        0.58,
+        0.62,
+        0.66,
+        0.70,
+        0.75,
+    ]
     assert has_below_median_regime_gap(vals) is True
 
 
@@ -45,7 +59,22 @@ def test_regime_gap_aero_defense_shape_accepts():
     # A&D-shape: continuous, dense core, thin right tail. NO >=0.10 gap below the
     # median; the only larger gaps are ABOVE the median in the tail. Wide != bimodal
     # (Correction 1) -> must stay accepted.
-    vals = [0.05, 0.10, 0.13, 0.15, 0.18, 0.20, 0.22, 0.24, 0.26, 0.30, 0.34, 0.40, 0.48, 0.60]
+    vals = [
+        0.05,
+        0.10,
+        0.13,
+        0.15,
+        0.18,
+        0.20,
+        0.22,
+        0.24,
+        0.26,
+        0.30,
+        0.34,
+        0.40,
+        0.48,
+        0.60,
+    ]
     assert has_below_median_regime_gap(vals) is False
 
 
@@ -88,9 +117,23 @@ def test_regime_gap_gap_exactly_at_threshold_rejects():
 
 # --- is_bucket_acceptable ---
 
+
 def test_acceptable_false_via_regime_gap():
-    values = [0.11, 0.12, 0.13, 0.25, 0.30,
-              0.42, 0.48, 0.52, 0.58, 0.62, 0.66, 0.70, 0.75]
+    values = [
+        0.11,
+        0.12,
+        0.13,
+        0.25,
+        0.30,
+        0.42,
+        0.48,
+        0.52,
+        0.58,
+        0.62,
+        0.66,
+        0.70,
+        0.75,
+    ]
     # single-industry: one constituent median, no spread
     accept, reasons = is_bucket_acceptable(values, [0.52])
     assert accept is False
@@ -98,7 +141,22 @@ def test_acceptable_false_via_regime_gap():
 
 
 def test_acceptable_true_for_continuous_dense_core():
-    values = [0.05, 0.10, 0.13, 0.15, 0.18, 0.20, 0.22, 0.24, 0.26, 0.30, 0.34, 0.40, 0.48, 0.60]
+    values = [
+        0.05,
+        0.10,
+        0.13,
+        0.15,
+        0.18,
+        0.20,
+        0.22,
+        0.24,
+        0.26,
+        0.30,
+        0.34,
+        0.40,
+        0.48,
+        0.60,
+    ]
     accept, reasons = is_bucket_acceptable(values, [0.23])
     assert accept is True
     assert reasons == []

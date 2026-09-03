@@ -3,8 +3,12 @@ from pydantic_settings import BaseSettings
 
 class FisherScreenSettings(BaseSettings):
     gcp_project_id: str = ""
-    edgar_user_agent: str = ""  # must be set via FISHERSCREEN_EDGAR_USER_AGENT; validated in EdgarClientImpl
-    edgar_max_requests_per_second: float = 8.0  # SEC fair-access limit is 10 req/s; 8 is conservative
+    edgar_user_agent: str = (
+        ""  # must be set via FISHERSCREEN_EDGAR_USER_AGENT; validated in EdgarClientImpl
+    )
+    edgar_max_requests_per_second: float = (
+        8.0  # SEC fair-access limit is 10 req/s; 8 is conservative
+    )
     gemini_api_key: str = ""
     apify_api_key: str = ""
     github_token: str = ""
@@ -24,9 +28,13 @@ class FisherScreenSettings(BaseSettings):
     deepdive_token_cap: int = 200_000
     filing_cache_ttl_days: int = 30
     historical_cache_ttl_days: int = 90
-    gemini_score_cache_ttl_days: int = 2  # < monthly cadence so each monthly run re-scores fresh
+    gemini_score_cache_ttl_days: int = (
+        2  # < monthly cadence so each monthly run re-scores fresh
+    )
     revenue_series_collection: str = "dev_revenue_series"
-    revenue_series_ttl_days: int = 400  # annual revenue changes yearly; long TTL is correct here
+    revenue_series_ttl_days: int = (
+        400  # annual revenue changes yearly; long TTL is correct here
+    )
     insider_lookback_days: int = 365
     deepdive_peers_collection: str = "dev_deepdive_peers"
     openfigi_api_key: str = ""

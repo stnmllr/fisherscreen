@@ -95,6 +95,7 @@ uv sync                              Abhängigkeiten aus uv.lock installieren
 uv add <paket>                       Paket hinzufügen (aktualisiert pyproject.toml + uv.lock)
 uv add --dev <paket>                 Dev-Abhängigkeit
 uv run python -m pytest              Tests ausführen (siehe SOPRA-EPDR unten)
+uv run python -m black .             Formatieren (siehe SOPRA-EPDR unten)
 uv run python -m app.deepdive ...    Tool B CLI (siehe SOPRA-EPDR unten)
 uv python pin 3.12                   Python-Version fixieren
 ```
@@ -269,7 +270,18 @@ Naming: snake_case lowercase. Keine weiteren Collections ohne explizite Architek
 
 ### Code-Stil
 
-- **PEP 8**, Black-formatiert
+- **PEP 8**, Black-formatiert — kanonisch `uv run python -m black .`
+  (SOPRA-EPDR: `python -m`, nie `uv run black`). Black-Default 88 Zeichen, keine
+  abweichende `line-length`.
+- **Geltungsbereich der Formatierung:** `app/` + `tests/`. `scripts/`, `infra/` und
+  `docs/` sind in `[tool.black] force-exclude` ausgenommen — Einmal-Diagnose- und
+  Audit-Artefakte, die man nicht nachträglich umformatiert. Die Ausnahme wirkt auch
+  bei explizit übergebenen Pfaden. Deshalb wird **`.` aufgerufen, nicht `app tests`**:
+  der Geltungsbereich steht so an genau einer Stelle. Würde man die Verzeichnisse im
+  Aufruf wiederholen, entstünde eine zweite Definition — und neuer Python-Code außerhalb
+  von `app/` und `tests/` liefe still an der CI vorbei.
+- **Die CI prüft das** (`black --check .` vor pytest): das deklarierte Werkzeug
+  ist das installierte, sonst ist die Regel in drei Monaten wieder Fiktion.
 - **Type Hints überall** — FastAPI und pytest-DI erfordern sie; keine ungetypten Funktionen
 - **Kein `print()` in Produktiv-Code** — immer `logging` (siehe Logging-Abschnitt)
 - Keine neue Abhängigkeit ohne explizite Diskussion (`uv add` → kurze Begründung)
@@ -397,6 +409,7 @@ aufrufen.
 |---|---|---|
 | Tests | `uv run python -m pytest` | `uv run pytest` |
 | Integration-Tests | `uv run python -m pytest -m integration` | — |
+| Formatieren | `uv run python -m black .` | `uv run black ...` |
 | Tool B CLI | `uv run python -m app.deepdive deepdive <TICKER>` | `uv run fisherscreen ...` |
 
 **Keine Heredocs, keine langen Inline-Skripte.** `python3 << 'EOF'` (Bash-Heredoc) läuft unter
@@ -474,7 +487,13 @@ Diese Punkte sind bewusst noch offen — vor dem jeweiligen Phasen-Start klären
 
 ## Was wir NICHT bauen
 
-- Keine eigene Web-UI — Obsidian + Portfolio-Analyzer reichen
+- ~~Keine eigene Web-UI~~ — **revidiert 2026-08-20**: Es gibt einen Read-only-Viewer
+  (`app/viewer/`), der die Tool-B-Dossiers als statisches HTML rendert. Grenze: **nur
+  Anzeige.** Kein Backend, keine Eingabe, keine Auslösung von Läufen, keine Berechnung —
+  der Viewer zeigt an, was im Dossier steht, und rechnet nichts nach. Obsidian bleibt der
+  führende Lesekanal; der Viewer ist ein zusätzlicher Ausgabekanal für unterwegs.
+  Alles darüber hinaus (Deep Dive aus der App anstoßen, Vergleichs-/Verlaufsansichten)
+  fällt weiterhin unter Feature-Creep und braucht eine eigene Entscheidung.
 - Kein Composite-Scoring in Tool A — fünf Dimensions-Listen nebeneinander (V3-Entscheidung)
 - Kein tägliches Monitoring, kein automatisches Watchlist-Monitoring
 - Kein Backtesting

@@ -127,7 +127,8 @@ def _normalize_sources(sources: list[str]) -> list[str]:
             # Inferenz (no raw leak), and do NOT rewrite it into a § cite.
             logger.warning(
                 "source %r looks like a filing cite but is not in the "
-                "'<form> §<item>' format — not validatable", s
+                "'<form> §<item>' format — not validatable",
+                s,
             )
             out.append("Inferenz")
             continue
@@ -135,9 +136,7 @@ def _normalize_sources(sources: list[str]) -> list[str]:
         if canon is not None:
             out.append(canon)
         else:
-            logger.warning(
-                "source %r not in controlled vocabulary -> Inferenz", s
-            )
+            logger.warning("source %r not in controlled vocabulary -> Inferenz", s)
             out.append("Inferenz")
     # order-preserving dedup (so two distinct unknowns collapse to ['Inferenz']
     # and the FisherPoint == ['Inferenz'] cap can fire)
@@ -297,9 +296,10 @@ def _build_user_prompt(
     insider_summary: InsiderSummary | None = None,
 ) -> str:
     titles = "\n".join(f"{n}. {t}" for n, t in FISHER_POINTS)
-    sec_txt = "\n\n".join(
-        f"### {_section_label(k)}\n{v}" for k, v in sections.items()
-    ) or "(keine Filing-Sections extrahiert)"
+    sec_txt = (
+        "\n\n".join(f"### {_section_label(k)}\n{v}" for k, v in sections.items())
+        or "(keine Filing-Sections extrahiert)"
+    )
     days = _days_since_filing(filing_date)
     vintage = _format_vintage_line(filing_date, days)
     hint = _format_vintage_hint(days)
@@ -335,9 +335,7 @@ def run_synthesis(
 
     raw_points = data.get("points", [])
     if len(raw_points) != 15:
-        raise GeminiError(
-            f"synthesis returned {len(raw_points)} points, expected 15"
-        )
+        raise GeminiError(f"synthesis returned {len(raw_points)} points, expected 15")
 
     sent_keys = set(sections.keys())
     days = _days_since_filing(filing_date)

@@ -64,7 +64,9 @@ def selftest_push() -> dict[str, str]:
         content,
         f"chore: prod push self-test {timestamp} [skip ci]",
     )
-    logger.info("selftest push complete: path=%s timestamp=%s", _SELFTEST_PUSH_PATH, timestamp)
+    logger.info(
+        "selftest push complete: path=%s timestamp=%s", _SELFTEST_PUSH_PATH, timestamp
+    )
     return {
         "selftest": "push",
         "pushed_path": _SELFTEST_PUSH_PATH,
@@ -83,7 +85,9 @@ def run_monthly(dry_run: bool = False) -> dict[str, Any]:
     if dry_run:
         output_dir = Path(settings.output_dir)
         report = run_filter_preview(tickers, yfinance, edgar, output_dir=output_dir)
-        logger.info("monthly run: free dry-run (filters only, $0) — funnel artifacts written, no Gemini/GitHub")
+        logger.info(
+            "monthly run: free dry-run (filters only, $0) — funnel artifacts written, no Gemini/GitHub"
+        )
         return {"dry_run": True, **report.to_dict()}
 
     revenue_cache = build_revenue_series_cache()
@@ -110,5 +114,7 @@ def run_monthly(dry_run: bool = False) -> dict[str, Any]:
             f"chore: monthly screener output {run_record.run_id[:7]} [skip ci]",
         )
 
-    logger.info("monthly run complete: run_id=%s paths=%d", run_record.run_id, len(paths))
+    logger.info(
+        "monthly run complete: run_id=%s paths=%d", run_record.run_id, len(paths)
+    )
     return run_record.model_dump(mode="json")

@@ -23,6 +23,18 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --frozen            # uv.lock is committed; without it, plain `uv sync`
+      - run: uv run python -m black --check .
+      # The formatter check runs BEFORE the suite: CLAUDE.md has demanded
+      # "Black-formatiert" since day one, but Black was never declared or installed —
+      # the rule was hand-applied and unverified, i.e. a hope. A declared tool that
+      # nothing enforces decays back into fiction within months.
+      #
+      # `.` and NOT `app tests` — deliberate. The scope lives in exactly one place,
+      # [tool.black] force-exclude (scripts/, infra/, docs/ are out). Naming the
+      # directories here would define it a second time, and the two definitions would
+      # silently disagree the day someone adds Python outside app/ and tests/: covered
+      # by a local `black .`, unchecked in CI. Both forms report the same 188 files
+      # today; `.` is the one that stays right.
       - run: uv run python -m pytest -m "not integration"
       # -m "not integration": the unit suite is hermetic (no secrets, no network) and
       # is the gate. Integration tests need the never-committed local filing cache

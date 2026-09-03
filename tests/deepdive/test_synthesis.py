@@ -14,9 +14,16 @@ def _qs():
 def _good_points():
     pts = []
     for n in range(1, 16):
-        pts.append({"number": n, "title": f"P{n}", "rating": 4,
-                    "confidence": "🟢", "reasoning": "Solide Begründung.",
-                    "sources": ["20-F §5"]})
+        pts.append(
+            {
+                "number": n,
+                "title": f"P{n}",
+                "rating": 4,
+                "confidence": "🟢",
+                "reasoning": "Solide Begründung.",
+                "sources": ["20-F §5"],
+            }
+        )
     return {"points": pts}
 
 
@@ -24,19 +31,27 @@ def _points_with_ratings(ratings):
     """ratings: list of 15 ints. Build a valid 15-point synthesizer return."""
     pts = []
     for i, n in enumerate(range(1, 16)):
-        pts.append({"number": n, "title": f"P{n}", "rating": ratings[i],
-                    "confidence": "🟢", "reasoning": "Solide Begründung.",
-                    "sources": ["20-F §5"]})
+        pts.append(
+            {
+                "number": n,
+                "title": f"P{n}",
+                "rating": ratings[i],
+                "confidence": "🟢",
+                "reasoning": "Solide Begründung.",
+                "sources": ["20-F §5"],
+            }
+        )
     return {"points": pts}
 
 
 def test_user_prompt_contains_valuation_block_before_filing_sections():
     from app.deepdive.synthesis import _build_user_prompt
 
-    prompt = _build_user_prompt(
-        "X", "20-F", {"20-F_item5": "rev"}, _qs())
-    heading = ("## Bewertung & Kapitalstruktur "
-               "(TTM-Stand + Mehrjahres-Median/Perzentil-Vergleich)")
+    prompt = _build_user_prompt("X", "20-F", {"20-F_item5": "rev"}, _qs())
+    heading = (
+        "## Bewertung & Kapitalstruktur "
+        "(TTM-Stand + Mehrjahres-Median/Perzentil-Vergleich)"
+    )
     assert heading in prompt
     assert prompt.index(heading) > prompt.index("Quant-Snapshot (JSON)")
     assert prompt.index(heading) < prompt.index("Filing-Sections:")
@@ -46,9 +61,13 @@ def test_returns_15_fisher_points():
     syn = MagicMock()
     syn.synthesize.return_value = _good_points()
     pts = run_synthesis(
-        ticker="NOVO-B.CO", form_type="20-F",
-        sections={"20-F_item5": "rev"}, quant=_qs(),
-        synthesizer=syn, max_input_tokens=200000)
+        ticker="NOVO-B.CO",
+        form_type="20-F",
+        sections={"20-F_item5": "rev"},
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+    )
     assert len(pts) == 15
     assert pts[0].number == 1
 
@@ -60,8 +79,13 @@ def test_hallucinated_section_downgraded_to_inference():
     data["points"][0]["confidence"] = "🟢"
     syn.synthesize.return_value = data
     pts = run_synthesis(
-        ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+        ticker="X",
+        form_type="20-F",
+        sections={"20-F_item5": "x"},
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+    )
     assert pts[0].sources == ["Inferenz"]
     assert pts[0].confidence == "🟡"  # capped by model validator
 
@@ -73,8 +97,13 @@ def test_inference_only_caps_confidence():
     data["points"][1]["confidence"] = "🟢"
     syn.synthesize.return_value = data
     pts = run_synthesis(
-        ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+        ticker="X",
+        form_type="20-F",
+        sections={"20-F_item5": "x"},
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+    )
     assert pts[1].confidence == "🟡"
 
 
@@ -83,18 +112,28 @@ def test_wrong_point_count_raises():
     bad = {"points": _good_points()["points"][:14]}
     syn.synthesize.return_value = bad
     with pytest.raises(GeminiError, match="expected 15"):
-        run_synthesis(ticker="X", form_type="20-F",
-                      sections={"20-F_item5": "x"}, quant=_qs(),
-                      synthesizer=syn, max_input_tokens=200000)
+        run_synthesis(
+            ticker="X",
+            form_type="20-F",
+            sections={"20-F_item5": "x"},
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=200000,
+        )
 
 
 def test_gemini_error_propagates():
     syn = MagicMock()
     syn.synthesize.side_effect = GeminiError("prompt too large")
     with pytest.raises(GeminiError, match="too large"):
-        run_synthesis(ticker="X", form_type="20-F",
-                      sections={"20-F_item5": "x"}, quant=_qs(),
-                      synthesizer=syn, max_input_tokens=10)
+        run_synthesis(
+            ticker="X",
+            form_type="20-F",
+            sections={"20-F_item5": "x"},
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=10,
+        )
 
 
 def test_mixed_sources_with_one_hallucination_collapses_all():
@@ -104,8 +143,13 @@ def test_mixed_sources_with_one_hallucination_collapses_all():
     data["points"][2]["confidence"] = "🟢"
     syn.synthesize.return_value = data
     pts = run_synthesis(
-        ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+        ticker="X",
+        form_type="20-F",
+        sections={"20-F_item5": "x"},
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+    )
     assert pts[2].sources == ["Inferenz"]
     assert pts[2].confidence == "🟡"
 
@@ -117,9 +161,15 @@ def test_points_14_15_confidence_code_enforced_red():
     # Real ITEM-5 body so the §5 cites pass the Stage-3 body-heading check and
     # point 1 keeps its model confidence (the focus is the 14/15 code-cap).
     pts = run_synthesis(
-        ticker="X", form_type="20-F",
-        sections={"20-F_item5": "ITEM 5 OPERATING AND FINANCIAL REVIEW. We review results."},
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+        ticker="X",
+        form_type="20-F",
+        sections={
+            "20-F_item5": "ITEM 5 OPERATING AND FINANCIAL REVIEW. We review results."
+        },
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+    )
     by_num = {p.number: p for p in pts}
     assert by_num[14].confidence == "🔴"
     assert by_num[15].confidence == "🔴"
@@ -133,8 +183,13 @@ def test_model_violating_point_maps_to_geminierror():
     syn.synthesize.return_value = data
     with pytest.raises(GeminiError, match="violates the contract"):
         run_synthesis(
-            ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
-            quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+            ticker="X",
+            form_type="20-F",
+            sections={"20-F_item5": "x"},
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=200000,
+        )
 
 
 def test_run_synthesis_no_exception_on_long_reasoning():
@@ -150,8 +205,13 @@ def test_run_synthesis_no_exception_on_long_reasoning():
     syn.synthesize.return_value = data
 
     pts = run_synthesis(
-        ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+        ticker="X",
+        form_type="20-F",
+        sections={"20-F_item5": "x"},
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+    )
 
     assert len(pts) == 15
     content = pts[0].reasoning.replace(" […]", "")
@@ -160,36 +220,53 @@ def test_run_synthesis_no_exception_on_long_reasoning():
 
 def test_star_inflation_logs_warning(caplog):
     import logging
+
     syn = MagicMock()
     syn.synthesize.return_value = _points_with_ratings([5] * 6 + [4] * 9)
     with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
         run_synthesis(
-            ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
-            quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+            ticker="X",
+            form_type="20-F",
+            sections={"20-F_item5": "x"},
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=200000,
+        )
     assert "sterne-inflation" in caplog.text
     assert "6/15" in caplog.text
 
 
 def test_no_weak_points_logs_warning(caplog):
     import logging
+
     syn = MagicMock()
     syn.synthesize.return_value = _points_with_ratings([4] * 15)
     with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
         run_synthesis(
-            ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
-            quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+            ticker="X",
+            form_type="20-F",
+            sections={"20-F_item5": "x"},
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=200000,
+        )
     assert "keine schwachen punkte" in caplog.text
 
 
 def test_balanced_distribution_no_distribution_warning(caplog):
     import logging
+
     syn = MagicMock()
-    syn.synthesize.return_value = _points_with_ratings(
-        [5] * 4 + [2] * 3 + [4] * 8)
+    syn.synthesize.return_value = _points_with_ratings([5] * 4 + [2] * 3 + [4] * 8)
     with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
         run_synthesis(
-            ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
-            quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+            ticker="X",
+            form_type="20-F",
+            sections={"20-F_item5": "x"},
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=200000,
+        )
     assert "sterne-inflation" not in caplog.text
     assert "keine schwachen punkte" not in caplog.text
 
@@ -217,7 +294,8 @@ def test_user_prompt_renders_citeable_section_headers():
     from app.deepdive.synthesis import _build_user_prompt
 
     prompt = _build_user_prompt(
-        "X", "20-F", {"20-F_item5": "rev", "20-F_item4": "biz"}, _qs())
+        "X", "20-F", {"20-F_item5": "rev", "20-F_item4": "biz"}, _qs()
+    )
     assert re.search(r"### 20-F §5", prompt)
     assert re.search(r"### 20-F §4", prompt)
     assert not re.search(r"### 20-F_item", prompt)
@@ -233,14 +311,20 @@ def test_section_label_handles_10k():
 
 def test_misformatted_filing_cite_logs_warning(caplog):
     import logging
+
     syn = MagicMock()
     data = _good_points()
     data["points"][0]["sources"] = ["20-F Item 5"]  # no § — un-validatable
     syn.synthesize.return_value = data
     with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
         run_synthesis(
-            ticker="X", form_type="20-F", sections={"20-F_item5": "x"},
-            quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+            ticker="X",
+            form_type="20-F",
+            sections={"20-F_item5": "x"},
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=200000,
+        )
     assert "not validatable" in caplog.text
 
 
@@ -363,11 +447,13 @@ def test_validate_sources_accepts_cite_with_page_header_prefix():
 
     sources = ["[10-K §1A]"]
     sent_keys = {"10-K_item1A"}
-    sections = {"10-K_item1A": (
-        "* * *\n\n| | | | |   \n---|---|---|---|---|---  \n"
-        "Table of Contents| Alphabet Inc.  \n  \n"
-        "ITEM 1A.RISK FACTORS\n\nOur operations..."
-    )}
+    sections = {
+        "10-K_item1A": (
+            "* * *\n\n| | | | |   \n---|---|---|---|---|---  \n"
+            "Table of Contents| Alphabet Inc.  \n  \n"
+            "ITEM 1A.RISK FACTORS\n\nOur operations..."
+        )
+    }
     result = _validate_sources(sources, "10-K", sent_keys, sections)
     assert result == ["[10-K §1A]"]
 
@@ -390,9 +476,11 @@ def test_validate_sources_letter_suffix_item_not_truncated():
 
     sources = ["[10-K §7A]"]
     sent_keys = {"10-K_item7A"}
-    sections = {"10-K_item7A": (
-        "ITEM 7A. QUANTITATIVE AND QUALITATIVE DISCLOSURES\n\nWe are exposed..."
-    )}
+    sections = {
+        "10-K_item7A": (
+            "ITEM 7A. QUANTITATIVE AND QUALITATIVE DISCLOSURES\n\nWe are exposed..."
+        )
+    }
     result = _validate_sources(sources, "10-K", sent_keys, sections)
     assert result == ["[10-K §7A]"]
 
@@ -539,7 +627,7 @@ def test_user_prompt_emits_staleness_hint_when_stale():
         )
     assert "Aktualitäts-Hinweis" in prompt
     assert f"{expected_days} Tage" in prompt  # concrete, threshold-robust age
-    assert "Punkte 5, 6, 12" in prompt        # scoped to VINTAGE_SENSITIVE_POINTS
+    assert "Punkte 5, 6, 12" in prompt  # scoped to VINTAGE_SENSITIVE_POINTS
 
 
 def test_user_prompt_no_staleness_hint_when_fresh():
@@ -593,9 +681,14 @@ def test_vintage_cap_lowers_sensitive_points_when_stale():
     syn.synthesize.return_value = _good_points()  # all 🟢, sources ["20-F §5"]
     with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
         pts = run_synthesis(
-            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
-            quant=_qs(), synthesizer=syn, max_input_tokens=200000,
-            filing_date="2025-01-01")  # ~510 days -> stale
+            ticker="X",
+            form_type="20-F",
+            sections=_VINTAGE_SECTIONS,
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=200000,
+            filing_date="2025-01-01",
+        )  # ~510 days -> stale
     by_num = {p.number: p for p in pts}
     assert by_num[5].confidence == "🟡"
     assert by_num[6].confidence == "🟡"
@@ -615,9 +708,14 @@ def test_vintage_cap_not_applied_below_threshold():
     syn.synthesize.return_value = _good_points()
     with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
         pts = run_synthesis(
-            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
-            quant=_qs(), synthesizer=syn, max_input_tokens=200000,
-            filing_date="2026-03-01")  # ~86 days -> not stale
+            ticker="X",
+            form_type="20-F",
+            sections=_VINTAGE_SECTIONS,
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=200000,
+            filing_date="2026-03-01",
+        )  # ~86 days -> not stale
     by_num = {p.number: p for p in pts}
     assert by_num[5].confidence == "🟢"
 
@@ -626,9 +724,14 @@ def test_vintage_cap_not_applied_below_threshold():
     syn_stale.synthesize.return_value = _good_points()
     with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
         pts_stale = run_synthesis(
-            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
-            quant=_qs(), synthesizer=syn_stale, max_input_tokens=200000,
-            filing_date="2025-01-01")  # ~510 days -> stale
+            ticker="X",
+            form_type="20-F",
+            sections=_VINTAGE_SECTIONS,
+            quant=_qs(),
+            synthesizer=syn_stale,
+            max_input_tokens=200000,
+            filing_date="2025-01-01",
+        )  # ~510 days -> stale
     assert {p.number: p for p in pts_stale}[5].confidence == "🟡"
 
 
@@ -644,12 +747,17 @@ def test_vintage_cap_skips_insensitive_points():
     syn.synthesize.return_value = _good_points()
     with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
         pts = run_synthesis(
-            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
-            quant=_qs(), synthesizer=syn, max_input_tokens=200000,
-            filing_date="2025-01-01")  # stale
+            ticker="X",
+            form_type="20-F",
+            sections=_VINTAGE_SECTIONS,
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=200000,
+            filing_date="2025-01-01",
+        )  # stale
     by_num = {p.number: p for p in pts}
-    assert by_num[5].confidence == "🟡"   # positive control: cap fired
-    assert by_num[8].confidence == "🟢"   # not in set -> untouched
+    assert by_num[5].confidence == "🟡"  # positive control: cap fired
+    assert by_num[8].confidence == "🟢"  # not in set -> untouched
     assert by_num[13].confidence == "🟢"  # excluded borderline -> untouched
 
 
@@ -667,9 +775,14 @@ def test_vintage_cap_skipped_when_filing_date_none():
     syn = MagicMock()
     syn.synthesize.return_value = _good_points()
     pts = run_synthesis(
-        ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000,
-        filing_date=None)
+        ticker="X",
+        form_type="20-F",
+        sections=_VINTAGE_SECTIONS,
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+        filing_date=None,
+    )
     by_num = {p.number: p for p in pts}
     assert by_num[5].confidence == "🟢"
 
@@ -678,9 +791,14 @@ def test_vintage_cap_skipped_when_filing_date_none():
     syn_stale.synthesize.return_value = _good_points()
     with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
         pts_stale = run_synthesis(
-            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
-            quant=_qs(), synthesizer=syn_stale, max_input_tokens=200000,
-            filing_date="2025-01-01")
+            ticker="X",
+            form_type="20-F",
+            sections=_VINTAGE_SECTIONS,
+            quant=_qs(),
+            synthesizer=syn_stale,
+            max_input_tokens=200000,
+            filing_date="2025-01-01",
+        )
     assert {p.number: p for p in pts_stale}[5].confidence == "🟡"
 
 
@@ -700,12 +818,17 @@ def test_vintage_cap_only_lowers_never_raises():
     syn.synthesize.return_value = data
     with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
         pts = run_synthesis(
-            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
-            quant=_qs(), synthesizer=syn, max_input_tokens=200000,
-            filing_date="2025-01-01")  # stale
+            ticker="X",
+            form_type="20-F",
+            sections=_VINTAGE_SECTIONS,
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=200000,
+            filing_date="2025-01-01",
+        )  # stale
     by_num = {p.number: p for p in pts}
-    assert by_num[5].confidence == "🔴"   # cap must NOT raise 🔴
-    assert by_num[6].confidence == "🟡"   # already ≤🟡, unchanged
+    assert by_num[5].confidence == "🔴"  # cap must NOT raise 🔴
+    assert by_num[6].confidence == "🟡"  # already ≤🟡, unchanged
     assert by_num[12].confidence == "🟡"  # positive control: 🟢 -> 🟡
 
 
@@ -719,11 +842,16 @@ def test_vintage_cap_coexists_with_points_14_15_red():
     syn.synthesize.return_value = _good_points()
     with patch("app.deepdive.synthesis._today", return_value=date(2026, 5, 26)):
         pts = run_synthesis(
-            ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
-            quant=_qs(), synthesizer=syn, max_input_tokens=200000,
-            filing_date="2025-01-01")  # stale
+            ticker="X",
+            form_type="20-F",
+            sections=_VINTAGE_SECTIONS,
+            quant=_qs(),
+            synthesizer=syn,
+            max_input_tokens=200000,
+            filing_date="2025-01-01",
+        )  # stale
     by_num = {p.number: p for p in pts}
-    assert by_num[5].confidence == "🟡"   # vintage cap
+    assert by_num[5].confidence == "🟡"  # vintage cap
     assert by_num[14].confidence == "🔴"  # existing enforcement
     assert by_num[15].confidence == "🔴"  # existing enforcement
 
@@ -766,14 +894,20 @@ def test_vintage_cap_unparseable_filing_date_no_cap():
     syn = MagicMock()
     syn.synthesize.return_value = _good_points()  # all 🟢, sources ["20-F §5"]
     pts = run_synthesis(
-        ticker="X", form_type="20-F", sections=_VINTAGE_SECTIONS,
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000,
-        filing_date="not-a-date")  # unparseable -> no cap
+        ticker="X",
+        form_type="20-F",
+        sections=_VINTAGE_SECTIONS,
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+        filing_date="not-a-date",
+    )  # unparseable -> no cap
     by_num = {p.number: p for p in pts}
     assert by_num[5].confidence == "🟢"
 
 
 # --- 2a.1c marker vocabulary -----------------------------------------------
+
 
 def test_norm_marker_roundtrip_canonical_in_vocab():
     """Completeness: every canonical vocabulary string is reachable as a key in
@@ -782,8 +916,12 @@ def test_norm_marker_roundtrip_canonical_in_vocab():
     test_norm_marker_folds_all_separators_including_comma — this test holds by
     construction and does NOT prove the fold."""
     from app.deepdive.synthesis import (
-        _MARKER_CANON, _norm_marker, _QUANT_MARKER_VOCAB, _SOFT_MARKER_VOCAB,
+        _MARKER_CANON,
+        _norm_marker,
+        _QUANT_MARKER_VOCAB,
+        _SOFT_MARKER_VOCAB,
     )
+
     for c in (*_QUANT_MARKER_VOCAB, *_SOFT_MARKER_VOCAB):
         assert _norm_marker(c) in _MARKER_CANON, f"{c!r} not roundtrip-stable"
     # the comma case explicitly
@@ -796,10 +934,13 @@ def test_norm_marker_folds_all_separators_including_comma():
     comma assertion goes RED if the comma is dropped from the fold class
     (-> 'yfinance,5j'), which is the exact Bug-1 regression."""
     from app.deepdive.synthesis import _norm_marker
-    assert _norm_marker("yfinance, 5J") == "yfinance5j"      # comma + space
-    assert _norm_marker("Peer-Comparison") == "peercomparison"   # hyphen + case
+
+    assert _norm_marker("yfinance, 5J") == "yfinance5j"  # comma + space
+    assert _norm_marker("Peer-Comparison") == "peercomparison"  # hyphen + case
     assert _norm_marker("forward_estimates") == "forwardestimates"  # underscore
-    assert _norm_marker("Bewertung & Kapitalstruktur") == "bewertungkapitalstruktur"  # '&'
+    assert (
+        _norm_marker("Bewertung & Kapitalstruktur") == "bewertungkapitalstruktur"
+    )  # '&'
     # a comma-free variant must fold to the SAME key as the canonical (the
     # property the lookup map relies on; fails if comma is not in the class)
     assert _norm_marker("yfinance 5J") == _norm_marker("yfinance, 5J")
@@ -808,27 +949,43 @@ def test_norm_marker_folds_all_separators_including_comma():
 import logging  # module-scope; pytest is already imported at the top of the file
 
 
-@pytest.mark.parametrize("variant", [
-    "Quant-Snapshot", "quant_snapshot", "quant snapshot",
-    "forward_estimates", "Forward-Estimates", "forward estimates",
-    "peer_comparison", "Peer-Comparison",
-    "historical_series", "trend_metrics",
-    "Bewertung", "Bewertung & Kapitalstruktur",  # '&' fold-class edge (byte-belegt)
-])
+@pytest.mark.parametrize(
+    "variant",
+    [
+        "Quant-Snapshot",
+        "quant_snapshot",
+        "quant snapshot",
+        "forward_estimates",
+        "Forward-Estimates",
+        "forward estimates",
+        "peer_comparison",
+        "Peer-Comparison",
+        "historical_series",
+        "trend_metrics",
+        "Bewertung",
+        "Bewertung & Kapitalstruktur",  # '&' fold-class edge (byte-belegt)
+    ],
+)
 def test_normalize_known_quant_variants_to_canonical(variant):
     from app.deepdive.synthesis import _normalize_sources
+
     assert _normalize_sources([variant]) == ["yfinance, 5J"]
 
 
 def test_normalize_dedups_multiple_quant_markers():
     from app.deepdive.synthesis import _normalize_sources
+
     out = _normalize_sources(["Quant-Snapshot", "historical_series", "trend_metrics"])
     assert out == ["yfinance, 5J"]
 
 
 def test_normalize_keeps_plain_section_cite_with_quant():
     from app.deepdive.synthesis import _normalize_sources
-    assert _normalize_sources(["10-K §7", "Quant-Snapshot"]) == ["10-K §7", "yfinance, 5J"]
+
+    assert _normalize_sources(["10-K §7", "Quant-Snapshot"]) == [
+        "10-K §7",
+        "yfinance, 5J",
+    ]
 
 
 def test_normalize_section_guard_subparagraph_4b_passes_through():
@@ -838,12 +995,14 @@ def test_normalize_section_guard_subparagraph_4b_passes_through():
     grounding. Goes RED if the guard is missing (the §4B cite would fold to
     '20f§4b' and collapse)."""
     from app.deepdive.synthesis import _normalize_sources
+
     out = _normalize_sources(["20-F §4B"])
     assert out == ["20-F §4B"]
 
 
 def test_normalize_section_guard_subparagraph_4b_no_warning(caplog):
     from app.deepdive.synthesis import _normalize_sources
+
     with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
         _normalize_sources(["20-F §4B"])
     assert "controlled vocabulary" not in caplog.text
@@ -851,6 +1010,7 @@ def test_normalize_section_guard_subparagraph_4b_no_warning(caplog):
 
 def test_normalize_unknown_marker_collapses_to_inference_with_warning(caplog):
     from app.deepdive.synthesis import _normalize_sources
+
     with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
         out = _normalize_sources(["made_up_marker"])
     assert out == ["Inferenz"]
@@ -860,6 +1020,7 @@ def test_normalize_unknown_marker_collapses_to_inference_with_warning(caplog):
 
 def test_normalize_passes_through_soft_markers():
     from app.deepdive.synthesis import _normalize_sources
+
     assert _normalize_sources(["Marktkontext"]) == ["Marktkontext"]
     assert _normalize_sources(["Inferenz"]) == ["Inferenz"]
     assert _normalize_sources(["yfinance, 5J"]) == ["yfinance, 5J"]
@@ -867,6 +1028,7 @@ def test_normalize_passes_through_soft_markers():
 
 def test_normalize_no_warning_on_canonicalization(caplog):
     from app.deepdive.synthesis import _normalize_sources
+
     with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
         _normalize_sources(["Quant-Snapshot", "Marktkontext", "yfinance, 5J"])
     assert "controlled vocabulary" not in caplog.text
@@ -877,6 +1039,7 @@ def test_normalize_embedded_section_cite_passes_through():
     substring of a longer string) must be recognized and passed through. Goes
     RED if the guard uses _SECTION_CITE_RE.fullmatch instead of .search."""
     from app.deepdive.synthesis import _normalize_sources
+
     assert _normalize_sources(["10-K §7 (S. 12)"]) == ["10-K §7 (S. 12)"]
 
 
@@ -885,6 +1048,7 @@ def test_normalize_section_cite_with_unknown_marker_keeps_cite():
     cite and collapses only the unknown -> result is NOT ['Inferenz'] (so the
     downstream confidence cap will not fire for a grounded point)."""
     from app.deepdive.synthesis import _normalize_sources
+
     assert _normalize_sources(["10-K §7", "made_up_marker"]) == ["10-K §7", "Inferenz"]
 
 
@@ -894,6 +1058,7 @@ def test_normalize_empty_list_returns_empty():
     list flows to FisherPoint(sources=[]) whose min_length=1 raises (fail-loud,
     surfaced as GeminiError in run_synthesis)."""
     from app.deepdive.synthesis import _normalize_sources
+
     assert _normalize_sources([]) == []
 
 
@@ -907,9 +1072,13 @@ def test_quant_marker_canonicalized_and_keeps_green():
     data["points"][0]["confidence"] = "🟢"
     syn.synthesize.return_value = data
     pts = run_synthesis(
-        ticker="X", form_type="10-K",
+        ticker="X",
+        form_type="10-K",
         sections={"10-K_item7": "ITEM 7 MANAGEMENT DISCUSSION. We discuss."},
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+    )
     assert pts[0].sources == ["yfinance, 5J"]
     assert pts[0].confidence == "🟢"
 
@@ -923,9 +1092,13 @@ def test_two_unknown_markers_dedup_then_cap_to_yellow():
     data["points"][0]["confidence"] = "🟢"
     syn.synthesize.return_value = data
     pts = run_synthesis(
-        ticker="X", form_type="10-K",
+        ticker="X",
+        form_type="10-K",
         sections={"10-K_item7": "ITEM 7 MANAGEMENT DISCUSSION. We discuss."},
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+    )
     assert pts[0].sources == ["Inferenz"]
     assert pts[0].confidence == "🟡"
 
@@ -939,9 +1112,13 @@ def test_unknown_marker_does_not_sink_grounded_point():
     data["points"][0]["confidence"] = "🟢"
     syn.synthesize.return_value = data
     pts = run_synthesis(
-        ticker="X", form_type="10-K",
+        ticker="X",
+        form_type="10-K",
         sections={"10-K_item7": "ITEM 7 MANAGEMENT DISCUSSION. We discuss."},
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+    )
     assert pts[0].sources == ["10-K §7", "Inferenz"]
     assert pts[0].confidence == "🟢"
 
@@ -955,9 +1132,13 @@ def test_anti_regress_hallucinated_section_still_collapses_and_downgrades():
     data["points"][0]["confidence"] = "🟢"
     syn.synthesize.return_value = data
     pts = run_synthesis(
-        ticker="X", form_type="20-F",
+        ticker="X",
+        form_type="20-F",
         sections={"20-F_item5": "ITEM 5 OPERATING REVIEW. We review."},
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+    )
     assert pts[0].sources == ["Inferenz"]
     assert pts[0].confidence == "🟡"
 
@@ -969,6 +1150,7 @@ def test_normalize_misformatted_filing_cite_collapses_to_inference(caplog):
     (distinct from the generic 'not in controlled vocabulary' for invented
     markers)."""
     from app.deepdive.synthesis import _normalize_sources
+
     with caplog.at_level(logging.WARNING, logger="app.deepdive.synthesis"):
         out = _normalize_sources(["20-F Item 5"])
     assert out == ["Inferenz"]
@@ -986,9 +1168,13 @@ def test_misformatted_filing_cite_caps_confidence_via_full_loop():
     data["points"][0]["confidence"] = "🟢"
     syn.synthesize.return_value = data
     pts = run_synthesis(
-        ticker="X", form_type="20-F",
+        ticker="X",
+        form_type="20-F",
         sections={"20-F_item5": "ITEM 5 OPERATING REVIEW. We review."},
-        quant=_qs(), synthesizer=syn, max_input_tokens=200000)
+        quant=_qs(),
+        synthesizer=syn,
+        max_input_tokens=200000,
+    )
     assert pts[0].sources == ["Inferenz"]
     assert pts[0].confidence == "🟡"
 
@@ -1014,14 +1200,25 @@ def test_form4_marker_recognized_not_inferenz():
 
 def test_insider_block_present_in_prompt():
     from app.models.deep_dive_record import (
-        PointInTimeQuant, QuantSnapshot, HistoricalSeries, TrendMetrics,
+        PointInTimeQuant,
+        QuantSnapshot,
+        HistoricalSeries,
+        TrendMetrics,
     )
+
     qs = QuantSnapshot(
         point_in_time=PointInTimeQuant(ticker="X"),
-        historical_series=HistoricalSeries(), trend_metrics=TrendMetrics())
+        historical_series=HistoricalSeries(),
+        trend_metrics=TrendMetrics(),
+    )
     prompt = _build_user_prompt(
-        "X", "10-K", {}, qs, filing_date=None,
-        insider_summary=InsiderSummary(coverage_state="fpi_exempt"))
+        "X",
+        "10-K",
+        {},
+        qs,
+        filing_date=None,
+        insider_summary=InsiderSummary(coverage_state="fpi_exempt"),
+    )
     assert "Insider-Transaktionen" in prompt
 
 
@@ -1037,4 +1234,6 @@ def test_insider_marker_with_section_not_downgraded():
     # The MSFT P15 case: ["Insider-Transaktionen", "10-K §7"] must become
     # ["Form-4", "10-K §7"] — Form-4 recognized, section preserved.
     assert _normalize_sources(["Insider-Transaktionen", "10-K §7"]) == [
-        "Form-4", "10-K §7"]
+        "Form-4",
+        "10-K §7",
+    ]

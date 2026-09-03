@@ -1,6 +1,7 @@
 """Absolute (non-sector-relative) revenue-growth consistency: the anti-cyclical
 dampener on the growth axis. A one-year supercycle spike scores high on the global
 growth percentile but, lacking multi-year consistency, is capped down here."""
+
 from __future__ import annotations
 
 from app.models.definedness import DefinednessOutcome

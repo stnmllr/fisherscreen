@@ -14,8 +14,14 @@ from app.models.deep_dive_record import (
 
 
 def _valid_point(**over):
-    base = dict(number=1, title="Marktpotential", rating=4,
-                confidence="🟢", reasoning="Solide.", sources=["20-F §4"])
+    base = dict(
+        number=1,
+        title="Marktpotential",
+        rating=4,
+        confidence="🟢",
+        reasoning="Solide.",
+        sources=["20-F §4"],
+    )
     base.update(over)
     return FisherPoint(**base)
 
@@ -27,8 +33,15 @@ def test_fisher_point_minimal_valid():
 
 def test_fisher_point_rejects_extra_field():
     with pytest.raises(ValidationError):
-        FisherPoint(number=1, title="x", rating=3, confidence="🟡",
-                    reasoning="r", sources=["x"], bogus=1)
+        FisherPoint(
+            number=1,
+            title="x",
+            rating=3,
+            confidence="🟡",
+            reasoning="r",
+            sources=["x"],
+            bogus=1,
+        )
 
 
 def test_fisher_point_rating_out_of_range_rejected():
@@ -88,6 +101,7 @@ def test_fisher_point_reasoning_truncate_logs_warning(caplog):
     """Truncation emits a WARNING from app.models.deep_dive_record with the
     original word count and a substring identifying the event."""
     import logging
+
     with caplog.at_level(logging.WARNING, logger="app.models.deep_dive_record"):
         _valid_point(reasoning=" ".join(["w"] * 95))
     assert any(
@@ -119,31 +133,60 @@ def test_quant_snapshot_defaults_allow_missing_optional():
 
 def test_pit_quant_stage2a_valuation_fields_default_none():
     pit = PointInTimeQuant(ticker="X")
-    for f in ("trailing_pe", "forward_pe", "enterprise_value", "ebit",
-              "free_cashflow", "total_debt", "total_cash", "current_ratio",
-              "interest_expense", "dividend_yield", "payout_ratio"):
+    for f in (
+        "trailing_pe",
+        "forward_pe",
+        "enterprise_value",
+        "ebit",
+        "free_cashflow",
+        "total_debt",
+        "total_cash",
+        "current_ratio",
+        "interest_expense",
+        "dividend_yield",
+        "payout_ratio",
+    ):
         assert getattr(pit, f) is None
     pit2 = PointInTimeQuant(
-        ticker="X", trailing_pe=25.0, forward_pe=22.0,
-        enterprise_value=1e12, ebit=2e10, free_cashflow=1.5e10,
-        total_debt=3e9, total_cash=5e9, current_ratio=1.4,
-        interest_expense=-2e8, dividend_yield=0.024, payout_ratio=0.3)
+        ticker="X",
+        trailing_pe=25.0,
+        forward_pe=22.0,
+        enterprise_value=1e12,
+        ebit=2e10,
+        free_cashflow=1.5e10,
+        total_debt=3e9,
+        total_cash=5e9,
+        current_ratio=1.4,
+        interest_expense=-2e8,
+        dividend_yield=0.024,
+        payout_ratio=0.3,
+    )
     assert pit2.trailing_pe == 25.0
     assert pit2.interest_expense == -2e8
 
 
 def test_pit_quant_stage2b_consensus_fields_default_none():
     pit = PointInTimeQuant(ticker="X")
-    for f in ("recommendation_key", "recommendation_mean",
-              "target_mean_price", "target_median_price",
-              "target_low_price", "target_high_price",
-              "number_of_analyst_opinions"):
+    for f in (
+        "recommendation_key",
+        "recommendation_mean",
+        "target_mean_price",
+        "target_median_price",
+        "target_low_price",
+        "target_high_price",
+        "number_of_analyst_opinions",
+    ):
         assert getattr(pit, f) is None
     pit2 = PointInTimeQuant(
-        ticker="X", recommendation_key="buy", recommendation_mean=1.8,
-        target_mean_price=111.0, target_median_price=110.0,
-        target_low_price=90.0, target_high_price=140.0,
-        number_of_analyst_opinions=42)
+        ticker="X",
+        recommendation_key="buy",
+        recommendation_mean=1.8,
+        target_mean_price=111.0,
+        target_median_price=110.0,
+        target_low_price=90.0,
+        target_high_price=140.0,
+        number_of_analyst_opinions=42,
+    )
     assert pit2.recommendation_key == "buy"
     assert pit2.recommendation_mean == 1.8
     assert pit2.target_mean_price == 111.0
@@ -152,12 +195,19 @@ def test_pit_quant_stage2b_consensus_fields_default_none():
 
 def test_forward_estimates_model_defaults_and_forbid_extra():
     fe = ForwardEstimates()
-    for f in ("revenue_growth_cy", "revenue_growth_ny",
-              "eps_growth_cy", "eps_growth_ny"):
+    for f in (
+        "revenue_growth_cy",
+        "revenue_growth_ny",
+        "eps_growth_cy",
+        "eps_growth_ny",
+    ):
         assert getattr(fe, f) is None
     fe2 = ForwardEstimates(
-        revenue_growth_cy=0.1485, revenue_growth_ny=0.0809,
-        eps_growth_cy=0.1714, eps_growth_ny=0.1023)
+        revenue_growth_cy=0.1485,
+        revenue_growth_ny=0.0809,
+        eps_growth_cy=0.1714,
+        eps_growth_ny=0.1023,
+    )
     assert fe2.revenue_growth_cy == 0.1485
     assert fe2.eps_growth_ny == 0.1023
     with pytest.raises(ValidationError):
@@ -169,21 +219,36 @@ def test_quant_snapshot_forward_estimates_default_none():
     assert qs.forward_estimates is None
     fe = ForwardEstimates(eps_growth_cy=0.17)
     qs2 = QuantSnapshot(
-        point_in_time=PointInTimeQuant(ticker="X"), forward_estimates=fe)
+        point_in_time=PointInTimeQuant(ticker="X"), forward_estimates=fe
+    )
     assert qs2.forward_estimates is fe
 
 
 def test_peer_quant_defaults_and_forbid_extra():
     pq = PeerQuant(ticker="PFE")
     assert pq.ticker == "PFE"
-    for f in ("name", "trailing_pe", "forward_pe", "operating_margin",
-              "gross_margin", "revenue_growth_yoy", "free_cashflow",
-              "market_cap"):
+    for f in (
+        "name",
+        "trailing_pe",
+        "forward_pe",
+        "operating_margin",
+        "gross_margin",
+        "revenue_growth_yoy",
+        "free_cashflow",
+        "market_cap",
+    ):
         assert getattr(pq, f) is None
     pq2 = PeerQuant(
-        ticker="MRK", name="Merck", trailing_pe=15.0, forward_pe=13.0,
-        operating_margin=0.3, gross_margin=0.7, revenue_growth_yoy=0.05,
-        free_cashflow=2e10, market_cap=3e11)
+        ticker="MRK",
+        name="Merck",
+        trailing_pe=15.0,
+        forward_pe=13.0,
+        operating_margin=0.3,
+        gross_margin=0.7,
+        revenue_growth_yoy=0.05,
+        free_cashflow=2e10,
+        market_cap=3e11,
+    )
     assert pq2.name == "Merck"
     assert pq2.free_cashflow == 2e10
     with pytest.raises(ValidationError):
@@ -191,9 +256,13 @@ def test_peer_quant_defaults_and_forbid_extra():
 
 
 def test_peer_comparison_defaults_and_forbid_extra():
-    pc = PeerComparison(peers=[
-        PeerQuant(ticker="LLY"), PeerQuant(ticker="PFE"),
-        PeerQuant(ticker="MRK")])
+    pc = PeerComparison(
+        peers=[
+            PeerQuant(ticker="LLY"),
+            PeerQuant(ticker="PFE"),
+            PeerQuant(ticker="MRK"),
+        ]
+    )
     assert len(pc.peers) == 3
     assert pc.rationale is None
     pc2 = PeerComparison(peers=[], rationale="Big Pharma peers")
@@ -206,8 +275,7 @@ def test_quant_snapshot_peer_comparison_default_none():
     qs = QuantSnapshot(point_in_time=PointInTimeQuant(ticker="X"))
     assert qs.peer_comparison is None
     pc = PeerComparison(peers=[PeerQuant(ticker="LLY")])
-    qs2 = QuantSnapshot(
-        point_in_time=PointInTimeQuant(ticker="X"), peer_comparison=pc)
+    qs2 = QuantSnapshot(point_in_time=PointInTimeQuant(ticker="X"), peer_comparison=pc)
     assert qs2.peer_comparison is pc
 
 
@@ -224,10 +292,15 @@ def test_source_coverage_valuation_default_is_multiyear():
 
 def test_deep_dive_record_roundtrip_and_forbid_extra():
     rec = DeepDiveRecord(
-        ticker="NOVO-B.CO", adr_ticker="NVO", cik="0000353278",
-        form_type="20-F", filing_sections={"20-F_item5": "text"},
-        section_flags={}, quant_snapshot=QuantSnapshot(
-            point_in_time=PointInTimeQuant(ticker="NOVO-B.CO")),
+        ticker="NOVO-B.CO",
+        adr_ticker="NVO",
+        cik="0000353278",
+        form_type="20-F",
+        filing_sections={"20-F_item5": "text"},
+        section_flags={},
+        quant_snapshot=QuantSnapshot(
+            point_in_time=PointInTimeQuant(ticker="NOVO-B.CO")
+        ),
         synthesis=[_valid_point(number=n) for n in range(1, 16)],
         source_coverage=SourceCoverage(),
     )
@@ -239,12 +312,16 @@ def test_deep_dive_record_roundtrip_and_forbid_extra():
 
 def _record_with(**over):
     base = dict(
-        ticker="NOVO-B.CO", adr_ticker="NVO", cik="0000353278",
-        form_type="20-F", filing_sections={"20-F_item5": "x"},
+        ticker="NOVO-B.CO",
+        adr_ticker="NVO",
+        cik="0000353278",
+        form_type="20-F",
+        filing_sections={"20-F_item5": "x"},
         section_flags={},
         quant_snapshot=QuantSnapshot(point_in_time=PointInTimeQuant(ticker="X")),
         synthesis=[_valid_point(number=n) for n in range(1, 16)],
-        source_coverage=SourceCoverage())
+        source_coverage=SourceCoverage(),
+    )
     base.update(over)
     return DeepDiveRecord(**base)
 
@@ -257,9 +334,11 @@ def test_filing_date_field_defaults_none():
 
 def test_days_since_filing_correct_for_known_pair():
     from datetime import datetime, timezone
+
     rec = _record_with(
         filing_date="2025-02-05",
-        generated_at=datetime(2025, 5, 19, 12, 0, tzinfo=timezone.utc))
+        generated_at=datetime(2025, 5, 19, 12, 0, tzinfo=timezone.utc),
+    )
     # 2025-02-05 -> 2025-05-19 = 103 days
     assert rec.days_since_filing == 103
 
@@ -277,15 +356,21 @@ def test_days_since_filing_none_when_unparseable():
 def test_deep_dive_record_form_type_literal():
     with pytest.raises(ValidationError):
         DeepDiveRecord(
-            ticker="X", adr_ticker=None, cik="0000000001", form_type="8-K",
-            filing_sections={}, section_flags={},
+            ticker="X",
+            adr_ticker=None,
+            cik="0000000001",
+            form_type="8-K",
+            filing_sections={},
+            section_flags={},
             quant_snapshot=QuantSnapshot(point_in_time=PointInTimeQuant(ticker="X")),
-            synthesis=[], source_coverage=SourceCoverage(),
+            synthesis=[],
+            source_coverage=SourceCoverage(),
         )
 
 
 def test_multiple_stats_defaults_and_literal():
     from app.models.deep_dive_record import MultipleStats
+
     s = MultipleStats()
     assert s.median is None and s.p25 is None
     assert s.n_obs == 0 and s.span_years is None
@@ -296,6 +381,7 @@ def test_multiple_stats_rejects_unknown_status():
     import pytest
     from pydantic import ValidationError
     from app.models.deep_dive_record import MultipleStats
+
     with pytest.raises(ValidationError):
         MultipleStats(status="bogus")
 
@@ -304,17 +390,21 @@ def test_multiple_stats_forbids_extra():
     import pytest
     from pydantic import ValidationError
     from app.models.deep_dive_record import MultipleStats
+
     with pytest.raises(ValidationError):
         MultipleStats(unexpected=1)
 
 
 def test_valuation_history_holds_three_multiples():
     from app.models.deep_dive_record import MultipleStats, ValuationHistory
+
     vh = ValuationHistory(
-        pe=MultipleStats(median=21.4, p25=12.1, n_obs=260,
-                         span_years=5.0, status="complete"),
+        pe=MultipleStats(
+            median=21.4, p25=12.1, n_obs=260, span_years=5.0, status="complete"
+        ),
         ev_ebit=MultipleStats(status="na_data"),
-        fcf_yield=MultipleStats(status="skipped_fx"))
+        fcf_yield=MultipleStats(status="skipped_fx"),
+    )
     assert vh.pe.median == 21.4
     assert vh.ev_ebit.status == "na_data"
     assert vh.fcf_yield.status == "skipped_fx"
@@ -322,6 +412,7 @@ def test_valuation_history_holds_three_multiples():
 
 def test_quant_snapshot_valuation_history_optional_defaults_none():
     from app.models.deep_dive_record import PointInTimeQuant, QuantSnapshot
+
     qs = QuantSnapshot(point_in_time=PointInTimeQuant(ticker="X"))
     assert qs.valuation_history is None
 
@@ -340,6 +431,7 @@ def test_insider_transaction_minimal_and_forbids_extra():
     assert t.value is None
     import pytest
     from pydantic import ValidationError
+
     with pytest.raises(ValidationError):
         InsiderTransaction(owner_name="X", role="CEO", code="P", bucket="buy", bogus=1)
 

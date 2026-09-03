@@ -98,6 +98,7 @@ def test_finish_sets_completed_at():
 
 def test_run_id_is_iso_timestamp_string():
     from datetime import datetime
+
     tracker, _ = _tracker()
     record = tracker.finish()
     datetime.fromisoformat(record.run_id)  # raises ValueError if not valid ISO format

@@ -11,9 +11,13 @@ from app.models.run_record import RunRecord
 client = TestClient(app)
 
 
-def _mock_run_result(paths: list[Path] | None = None) -> tuple[list, RunRecord, list[Path]]:
+def _mock_run_result(
+    paths: list[Path] | None = None,
+) -> tuple[list, RunRecord, list[Path]]:
     records: list = []
-    run_record = RunRecord(run_id="2026-05-13T08:00:00+00:00", tickers_processed=1, status="success")
+    run_record = RunRecord(
+        run_id="2026-05-13T08:00:00+00:00", tickers_processed=1, status="success"
+    )
     if paths is None:
         paths = [Path("output/Universum/2026-05-Dimensions.md")]
     return records, run_record, paths
@@ -74,7 +78,9 @@ def test_dry_run_returns_report_and_skips_paid_pipeline() -> None:
         patch("app.main.build_run_tracker") as mock_tracker,
         patch("app.main.build_github_client") as mock_github,
         patch("app.main.run_screener") as mock_run_screener,
-        patch("app.main.run_filter_preview", return_value=_FakeReport()) as mock_preview,
+        patch(
+            "app.main.run_filter_preview", return_value=_FakeReport()
+        ) as mock_preview,
         patch("app.main._load_universe", return_value=["AAPL"]),
     ):
         resp = client.post("/run/monthly?dry_run=true")
@@ -87,7 +93,7 @@ def test_dry_run_returns_report_and_skips_paid_pipeline() -> None:
 
     mock_preview.assert_called_once()
     mock_screener.assert_called_once()  # yfinance pipeline still built
-    mock_edgar.assert_called_once()     # edgar pipeline still built
+    mock_edgar.assert_called_once()  # edgar pipeline still built
     mock_revenue_cache.assert_not_called()
     mock_tracker.assert_not_called()
     mock_github.assert_not_called()
@@ -128,7 +134,9 @@ def test_monthly_run_commit_message_includes_skip_ci(tmp_path: Path) -> None:
         patch("app.main.build_revenue_series_cache"),
         patch("app.main.build_run_tracker"),
         patch("app.main.build_github_client", return_value=mock_github),
-        patch("app.main.run_screener", return_value=_mock_run_result(paths=[output_file])),
+        patch(
+            "app.main.run_screener", return_value=_mock_run_result(paths=[output_file])
+        ),
         patch("app.main._load_universe", return_value=["AAPL"]),
     ):
         resp = client.post("/run/monthly")

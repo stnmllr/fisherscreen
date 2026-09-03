@@ -6,7 +6,13 @@ def test_service_protocol_imports():
     from app.services.marketaux_client import MarketauxClient
     from app.services.yfinance_client import YFinanceClient
 
-    assert all([
-        ApifyClient, EdgarClient, FirestoreClient,
-        GeminiClient, MarketauxClient, YFinanceClient,
-    ])
+    assert all(
+        [
+            ApifyClient,
+            EdgarClient,
+            FirestoreClient,
+            GeminiClient,
+            MarketauxClient,
+            YFinanceClient,
+        ]
+    )

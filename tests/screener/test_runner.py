@@ -33,8 +33,8 @@ _PASSING_INFO = {
     "marketCap": 3_000_000_000,  # 3B USD × 0.92 = 2.76B EUR — above €2B threshold
     "averageVolume": 200_000,
     "currentPrice": 50.0,
-    "grossMargins": 0.45,        # 45% — above 30% threshold (decimal)
-    "revenueGrowth": 0.08,       # 8% YoY — above 0%
+    "grossMargins": 0.45,  # 45% — above 30% threshold (decimal)
+    "revenueGrowth": 0.08,  # 8% YoY — above 0%
 }
 
 
@@ -64,7 +64,9 @@ def test_run_processes_multiple_tickers():
         "GOOD": _PASSING_INFO,
         "SHRK": {**_PASSING_INFO, "revenueGrowth": -0.10},  # declining revenue
     }
-    stmts = {"SHRK": _make_revenue_stmt([60.0, 80.0, 90.0, 100.0])}  # newest-first, falling
+    stmts = {
+        "SHRK": _make_revenue_stmt([60.0, 80.0, 90.0, 100.0])
+    }  # newest-first, falling
     mock_yf = _make_full_yf_mock(infos, stmts=stmts)
     result = run_basis_filter(["GOOD", "SHRK"], mock_yf).passed
 
@@ -139,10 +141,13 @@ def test_run_fails_ticker_when_fx_rate_unavailable():
 
 class _CfgYF:
     """Configurable per-ticker yfinance fake for 0b divert tests."""
+
     def __init__(self, infos):
         self._infos = infos
+
     def get_ticker_info(self, ticker):
         return self._infos[ticker]
+
     def get_fx_rate(self, currency):
         if currency == "NOFX":
             raise DataSourceError("fx down")
@@ -150,9 +155,17 @@ class _CfgYF:
 
 
 def _info(**kw):
-    base = {"shortName": "X", "quoteType": "EQUITY", "marketCap": 5e9,
-            "averageVolume": 5e5, "currentPrice": 100.0, "currency": "EUR",
-            "grossMargins": 0.5, "revenueGrowth": 0.1, "sector": "Technology"}
+    base = {
+        "shortName": "X",
+        "quoteType": "EQUITY",
+        "marketCap": 5e9,
+        "averageVolume": 5e5,
+        "currentPrice": 100.0,
+        "currency": "EUR",
+        "grossMargins": 0.5,
+        "revenueGrowth": 0.1,
+        "sector": "Technology",
+    }
     base.update(kw)
     return base
 
@@ -176,7 +189,7 @@ def test_resolve_mc_first_precedence():
 
 def test_divert_no_symbol_data_and_fx():
     infos = {
-        "OK":  _info(),
+        "OK": _info(),
         "ATO": _info(marketCap=7.28e8),
         "NOMC": _info(marketCap=0),
         "NOCUR": _info(currency=None),
@@ -311,14 +324,23 @@ def test_run_basis_filter_emits_aggregate_warning_with_count(caplog):
 
 class _FunnelYF:
     """Resolves GOOD; raises DegradedDataError for DEGR; DataSourceError for GONE."""
+
     def get_ticker_info(self, ticker):
         if ticker == "DEGR":
             raise DegradedDataError("degraded")
         if ticker == "GONE":
             raise DataSourceError("404")
-        return {"shortName": ticker, "marketCap": 5e9, "averageVolume": 5e5,
-                "currentPrice": 100.0, "currency": "EUR", "grossMargins": 0.5,
-                "revenueGrowth": 0.1, "sector": "Technology"}
+        return {
+            "shortName": ticker,
+            "marketCap": 5e9,
+            "averageVolume": 5e5,
+            "currentPrice": 100.0,
+            "currency": "EUR",
+            "grossMargins": 0.5,
+            "revenueGrowth": 0.1,
+            "sector": "Technology",
+        }
+
     def get_fx_rate(self, currency):
         return 1.0
 
@@ -326,7 +348,10 @@ class _FunnelYF:
 def test_basis_result_splits_degraded_from_unresolved():
     result = run_basis_filter(["GOOD", "DEGR", "GONE"], _FunnelYF())
     assert result.degraded == ["DEGR"]
-    assert set(result.unresolved) == {"DEGR", "GONE"}  # unresolved = all that failed resolution
+    assert set(result.unresolved) == {
+        "DEGR",
+        "GONE",
+    }  # unresolved = all that failed resolution
     assert [r.ticker for r in result.resolved] == ["GOOD"]
     assert [r.ticker for r in result.passed] == ["GOOD"]
 
@@ -349,6 +374,7 @@ def test_run_basis_filter_no_aggregate_warning_when_all_resolve(caplog):
 
 def _passing_basis_record(ticker="TEST", cik="0000320193") -> "ScreenerRecord":
     from app.models.screener_record import ScreenerRecord
+
     return ScreenerRecord(
         ticker=ticker,
         cik=cik,
@@ -371,6 +397,7 @@ def _clean_edgar_mock() -> MagicMock:
 
 def test_run_edgar_filter_passes_clean_records():
     from app.screener.runner import run_edgar_filter
+
     record = _passing_basis_record()
     result = run_edgar_filter([record], _clean_edgar_mock())
     assert len(result) == 1
@@ -379,6 +406,7 @@ def test_run_edgar_filter_passes_clean_records():
 
 def test_run_edgar_filter_skips_records_without_cik():
     from app.screener.runner import run_edgar_filter
+
     mock_edgar = MagicMock()
     mock_edgar.get_cik.return_value = None  # lookup also finds nothing
     record = _passing_basis_record(cik=None)
@@ -394,6 +422,7 @@ def test_run_edgar_filter_skips_records_without_cik():
 
 def test_run_edgar_filter_populates_cik_via_lookup():
     from app.screener.runner import run_edgar_filter
+
     mock_edgar = _clean_edgar_mock()
     mock_edgar.get_cik.return_value = "0000320193"
 
@@ -411,6 +440,7 @@ def test_run_edgar_filter_populates_cik_via_lookup():
 
 def test_run_edgar_filter_skips_on_data_source_error():
     from app.screener.runner import run_edgar_filter
+
     mock_edgar = MagicMock()
     mock_edgar.has_restatement.side_effect = DataSourceError("network error")
     record = _passing_basis_record()
@@ -424,6 +454,7 @@ def test_run_edgar_filter_skips_on_data_source_error():
 
 def test_run_edgar_filter_excludes_restatement_records():
     from app.screener.runner import run_edgar_filter
+
     mock_edgar = _clean_edgar_mock()
     mock_edgar.has_restatement.return_value = True
     record = _passing_basis_record()
@@ -453,6 +484,7 @@ def test_run_edgar_filter_continues_after_individual_error():
     from app.screener.runner import run_edgar_filter
 
     mock_edgar = _clean_edgar_mock()
+
     def restatement_side_effect(cik, **_):
         if cik == "0000111111":
             raise DataSourceError("timeout")
@@ -473,11 +505,13 @@ def test_run_edgar_filter_continues_after_individual_error():
 
 def test_run_edgar_filter_returns_empty_for_empty_input():
     from app.screener.runner import run_edgar_filter
+
     assert run_edgar_filter([], MagicMock()) == []
 
 
 def test_run_edgar_filter_sets_no_cik_reason_when_lookup_returns_none():
     from app.screener.runner import run_edgar_filter
+
     mock_edgar = MagicMock()
     mock_edgar.get_cik.return_value = None
     record = _passing_basis_record(cik=None)
@@ -507,9 +541,7 @@ def test_run_edgar_filter_no_cik_skip_logged_at_debug_not_warning(caplog):
     assert record.edgar_skipped_reason == "no_cik"
 
     # The per-ticker no-CIK skip is benign and aggregated elsewhere → DEBUG, not WARNING.
-    no_cik_records = [
-        r for r in caplog.records if "has no CIK" in r.getMessage()
-    ]
+    no_cik_records = [r for r in caplog.records if "has no CIK" in r.getMessage()]
     assert no_cik_records, "expected a no-CIK skip log record"
     assert all(r.levelno == logging.DEBUG for r in no_cik_records)
     assert not any(
@@ -520,6 +552,7 @@ def test_run_edgar_filter_no_cik_skip_logged_at_debug_not_warning(caplog):
 
 def test_run_edgar_filter_sets_data_source_error_reason_on_edgar_failure():
     from app.screener.runner import run_edgar_filter
+
     mock_edgar = _clean_edgar_mock()
     mock_edgar.get_cik.return_value = "0000320193"
     mock_edgar.has_restatement.side_effect = DataSourceError("network error")
@@ -544,6 +577,7 @@ def test_run_filter_preview_runs_basis_and_edgar_returns_report():
     mock_yf.get_ticker_info.side_effect = yf_side_effect
 
     mock_edgar = _clean_edgar_mock()
+
     # PASS resolves a CIK and is clean; NOCIK resolves to None → no_cik skip
     def cik_side_effect(ticker):
         return "0000320193" if ticker == "PASS" else None
@@ -631,7 +665,7 @@ def test_run_filter_preview_has_no_gemini_parameter():
     from app.screener.runner import run_filter_preview
 
     params = inspect.signature(run_filter_preview).parameters
-    assert "gemini" not in params           # structurally cannot score — unchanged invariant
+    assert "gemini" not in params  # structurally cannot score — unchanged invariant
     assert set(params) == {"tickers", "yfinance", "edgar", "output_dir", "run_month"}
 
 
@@ -670,6 +704,7 @@ def _full_mock_suite(ticker: str = "AAPL"):
 
 def test_run_screener_returns_records_run_record_and_paths(tmp_path):
     from app.screener.runner import run_screener
+
     yfinance, edgar, revenue_cache, tracker = _full_mock_suite()
 
     records, run_record, paths = run_screener(
@@ -688,6 +723,7 @@ def test_run_screener_returns_records_run_record_and_paths(tmp_path):
 
 def test_run_screener_writes_funnel_artifacts(tmp_path):
     from app.screener.runner import run_screener
+
     yfinance, edgar, revenue_cache, tracker = _full_mock_suite()
 
     _, _, paths = run_screener(
@@ -706,6 +742,7 @@ def test_run_screener_writes_funnel_artifacts(tmp_path):
 
 def test_run_screener_creates_three_named_output_files(tmp_path):
     from app.screener.runner import run_screener
+
     yfinance, edgar, revenue_cache, tracker = _full_mock_suite()
 
     _, _, paths = run_screener(
@@ -750,7 +787,7 @@ def _suspect_info(**overrides) -> dict:
         "marketCap": 5_000_000_000,
         "averageVolume": 500_000,
         "currentPrice": 100.0,
-        "grossMargins": None,         # None -> suspect basket
+        "grossMargins": None,  # None -> suspect basket
         "revenueGrowth": 0.05,
         "sector": "Financial Services",
         "industry": "Banks - Diversified",
@@ -939,7 +976,10 @@ def test_assess_basket_datasourceerror_still_unassessable():
 
 def _make_revenue_stmt(revs_newest_first: list[float]):
     import pandas as pd
-    cols = {str(2024 - i): {"Total Revenue": v} for i, v in enumerate(revs_newest_first)}
+
+    cols = {
+        str(2024 - i): {"Total Revenue": v} for i, v in enumerate(revs_newest_first)
+    }
     return pd.DataFrame(cols)
 
 
@@ -962,7 +1002,9 @@ def test_revenue_prepass_no_fetch_when_ttm_positive():
 
 def test_revenue_prepass_fetches_and_drops_gamma():
     infos = {"DECL": _growth_info(-0.05)}
-    stmts = {"DECL": _make_revenue_stmt([70.0, 80.0, 90.0, 100.0])}  # newest-first, falling
+    stmts = {
+        "DECL": _make_revenue_stmt([70.0, 80.0, 90.0, 100.0])
+    }  # newest-first, falling
     mock = _make_full_yf_mock(infos, stmts=stmts)
     result = run_basis_filter(["DECL"], mock)
     mock.get_annual_statements.assert_called_once_with("DECL")
@@ -976,12 +1018,17 @@ def test_revenue_prepass_fetch_threshold_tracks_min_revenue_growth(monkeypatch):
     # If the floor is recalibrated above 0, a record with 0 <= TTM < floor must STILL be
     # fetched+assessed by the pre-pass (not skipped), because the gate will not TTM_PASS it.
     import app.screener.filters as _filters
+
     monkeypatch.setattr(_filters, "MIN_REVENUE_GROWTH", 0.05)
     infos = {"MID": _growth_info(0.02)}  # 0 <= 0.02 < 0.05
-    stmts = {"MID": _make_revenue_stmt([60.0, 80.0, 90.0, 100.0])}  # falling -> gamma decline
+    stmts = {
+        "MID": _make_revenue_stmt([60.0, 80.0, 90.0, 100.0])
+    }  # falling -> gamma decline
     mock = _make_full_yf_mock(infos, stmts=stmts)
     result = run_basis_filter(["MID"], mock)
-    mock.get_annual_statements.assert_called_once_with("MID")  # was fetched, not skipped
+    mock.get_annual_statements.assert_called_once_with(
+        "MID"
+    )  # was fetched, not skipped
     rec = result.resolved[0]
     assert rec.revenue_growth_definedness is DefinednessOutcome.DEFINED
     assert rec.filter_failed_reason == "revenue_growth"  # assessed -> gamma drop
@@ -989,7 +1036,9 @@ def test_revenue_prepass_fetch_threshold_tracks_min_revenue_growth(monkeypatch):
 
 def test_revenue_prepass_fetches_and_rescues_positive_cagr():
     infos = {"RESC": _growth_info(-0.05)}
-    stmts = {"RESC": _make_revenue_stmt([130.0, 90.0, 105.0, 100.0])}  # net growth, choppy
+    stmts = {
+        "RESC": _make_revenue_stmt([130.0, 90.0, 105.0, 100.0])
+    }  # net growth, choppy
     mock = _make_full_yf_mock(infos, stmts=stmts)
     result = run_basis_filter(["RESC"], mock)
     rec = result.resolved[0]

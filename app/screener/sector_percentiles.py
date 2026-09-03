@@ -5,6 +5,7 @@ are sector-relative iff the record's sector has >= MIN_SECTOR_N members, else th
 back to the global pool (score_basis records which). None values are excluded from
 distributions; debt_to_equity < 0 is excluded entirely (negative book equity is
 ambiguous, not distress — see spec §5)."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -16,7 +17,12 @@ if TYPE_CHECKING:
 
 MIN_SECTOR_N = 30
 _GLOBAL_INPUT = "revenue_growth_yoy"
-_SECTOR_RELATIVE_INPUTS = ("operating_margin", "return_on_equity", "gross_margin", "debt_to_equity")
+_SECTOR_RELATIVE_INPUTS = (
+    "operating_margin",
+    "return_on_equity",
+    "gross_margin",
+    "debt_to_equity",
+)
 _AXIS_INPUTS = {
     "profitability": ("operating_margin", "return_on_equity"),
     "resilience": ("gross_margin", "debt_to_equity"),
@@ -37,7 +43,9 @@ def _distribution(records: list["ScreenerRecord"], field: str) -> list[float]:
 
 def annotate_percentiles(records: list["ScreenerRecord"]) -> None:
     """Set `input_percentiles` and `score_basis` on each record in place."""
-    global_dist = {f: _distribution(records, f) for f in (_GLOBAL_INPUT, *_SECTOR_RELATIVE_INPUTS)}
+    global_dist = {
+        f: _distribution(records, f) for f in (_GLOBAL_INPUT, *_SECTOR_RELATIVE_INPUTS)
+    }
 
     sector_members: dict[str | None, list["ScreenerRecord"]] = {}
     for r in records:
@@ -56,7 +64,9 @@ def annotate_percentiles(records: list["ScreenerRecord"]) -> None:
             pcts[_GLOBAL_INPUT] = percentile_rank(gv, global_dist[_GLOBAL_INPUT])
 
         sector = r.gics_sector
-        use_sector = sector is not None and len(sector_members.get(sector, [])) >= MIN_SECTOR_N
+        use_sector = (
+            sector is not None and len(sector_members.get(sector, [])) >= MIN_SECTOR_N
+        )
         for axis, fields in _AXIS_INPUTS.items():
             basis[axis] = "sector_relative" if use_sector else "global_fallback"
             for f in fields:

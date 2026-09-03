@@ -10,11 +10,18 @@ from app.models.screener_record import ScreenerRecord
 logger = logging.getLogger(__name__)
 
 # --- Tunable instrumentation constants (severity only; no gate touches these) ---
-LARGE_CAP_VOLUME_EUR = 3_000_000_000     # GATE_VOLUME: a big name failing volume ~ data bug
-LARGE_CAP_GROWTH_EUR = 10_000_000_000    # GATE_REVENUE_GROWTH: big mature firm can really shrink
+LARGE_CAP_VOLUME_EUR = (
+    3_000_000_000  # GATE_VOLUME: a big name failing volume ~ data bug
+)
+LARGE_CAP_GROWTH_EUR = (
+    10_000_000_000  # GATE_REVENUE_GROWTH: big mature firm can really shrink
+)
 SECTOR_WIDE_FRACTION = 0.5
 SECTOR_WIDE_MIN_SIZE = 5
-SECTORS_WITHOUT_GROSS_MARGIN = {"Financial Services", "Real Estate"}  # yfinance taxonomy
+SECTORS_WITHOUT_GROSS_MARGIN = {
+    "Financial Services",
+    "Real Estate",
+}  # yfinance taxonomy
 
 
 class ReasonCode(str, Enum):
@@ -87,9 +94,17 @@ def _severity(
     """Fixed table. market_cap_eur=None is treated as 'not large-cap' (never None>=int)."""
     mc = market_cap_eur if market_cap_eur is not None else -1.0
     if reason_code == ReasonCode.GATE_VOLUME:
-        return SeverityBucket.REVIEW if mc >= LARGE_CAP_VOLUME_EUR else SeverityBucket.BENIGN
+        return (
+            SeverityBucket.REVIEW
+            if mc >= LARGE_CAP_VOLUME_EUR
+            else SeverityBucket.BENIGN
+        )
     if reason_code == ReasonCode.GATE_REVENUE_GROWTH:
-        return SeverityBucket.REVIEW if mc >= LARGE_CAP_GROWTH_EUR else SeverityBucket.BENIGN
+        return (
+            SeverityBucket.REVIEW
+            if mc >= LARGE_CAP_GROWTH_EUR
+            else SeverityBucket.BENIGN
+        )
     if reason_code == ReasonCode.GATE_GROSS_MARGIN:
         return SeverityBucket.REVIEW if sector_wide else SeverityBucket.BENIGN
     if reason_code in _ALWAYS_REVIEW:
@@ -103,11 +118,13 @@ class Dropout:
     stage: Stage
     reason_code: ReasonCode
     severity_bucket: SeverityBucket
-    is_large_cap: bool            # market_cap_eur >= LARGE_CAP_VOLUME_EUR (descriptive floor)
+    is_large_cap: bool  # market_cap_eur >= LARGE_CAP_VOLUME_EUR (descriptive floor)
     sector_wide: bool
     market_cap_eur: float | None
     gics_sector: str | None
-    detail: str = ""  # 0b sub-reason for RESOLUTION_NO_SYMBOL_DATA (NO_RAW_MC|NO_CURRENCY|NO_VOLUME); else ""
+    detail: str = (
+        ""  # 0b sub-reason for RESOLUTION_NO_SYMBOL_DATA (NO_RAW_MC|NO_CURRENCY|NO_VOLUME); else ""
+    )
 
 
 @dataclass(frozen=True)
@@ -139,8 +156,13 @@ class FunnelSummary:
     def to_dict(self) -> dict[str, Any]:
         return {
             "stages": [
-                {"stage": s.stage.value, "entered": s.entered, "dropped": s.dropped,
-                 "remaining": s.remaining, "ran": s.ran}
+                {
+                    "stage": s.stage.value,
+                    "entered": s.entered,
+                    "dropped": s.dropped,
+                    "remaining": s.remaining,
+                    "ran": s.ran,
+                }
                 for s in self.stages
             ],
             "review_flags": self.review_flags,
@@ -169,9 +191,9 @@ def _compute_sector_wide(resolved: list[ScreenerRecord]) -> set[str]:
         if sector in SECTORS_WITHOUT_GROSS_MARGIN:
             continue
         reason = r.filter_failed_reason
-        reached_gate = (
-            r.filter_passed_basis is True
-            or reason in ("gross_margin", "revenue_growth")
+        reached_gate = r.filter_passed_basis is True or reason in (
+            "gross_margin",
+            "revenue_growth",
         )
         if reached_gate:
             reached[sector] = reached.get(sector, 0) + 1
@@ -185,17 +207,30 @@ def _compute_sector_wide(resolved: list[ScreenerRecord]) -> set[str]:
     return flagged
 
 
-def _make_dropout(record: ScreenerRecord, stage: Stage, reason_code: ReasonCode,
-                  sector_wide_sectors: set[str], detail: str = "") -> Dropout:
-    sector_wide = (reason_code == ReasonCode.GATE_GROSS_MARGIN
-                   and record.gics_sector in sector_wide_sectors)
-    severity = _severity(reason_code, market_cap_eur=record.market_cap_eur,
-                         sector_wide=sector_wide)
+def _make_dropout(
+    record: ScreenerRecord,
+    stage: Stage,
+    reason_code: ReasonCode,
+    sector_wide_sectors: set[str],
+    detail: str = "",
+) -> Dropout:
+    sector_wide = (
+        reason_code == ReasonCode.GATE_GROSS_MARGIN
+        and record.gics_sector in sector_wide_sectors
+    )
+    severity = _severity(
+        reason_code, market_cap_eur=record.market_cap_eur, sector_wide=sector_wide
+    )
     return Dropout(
-        ticker=record.ticker, stage=stage, reason_code=reason_code,
-        severity_bucket=severity, is_large_cap=_is_large_cap(record.market_cap_eur),
-        sector_wide=sector_wide, market_cap_eur=record.market_cap_eur,
-        gics_sector=record.gics_sector, detail=detail,
+        ticker=record.ticker,
+        stage=stage,
+        reason_code=reason_code,
+        severity_bucket=severity,
+        is_large_cap=_is_large_cap(record.market_cap_eur),
+        sector_wide=sector_wide,
+        market_cap_eur=record.market_cap_eur,
+        gics_sector=record.gics_sector,
+        detail=detail,
     )
 
 
@@ -216,19 +251,53 @@ def build_funnel(
 
     # --- Resolution ---
     for t in basis.degraded:
-        dropouts.append(Dropout(t, Stage.RESOLUTION, ReasonCode.RESOLUTION_DEGRADED_DICT,
-                                SeverityBucket.REVIEW, False, False, None, None))
+        dropouts.append(
+            Dropout(
+                t,
+                Stage.RESOLUTION,
+                ReasonCode.RESOLUTION_DEGRADED_DICT,
+                SeverityBucket.REVIEW,
+                False,
+                False,
+                None,
+                None,
+            )
+        )
     for t in basis.unresolved:
         if t in basis.degraded:
             continue
-        dropouts.append(Dropout(t, Stage.RESOLUTION, ReasonCode.RESOLUTION_UNRESOLVED,
-                                SeverityBucket.BENIGN, False, False, None, None))
+        dropouts.append(
+            Dropout(
+                t,
+                Stage.RESOLUTION,
+                ReasonCode.RESOLUTION_UNRESOLVED,
+                SeverityBucket.BENIGN,
+                False,
+                False,
+                None,
+                None,
+            )
+        )
     for r in basis.no_symbol_data:
-        dropouts.append(_make_dropout(r, Stage.RESOLUTION, ReasonCode.RESOLUTION_NO_SYMBOL_DATA,
-                                      sector_wide_sectors, detail=r.resolution_detail or ""))
+        dropouts.append(
+            _make_dropout(
+                r,
+                Stage.RESOLUTION,
+                ReasonCode.RESOLUTION_NO_SYMBOL_DATA,
+                sector_wide_sectors,
+                detail=r.resolution_detail or "",
+            )
+        )
     for r in basis.fx_unavailable:
-        dropouts.append(_make_dropout(r, Stage.RESOLUTION, ReasonCode.RESOLUTION_FX_UNAVAILABLE,
-                                      sector_wide_sectors, detail=r.resolution_detail or ""))
+        dropouts.append(
+            _make_dropout(
+                r,
+                Stage.RESOLUTION,
+                ReasonCode.RESOLUTION_FX_UNAVAILABLE,
+                sector_wide_sectors,
+                detail=r.resolution_detail or "",
+            )
+        )
     n_resolved = len(basis.resolved)
 
     # --- Basis gates ---
@@ -248,44 +317,90 @@ def build_funnel(
 
     stages = [
         FunnelStage(Stage.UNIVERSE, n_universe, 0, n_universe),
-        FunnelStage(Stage.RESOLUTION, n_universe,
-                    len(basis.unresolved) + len(basis.no_symbol_data) + len(basis.fx_unavailable),
-                    n_resolved),
+        FunnelStage(
+            Stage.RESOLUTION,
+            n_universe,
+            len(basis.unresolved)
+            + len(basis.no_symbol_data)
+            + len(basis.fx_unavailable),
+            n_resolved,
+        ),
         FunnelStage(Stage.BASIS_GATES, n_resolved, len(basis_drops), n_basis_passed),
-        FunnelStage(Stage.EDGAR_GATES, n_basis_passed, len(edgar_drops), n_edgar_remaining),
+        FunnelStage(
+            Stage.EDGAR_GATES, n_basis_passed, len(edgar_drops), n_edgar_remaining
+        ),
     ]
 
     # --- Scoring + Crosshits (only if scoring ran) ---
     if scored is None:
-        stages.append(FunnelStage(Stage.SCORING, n_edgar_remaining, 0, n_edgar_remaining, ran=False))
-        stages.append(FunnelStage(Stage.CROSSHITS, n_edgar_remaining, 0, n_edgar_remaining, ran=False))
+        stages.append(
+            FunnelStage(
+                Stage.SCORING, n_edgar_remaining, 0, n_edgar_remaining, ran=False
+            )
+        )
+        stages.append(
+            FunnelStage(
+                Stage.CROSSHITS, n_edgar_remaining, 0, n_edgar_remaining, ran=False
+            )
+        )
     else:
         not_scored = [r for r in scored if r.gemini_dimensions is None]
         for r in not_scored:
-            dropouts.append(_make_dropout(r, Stage.SCORING, ReasonCode.SCORE_NOT_SCORED,
-                                          sector_wide_sectors))
+            dropouts.append(
+                _make_dropout(
+                    r, Stage.SCORING, ReasonCode.SCORE_NOT_SCORED, sector_wide_sectors
+                )
+            )
         successfully_scored = [r for r in scored if r.gemini_dimensions is not None]
-        crosshits = [r for r in successfully_scored
-                     if is_crosshit(r, score_threshold, crosshits_min_dimensions)]
-        below = [r for r in successfully_scored
-                 if not is_crosshit(r, score_threshold, crosshits_min_dimensions)]
+        crosshits = [
+            r
+            for r in successfully_scored
+            if is_crosshit(r, score_threshold, crosshits_min_dimensions)
+        ]
+        below = [
+            r
+            for r in successfully_scored
+            if not is_crosshit(r, score_threshold, crosshits_min_dimensions)
+        ]
         for r in below:
-            dropouts.append(_make_dropout(r, Stage.CROSSHITS, ReasonCode.SCORE_BELOW_THRESHOLD,
-                                          sector_wide_sectors))
-        stages.append(FunnelStage(Stage.SCORING, n_edgar_remaining, len(not_scored),
-                                  len(successfully_scored)))
-        stages.append(FunnelStage(Stage.CROSSHITS, len(successfully_scored), len(below),
-                                  len(crosshits)))
+            dropouts.append(
+                _make_dropout(
+                    r,
+                    Stage.CROSSHITS,
+                    ReasonCode.SCORE_BELOW_THRESHOLD,
+                    sector_wide_sectors,
+                )
+            )
+        stages.append(
+            FunnelStage(
+                Stage.SCORING,
+                n_edgar_remaining,
+                len(not_scored),
+                len(successfully_scored),
+            )
+        )
+        stages.append(
+            FunnelStage(
+                Stage.CROSSHITS, len(successfully_scored), len(below), len(crosshits)
+            )
+        )
 
-    review_flags = sum(1 for d in dropouts if d.severity_bucket == SeverityBucket.REVIEW)
+    review_flags = sum(
+        1 for d in dropouts if d.severity_bucket == SeverityBucket.REVIEW
+    )
     # Sub-floor names rescued by the relative gross-margin arm (Punkt 2 Phase E).
     # ABSOLUTE_PASS is the implicit majority; the RELATIVE_RESCUE list is the audit signal.
     relative_rescues = sorted(
-        r.ticker for r in basis.passed
+        r.ticker
+        for r in basis.passed
         if r.gross_margin_pass_reason == "RELATIVE_RESCUE"
     )
     logger.info("relative_rescues: n=%d %s", len(relative_rescues), relative_rescues)
-    summary = FunnelSummary(stages=stages, review_flags=review_flags,
-                            pass_through_count=len(pass_through),
-                            relative_rescues=relative_rescues, provenance=provenance)
+    summary = FunnelSummary(
+        stages=stages,
+        review_flags=review_flags,
+        pass_through_count=len(pass_through),
+        relative_rescues=relative_rescues,
+        provenance=provenance,
+    )
     return summary, dropouts

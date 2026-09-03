@@ -3,6 +3,7 @@
 See conftest.py module docstring for the invariant being enforced and the
 rationale (established 2026-05-20 as preventive, not reactive — no test in
 the suite violated the rule at time of installation)."""
+
 from pathlib import Path
 
 import pytest

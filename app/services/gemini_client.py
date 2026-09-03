@@ -57,7 +57,9 @@ class GeminiClient(Protocol):
 class GeminiClientImpl:
     def __init__(self, api_key: str, model: str = _DEFAULT_MODEL) -> None:
         if not api_key:
-            raise GeminiError("Gemini API key not set — configure FISHERSCREEN_GEMINI_API_KEY")
+            raise GeminiError(
+                "Gemini API key not set — configure FISHERSCREEN_GEMINI_API_KEY"
+            )
         self._client = _genai.Client(api_key=api_key)
         self._model = model
 
@@ -77,7 +79,9 @@ class GeminiClientImpl:
         if token_resp.total_tokens > max_input_tokens:
             logger.warning(
                 "ticker=%s prompt too large: %d > %d tokens — skipping",
-                ticker, token_resp.total_tokens, max_input_tokens,
+                ticker,
+                token_resp.total_tokens,
+                max_input_tokens,
             )
             raise GeminiError(
                 f"ticker={ticker} prompt too large: {token_resp.total_tokens} > {max_input_tokens} tokens"
@@ -234,11 +238,15 @@ def _load_json(ticker: str, raw_text: str) -> dict[str, Any]:
     except json.JSONDecodeError:
         truncated = _truncate_to_first_object(raw_text)
         if truncated is None:
-            raise GeminiError(f"Gemini returned invalid JSON for {ticker}: no JSON object found")
+            raise GeminiError(
+                f"Gemini returned invalid JSON for {ticker}: no JSON object found"
+            )
         try:
             return json.loads(truncated)
         except json.JSONDecodeError as exc:
-            raise GeminiError(f"Gemini returned invalid JSON for {ticker}: {exc}") from exc
+            raise GeminiError(
+                f"Gemini returned invalid JSON for {ticker}: {exc}"
+            ) from exc
 
 
 def _parse_response(ticker: str, response: Any) -> GeminiScoreResult:
