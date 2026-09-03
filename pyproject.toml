@@ -76,7 +76,13 @@ omit = [
 
 [tool.coverage.report]
 exclude_lines = [
-    "\\.\\.\\.",
+    # Protocol/stub bodies: a bare "..." on its own line (see app/services/
+    # edgar_client.py). MUST stay anchored: coverage.py excludes whole blocks,
+    # so an unanchored "\.\.\." also matches an Ellipsis inside a subscript
+    # (Callable[..., X]) in a def line and silently drops the ENTIRE function
+    # from the measurement — app/deepdive/pipeline.py reported 25 statements
+    # for 209 lines that way, with run_deep_dive invisible. Do not relax.
+    "^\\s*\\.\\.\\.$",
 ]
 
 [tool.hatch.build.targets.wheel]
