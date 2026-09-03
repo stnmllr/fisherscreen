@@ -59,6 +59,23 @@ wiring layer is untested.
 - Do **not** chase 100 %. The goal is that a mis-wired argument fails a test, not a
   percentage.
 
+## The same gap, one layer up: nothing tests resolver-to-pipeline
+
+Surfaced while deciding *against* adding a US-path pipeline test for the quant-only
+change. `run_deep_dive` branches on `resolved.has_filing_source` and never reads the
+reason code (grep over `app/` shows every consumer of `no_sec_source_reason` merely
+passing it through into the record, the front matter or the cache). So a second
+pipeline test per reason code would be duplication.
+
+But that reasoning exposed something real: **`tests/deepdive/test_pipeline.py` mocks the
+resolver away entirely** (`resolver.resolve.return_value = no_sec_source(...)`), and no
+test anywhere wires the real `ADRResolver` into `run_deep_dive`. That holds for the
+normal path as much as for the degraded one. Each part is tested; the seam between them
+is not — which is the same class of risk as the untested builders above, one layer up.
+
+Worth deciding together with the builder tests, since a single test that composes the
+real resolver, a stubbed EDGAR client and the pipeline would close both at once.
+
 ## Out of scope
 
 - Raising or lowering the 90 % floor. The floor is policy; the anchor fix only made the
