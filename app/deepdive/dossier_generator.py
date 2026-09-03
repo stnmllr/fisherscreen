@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 
 _STARS = {1: "⭐", 2: "⭐⭐", 3: "⭐⭐⭐", 4: "⭐⭐⭐⭐", 5: "⭐⭐⭐⭐⭐"}
 
+# Front-matter stand-in for a dossier without any SEC filing source. German
+# because form_type is rendered verbatim to the reader (render_detail /
+# render_overview), and truthy because the viewer's parser drops a dossier whose
+# form_type is falsy.
+FORM_TYPE_NO_SEC_SOURCE = "kein SEC-Filing"
+
 
 def _flag_str(flag: SectionFlag) -> str:
     parts = [flag.extraction]
@@ -44,7 +50,12 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
     cov = record.source_coverage
 
     quant_date = record.generated_at.date().isoformat()
-    if record.filing_date is not None:
+    if record.no_sec_source_note is not None:
+        # Not "unbekannt": that would imply a filing whose date we lost.
+        vintage_line = (
+            f"*Filing-Stand: {FORM_TYPE_NO_SEC_SOURCE} · Quant-Stand: {quant_date}*"
+        )
+    elif record.filing_date is not None:
         vintage_line = (
             f"*Filing-Stand: {record.filing_date} · "
             f"Quant-Stand: {quant_date} · "
@@ -54,12 +65,27 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
     else:
         vintage_line = f"*Filing-Stand: unbekannt · Quant-Stand: {quant_date}*"
 
+    # The normal placeholder promises that Gemini will fill this in. In the
+    # quant-only path Gemini structurally never runs, so it would be a false
+    # promise. No "[" in the replacement: the viewer nulls anything matching
+    # its placeholder regex r"\*\[.*\]\*".
+    if record.no_sec_source_note is not None:
+        exec_summary = (
+            f"*Quant-only-Dossier. {record.no_sec_source_note} Die Fisher-Synthese "
+            f"wurde nicht ausgeführt: ohne Filing-Substanz gäbe es nur Inferenz — "
+            f"bewusst kein Gemini-Lauf statt einer Synthese auf Phantomdaten.*"
+        )
+    else:
+        exec_summary = (
+            "*[3 Sätze: Kern-These + Hauptrisiko + Empfehlung — von Gemini in B.1+ "
+            "befüllt; B.1 Durchstich nutzt die 15 Mini-Blöcke als Substanz.]*"
+        )
+
     lines: list[str] = [
         f"# Deep Dive: {name} ({record.ticker})",
         "",
         "## Executive Summary",
-        "*[3 Sätze: Kern-These + Hauptrisiko + Empfehlung — von Gemini in B.1+ "
-        "befüllt; B.1 Durchstich nutzt die 15 Mini-Blöcke als Substanz.]*",
+        exec_summary,
         "",
         "## Bewertung",
         f"*Market Cap: {_fmt_money(pit.market_cap)} {pit.currency or ''} · "
@@ -76,6 +102,14 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
         "## Fishers 15 Punkte",
         "",
     ]
+    if not record.synthesis and record.no_sec_source_note is not None:
+        # Safe under the viewer's _parse_points: it discards everything before
+        # the first "### Punkt" heading.
+        lines += [
+            "*Keine Punkte — die Synthese wurde übersprungen "
+            "(siehe Executive Summary).*",
+            "",
+        ]
     for p in record.synthesis:
         marker = " ".join(f"[{s}]" for s in p.sources)
         lines += [
@@ -116,7 +150,9 @@ def generate_dossier(record: DeepDiveRecord, output_dir: Path) -> Path:
             "ticker": record.ticker,
             "adr_ticker": record.adr_ticker,
             "cik": record.cik,
-            "form_type": record.form_type,
+            "form_type": record.form_type or FORM_TYPE_NO_SEC_SOURCE,
+            "no_sec_source_reason": record.no_sec_source_reason,
+            "no_sec_source_note": record.no_sec_source_note,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "filing_date": record.filing_date,
             "quant_date": record.generated_at.date().isoformat(),

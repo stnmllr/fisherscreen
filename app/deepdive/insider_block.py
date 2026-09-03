@@ -47,7 +47,14 @@ def _tx_line(t: InsiderTransaction) -> str:
     return f"- {t.owner_name} ({t.role}) {_tx_detail(t)}"
 
 
-def render_insider_block(summary: InsiderSummary | None, form_type: str) -> str:
+def render_insider_block(summary: InsiderSummary | None, form_type: str | None) -> str:
+    # Must precede the None/fpi_exempt branch: for a non-registrant, both
+    # "nicht anwendbar (FPI)" and "übersprungen" would assert something false.
+    if summary is not None and summary.coverage_state == "no_sec_source":
+        return (
+            f"{_HEAD} nicht verfügbar — kein SEC-Registrant, daher keine "
+            f"Form-4-Meldepflicht und keine Daten (nicht „kein Signal“)."
+        )
     if summary is None or summary.coverage_state == "fpi_exempt":
         return (
             f"{_HEAD} nicht anwendbar (Foreign Private Issuer, "
@@ -100,6 +107,8 @@ def render_insider_block(summary: InsiderSummary | None, form_type: str) -> str:
 
 def insider_coverage_label(summary: InsiderSummary | None) -> str:
     """One-line SourceCoverage.insider value."""
+    if summary is not None and summary.coverage_state == "no_sec_source":
+        return "nicht verfügbar (kein SEC-Registrant, keine Form-4-Pflicht)"
     if summary is None or summary.coverage_state == "fpi_exempt":
         return "nicht anwendbar (FPI, Section-16-exempt)"
     cs = summary.coverage_state

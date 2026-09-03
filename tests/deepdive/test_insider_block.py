@@ -101,6 +101,33 @@ def test_coverage_label_states():
     )
 
 
+def test_no_sec_source_gets_its_own_wording_not_skipped_or_fpi():
+    """The reason "no_sec_source" needs its own literal: reusing "skipped"
+    would claim the user opted out via --no-insider, reusing "fpi_exempt" (or
+    summary=None) would claim a Section-16 exemption. Both assert something
+    false about a company that is not an SEC registrant at all — phantom data.
+    """
+    out = render_insider_block(
+        InsiderSummary(coverage_state="no_sec_source"), form_type=None
+    )
+
+    assert "kein SEC-Registrant" in out
+    assert "keine Form-4-Meldepflicht" in out
+    assert "nicht „kein Signal“" in out  # absence of data, not absence of signal
+    assert "--no-insider" not in out
+    assert "übersprungen" not in out
+    assert "Foreign Private Issuer" not in out
+    assert "Section-16-exempt" not in out
+
+
+def test_no_sec_source_coverage_label_is_its_own_state():
+    label = insider_coverage_label(InsiderSummary(coverage_state="no_sec_source"))
+
+    assert label == "nicht verfügbar (kein SEC-Registrant, keine Form-4-Pflicht)"
+    assert "FPI" not in label
+    assert "übersprungen" not in label
+
+
 def test_aggregate_owner_significant_entries_are_grouped():
     def _sell(v):
         return InsiderTransaction(

@@ -46,6 +46,68 @@ def _build_insider_summary(
     )
 
 
+def _quant_only_dossier(
+    ticker: str,
+    *,
+    resolved: Any,
+    output_dir: Path,
+    build_quant: Callable[..., tuple[Any, Any]],
+    use_cache: bool,
+    peers: str | None,
+    peer_rationale: str | None,
+    is_tty: bool,
+    peer_resolver: Callable[..., Any],
+) -> Path:
+    """Dossier for a ticker without any SEC filing source: quant + valuation +
+    peers, honestly labelled, no synthesis.
+
+    Gemini is unreachable here BY CONSTRUCTION — this helper never receives the
+    synthesizer, the filing fetcher or the insider fetcher. Rule "no Gemini in the
+    quant-only path" is therefore a property of the call graph, not of a branch
+    that someone can later simplify away."""
+    logger.warning(
+        "deepdive: no SEC filing source for %s (%s) — quant-only dossier",
+        ticker,
+        resolved.no_sec_source_reason,
+    )
+
+    # Not wrapped: a DataSourceError still aborts (exit 2). A quant-only dossier
+    # without quant would be worthless — degrading twice is the phantom-data slide.
+    quant, coverage = build_quant(ticker, use_cache=use_cache)
+
+    # No CIK exists, so no fetcher call is even possible; this is the only
+    # coverage state that asserts nothing false about a non-registrant.
+    insider_summary = InsiderSummary(coverage_state="no_sec_source")
+
+    # The resolver's note is the single source of truth for the wording.
+    coverage.edgar = resolved.no_sec_source_note
+    coverage.insider = insider_coverage_label(insider_summary)
+
+    quant.peer_comparison = peer_resolver(
+        ticker=ticker,
+        peers_arg=peers,
+        rationale_arg=peer_rationale,
+        is_tty=is_tty,
+    )
+
+    record = DeepDiveRecord(
+        ticker=ticker,
+        adr_ticker=resolved.adr_ticker,
+        cik=None,
+        form_type=None,
+        no_sec_source_reason=resolved.no_sec_source_reason,
+        no_sec_source_note=resolved.no_sec_source_note,
+        filing_sections={},
+        section_flags={},
+        quant_snapshot=quant,
+        synthesis=[],
+        source_coverage=coverage,
+        filing_date=None,
+        insider_summary=insider_summary,
+    )
+    return generate_dossier(record, output_dir)
+
+
 def run_deep_dive(
     ticker: str,
     *,
@@ -68,6 +130,18 @@ def run_deep_dive(
 
     # [1] ADR-Lookup
     resolved = resolver.resolve(ticker)
+    if not resolved.has_filing_source:
+        return _quant_only_dossier(
+            ticker,
+            resolved=resolved,
+            output_dir=output_dir,
+            build_quant=build_quant,
+            use_cache=use_cache,
+            peers=peers,
+            peer_rationale=peer_rationale,
+            is_tty=is_tty,
+            peer_resolver=peer_resolver,
+        )
 
     # [2] EDGAR-Pull (local-FS cache, ADR-4)
     raw = filing_fetcher.get(resolved.cik, resolved.form_type, use_cache=use_cache)

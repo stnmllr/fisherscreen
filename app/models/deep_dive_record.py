@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.deepdive.adr_resolver import NoSecSourceReason
 from app.deepdive.filing_parser import SectionFlag
 
 logger = logging.getLogger(__name__)
@@ -172,7 +173,15 @@ class ValuationHistory(BaseModel):
 InsiderRole = Literal["CEO", "CFO", "Director", "Officer", "TenPercentOwner", "Other"]
 InsiderBucket = Literal["buy", "sell", "routine"]
 InsiderCoverage = Literal[
-    "ok", "partial", "empty", "fetch_failed", "fpi_exempt", "skipped"
+    "ok",
+    "partial",
+    "empty",
+    "fetch_failed",
+    "fpi_exempt",
+    "skipped",
+    # Issuer is not an SEC registrant: no Form-4 obligation exists, so neither
+    # "skipped" nor "fpi_exempt" would be true. Own state, no phantom claim.
+    "no_sec_source",
 ]
 
 
@@ -253,8 +262,13 @@ class DeepDiveRecord(BaseModel):
 
     ticker: str
     adr_ticker: str | None
-    cik: str
-    form_type: Literal["10-K", "20-F"]
+    # cik/form_type stay REQUIRED — only the type widens. Every construction site
+    # must state the source basis of the dossier explicitly; None means "no SEC
+    # filing source at all" (quant-only), and then the two fields below explain why.
+    cik: str | None
+    form_type: Literal["10-K", "20-F"] | None
+    no_sec_source_reason: NoSecSourceReason | None = None
+    no_sec_source_note: str | None = None
     filing_sections: dict[str, str]
     section_flags: dict[str, SectionFlag]
     quant_snapshot: QuantSnapshot
@@ -263,6 +277,29 @@ class DeepDiveRecord(BaseModel):
     filing_date: str | None = None
     insider_summary: InsiderSummary | None = None
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @model_validator(mode="after")
+    def _no_sec_source_biconditional(self) -> DeepDiveRecord:
+        """Same invariant as ResolvedTicker.__post_init__, enforced again here.
+
+        Not redundant: the dataclass guards the resolver, this guards anything
+        that builds a record without going through a resolver."""
+        has_filing_source = self.cik is not None and self.form_type is not None
+        if (self.no_sec_source_reason is None) != has_filing_source:
+            raise ValueError(
+                "DeepDiveRecord: no_sec_source_reason excludes cik+form_type, "
+                "and vice versa"
+            )
+        if self.no_sec_source_reason is not None and not (
+            self.cik is None
+            and self.form_type is None
+            and self.no_sec_source_note is not None
+        ):
+            raise ValueError(
+                "DeepDiveRecord: a no-SEC-source record needs a note and no "
+                "cik/form_type"
+            )
+        return self
 
     @property
     def days_since_filing(self) -> int | None:
