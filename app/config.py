@@ -39,6 +39,10 @@ class FisherScreenSettings(BaseSettings):
     deepdive_peers_collection: str = "dev_deepdive_peers"
     openfigi_api_key: str = ""
     adr_cache_ttl_days: int = 180  # ADR mappings drift rarely; long TTL is correct
+    # A no-SEC-source verdict is a statement about today, not about the company:
+    # an ADR facility can be registered (F-6EF) and a 20-F obligation can follow.
+    # The 180-day positive TTL would hide that for half a year; 30d ~ one Tool-A cycle.
+    adr_negative_cache_ttl_days: int = 30
 
     model_config = {
         "env_prefix": "FISHERSCREEN_",

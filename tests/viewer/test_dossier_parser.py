@@ -660,6 +660,96 @@ def test_iter_dossiers_raises_on_missing_directory(tmp_path):
         iter_dossiers(tmp_path / "does-not-exist")
 
 
+# --- cross-module fence: quant-only dossier, real generator -> real parser ---
+#
+# "The viewer needs no change" is a claim about two modules that never import
+# each other. Asserting it against a hand-written markdown fixture would only
+# test the fixture; this test runs the REAL generator and the REAL parser, so
+# any future drift in the generator's quant-only output (a falsy form_type, a
+# placeholder-shaped Executive Summary, a stray "### Punkt" line) fails here.
+
+_QUANT_ONLY_NOTE = (
+    "Kein SEC-Hard-Scuttlebutt: ENDEAVOUR MINING PLC ist kein SEC-Registrant. "
+    "Die einzige US-Linie (EDVMF) ist eine OTC-/unsponsored-Notierung — sie "
+    "begründet keine SEC-Registrierung. Dossier ist quant-only."
+)
+
+
+def _write_quant_only_dossier(tmp_path: Path) -> Path:
+    from app.deepdive.dossier_generator import generate_dossier
+    from app.models.deep_dive_record import (
+        DeepDiveRecord,
+        InsiderSummary,
+        PointInTimeQuant,
+        QuantSnapshot,
+        SourceCoverage,
+    )
+
+    record = DeepDiveRecord(
+        ticker="EDV.L",
+        adr_ticker=None,
+        cik=None,
+        form_type=None,
+        no_sec_source_reason="not_sec_registrant",
+        no_sec_source_note=_QUANT_ONLY_NOTE,
+        filing_sections={},
+        section_flags={},
+        quant_snapshot=QuantSnapshot(
+            point_in_time=PointInTimeQuant(
+                ticker="EDV.L", name="Endeavour Mining plc", market_cap=5.4e9
+            )
+        ),
+        synthesis=[],
+        source_coverage=SourceCoverage(edgar=_QUANT_ONLY_NOTE),
+        filing_date=None,
+        insider_summary=InsiderSummary(coverage_state="no_sec_source"),
+    )
+    return generate_dossier(record, tmp_path)
+
+
+def test_viewer_parses_a_real_quant_only_dossier(tmp_path):
+    dossier = parse_dossier(_write_quant_only_dossier(tmp_path))
+
+    # Not silently dropped: parse_dossier returns None for a falsy form_type.
+    assert dossier is not None
+    assert dossier.ticker == "EDV.L"
+    assert dossier.form_type == "kein SEC-Filing"
+    assert dossier.cik is None
+    assert dossier.filing_date is None
+    assert dossier.company_name == "Endeavour Mining plc"
+
+
+def test_viewer_pads_a_quant_only_dossier_to_fifteen_placeholder_points(tmp_path):
+    dossier = parse_dossier(_write_quant_only_dossier(tmp_path))
+
+    assert dossier is not None
+    assert len(dossier.points) == 15
+    assert [p.number for p in dossier.points] == list(range(1, 16))
+    assert all(p.is_placeholder for p in dossier.points)
+    assert all(p.rating is None for p in dossier.points)
+
+
+def test_viewer_keeps_the_quant_only_executive_summary(tmp_path):
+    """The generator's replacement must not match _PLACEHOLDER_RE — otherwise
+    the one sentence that explains the whole dossier is nulled on the way in."""
+    dossier = parse_dossier(_write_quant_only_dossier(tmp_path))
+
+    assert dossier is not None
+    assert dossier.executive_summary is not None
+    assert "Quant-only-Dossier" in dossier.executive_summary
+    assert "bewusst kein Gemini-Lauf" in dossier.executive_summary
+
+
+def test_viewer_source_coverage_carries_the_no_sec_source_reason(tmp_path):
+    """The note contains further colons; _parse_source_coverage partitions on
+    the FIRST one, so the reason must survive intact."""
+    dossier = parse_dossier(_write_quant_only_dossier(tmp_path))
+
+    assert dossier is not None
+    assert dossier.source_coverage["EDGAR"] == _QUANT_ONLY_NOTE
+    assert dossier.insider_coverage_state == "no_sec_source"
+
+
 # --- integration: the real, partly gitignored dossiers under output/ ---
 
 _WATCHLIST_DIR = Path(__file__).resolve().parents[2] / "output" / "Watchlist"

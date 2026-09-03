@@ -276,3 +276,109 @@ def test_dossier_insider_frontmatter_none_when_absent(tmp_path):
     assert post["insider_coverage_state"] is None
     # default _record() has insider_summary=None -> section still present (FPI text)
     assert "## Insider-Transaktionen" in post.content
+
+
+# --------------------------------------------------------------------------
+# Quant-only dossier (no SEC filing source at all).
+# --------------------------------------------------------------------------
+
+import re
+
+from app.deepdive.dossier_generator import FORM_TYPE_NO_SEC_SOURCE
+
+_NO_SEC_NOTE = (
+    "Kein SEC-Hard-Scuttlebutt: ENDEAVOUR MINING PLC ist kein SEC-Registrant. "
+    "Dossier ist quant-only (Quant + Bewertung + Peers)."
+)
+
+# The viewer's own placeholder regex, duplicated on purpose: this file must fail
+# when the generator's replacement drifts back into placeholder shape, without
+# importing the viewer.
+_VIEWER_PLACEHOLDER_RE = re.compile(r"\*\[.*\]\*", re.DOTALL)
+
+
+def _quant_only_record(**over):
+    base = dict(
+        ticker="EDV.L",
+        adr_ticker=None,
+        cik=None,
+        form_type=None,
+        no_sec_source_reason="not_sec_registrant",
+        no_sec_source_note=_NO_SEC_NOTE,
+        filing_sections={},
+        synthesis=[],
+        insider_summary=InsiderSummary(coverage_state="no_sec_source"),
+        source_coverage=SourceCoverage(edgar=_NO_SEC_NOTE),
+        quant_snapshot=QuantSnapshot(
+            point_in_time=PointInTimeQuant(ticker="EDV.L", name="Endeavour Mining")
+        ),
+    )
+    base.update(over)
+    return _record(**base)
+
+
+def _body_and_meta(rec, tmp_path):
+    post = frontmatter.loads(
+        generate_dossier(rec, tmp_path).read_text(encoding="utf-8")
+    )
+    return post.content, post.metadata
+
+
+def test_quant_only_dossier_frontmatter_is_valid_and_labelled(tmp_path):
+    body, meta = _body_and_meta(_quant_only_record(), tmp_path)
+
+    assert meta["ticker"] == "EDV.L"
+    assert meta["form_type"] == FORM_TYPE_NO_SEC_SOURCE == "kein SEC-Filing"
+    assert meta["cik"] is None
+    assert meta["no_sec_source_reason"] == "not_sec_registrant"
+    assert meta["no_sec_source_note"] == _NO_SEC_NOTE
+    assert body  # front matter parsed cleanly, body is not empty
+
+
+def test_quant_only_executive_summary_replaces_the_gemini_promise(tmp_path):
+    """The normal placeholder promises Gemini will fill this in. Here Gemini
+    structurally never runs, so the promise would be false — and the text must
+    not match the viewer's placeholder regex, which would null it silently."""
+    body, _ = _body_and_meta(_quant_only_record(), tmp_path)
+    summary = body.split("## Executive Summary")[1].split("##")[0].strip()
+
+    assert "Quant-only-Dossier" in summary
+    assert _NO_SEC_NOTE in summary
+    assert "bewusst kein Gemini-Lauf" in summary
+    assert "[" not in summary  # the single load-bearing character
+    assert _VIEWER_PLACEHOLDER_RE.fullmatch(summary) is None
+
+
+def test_quant_only_vintage_line_says_kein_sec_filing_not_unbekannt(tmp_path):
+    """ "unbekannt" would imply a filing whose date we merely lost."""
+    body, _ = _body_and_meta(_quant_only_record(), tmp_path)
+    vintage = next(ln for ln in body.splitlines() if ln.startswith("*Filing-Stand:"))
+
+    assert "Filing-Stand: kein SEC-Filing" in vintage
+    assert "unbekannt" not in vintage
+    assert "Quant-Stand:" in vintage
+
+
+def test_quant_only_points_section_states_the_skip(tmp_path):
+    body, _ = _body_and_meta(_quant_only_record(), tmp_path)
+
+    assert "## Fishers 15 Punkte" in body
+    assert "### Punkt" not in body
+    assert "Keine Punkte — die Synthese wurde übersprungen" in body
+
+
+def test_quant_only_insider_and_edgar_coverage_carry_the_reason(tmp_path):
+    body, _ = _body_and_meta(_quant_only_record(), tmp_path)
+
+    assert f"- EDGAR: {_NO_SEC_NOTE}" in body
+    assert "kein SEC-Registrant" in body.split("## Insider-Transaktionen")[1]
+
+
+def test_normal_dossier_has_no_sec_source_fields_as_none(tmp_path):
+    """Regression fence: the two new keys are additive and stay null for every
+    dossier that does have a filing source."""
+    _, meta = _body_and_meta(_record(), tmp_path)
+
+    assert meta["form_type"] == "20-F"
+    assert meta["no_sec_source_reason"] is None
+    assert meta["no_sec_source_note"] is None

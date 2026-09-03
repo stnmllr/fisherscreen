@@ -1,17 +1,25 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from app.deepdive.adr_resolver import ResolvedTicker
+from app.deepdive.adr_resolver import (
+    NO_SEC_SOURCE_REASONS,
+    NoSecSourceReason,
+    ResolvedTicker,
+    no_sec_source,
+)
 from app.errors import DeepDiveError
 
 if TYPE_CHECKING:
     from app.services.edgar_client import EdgarClient
     from app.services.openfigi_client import OpenFIGIClient
     from app.services.yfinance_client import YFinanceClient
+
+logger = logging.getLogger(__name__)
 
 # Home-exchange codes per Yahoo suffix (lifted from the dual-line audit).
 SUFFIX_HOME_EXCH: dict[str, list[str]] = {
@@ -137,8 +145,9 @@ def pick_us_adr_line(lines: list[dict], ident_norm: str) -> dict | None:
     issuer's OTC foreign-ordinary 'F' line (NONOF for Novo, UNLYF for Unilever).
     Same CIK, same 20-F — only the displayed symbol differs. Getting the canonical
     ADR reliably needs a paginated/better search and yields no CIK gain (deferred,
-    YAGNI). A `detect_annual_form` None downstream fail-louds an OTC line whose
-    issuer files no annual form (e.g. RTMVF for Rightmove)."""
+    YAGNI). A `detect_annual_form` None downstream degrades to a quant-only dossier
+    (reason `no_annual_form`) for an OTC line whose issuer files no annual form
+    (e.g. RTMVF for Rightmove) — it no longer aborts the deep dive."""
     us = [
         ln
         for ln in lines
@@ -153,35 +162,136 @@ def pick_us_adr_line(lines: list[dict], ident_norm: str) -> dict | None:
     return us[0]
 
 
-def _cache_get(cache_path: Path, ticker: str, ttl_days: int) -> ResolvedTicker | None:
+def _classify_us_line(
+    ticker: str,
+    ident: dict,
+    *,
+    openfigi: "OpenFIGIClient",
+    edgar: "EdgarClient",
+) -> ResolvedTicker:
+    """Turn a verified home identity into either a filing source (US line ->
+    CIK -> annual form) or a structural no-SEC-source verdict.
+
+    Every branch here is a statement about the issuer's SEC registration status,
+    never about a failed call: transient OpenFIGI/EDGAR errors propagate as
+    DataSourceError and are not caught anywhere in this path."""
+    ident_name = ident.get("name", "")
+    us = pick_us_adr_line(
+        openfigi.search_issuer(ident_name),
+        norm_issuer(issuer_name(ident_name)),
+    )
+    if us is None:
+        return no_sec_source(
+            ticker,
+            reason="no_us_line",
+            note=(
+                f"Kein SEC-Hard-Scuttlebutt: {ident_name} hat keine US-Notierung "
+                f"und ist damit kein SEC-Registrant — kein 10-K, kein 20-F. Reines "
+                f"EU-Listing; Dossier ist quant-only (Quant + Bewertung + Peers)."
+            ),
+        )
+    us_ticker = (us.get("ticker") or "").strip()
+    cik = edgar.get_cik(us_ticker)
+    if not cik:
+        return no_sec_source(
+            ticker,
+            reason="not_sec_registrant",
+            note=(
+                f"Kein SEC-Hard-Scuttlebutt: {ident_name} ist kein SEC-Registrant. "
+                f"Die einzige US-Linie ({us_ticker}) ist eine OTC-/unsponsored-"
+                f"Notierung, die ohne Zutun des Emittenten entstanden ist — sie "
+                f"begründet keine SEC-Registrierung (kein CIK in "
+                f"company_tickers.json) und damit keine Filing-Pflicht. Kein "
+                f"Symbol-Fehler. Dossier ist quant-only (Quant + Bewertung + Peers)."
+            ),
+        )
+    form = edgar.detect_annual_form(cik)
+    if form is None:
+        return no_sec_source(
+            ticker,
+            reason="no_annual_form",
+            note=(
+                f"Kein SEC-Hard-Scuttlebutt: {ident_name} (US-Linie {us_ticker}, "
+                f"CIK {cik}) reicht weder 10-K noch 20-F ein. Dossier ist quant-only "
+                f"(Quant + Bewertung + Peers)."
+            ),
+        )
+    return ResolvedTicker(
+        ticker=ticker, adr_ticker=us_ticker, cik=cik.zfill(10), form_type=form
+    )
+
+
+def _cache_get(
+    cache_path: Path, ticker: str, ttl_days: int, negative_ttl_days: int
+) -> ResolvedTicker | None:
+    """Cache layer 2. Every read goes through .get(): a malformed or partial
+    entry must degrade to a miss, never raise a KeyError that escapes the CLI as
+    an unhandled exception. The two TTLs differ by design — a no-SEC-source
+    verdict ages faster than a positive ADR mapping."""
     if not cache_path.exists():
         return None
     try:
         data = json.loads(cache_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, ValueError):
         return None  # corrupt cache -> miss (fail-soft, mirrors filing_cache)
-    entry = data.get(ticker.upper())
-    if not entry:
+    if not isinstance(data, dict):
         return None
-    ts = datetime.fromisoformat(entry["_cached_at"])
+    entry = data.get(ticker.upper())
+    if not isinstance(entry, dict):
+        return None
+    try:
+        ts = datetime.fromisoformat(entry.get("_cached_at"))
+    except (TypeError, ValueError):
+        return None  # missing/unparsable timestamp -> miss, never a crash
     if ts.tzinfo is None:
         ts = ts.replace(tzinfo=timezone.utc)
-    if (datetime.now(timezone.utc) - ts).days >= ttl_days:
+    age_days = (datetime.now(timezone.utc) - ts).days
+
+    reason = entry.get("no_sec_source_reason")
+    if reason is None:
+        cik = entry.get("cik")
+        form_type = entry.get("form_type")
+        if not cik or not form_type:
+            return None  # half-written positive entry -> miss, never assert-trip
+        if age_days >= ttl_days:
+            return None
+        return ResolvedTicker(ticker, entry.get("adr_ticker"), cik, form_type)
+
+    # Forward compat: never trust a reason code this build does not understand.
+    if reason not in NO_SEC_SOURCE_REASONS:
         return None
-    return ResolvedTicker(ticker, entry["adr_ticker"], entry["cik"], entry["form_type"])
+    note = entry.get("no_sec_source_note")
+    if not note:
+        return None
+    if age_days >= negative_ttl_days:
+        return None
+    return no_sec_source(ticker, reason=cast(NoSecSourceReason, reason), note=note)
 
 
 def _cache_put(cache_path: Path, resolved: ResolvedTicker) -> None:
-    data = {}
+    """Cache layer 2, write side. Asymmetry to _cache_get by design: reading a
+    corrupt cache degrades to None (a miss, so the caller re-resolves), writing
+    to one degrades to {} (the unusable content is overwritten). Neither may
+    raise — an unhandled TypeError/KeyError here would kill the deep dive with
+    no CLI exit code at all, which is exactly the failure class this layer must
+    not produce."""
+    data: dict = {}
     if cache_path.exists():
         try:
-            data = json.loads(cache_path.read_text(encoding="utf-8"))
+            loaded = json.loads(cache_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, ValueError):
-            data = {}
+            loaded = None
+        # Valid JSON of the wrong top-level type (e.g. a list) is as unusable as
+        # invalid JSON — same treatment, never an indexing crash below.
+        if isinstance(loaded, dict):
+            data = loaded
+    # All six keys, None for the absent half: one shape on disk for both verdicts.
     data[resolved.ticker.upper()] = {
         "adr_ticker": resolved.adr_ticker,
         "cik": resolved.cik,
         "form_type": resolved.form_type,
+        "no_sec_source_reason": resolved.no_sec_source_reason,
+        "no_sec_source_note": resolved.no_sec_source_note,
         "_cached_at": datetime.now(timezone.utc).isoformat(),
     }
     cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -198,11 +308,18 @@ def resolve_eu_adr(
     yfinance: "YFinanceClient",
     cache_path: Path,
     ttl_days: int,
+    negative_ttl_days: int,
 ) -> ResolvedTicker:
     """Live EU-ADR resolution (cache layer 2 + live layer 3). Failure != empty:
-    transient OpenFIGI/EDGAR/yfinance errors propagate as DataSourceError;
-    genuine no-match -> DeepDiveError."""
-    cached = _cache_get(cache_path, ticker, ttl_days)
+    transient OpenFIGI/EDGAR/yfinance errors propagate as DataSourceError; an
+    unverifiable identity -> DeepDiveError. A verifiable issuer without an SEC
+    filing source is not a failure — it returns a degraded ResolvedTicker that
+    drives a quant-only dossier.
+
+    `negative_ttl_days` is keyword-only and required: the TTL asymmetry between a
+    positive mapping and a no-source verdict is a policy decision, and a default
+    here is how caller and tests drift apart silently."""
+    cached = _cache_get(cache_path, ticker, ttl_days, negative_ttl_days)
     if cached is not None:
         return cached
 
@@ -215,29 +332,13 @@ def resolve_eu_adr(
         )
     ref_norm = norm_issuer(ref)
 
+    # Both fatal raises stay above this line, so an unverifiable identity is
+    # structurally uncacheable — only classified verdicts reach _cache_put.
     ident = find_home_identity(ticker, ref_norm, openfigi=openfigi)
-    us = pick_us_adr_line(
-        openfigi.search_issuer(ident["name"]),
-        norm_issuer(issuer_name(ident["name"])),
-    )
-    if us is None:
-        raise DeepDiveError(
-            f"{ticker}: no US ADR line for {ident['name']!r} — pure-EU listing, "
-            f"EU-Native source layer is Phase 2."
+    verdict = _classify_us_line(ticker, ident, openfigi=openfigi, edgar=edgar)
+    if not verdict.has_filing_source:
+        logger.info(
+            "eu-adr: %s -> no SEC source (%s)", ticker, verdict.no_sec_source_reason
         )
-    us_ticker = (us.get("ticker") or "").strip()
-    cik = edgar.get_cik(us_ticker)
-    if not cik:
-        raise DeepDiveError(
-            f"{ticker}: US-ADR {us_ticker} not in SEC company_tickers map."
-        )
-    form = edgar.detect_annual_form(cik)
-    if form is None:
-        raise DeepDiveError(
-            f"{ticker} (ADR {us_ticker}, CIK {cik}) files neither 10-K nor 20-F."
-        )
-    resolved = ResolvedTicker(
-        ticker=ticker, adr_ticker=us_ticker, cik=cik.zfill(10), form_type=form
-    )
-    _cache_put(cache_path, resolved)
-    return resolved
+    _cache_put(cache_path, verdict)
+    return verdict

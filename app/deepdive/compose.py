@@ -60,6 +60,7 @@ def build_eu_resolver() -> Callable[[str], Any]:
             yfinance=yfinance,
             cache_path=_ADR_CACHE_PATH,
             ttl_days=settings.adr_cache_ttl_days,
+            negative_ttl_days=settings.adr_negative_cache_ttl_days,
         )
 
     return _resolve

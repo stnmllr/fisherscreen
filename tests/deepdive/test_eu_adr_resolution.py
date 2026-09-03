@@ -1,3 +1,5 @@
+import json
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -119,6 +121,53 @@ def _deps(longname="ASML Holding N.V."):
     return openfigi, edgar, yfinance
 
 
+def _eu_only_deps():
+    """Rightmove shape: a verifiable home identity with no US line at all."""
+    openfigi, edgar, yfinance = _deps(longname="Rightmove plc")
+    openfigi.map_ticker.return_value = {"name": "RIGHTMOVE PLC"}
+    openfigi.search_issuer.return_value = [
+        {
+            "ticker": "RMV",
+            "exchCode": "LN",
+            "securityType2": "Common Stock",
+            "name": "RIGHTMOVE PLC",
+        },
+    ]
+    return openfigi, edgar, yfinance
+
+
+def _edv_deps():
+    """EDV.L shape: a US line exists, but it is an unsponsored OTC line whose
+    issuer has no CIK in company_tickers.json -> not an SEC registrant."""
+    openfigi, edgar, yfinance = _deps(longname="Endeavour Mining plc")
+    openfigi.map_ticker.return_value = {"name": "ENDEAVOUR MINING PLC"}
+    openfigi.search_issuer.return_value = [
+        {
+            "ticker": "EDVMF",
+            "exchCode": "US",
+            "securityType2": "Common Stock",
+            "name": "ENDEAVOUR MINING PLC",
+        },
+    ]
+    edgar.get_cik.return_value = None
+    return openfigi, edgar, yfinance
+
+
+def _resolve(ticker, cache_path, deps, *, ttl_days=180, negative_ttl_days=30):
+    from app.deepdive.eu_adr_resolution import resolve_eu_adr
+
+    openfigi, edgar, yfinance = deps
+    return resolve_eu_adr(
+        ticker,
+        openfigi=openfigi,
+        edgar=edgar,
+        yfinance=yfinance,
+        cache_path=cache_path,
+        ttl_days=ttl_days,
+        negative_ttl_days=negative_ttl_days,
+    )
+
+
 def test_resolve_eu_adr_happy_path(tmp_path):
     from app.deepdive.eu_adr_resolution import resolve_eu_adr
 
@@ -130,10 +179,12 @@ def test_resolve_eu_adr_happy_path(tmp_path):
         yfinance=yfinance,
         cache_path=tmp_path / "adr.json",
         ttl_days=180,
+        negative_ttl_days=30,
     )
     assert r.adr_ticker == "ASML"
     assert r.cik == "0000937966"
     assert r.form_type == "20-F"
+    assert r.has_filing_source is True
 
 
 def test_resolve_eu_adr_persists_and_reads_cache(tmp_path):
@@ -148,6 +199,7 @@ def test_resolve_eu_adr_persists_and_reads_cache(tmp_path):
         yfinance=yfinance,
         cache_path=cache,
         ttl_days=180,
+        negative_ttl_days=30,
     )
     # second call: OpenFIGI must NOT be hit again (served from cache).
     openfigi2 = MagicMock()
@@ -158,33 +210,62 @@ def test_resolve_eu_adr_persists_and_reads_cache(tmp_path):
         yfinance=yfinance,
         cache_path=cache,
         ttl_days=180,
+        negative_ttl_days=30,
     )
     assert r.cik == "0000937966"
     openfigi2.map_ticker.assert_not_called()
 
 
-def test_resolve_eu_adr_no_us_line_fail_loud(tmp_path):
-    from app.deepdive.eu_adr_resolution import resolve_eu_adr
+def test_resolve_eu_adr_no_us_line_returns_no_sec_source_verdict(tmp_path):
+    """Behaviour change: a pure-EU listing no longer aborts the deep dive. The
+    issuer is verifiably not an SEC registrant, which is a fact about the
+    company, not a failure — it degrades to a quant-only dossier."""
+    r = _resolve("RMV.L", tmp_path / "adr.json", _eu_only_deps())
 
-    openfigi, edgar, yfinance = _deps(longname="Rightmove plc")
-    openfigi.map_ticker.return_value = {"name": "RIGHTMOVE PLC"}
-    openfigi.search_issuer.return_value = [
-        {
-            "ticker": "RMV",
-            "exchCode": "LN",
-            "securityType2": "Common Stock",
-            "name": "RIGHTMOVE PLC",
-        },
-    ]
-    with pytest.raises(DeepDiveError, match="no US ADR"):
-        resolve_eu_adr(
-            "RMV.L",
-            openfigi=openfigi,
-            edgar=edgar,
-            yfinance=yfinance,
-            cache_path=tmp_path / "adr.json",
-            ttl_days=180,
-        )
+    assert r.has_filing_source is False
+    assert r.no_sec_source_reason == "no_us_line"
+    assert r.cik is None
+    assert r.form_type is None
+    assert r.adr_ticker is None
+    assert "hat keine US-Notierung" in r.no_sec_source_note
+    assert "quant-only" in r.no_sec_source_note
+
+
+def test_resolve_eu_adr_us_line_without_cik_returns_not_sec_registrant(tmp_path):
+    """The EDV.L case. The old message called this a symbol error; it is not —
+    an unsponsored OTC line exists without the issuer's involvement."""
+    r = _resolve("EDV.L", tmp_path / "adr.json", _edv_deps())
+
+    assert r.has_filing_source is False
+    assert r.no_sec_source_reason == "not_sec_registrant"
+    assert r.cik is None
+    assert r.form_type is None
+    assert "Die einzige US-Linie (EDVMF)" in r.no_sec_source_note
+    assert "Kein Symbol-Fehler." in r.no_sec_source_note
+
+
+def test_resolve_eu_adr_without_annual_form_returns_no_annual_form(tmp_path):
+    openfigi, edgar, yfinance = _edv_deps()
+    edgar.get_cik.return_value = "1854270"
+    edgar.detect_annual_form.return_value = None
+
+    r = _resolve("EDV.L", tmp_path / "adr.json", (openfigi, edgar, yfinance))
+
+    assert r.has_filing_source is False
+    assert r.no_sec_source_reason == "no_annual_form"
+    assert r.cik is None  # the discovered CIK lives in the note prose only
+    assert "reicht weder 10-K noch 20-F ein" in r.no_sec_source_note
+    assert "CIK 1854270" in r.no_sec_source_note
+
+
+def test_resolve_eu_adr_unverifiable_identity_still_fail_louds(tmp_path):
+    """REGRESSION FENCE for "only structural causes degrade": an unverifiable
+    OpenFIGI identity is not a statement about SEC registration — we do not know
+    which company we are looking at, so a dossier would be phantom data."""
+    openfigi, edgar, yfinance = _deps()
+    openfigi.map_ticker.return_value = None
+    with pytest.raises(DeepDiveError, match="no verifiable OpenFIGI"):
+        _resolve("ASML.AS", tmp_path / "adr.json", (openfigi, edgar, yfinance))
 
 
 def test_resolve_eu_adr_no_reference_name_fail_loud(tmp_path):
@@ -200,4 +281,271 @@ def test_resolve_eu_adr_no_reference_name_fail_loud(tmp_path):
             yfinance=yfinance,
             cache_path=tmp_path / "adr.json",
             ttl_days=180,
+            negative_ttl_days=30,
         )
+
+
+def test_transient_openfigi_error_propagates_and_writes_no_cache(tmp_path):
+    """THE central guard of this change: failure != empty. A DataSourceError is
+    a statement about the API, never about the issuer — it must abort (CLI exit
+    2) and must NOT leave a cached verdict that would poison later runs."""
+    from app.errors import DataSourceError
+
+    cache = tmp_path / "adr.json"
+    openfigi, edgar, yfinance = _deps()
+    openfigi.search_issuer.side_effect = DataSourceError("OpenFIGI 503")
+
+    with pytest.raises(DataSourceError, match="OpenFIGI 503"):
+        _resolve("ASML.AS", cache, (openfigi, edgar, yfinance))
+    assert not cache.exists()
+
+
+def test_transient_edgar_error_propagates_and_writes_no_cache(tmp_path):
+    from app.errors import DataSourceError
+
+    cache = tmp_path / "adr.json"
+    openfigi, edgar, yfinance = _deps()
+    edgar.get_cik.side_effect = DataSourceError("EDGAR 429")
+
+    with pytest.raises(DataSourceError, match="EDGAR 429"):
+        _resolve("ASML.AS", cache, (openfigi, edgar, yfinance))
+    assert not cache.exists()
+
+
+def test_negative_verdict_is_cached_and_served(tmp_path):
+    cache = tmp_path / "adr.json"
+    _resolve("RMV.L", cache, _eu_only_deps())
+
+    openfigi2, edgar2, yfinance2 = _deps()
+    r = _resolve("RMV.L", cache, (openfigi2, edgar2, yfinance2))
+
+    assert r.no_sec_source_reason == "no_us_line"
+    assert "hat keine US-Notierung" in r.no_sec_source_note
+    openfigi2.map_ticker.assert_not_called()
+    openfigi2.search_issuer.assert_not_called()
+
+
+def test_negative_and_positive_ttls_are_independent(tmp_path):
+    """A no-SEC-source verdict is a statement about today (an ADR facility can
+    be registered later); a positive ADR mapping is not. Under
+    negative_ttl_days=0 the verdict expires while the mapping survives."""
+    cache = tmp_path / "adr.json"
+    _resolve("ASML.AS", cache, _deps())
+    _resolve("RMV.L", cache, _eu_only_deps())
+
+    positive_deps = _deps()
+    positive = _resolve("ASML.AS", cache, positive_deps, negative_ttl_days=0)
+    assert positive.cik == "0000937966"
+    positive_deps[0].map_ticker.assert_not_called()  # still cached
+
+    negative_deps = _eu_only_deps()
+    negative = _resolve("RMV.L", cache, negative_deps, negative_ttl_days=0)
+    assert negative.no_sec_source_reason == "no_us_line"
+    negative_deps[0].map_ticker.assert_called()  # expired -> re-resolved
+
+
+def test_positive_entry_expires_under_its_own_ttl(tmp_path):
+    """Counterpart to the test above: the positive TTL is live, not decorative
+    — the asymmetry only means something if BOTH arms can expire."""
+    cache = tmp_path / "adr.json"
+    _resolve("ASML.AS", cache, _deps())
+
+    deps = _deps()
+    r = _resolve("ASML.AS", cache, deps, ttl_days=0)
+
+    assert r.cik == "0000937966"
+    deps[0].map_ticker.assert_called()  # expired -> re-resolved
+
+
+def _write_cache(tmp_path, payload):
+    cache = tmp_path / "adr.json"
+    cache.write_text(json.dumps(payload), encoding="utf-8")
+    return cache
+
+
+def test_legacy_four_key_cache_entry_is_still_served(tmp_path):
+    """FENCE for the live cache/adr_resolved.json. Its four entries predate the
+    no_sec_source keys; re-resolving them would be a needless OpenFIGI round
+    trip and, worse, would mean the new writer silently invalidated the old
+    reader. Hand-written on purpose: _cache_put must not define the fixture."""
+    cache = _write_cache(
+        tmp_path,
+        {
+            "ASML.AS": {
+                "adr_ticker": "ASML",
+                "cik": "0000937966",
+                "form_type": "20-F",
+                "_cached_at": datetime.now(timezone.utc).isoformat(),
+            }
+        },
+    )
+    deps = _deps()
+    r = _resolve("ASML.AS", cache, deps)
+
+    assert r.adr_ticker == "ASML"
+    assert r.cik == "0000937966"
+    assert r.form_type == "20-F"
+    assert r.has_filing_source is True
+    deps[0].map_ticker.assert_not_called()
+
+
+class _Omit:
+    """Marker for a key that must be absent, not present-and-None."""
+
+
+_OMIT = _Omit()
+_FRESH = "__now__"  # replaced with a fresh timestamp at fixture-build time
+
+
+def _entry(**over):
+    base = {
+        "adr_ticker": "ASML",
+        "cik": "0000937966",
+        "form_type": "20-F",
+        "_cached_at": _FRESH,
+    }
+    base.update(over)
+    if base.get("_cached_at") == _FRESH:
+        base["_cached_at"] = datetime.now(timezone.utc).isoformat()
+    return {k: v for k, v in base.items() if v is not _OMIT}
+
+
+@pytest.mark.parametrize(
+    "entry_kwargs",
+    [
+        pytest.param({"_cached_at": _OMIT}, id="missing_cached_at"),
+        pytest.param({"_cached_at": "gestern"}, id="unparsable_cached_at"),
+        pytest.param({"form_type": None}, id="half_positive_entry"),
+        pytest.param(
+            {
+                "adr_ticker": None,
+                "cik": None,
+                "form_type": None,
+                "no_sec_source_reason": "delisted_in_2027",
+                "no_sec_source_note": "note",
+            },
+            id="unknown_reason_code",
+        ),
+        pytest.param(
+            {
+                "adr_ticker": None,
+                "cik": None,
+                "form_type": None,
+                "no_sec_source_reason": "no_us_line",
+                "no_sec_source_note": None,
+            },
+            id="verdict_without_note",
+        ),
+    ],
+)
+def test_malformed_cache_entry_is_a_miss_never_a_crash(tmp_path, entry_kwargs):
+    """Every read goes through .get(): a KeyError here would escape the CLI as
+    an unhandled exception rather than a clean exit code. A miss re-resolves."""
+    cache = _write_cache(tmp_path, {"ASML.AS": _entry(**entry_kwargs)})
+    deps = _deps()
+    r = _resolve("ASML.AS", cache, deps)
+
+    assert r.cik == "0000937966"  # re-resolved live, not read from the entry
+    deps[0].map_ticker.assert_called()
+
+
+def test_cache_entry_that_is_not_an_object_is_a_miss(tmp_path):
+    cache = _write_cache(tmp_path, {"ASML.AS": "not-a-dict"})
+    deps = _deps()
+    r = _resolve("ASML.AS", cache, deps)
+
+    assert r.cik == "0000937966"
+    deps[0].map_ticker.assert_called()
+
+
+def test_unparsable_cache_file_self_heals_end_to_end(tmp_path):
+    """Same self-healing as the top-level-list case, different entrance: the
+    bytes are not JSON at all. Both unusable shapes must leave a well-formed
+    object behind, never an exception and never a half-written file."""
+    cache = tmp_path / "adr.json"
+    cache.write_text("{ this is not json", encoding="utf-8")
+
+    deps = _deps()
+    r = _resolve("ASML.AS", cache, deps)
+
+    assert r.cik == "0000937966"
+    deps[0].map_ticker.assert_called()
+
+    healed = json.loads(cache.read_text(encoding="utf-8"))
+    assert isinstance(healed, dict)
+    assert healed["ASML.AS"]["cik"] == "0000937966"
+
+
+def test_naive_cached_at_is_read_as_utc_not_a_crash(tmp_path):
+    """A hand-edited cache entry loses its offset. Comparing naive and aware
+    datetimes would raise TypeError; the reader assumes UTC instead."""
+    naive = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
+    cache = _write_cache(tmp_path, {"ASML.AS": _entry(_cached_at=naive)})
+
+    deps = _deps()
+    r = _resolve("ASML.AS", cache, deps)
+
+    assert r.cik == "0000937966"
+    deps[0].map_ticker.assert_not_called()  # fresh -> served from cache
+
+
+def test_cache_top_level_list_is_a_miss(tmp_path):
+    """A JSON top level that is a list, not an object, must read as a miss.
+
+    Deliberately narrow: this pins the READ side in isolation, so a future
+    change that makes _cache_get tolerate the wrong top-level type fails here
+    even if the end-to-end path still looks fine thanks to the write-side
+    repair. The full self-healing round trip is asserted separately below.
+    """
+    from app.deepdive.eu_adr_resolution import _cache_get
+
+    cache = _write_cache(tmp_path, ["ASML.AS"])
+    assert _cache_get(cache, "ASML.AS", 180, 30) is None
+
+
+@pytest.mark.parametrize(
+    "top_level",
+    [pytest.param(["ASML.AS"], id="list"), pytest.param("ASML.AS", id="string")],
+)
+def test_cache_with_wrong_top_level_type_self_heals_end_to_end(tmp_path, top_level):
+    """Stronger than a miss: a cache file that is valid JSON of the wrong
+    top-level type is REPAIRED, not merely ignored.
+
+    _cache_get reads it as a miss, so the ticker is re-resolved live, and
+    _cache_put overwrites the unusable content with a well-formed object
+    instead of raising TypeError on the index assignment. A deep dive must
+    never die on its own cache file.
+    """
+    cache = _write_cache(tmp_path, top_level)
+    deps = _deps()
+
+    r = _resolve("ASML.AS", cache, deps)
+
+    assert r.cik == "0000937966"  # live result, no exception
+    deps[0].map_ticker.assert_called()
+
+    healed = json.loads(cache.read_text(encoding="utf-8"))
+    assert isinstance(healed, dict)
+    assert healed["ASML.AS"]["cik"] == "0000937966"
+    assert healed["ASML.AS"]["form_type"] == "20-F"
+
+
+def test_healthy_cache_keeps_foreign_entries_on_write(tmp_path):
+    """FENCE against a "simplifying" refactoring that sets data = {}
+    unconditionally: the write side merges into a healthy cache. Wiping it on
+    every write would cost an OpenFIGI round trip per ticker per run and would
+    not fail a single test without this one.
+    """
+    sap_entry = {
+        "adr_ticker": "SAP",
+        "cik": "0001000184",
+        "form_type": "20-F",
+        "_cached_at": datetime.now(timezone.utc).isoformat(),
+    }
+    cache = _write_cache(tmp_path, {"SAP.DE": sap_entry})
+
+    _resolve("ASML.AS", cache, _deps())
+
+    merged = json.loads(cache.read_text(encoding="utf-8"))
+    assert merged["SAP.DE"] == sap_entry  # untouched, byte for byte
+    assert merged["ASML.AS"]["cik"] == "0000937966"

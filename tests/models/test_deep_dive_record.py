@@ -446,3 +446,78 @@ def test_insider_summary_defaults():
 def test_deep_dive_record_insider_summary_field():
     s = InsiderSummary(coverage_state="fpi_exempt")
     assert s.coverage_state == "fpi_exempt"
+
+
+# --------------------------------------------------------------------------
+# no-SEC-source biconditional (mirrors ResolvedTicker.__post_init__)
+# --------------------------------------------------------------------------
+
+
+def test_insider_coverage_accepts_no_sec_source():
+    assert InsiderSummary(coverage_state="no_sec_source").coverage_state == (
+        "no_sec_source"
+    )
+
+
+def test_record_accepts_the_quant_only_shape():
+    rec = _record_with(
+        cik=None,
+        form_type=None,
+        no_sec_source_reason="not_sec_registrant",
+        no_sec_source_note="Kein SEC-Hard-Scuttlebutt: … quant-only.",
+        filing_sections={},
+        synthesis=[],
+    )
+    assert rec.cik is None
+    assert rec.form_type is None
+    assert rec.no_sec_source_reason == "not_sec_registrant"
+
+
+def test_record_rejects_reason_together_with_a_filing_source():
+    """pydantic v2 wraps a ValueError raised inside a model_validator into a
+    ValidationError — assert on the wrapper, check the message inside it."""
+    with pytest.raises(ValidationError) as exc:
+        _record_with(
+            no_sec_source_reason="no_us_line",
+            no_sec_source_note="note",
+        )
+    assert "excludes cik+form_type" in str(exc.value)
+
+
+def test_record_rejects_missing_filing_source_without_a_reason():
+    """The half state a record could otherwise slide into: no cik, no
+    form_type, and no explanation at all."""
+    with pytest.raises(ValidationError) as exc:
+        _record_with(cik=None, form_type=None, filing_sections={}, synthesis=[])
+    assert "excludes cik+form_type" in str(exc.value)
+
+
+def test_record_rejects_a_cik_without_a_form_type():
+    with pytest.raises(ValidationError) as exc:
+        _record_with(form_type=None)
+    assert "excludes cik+form_type" in str(exc.value)
+
+
+def test_record_rejects_a_verdict_without_a_note():
+    with pytest.raises(ValidationError) as exc:
+        _record_with(
+            cik=None,
+            form_type=None,
+            no_sec_source_reason="no_us_line",
+            no_sec_source_note=None,
+            filing_sections={},
+            synthesis=[],
+        )
+    assert "needs a note and no cik/form_type" in str(exc.value)
+
+
+def test_record_rejects_an_unknown_reason_code():
+    with pytest.raises(ValidationError):
+        _record_with(
+            cik=None,
+            form_type=None,
+            no_sec_source_reason="delisted",
+            no_sec_source_note="note",
+            filing_sections={},
+            synthesis=[],
+        )
