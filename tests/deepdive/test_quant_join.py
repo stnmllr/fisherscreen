@@ -414,3 +414,79 @@ def test_valuation_history_none_when_absent_from_series():
         dims_collection="dev_gemini_scores",
     )
     assert qs.valuation_history is None
+
+
+# --------------------------------------------------------------------------
+# Minor-unit cache vintage — bypass path 2 of 3 (NO TTL AT ALL)
+# --------------------------------------------------------------------------
+
+
+def test_unnormalised_pit_cache_falls_through_to_live_yfinance(caplog):
+    """This read goes straight to Firestore and has **no TTL check whatsoever**.
+
+    That is why the vintage test matters more here than anywhere else: unlike
+    CachedYFinanceClient (24 h) or CachedHistoricalData (90 d), nothing else would
+    ever expire a pre-normalization document. A Tool A collection last written
+    before the change would feed pence prices under a "GBp" label into every deep
+    dive, forever. The minor-unit currency code is the only tell, so an
+    unnormalised document must fall through to the live-yfinance branch."""
+    fs, yf, hist = _deps(
+        pit_cache={
+            "shortName": "GSK Cached (pence vintage)",
+            "currency": "GBp",
+            "currentPrice": 1500.0,
+            "marketCap": 60_000_000_000,
+        },
+        dims=None,
+    )
+    yf.get_ticker_info.return_value = {
+        "shortName": "GSK plc",
+        "currency": "GBP",
+        "currentPrice": 15.0,
+        "marketCap": 60_000_000_000,
+    }
+
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.quant_join"):
+        qs, cov = build_quant_snapshot(
+            "GSK.L",
+            firestore=fs,
+            yfinance=yf,
+            historical=hist,
+            pit_collection="dev_ticker_cache",
+            dims_collection="dev_gemini_scores",
+        )
+
+    yf.get_ticker_info.assert_called_once_with("GSK.L")
+    assert cov.quant_pit_source == "live-yfinance"
+    assert qs.point_in_time.name == "GSK plc"
+    assert qs.point_in_time.currency == "GBP"
+    assert "predates minor-unit normalization" in caplog.text
+    assert "GBp" in caplog.text  # the reason is logged, not just the fact
+
+
+def test_normalised_pit_cache_is_still_served_as_tool_a_cache():
+    """Companion contract: the vintage check must not disable the cache path for
+    London titles that Tool A has already rewritten under the ISO code."""
+    fs, yf, hist = _deps(
+        pit_cache={
+            "shortName": "GSK Cached",
+            "currency": "GBP",
+            "currentPrice": 15.0,
+            "marketCap": 60_000_000_000,
+        },
+        dims=None,
+    )
+
+    qs, cov = build_quant_snapshot(
+        "GSK.L",
+        firestore=fs,
+        yfinance=yf,
+        historical=hist,
+        pit_collection="dev_ticker_cache",
+        dims_collection="dev_gemini_scores",
+    )
+
+    yf.get_ticker_info.assert_not_called()
+    assert cov.quant_pit_source == "tool-a-cache"
+    assert qs.point_in_time.name == "GSK Cached"
+    assert qs.point_in_time.currency == "GBP"

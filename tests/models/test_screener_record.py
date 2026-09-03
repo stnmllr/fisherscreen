@@ -154,7 +154,35 @@ def test_gemini_dimensions_accepts_any_dict_values():
     assert record.gemini_dimensions == {"growth": 99, "other": -1}
 
 
-def test_gbp_pence_normalized_to_gbp_major_unit():
+def test_from_yfinance_info_maps_an_already_normalized_gbp_payload_straight_through():
+    """from_yfinance_info is a plain field mapper — the minor-unit rescale lives in
+    the yfinance adapter only.
+
+    The adapter hands over a London payload already in the major unit under the ISO
+    code, and the model must copy it verbatim. The rescale that used to sit here was
+    removed on purpose: two normalizations of the same quantity in two layers is how
+    a double division (189.80 -> 1.898) gets introduced."""
+    info = {
+        "shortName": "Games Workshop",
+        "currency": "GBP",  # already relabelled by the adapter
+        "currentPrice": 189.80,  # already in pounds
+        "marketCap": 6_271_815_680,
+        "averageVolume": 93552,
+    }
+
+    r = ScreenerRecord.from_yfinance_info("GAW.L", info)
+
+    assert r.currency == "GBP"
+    assert r.price == 189.80
+    assert r.market_cap == 6_271_815_680
+
+
+def test_from_yfinance_info_does_not_rescale_a_raw_minor_unit_payload():
+    """Guard against the removed rescale being re-added as belt-and-braces.
+
+    Should a raw "GBp" payload ever reach the model (it cannot via the adapter), the
+    model must pass it through untouched rather than divide a second time. A failure
+    here means a second normalization layer has reappeared."""
     info = {
         "shortName": "Games Workshop",
         "currency": "GBp",
@@ -162,10 +190,12 @@ def test_gbp_pence_normalized_to_gbp_major_unit():
         "marketCap": 6_271_815_680,
         "averageVolume": 93552,
     }
+
     r = ScreenerRecord.from_yfinance_info("GAW.L", info)
-    assert r.currency == "GBP"
-    assert r.price == 189.80
-    assert r.market_cap == 6_271_815_680  # marketCap UNCHANGED (already GBP)
+
+    assert r.currency == "GBp"
+    assert r.price == 18980.0
+    assert r.market_cap == 6_271_815_680
 
 
 def test_non_minor_unit_currency_untouched():

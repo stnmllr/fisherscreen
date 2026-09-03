@@ -12,7 +12,10 @@ logger = logging.getLogger(__name__)
 # Bump bei jedem Schema-Change (Add/Remove/Rename eines im Read-Pfad
 # genutzten series-Feldes). Lese-Pfad behandelt jeden Mismatch (!=) als
 # Cache-Miss → lazy refetch + Re-Write mit aktueller Version.
-CACHE_SCHEMA_VERSION = 3
+# v4: minor-unit normalization (GBp -> GBP) — the stored ValuationHistory is *derived*
+# under the old currency semantics, so per-field detection is impossible and the version
+# is the only lever.
+CACHE_SCHEMA_VERSION = 4
 
 
 def _load_payload(path: Path) -> dict:

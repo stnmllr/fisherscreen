@@ -7,11 +7,6 @@ from pydantic import BaseModel, Field
 
 from app.models.definedness import DefinednessOutcome
 
-# Minor-unit quote normalization: some exchanges quote price in a minor unit while
-# marketCap is in the major unit. London (GBp = pence) is the live case; ZAc (SA cents),
-# ILA (Israeli agorot) are the same class — add when a listing actually appears.
-_MINOR_UNIT: dict[str, tuple[str, int]] = {"GBp": ("GBP", 100)}
-
 
 class ScreenerRecord(BaseModel):
     # Identity
@@ -116,25 +111,20 @@ class ScreenerRecord(BaseModel):
 
     @classmethod
     def from_yfinance_info(cls, ticker: str, info: dict[str, Any]) -> ScreenerRecord:
-        """Create record from yfinance info dict. Gemini scoring fields default to None — set by scorer."""
-        currency = info.get("currency")
-        price = info.get("currentPrice") or info.get("regularMarketPrice")
-        # Normalize minor-unit quotes (e.g. London pence) to the major unit + ISO currency,
-        # so price is consistent for every consumer and the FX lookup hits a real ISO code.
-        # marketCap is already in the major unit — only price is rescaled.
-        minor = _MINOR_UNIT.get(currency or "")
-        if minor is not None:
-            iso, divisor = minor
-            currency = iso
-            if price is not None:
-                price = price / divisor
+        """Create record from yfinance info dict. Gemini scoring fields default to None — set by scorer.
+
+        Plain field mapper: minor-unit quotes (London pence) are already normalized by
+        the yfinance adapter, which is the single home for that rule. Do not re-add a
+        rescale here — two normalizations of the same quantity in two layers is how a
+        double division gets introduced.
+        """
         return cls(
             ticker=ticker,
             name=info.get("shortName"),
-            currency=currency,
+            currency=info.get("currency"),
             market_cap=info.get("marketCap") or None,
             avg_daily_volume=info.get("averageVolume") or None,
-            price=price or None,
+            price=info.get("currentPrice") or info.get("regularMarketPrice") or None,
             bid=info.get("bid") or None,
             ask=info.get("ask") or None,
             gics_sector=info.get("sector"),

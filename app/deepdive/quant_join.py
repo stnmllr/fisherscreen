@@ -18,6 +18,7 @@ from app.deepdive.trend_metrics import (
     compute_dilution_pct,
     compute_margin_slope,
 )
+from app.services.yfinance_client import is_unnormalised_payload
 
 logger = logging.getLogger(__name__)
 
@@ -144,15 +145,26 @@ def build_quant_snapshot(
 ) -> tuple[QuantSnapshot, SourceCoverage]:
     cov = SourceCoverage()
 
-    # 4a — point-in-time (cache, else live)
+    # 4a — point-in-time (cache, else live). This read bypasses CachedYFinanceClient
+    # entirely and has no TTL, so the minor-unit vintage check has to happen here too.
     cached = firestore.get(pit_collection, ticker)
-    if cached:
-        info = {k: v for k, v in cached.items() if k != "_cached_at"}
-        cov.quant_pit_source = "tool-a-cache"
-    else:
+    stale_vintage = bool(cached) and is_unnormalised_payload(cached)
+    if stale_vintage:
+        logger.warning(
+            "quant: %s in %s predates minor-unit normalization (currency %s) — "
+            "ignoring cache, live yfinance fallback (Tool A still serves an old vintage)",
+            ticker,
+            pit_collection,
+            cached.get("currency"),
+        )
+    elif not cached:
         logger.warning(
             "quant: %s not in %s — live yfinance fallback", ticker, pit_collection
         )
+    if cached and not stale_vintage:
+        info = {k: v for k, v in cached.items() if k != "_cached_at"}
+        cov.quant_pit_source = "tool-a-cache"
+    else:
         info = yfinance.get_ticker_info(ticker)
         cov.quant_pit_source = "live-yfinance"
     pit = _pit_from_info(ticker, info)

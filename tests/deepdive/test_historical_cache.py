@@ -89,12 +89,12 @@ def test_v2_cache_hit_skips_service(tmp_path):
 
 
 def test_write_includes_schema_version(tmp_path):
-    """Direct write-path inspection: persisted payload's schema_version
-    equals the integer 2 (current value). Pre-implementation rot via KeyError."""
+    """Direct write-path inspection: the persisted payload carries the current
+    schema_version as an integer. Pre-implementation rot surfaces via KeyError."""
     cd, svc = _cd(tmp_path)
     cd.get_annual_series("X")
     persisted = json.loads((tmp_path / "X.json").read_text(encoding="utf-8"))
-    assert persisted["schema_version"] == 3
+    assert persisted["schema_version"] == 4
 
 
 def test_pre_v2_cache_treated_as_miss(tmp_path):
@@ -126,10 +126,13 @@ def test_pre_v2_cache_treated_as_miss(tmp_path):
     assert refreshed.get("schema_version") == CACHE_SCHEMA_VERSION
 
 
-def test_schema_version_is_three():
+def test_schema_version_is_four():
+    """v4 = minor-unit normalization (GBp -> GBP). The cached payload holds a
+    *derived* ValuationHistory computed under the old currency semantics, so no
+    per-field vintage tell exists — the version is the only lever."""
     from app.deepdive.historical_cache import CACHE_SCHEMA_VERSION
 
-    assert CACHE_SCHEMA_VERSION == 3
+    assert CACHE_SCHEMA_VERSION == 4
 
 
 def test_v2_cache_treated_as_miss(tmp_path):
@@ -144,7 +147,45 @@ def test_v2_cache_treated_as_miss(tmp_path):
     cd.get_annual_series("X")
     svc.get_annual_series.assert_called_once_with("X")
     refreshed = json.loads((tmp_path / "X.json").read_text(encoding="utf-8"))
-    assert refreshed["schema_version"] == 3
+    assert refreshed["schema_version"] == 4
+
+
+def test_v3_cache_treated_as_miss_despite_being_fresh(tmp_path):
+    """The minor-unit vintage gate for this cache: a v3 payload is a pre-
+    normalization ValuationHistory (London multiples computed from pence prices, or
+    honestly skipped_fx). It must be refetched even though its _cached_at is fresh —
+    the 90-day TTL alone would keep serving the old numbers for months."""
+    cd, svc = _cd(tmp_path)
+    v3_payload = {
+        "_cached_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": 3,
+        "financial_currency": "GBP",
+        "series": _series(),
+    }
+    (tmp_path / "X.json").write_text(json.dumps(v3_payload), encoding="utf-8")
+
+    cd.get_annual_series("X")
+
+    svc.get_annual_series.assert_called_once_with("X")
+    refreshed = json.loads((tmp_path / "X.json").read_text(encoding="utf-8"))
+    assert refreshed["schema_version"] == 4
+
+
+def test_newer_than_current_schema_version_also_treated_as_miss(tmp_path):
+    """Mismatch semantics are `!=`, not `<`: a payload written by a newer code
+    version is a miss too, so a rollback cannot silently read a future schema."""
+    cd, svc = _cd(tmp_path)
+    future_payload = {
+        "_cached_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": 99,
+        "financial_currency": "DKK",
+        "series": _series(),
+    }
+    (tmp_path / "X.json").write_text(json.dumps(future_payload), encoding="utf-8")
+
+    cd.get_annual_series("X")
+
+    svc.get_annual_series.assert_called_once_with("X")
 
 
 def test_valuation_history_summary_roundtrips(tmp_path):

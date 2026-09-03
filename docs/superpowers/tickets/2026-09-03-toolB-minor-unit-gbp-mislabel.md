@@ -2,7 +2,41 @@
 
 **Opened:** 2026-09-03
 **Priority:** correctness, but narrow: only listings quoted in a minor unit are affected, and today that is London (`GBp`) alone. Not a regression — the defect is as old as the deep-dive quant block; it was simply unreachable until the first LSE dossier could be produced. Fix before an LSE title reaches the Watchlist for a real decision.
-**Status:** open
+**Status:** FIXED 2026-09-03 — see "Resolution" below.
+
+## Resolution
+
+Normalisation now lives once in the adapter (`app/services/yfinance_client.py`): a curated
+whitelist of 16 quoted per-share `info` keys is rescaled, `GBp` is relabelled to `GBP`, and
+the price columns of the history frames are rescaled the same way. Tool A's duplicate
+rescale in `app/models/screener_record.py` was removed rather than kept as a second net —
+two normalisations of the same quantity in two layers is how a double division gets born.
+
+Two things the investigation added to the picture above:
+
+1. **The split is narrower than "balance sheet vs. market data".** `totalDebt`,
+   `totalCash` and `enterpriseValue` are already in the major unit, *including* for
+   USD-reporting issuers like EDV.L and SHEL.L — `financialCurrency` does not affect the
+   units inside `info` at all. Proven non-circularly by
+   `totalCash / sharesOutstanding ≈ totalCashPerShare`; the EV identity cannot prove it,
+   because yfinance derives `enterpriseValue` from the same fields.
+2. **The fix had to include the price *series*, not just `info`.** The weekly closes come
+   from a separate `history()` call in the same quoted unit. Relabelling `info` alone would
+   have opened the FX gate at `app/deepdive/valuation_history.py:117` — which today fires
+   only by accident, because `"GBp" != "GBP"` — and fed pence prices into pound-denominated
+   fundamentals for every GBP-reporting London issuer. That would have been a silent 100×
+   error reported as `complete`, i.e. worse than the mislabel it replaced.
+
+Stale cached payloads self-heal without a purge: an un-normalised document still carries
+`currency: "GBp"`, so the currency itself is the vintage tell, and all three cache read
+paths treat it as a miss. The derived historical cache uses its existing
+`CACHE_SCHEMA_VERSION` bump (3 → 4) instead, since a derived `ValuationHistory` cannot be
+detected field by field.
+
+The cross-currency defects noticed alongside — the peer table carrying no currency, and
+`total_debt`/`total_cash` labelled with the listing rather than the reporting currency —
+are a different failure class and were deliberately left out:
+`tickets/2026-09-03-toolB-cross-currency-mislabels.md`.
 
 ## Context
 
