@@ -20,6 +20,7 @@ import httpx
 
 from app.config import settings
 from app.deepdive.eu_adr_resolution import (
+    _same_issuer,
     find_home_identity,
     home_exch_codes,
     issuer_name,
@@ -64,7 +65,13 @@ def main() -> int:
             f"    {mark} {str(ln.get('ticker')):10} {exch:4} "
             f"type={ln.get('securityType2')!r} name={ln.get('name')!r}"
         )
-    picked = pick_us_adr_line(lines, ident_norm)
+    # `pick_us_adr_line` lost its optional name filter when the `search_issuer`
+    # fallback went; this trace still walks the search path, whose full-text hits
+    # can belong to a different issuer, so it applies the filter itself and keeps
+    # printing what it always printed.
+    picked = pick_us_adr_line(
+        [ln for ln in lines if _same_issuer(ln.get("name", ""), ident_norm)]
+    )
     print(f"[4] picked US line   : {json.dumps(picked, ensure_ascii=False)}")
     if picked is None:
         return 0

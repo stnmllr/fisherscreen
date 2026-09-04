@@ -1,5 +1,4 @@
 import json
-import logging
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
@@ -59,13 +58,11 @@ def test_find_home_identity_fail_loud_when_no_match():
 
 
 def test_pick_us_adr_line_prefers_depositary_receipt():
-    from app.deepdive.eu_adr_resolution import (
-        pick_us_adr_line,
-        norm_issuer,
-        issuer_name,
-    )
+    """Selection is exchange code + DR preference, nothing else: the home line
+    (GY) is excluded, and among the two US lines the Depositary Receipt wins
+    over the plain 'F' line even though the latter comes first."""
+    from app.deepdive.eu_adr_resolution import pick_us_adr_line
 
-    ident_norm = norm_issuer(issuer_name("ASML HOLDING NV"))
     lines = [
         {
             "ticker": "ASMLF",
@@ -86,11 +83,11 @@ def test_pick_us_adr_line_prefers_depositary_receipt():
             "name": "ASML HOLDING NV",
         },
     ]
-    assert pick_us_adr_line(lines, ident_norm)["ticker"] == "ASML"
+    assert pick_us_adr_line(lines)["ticker"] == "ASML"
 
 
 def test_pick_us_adr_line_none_when_no_us_line():
-    from app.deepdive.eu_adr_resolution import pick_us_adr_line, norm_issuer
+    from app.deepdive.eu_adr_resolution import pick_us_adr_line
 
     lines = [
         {
@@ -100,45 +97,20 @@ def test_pick_us_adr_line_none_when_no_us_line():
             "name": "RIGHTMOVE PLC",
         }
     ]
-    assert pick_us_adr_line(lines, norm_issuer("RIGHTMOVE PLC")) is None
+    assert pick_us_adr_line(lines) is None
 
 
-def test_pick_us_adr_line_without_name_filter_prefers_depositary_receipt():
-    """The anchored call form (no `ident_norm`). The DR preference is the part
-    that must NOT drift between the two call forms — it is policy, not filter."""
-    from app.deepdive.eu_adr_resolution import pick_us_adr_line
-
-    lines = [
-        {
-            "ticker": "ASMLF",
-            "exchCode": "US",
-            "securityType2": "Common Stock",
-            "name": "ASML HOLDING NV",
-        },
-        {
-            "ticker": "ASML",
-            "exchCode": "US",
-            "securityType2": "Depositary Receipt",
-            "name": "ASML HOLDING NV-NY REG SHS",
-        },
-    ]
-    assert pick_us_adr_line(lines)["ticker"] == "ASML"
-
-
-def test_pick_us_adr_line_without_name_filter_accepts_abbreviated_issuer_name():
-    """The anchor argument in isolation, and the direct fix for
-    tickets/2026-09-03-same-issuer-abbreviation-gap.md.
+def test_pick_us_adr_line_accepts_abbreviated_issuer_name():
+    """The unit-level half of the fix for
+    tickets/2026-09-03-same-issuer-abbreviation-gap.md (the end-to-end half is
+    test_share_class_accepts_us_line_whose_name_abbreviates_the_issuer).
 
     'ENDEAVOUR MNG PLC-UNSPON ADR' normalises to ENDEAVOURMNG-UNSPONADR, which
     is neither a prefix of nor prefixed by ENDEAVOURMINING — so `_same_issuer`
     dropped the DR line before the preference loop could ever see it. On a share
     class every line belongs to the home issuer by construction, so no name is
     compared and the abbreviated line is picked."""
-    from app.deepdive.eu_adr_resolution import (
-        issuer_name,
-        norm_issuer,
-        pick_us_adr_line,
-    )
+    from app.deepdive.eu_adr_resolution import pick_us_adr_line
 
     lines = [
         {
@@ -155,43 +127,26 @@ def test_pick_us_adr_line_without_name_filter_accepts_abbreviated_issuer_name():
         },
     ]
     assert pick_us_adr_line(lines)["ticker"] == "ENVMY"
-    # Same input through the fallback call form still has the documented hole —
-    # pinned here so the gap disappears only when the fallback itself does.
-    ident_norm = norm_issuer(issuer_name("ENDEAVOUR MINING PLC"))
-    assert pick_us_adr_line(lines, ident_norm)["ticker"] == "EDVMF"
 
 
-def test_pick_us_adr_line_with_name_filter_still_drops_a_foreign_issuer():
-    """FENCE for the fallback arm: making `ident_norm` optional must not turn
-    the filter off where it IS passed. Full-text search returns other issuers'
-    lines, so on that path the name check is the only thing between the DR
-    preference and a foreign line."""
-    from app.deepdive.eu_adr_resolution import norm_issuer, pick_us_adr_line
-
-    lines = [
-        {
-            "ticker": "RBSA",
-            "exchCode": "US",
-            "securityType2": "Depositary Receipt",
-            "name": "ROCHE BOBOIS SA-UNSPON ADR",
-        },
-    ]
-    assert pick_us_adr_line(lines, norm_issuer("ASML HOLDING NV")) is None
-    assert pick_us_adr_line(lines) is not None  # unfiltered: exchange code only
-
-
-def test_fallback_name_filter_is_prefix_tolerant_by_design_not_exact():
-    """CHARACTERISATION of the fallback filter as it stands today — pre-existing
-    behaviour, untouched by the share-class change, pinned so the difference
-    between the two guards stays visible.
+def test_same_issuer_is_prefix_tolerant_and_is_not_the_roche_bobois_guard():
+    """CHARACTERISATION of `_same_issuer` as it stands today. It has no
+    production caller left (the `search_issuer` fallback that used it is gone),
+    but the measured fact it pins is load-bearing for
+    tickets/2026-09-04-eu-identity-matcher-blocks-a-third-of-europe.md and
+    outlives the caller.
 
     `norm_issuer` strips ' HOLDING', so 'ROCHE HOLDING AG' normalises to plain
     'ROCHE' — which IS a prefix of 'ROCHEBOBOIS-UNSPONADR'. `_same_issuer` is
     prefix-tolerant on purpose (it has to accept 'ASML HOLDING NV-NY REG SHS'),
-    so it accepts the Bobois line here. The ROCHE/Bobois guard that actually
-    holds lives one level up in `find_home_identity`, which compares for strict
-    equality; this test documents that `_same_issuer` is the weaker check and is
-    not that guard. The anchored path sidesteps the question entirely."""
+    so it accepts the Bobois line. That is why the ticket's central claim holds:
+    `find_home_identity`'s strict equality is the ONLY guard against the
+    variant-ladder false hit — there is no second line of defence one level
+    down. Anyone loosening that equality must read this test first.
+
+    Kept executable rather than left to the ticket's prose: the fact depends on
+    ' HOLDING' being in `_LEGAL_FORMS`, so a change to `norm_issuer` would make
+    the ticket quietly wrong while this test goes red."""
     from app.deepdive.eu_adr_resolution import _same_issuer, norm_issuer
 
     assert norm_issuer("ROCHE HOLDING AG") == "ROCHE"
@@ -211,13 +166,13 @@ _RMV_SHARE_CLASS = "BBG001SYNTH00"
 
 def _deps(longname="ASML Holding N.V."):
     """Default shape: a home line that CARRIES a `shareClassFIGI`, i.e. the
-    anchored path every normal issuer takes.
+    anchored path every issuer takes — it is the only path left.
 
-    `search_issuer` deliberately returns an empty page. It must not be called on
-    this path at all, and an empty page makes an accidental fall back to it
-    change the verdict to `no_us_line` rather than quietly produce the same
-    answer — so every test below that claims to exercise the resolution path
-    fails if the anchored branch stops being taken."""
+    `search_issuer` still gets a stub that returns an empty page even though the
+    production code no longer calls it. That is deliberate: should the paginated
+    full-text path ever be reintroduced, an empty page turns the verdict into
+    `no_us_line` instead of quietly producing the same answer, so the tests below
+    fail loudly rather than pass for the wrong reason."""
     openfigi = MagicMock()
     openfigi.map_ticker.return_value = {
         "name": "ASML HOLDING NV",
@@ -341,27 +296,14 @@ def _relx_deps():
     return openfigi, edgar, yfinance
 
 
-def _no_share_class_deps(ident):
-    """Fallback shape: a home line WITHOUT a usable `shareClassFIGI`. The search
-    page carries a foreign issuer's DR line first, so the name filter is the
-    only thing standing between the fallback and a ROCHE-BOBOIS-class false
-    hit — if it were dropped, the DR preference would pick the wrong issuer."""
+def _no_anchor_deps(ident):
+    """Anchorless shape: a name-verified home line WITHOUT a usable
+    `shareClassFIGI`. Everything else is resolvable — `lines_by_share_class`,
+    `get_cik` and `detect_annual_form` would all answer — so the only reason
+    this shape can produce anything other than a happy path is the missing
+    anchor itself."""
     openfigi, edgar, yfinance = _deps()
     openfigi.map_ticker.return_value = ident
-    openfigi.search_issuer.return_value = [
-        {
-            "ticker": "RBSA",
-            "exchCode": "US",
-            "securityType2": "Depositary Receipt",
-            "name": "ROCHE BOBOIS SA-UNSPON ADR",
-        },
-        {
-            "ticker": "ASMLF",
-            "exchCode": "US",
-            "securityType2": "Common Stock",
-            "name": "ASML HOLDING NV",
-        },
-    ]
     return openfigi, edgar, yfinance
 
 
@@ -423,15 +365,11 @@ def test_relx_search_page_fixture_really_holds_no_us_line():
     """Fixture integrity for the regression below: if that 100-hit page ever
     grew a US line, the regression test would pass for the wrong reason and
     stop proving anything about the anchor."""
-    from app.deepdive.eu_adr_resolution import (
-        issuer_name,
-        norm_issuer,
-        pick_us_adr_line,
-    )
+    from app.deepdive.eu_adr_resolution import pick_us_adr_line
 
     page = _relx_search_page()
     assert len(page) == 100  # a full page -> a `next` cursor the old path ignored
-    assert pick_us_adr_line(page, norm_issuer(issuer_name("RELX PLC"))) is None
+    assert pick_us_adr_line(page) is None
 
 
 def test_share_class_finds_the_us_line_search_issuer_misses(tmp_path):
@@ -495,43 +433,38 @@ def test_share_class_accepts_us_line_whose_name_abbreviates_the_issuer(tmp_path)
         pytest.param({"name": "ASML HOLDING NV", "shareClassFIGI": "  "}, id="blank"),
     ],
 )
-def test_home_line_without_share_class_falls_back_to_search_with_name_filter(
-    tmp_path, caplog, ident
+def test_home_line_without_share_class_anchor_fail_louds_and_caches_nothing(
+    tmp_path, ident
 ):
-    """The temporary fallback. A home line without a usable `shareClassFIGI`
-    must not regress from 'searched badly' to 'not searched at all', so it takes
-    the old path — WITH the name filter, which is what keeps the foreign DR line
-    (ROCHE BOBOIS) from winning the preference loop.
+    """A home line without a usable `shareClassFIGI` raises instead of returning
+    a verdict. Without the anchor there is nothing to enumerate, so the issuer's
+    US lines are not merely unfound but UNDETERMINABLE — `no_us_line` would
+    assert an absence that was never established. The predecessor of this test
+    pinned a `search_issuer` fallback that a census over all 416 dotted EU
+    tickers measured as dead (zero of its WARNINGs against 26 unrelated ones in
+    the same log, so the instrument was demonstrably live).
 
-    The WARNING is asserted because it is the measuring instrument: a census run
-    that never emits it is the evidence for deleting this branch, so a silently
-    dropped log line would remove the only reason the branch could ever go."""
-    openfigi, edgar, yfinance = _no_share_class_deps(ident)
+    THE THREE PARAMETRISATIONS ARE THE POINT and must not be collapsed into one:
+    they are the only place `(ident.get("shareClassFIGI") or "").strip()` is
+    exercised. `key_absent` covers the `.get` default, `none` the `or ""` (a
+    present-but-null key, which is what OpenFIGI actually returns), `blank` the
+    `.strip()` (whitespace is not an anchor). Drop any one of them and that
+    normalisation loses its only coverage silently.
 
-    with caplog.at_level(logging.WARNING, logger="app.deepdive.eu_adr_resolution"):
-        r = _resolve("ASML.AS", tmp_path / "adr.json", (openfigi, edgar, yfinance))
+    Nothing may be cached: the raise sits ABOVE `_cache_put`, and that ordering
+    is what keeps an unverifiable situation structurally uncacheable — a cached
+    non-verdict would outlive the run that could not make it."""
+    cache = tmp_path / "adr.json"
+    openfigi, edgar, yfinance = _no_anchor_deps(ident)
 
-    openfigi.search_issuer.assert_called_once_with("ASML HOLDING NV")
+    with pytest.raises(DeepDiveError, match="carries no shareClassFIGI"):
+        _resolve("ASML.AS", cache, (openfigi, edgar, yfinance))
+
+    assert not cache.exists()  # no verdict written for an unverifiable identity
+    # The raise precedes every enumeration attempt, so nothing was even asked.
     openfigi.lines_by_share_class.assert_not_called()
-    assert r.adr_ticker == "ASMLF"  # name filter dropped the ROCHE BOBOIS DR line
-    assert r.cik == "0000937966"
-
-    warnings = [rec for rec in caplog.records if rec.levelno == logging.WARNING]
-    assert len(warnings) == 1
-    assert "ASML.AS" in warnings[0].getMessage()
-    assert "shareClassFIGI" in warnings[0].getMessage()
-
-
-def test_anchored_path_logs_no_fallback_warning(tmp_path, caplog):
-    """Counterpart to the test above: the instrument must be silent when the
-    anchor is used, otherwise a census run cannot tell the two apart and the
-    WARNING measures nothing."""
-    openfigi, edgar, yfinance = _deps()
-
-    with caplog.at_level(logging.WARNING, logger="app.deepdive.eu_adr_resolution"):
-        _resolve("ASML.AS", tmp_path / "adr.json", (openfigi, edgar, yfinance))
-
-    assert [rec for rec in caplog.records if rec.levelno == logging.WARNING] == []
+    openfigi.search_issuer.assert_not_called()
+    edgar.get_cik.assert_not_called()
 
 
 def test_resolve_eu_adr_persists_and_reads_cache(tmp_path):
@@ -651,13 +584,17 @@ def test_transient_openfigi_error_propagates_and_writes_no_cache(tmp_path):
     assert not cache.exists()
 
 
-def test_transient_openfigi_error_on_the_fallback_path_also_propagates(tmp_path):
-    """Same guard for the fallback arm — it is temporary, not exempt."""
+def test_transient_openfigi_error_on_the_identity_lookup_also_propagates(tmp_path):
+    """Same guard one call earlier, on the OTHER OpenFIGI surface: the identity
+    lookup. `map_ticker` failing is a statement about the API, and the shape it
+    must never take is a `None` that reads as 'no verifiable identity' — that
+    would raise DeepDiveError instead of DataSourceError and mislabel an outage
+    as an unverifiable issuer."""
     from app.errors import DataSourceError
 
     cache = tmp_path / "adr.json"
-    openfigi, edgar, yfinance = _no_share_class_deps({"name": "ASML HOLDING NV"})
-    openfigi.search_issuer.side_effect = DataSourceError("OpenFIGI 503")
+    openfigi, edgar, yfinance = _deps()
+    openfigi.map_ticker.side_effect = DataSourceError("OpenFIGI 503")
 
     with pytest.raises(DataSourceError, match="OpenFIGI 503"):
         _resolve("ASML.AS", cache, (openfigi, edgar, yfinance))
