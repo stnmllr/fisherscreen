@@ -55,6 +55,14 @@ def render_insider_block(summary: InsiderSummary | None, form_type: str | None) 
             f"{_HEAD} nicht verfügbar — kein SEC-Registrant, daher keine "
             f"Form-4-Meldepflicht und keine Daten (nicht „kein Signal“)."
         )
+    # Same position, opposite claim: here the issuer is unknown, so any sentence
+    # about a Form-4 duty — its presence OR its absence — would be invented.
+    if summary is not None and summary.coverage_state == "issuer_unidentified":
+        return (
+            f"{_HEAD} keine Aussage möglich — der Emittent konnte nicht "
+            f"identifiziert werden; ob eine Form-4-Meldepflicht besteht, ist "
+            f"ungeprüft, nicht widerlegt (nicht „kein Signal“)."
+        )
     if summary is None or summary.coverage_state == "fpi_exempt":
         return (
             f"{_HEAD} nicht anwendbar (Foreign Private Issuer, "
@@ -109,6 +117,11 @@ def insider_coverage_label(summary: InsiderSummary | None) -> str:
     """One-line SourceCoverage.insider value."""
     if summary is not None and summary.coverage_state == "no_sec_source":
         return "nicht verfügbar (kein SEC-Registrant, keine Form-4-Pflicht)"
+    if summary is not None and summary.coverage_state == "issuer_unidentified":
+        return (
+            "keine Aussage möglich (Emittent nicht identifiziert, "
+            "Form-4-Pflicht ungeprüft)"
+        )
     if summary is None or summary.coverage_state == "fpi_exempt":
         return "nicht anwendbar (FPI, Section-16-exempt)"
     cs = summary.coverage_state

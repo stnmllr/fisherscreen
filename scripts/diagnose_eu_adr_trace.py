@@ -20,7 +20,6 @@ import httpx
 
 from app.config import settings
 from app.deepdive.eu_adr_resolution import (
-    _same_issuer,
     find_home_identity,
     home_exch_codes,
     issuer_name,
@@ -51,12 +50,23 @@ def main() -> int:
     figi = OpenFIGIClientImpl(api_key=getattr(settings, "openfigi_api_key", "") or "")
     print(f"[2] home exch codes  : {home_exch_codes(ticker)}")
     print(f"    symbol variants  : {local_symbol_variants(ticker)}")
-    ident = find_home_identity(ticker, norm_issuer(ref or ""), openfigi=figi)
+    ident = find_home_identity(ticker, ref or "", openfigi=figi)
+    if ident is None:
+        # Seit der Laut-scheitern-Regel liefert find_home_identity None statt zu
+        # werfen; ohne Identitaet gibt es nichts mehr zu tracen.
+        print("    home identity    : KEINE -- kein Kandidat matchte den Referenznamen")
+        return 1
     print(f"    home identity    : {json.dumps(ident, ensure_ascii=False)}")
 
-    ident_norm = norm_issuer(issuer_name(ident["name"]))
-    lines = figi.search_issuer(ident["name"])
-    print(f"[3] search_issuer({ident['name']!r}) -> {len(lines)} lines")
+    print(f"    identity norm    : {norm_issuer(issuer_name(ident['name']))!r}")
+    share_class = (ident.get("shareClassFIGI") or "").strip()
+    if not share_class:
+        # Same fail-loud condition production has: without the anchor the issuer's
+        # US lines are undeterminable, so there is nothing honest left to print.
+        print("[3] shareClassFIGI   : KEINE -- US-Linien nicht aufzaehlbar")
+        return 1
+    lines = figi.lines_by_share_class(share_class)
+    print(f"[3] lines_by_share_class({share_class!r}) -> {len(lines)} lines")
     edgar = EdgarClientImpl(user_agent=ua)
     for ln in lines:
         exch = (ln.get("exchCode") or "").strip()
@@ -65,13 +75,9 @@ def main() -> int:
             f"    {mark} {str(ln.get('ticker')):10} {exch:4} "
             f"type={ln.get('securityType2')!r} name={ln.get('name')!r}"
         )
-    # `pick_us_adr_line` lost its optional name filter when the `search_issuer`
-    # fallback went; this trace still walks the search path, whose full-text hits
-    # can belong to a different issuer, so it applies the filter itself and keeps
-    # printing what it always printed.
-    picked = pick_us_adr_line(
-        [ln for ln in lines if _same_issuer(ln.get("name", ""), ident_norm)]
-    )
+    # No name filter, exactly as in production: every line here belongs to the
+    # home line's share class by construction, so the issuer is already settled.
+    picked = pick_us_adr_line(lines)
     print(f"[4] picked US line   : {json.dumps(picked, ensure_ascii=False)}")
     if picked is None:
         return 0

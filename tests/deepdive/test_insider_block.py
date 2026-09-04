@@ -128,6 +128,55 @@ def test_no_sec_source_coverage_label_is_its_own_state():
     assert "übersprungen" not in label
 
 
+def test_issuer_unidentified_says_unchecked_never_non_registrant():
+    """The state "issuer_unidentified" is weaker than "no_sec_source", and the
+    whole point of it being a separate state: there we LOOKED and found no
+    registration, here we never identified the company, so we established
+    nothing about it — not even the absence of a Form-4 duty. Any sentence about
+    that duty, asserting it OR denying it, would be invented."""
+    out = render_insider_block(
+        InsiderSummary(coverage_state="issuer_unidentified"), form_type=None
+    )
+
+    assert "der Emittent konnte nicht identifiziert werden" in out
+    assert "ungeprüft, nicht widerlegt" in out
+    assert "nicht „kein Signal“" in out  # absence of data, not absence of signal
+    # The neighbouring states' claims, each false here.
+    assert "kein SEC-Registrant" not in out
+    assert "keine Form-4-Meldepflicht" not in out  # "ob eine ... besteht" is fine
+    assert "--no-insider" not in out
+    assert "übersprungen" not in out
+    assert "Foreign Private Issuer" not in out
+    assert "Section-16-exempt" not in out
+
+
+def test_issuer_unidentified_coverage_label_is_its_own_state():
+    label = insider_coverage_label(InsiderSummary(coverage_state="issuer_unidentified"))
+
+    assert label == (
+        "keine Aussage möglich (Emittent nicht identifiziert, "
+        "Form-4-Pflicht ungeprüft)"
+    )
+    assert "SEC-Registrant" not in label
+    assert "FPI" not in label
+    assert "übersprungen" not in label
+
+
+def test_issuer_unidentified_outranks_the_form_type_and_the_none_branch():
+    """Positional, not cosmetic: both new states are checked BEFORE the
+    `summary is None or fpi_exempt` fallthrough. An issuer we could not identify
+    has no known form type, so `form_type=None` must not be read as "no filing
+    known -> FPI" — that fallthrough would print a Section-16 exemption for a
+    company we never looked up. Asserted for every form_type the caller can
+    plausibly pass, since the state alone has to decide."""
+    for form_type in (None, "20-F", "10-K"):
+        out = render_insider_block(
+            InsiderSummary(coverage_state="issuer_unidentified"), form_type
+        )
+        assert "der Emittent konnte nicht identifiziert werden" in out, form_type
+        assert "nicht anwendbar" not in out, form_type
+
+
 def test_aggregate_owner_significant_entries_are_grouped():
     def _sell(v):
         return InsiderTransaction(

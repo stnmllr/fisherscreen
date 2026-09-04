@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, Literal, get_args
+from typing import TYPE_CHECKING, Callable, Literal, cast, get_args
 
 from app.errors import DeepDiveError
 
@@ -20,10 +20,22 @@ if TYPE_CHECKING:
 # routing signal, not a fallback awaiting removal.
 _EU_MARKER = "."
 
-# Structural reasons why a ticker has no SEC filing source at all. These are
-# statements about the issuer's registration status, not about a failed call —
-# a transient API error is a DataSourceError and must never land here.
-NoSecSourceReason = Literal["no_us_line", "not_sec_registrant", "no_annual_form"]
+# Reasons why a dossier carries no SEC filing source. None of them is ever a
+# failed call — a transient API error is a DataSourceError and must never land
+# here. The first three are statements about the ISSUER's registration status.
+#
+# `unverifiable_identity` is the one that is NOT: it is a statement about US.
+# We could not tie the requested ticker to an issuer at all, so we never looked
+# for a filing. Keeping it a separate code instead of folding it into
+# `not_sec_registrant` is the whole point — a dossier must not claim there is no
+# SEC source when in truth we did not find the company. The note wording carries
+# the same distinction in prose ("ungeprüft, nicht widerlegt").
+NoSecSourceReason = Literal[
+    "no_us_line",
+    "not_sec_registrant",
+    "no_annual_form",
+    "unverifiable_identity",
+]
 # Derived from the type, never hand-listed: the cache validator in
 # eu_adr_resolution must not be able to drift from the literal.
 NO_SEC_SOURCE_REASONS: frozenset[str] = frozenset(get_args(NoSecSourceReason))
@@ -77,6 +89,33 @@ def no_sec_source(
     )
 
 
+def _from_table_entry(ticker: str, entry: dict[str, str]) -> ResolvedTicker:
+    """Turn a hit in the static table into a verdict.
+
+    The table expresses both halves of the question: a positive mapping
+    (adr_ticker + cik + form_type) or a hand-verified "this issuer is not an SEC
+    registrant". Which one it is, is decided by the presence of the reason tag —
+    the same discriminator `load_adr_table` validates against, which is why the
+    fields may be indexed directly here: a malformed row never survives loading.
+
+    The note is the table's own prose plus its provenance. A dossier reader must
+    be able to tell a hand decision from a resolved one, and to see how old it
+    is — a negative verdict is only true as of the day someone checked."""
+    reason = entry.get("no_sec_source_reason")
+    if reason is None:
+        return ResolvedTicker(
+            ticker=ticker,
+            adr_ticker=entry["adr_ticker"],
+            cik=entry["cik"],
+            form_type=entry["form_type"],
+        )
+    return no_sec_source(
+        ticker,
+        reason=cast(NoSecSourceReason, reason),
+        note=f"{entry['note']} (Override-Tabelle, geprüft {entry['verified_on']})",
+    )
+
+
 class ADRResolver:
     """Resolver: static ADR table (override, Master ADR-1) -> US-path CIK
     resolution via the EDGAR client -> dynamic EU-ADR resolution (OpenFIGI,
@@ -103,18 +142,15 @@ class ADRResolver:
         key = ticker.upper()
         entry = self._table.get(key)
         if entry is not None:
-            return ResolvedTicker(
-                ticker=ticker,
-                adr_ticker=entry["adr_ticker"],
-                cik=entry["cik"],
-                form_type=entry["form_type"],
-            )
+            return _from_table_entry(ticker, entry)
         if _EU_MARKER in ticker:
             # Dynamic EU-ADR resolution (OpenFIGI). The delegate returns a degraded
             # ResolvedTicker for a structural no-SEC-source issuer (no US line, no
-            # CIK, no annual form -> quant-only dossier), raises DeepDiveError for an
-            # unverifiable identity and DataSourceError on a transient API failure —
-            # failure != empty, never a silent wrong match.
+            # CIK, no annual form -> quant-only dossier) and, since the override
+            # table took over the cases that must be certain, also for an identity
+            # it could not verify (`unverifiable_identity`, labelled as unchecked
+            # rather than disproven). DataSourceError still propagates on a
+            # transient API failure — failure != empty, never a silent wrong match.
             return self._eu_resolver(ticker)
         # US path: resolve the CIK + detect the annual form from EDGAR.
         cik = self._edgar.get_cik(ticker)
