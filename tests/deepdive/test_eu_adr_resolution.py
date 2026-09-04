@@ -6,25 +6,33 @@ import pytest
 
 from app.errors import DeepDiveError
 
-
-def test_norm_issuer_folds_legal_forms_and_spaces():
-    from app.deepdive.eu_adr_resolution import norm_issuer
-
-    assert norm_issuer("ASML Holding N.V.") == norm_issuer("ASML HOLDING NV")
-    assert norm_issuer("ROCHE HOLDING AG") != norm_issuer("ROCHE BOBOIS SA")
-
-
-def test_issuer_name_strips_class_token():
-    from app.deepdive.eu_adr_resolution import issuer_name
-
-    assert issuer_name("ROCHE HOLDING AG-BR") == "ROCHE HOLDING AG"
-    assert issuer_name("COCA-COLA CO") == "COCA-COLA CO"  # hyphen with space kept
+# `norm_issuer`, `issuer_name` and `same_issuer_identity` are exercised in
+# tests/deepdive/test_issuer_normalisation.py — the counter-basket, the stump
+# survey and one case per rule live there, together. What is tested here is the
+# RESOLVER: the ladder it walks and the verdicts it produces.
 
 
 def test_local_symbol_variants_for_dashed_ticker():
+    """The full ladder, in order. The trailing-slash form is last and is the
+    measured answer to a miss of its own: OpenFIGI carries BP as 'BP/', so
+    'BP.L' and 'JD.L' returned nothing under any of the three forms before it."""
     from app.deepdive.eu_adr_resolution import local_symbol_variants
 
-    assert local_symbol_variants("NOVO-B.CO") == ["NOVO-B", "NOVO B", "NOVOB"]
+    assert local_symbol_variants("NOVO-B.CO") == [
+        "NOVO-B",
+        "NOVO B",
+        "NOVOB",
+        "NOVO-B/",
+    ]
+
+
+def test_local_symbol_variants_for_an_undashed_ticker_is_two_entries():
+    """No dash, so the two dash-rewrites collapse into the base form and the
+    order-preserving dedup drops them. BP.L is the measured case the slash form
+    was added for, and it costs exactly one extra call — not three."""
+    from app.deepdive.eu_adr_resolution import local_symbol_variants
+
+    assert local_symbol_variants("BP.L") == ["BP", "BP/"]
 
 
 def test_home_exch_codes_from_suffix():
@@ -35,17 +43,25 @@ def test_home_exch_codes_from_suffix():
 
 
 def test_find_home_identity_accepts_only_name_match():
-    # Wrong candidate returns a foreign issuer -> rejected; right one accepted.
-    from app.deepdive.eu_adr_resolution import find_home_identity, norm_issuer
+    """Wrong candidate returns a foreign issuer -> rejected; right one accepted.
+
+    The reference arrives RAW ('Novo Nordisk A/S', as yfinance spells it), not
+    as a pre-computed key: both sides are normalised inside the function, which
+    is the only arrangement in which the two recipes cannot age apart. A caller
+    that normalised its own side would be a second, silently drifting copy."""
+    from app.deepdive.eu_adr_resolution import find_home_identity
 
     openfigi = MagicMock()
     openfigi.map_ticker.side_effect = [
         {"name": "ROCHE BOBOIS SA"},  # NOVO-B  -> foreign, rejected
         {"name": "NOVO NORDISK A/S-B"},  # NOVO B  -> matches, accepted
+        None,  # NOVOB   -> never reached
+        None,  # NOVO-B/ -> never reached
     ]
-    ref = norm_issuer("Novo Nordisk A/S")
-    ident = find_home_identity("NOVO-B.CO", ref, openfigi=openfigi)
+    ident = find_home_identity("NOVO-B.CO", "Novo Nordisk A/S", openfigi=openfigi)
     assert ident["name"] == "NOVO NORDISK A/S-B"
+    # Accepted on the second rung, so the ladder stopped there.
+    assert openfigi.map_ticker.call_count == 2
 
 
 def test_find_home_identity_returns_none_when_no_candidate_answers():
@@ -58,20 +74,19 @@ def test_find_home_identity_returns_none_when_no_candidate_answers():
     The third possibility stays forbidden and is pinned by
     `test_find_home_identity_accepts_only_name_match`: returning an unverified
     match. None is honest ignorance, a wrong ident is phantom data."""
-    from app.deepdive.eu_adr_resolution import find_home_identity, norm_issuer
+    from app.deepdive.eu_adr_resolution import find_home_identity
 
     openfigi = MagicMock()
     openfigi.map_ticker.return_value = None
 
-    ident = find_home_identity(
-        "NOVO-B.CO", norm_issuer("Whatever Inc"), openfigi=openfigi
-    )
+    ident = find_home_identity("NOVO-B.CO", "Whatever Inc", openfigi=openfigi)
 
     assert ident is None
-    # The whole ladder was walked before giving up: 1 home exchange (DC) x 3
-    # local-symbol variants. A short-circuit would make "no match" mean "the
-    # first guess missed", which is a different and much weaker statement.
-    assert openfigi.map_ticker.call_count == 3
+    # The whole ladder was walked before giving up: 1 home exchange (DC) x 4
+    # local-symbol variants ('NOVO-B', 'NOVO B', 'NOVOB', 'NOVO-B/'). A
+    # short-circuit would make "no match" mean "the first guess missed", which
+    # is a different and much weaker statement.
+    assert openfigi.map_ticker.call_count == 4
 
 
 def test_find_home_identity_returns_none_when_every_answer_is_a_foreign_issuer():
@@ -79,17 +94,15 @@ def test_find_home_identity_returns_none_when_every_answer_is_a_foreign_issuer()
     every time, it just answered with somebody else. Distinguishing this from
     "no answer" is the NAME-SANITY-CHECK's entire job — accepting here is the
     ROCHE -> ROCHE BOBOIS false hit."""
-    from app.deepdive.eu_adr_resolution import find_home_identity, norm_issuer
+    from app.deepdive.eu_adr_resolution import find_home_identity
 
     openfigi = MagicMock()
     openfigi.map_ticker.return_value = {"name": "ROCHE BOBOIS SA"}
 
-    ident = find_home_identity(
-        "NOVO-B.CO", norm_issuer("Novo Nordisk A/S"), openfigi=openfigi
-    )
+    ident = find_home_identity("NOVO-B.CO", "Novo Nordisk A/S", openfigi=openfigi)
 
     assert ident is None
-    assert openfigi.map_ticker.call_count == 3
+    assert openfigi.map_ticker.call_count == 4
 
 
 def test_unverifiable_identity_note_says_unchecked_rather_than_disproven():
@@ -188,32 +201,6 @@ def test_pick_us_adr_line_accepts_abbreviated_issuer_name():
         },
     ]
     assert pick_us_adr_line(lines)["ticker"] == "ENVMY"
-
-
-def test_same_issuer_is_prefix_tolerant_and_is_not_the_roche_bobois_guard():
-    """CHARACTERISATION of `_same_issuer` as it stands today. It has no
-    production caller left (the `search_issuer` fallback that used it is gone),
-    but the measured fact it pins is load-bearing for
-    tickets/2026-09-04-eu-identity-matcher-blocks-a-third-of-europe.md and
-    outlives the caller.
-
-    `norm_issuer` strips ' HOLDING', so 'ROCHE HOLDING AG' normalises to plain
-    'ROCHE' — which IS a prefix of 'ROCHEBOBOIS-UNSPONADR'. `_same_issuer` is
-    prefix-tolerant on purpose (it has to accept 'ASML HOLDING NV-NY REG SHS'),
-    so it accepts the Bobois line. That is why the ticket's central claim holds:
-    `find_home_identity`'s strict equality is the ONLY guard against the
-    variant-ladder false hit — there is no second line of defence one level
-    down. Anyone loosening that equality must read this test first.
-
-    Kept executable rather than left to the ticket's prose: the fact depends on
-    ' HOLDING' being in `_LEGAL_FORMS`, so a change to `norm_issuer` would make
-    the ticket quietly wrong while this test goes red."""
-    from app.deepdive.eu_adr_resolution import _same_issuer, norm_issuer
-
-    assert norm_issuer("ROCHE HOLDING AG") == "ROCHE"
-    assert _same_issuer("ROCHE BOBOIS SA-UNSPON ADR", norm_issuer("ROCHE HOLDING AG"))
-    # find_home_identity's strict equality is what rejects it:
-    assert norm_issuer("ROCHE HOLDING AG") != norm_issuer("ROCHE BOBOIS SA")
 
 
 # Share-class FIGIs as measured on 2026-09-03 (SPEC): the anchor the home line

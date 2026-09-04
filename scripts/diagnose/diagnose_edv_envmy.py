@@ -1,18 +1,25 @@
 """Diagnose (one-off): why is the ENVMY Depositary-Receipt line not preferred,
-and would preferring it change the outcome?"""
+and would preferring it change the outcome?
+
+The `_same_issuer` half of this trace is gone with the function: the US line is
+now anchored on the home line's shareClassFIGI, so there is no issuer-name
+comparison left on that path to diagnose. What remains — how the two spellings
+normalise, and what EDGAR knows about the symbols — is the part that still
+answers the question."""
+
 from __future__ import annotations
+
 from app.config import settings
-from app.deepdive.eu_adr_resolution import _same_issuer, issuer_name, norm_issuer
+from app.deepdive.eu_adr_resolution import issuer_name, norm_issuer, same_issuer_identity
 from app.services.edgar_client import EdgarClientImpl
 
 IDENT = "ENDEAVOUR MINING PLC"
-ident_norm = norm_issuer(issuer_name(IDENT))
-print("ident_norm            :", ident_norm)
+print("ident norm            :", norm_issuer(IDENT))
 for nm in ("ENDEAVOUR MINING PLC", "ENDEAVOUR MNG PLC-UNSPON ADR"):
     print(f"{nm!r}")
-    print("   issuer_name ->", issuer_name(nm))
-    print("   norm        ->", norm_issuer(issuer_name(nm)))
-    print("   _same_issuer->", _same_issuer(nm, ident_norm))
+    print("   issuer_name        ->", issuer_name(nm))
+    print("   norm               ->", norm_issuer(nm))
+    print("   same_issuer_identity ->", same_issuer_identity(nm, IDENT))
 
 edgar = EdgarClientImpl(user_agent=settings.edgar_user_agent)
 for t in ("EDVMF", "ENVMY", "EDV"):

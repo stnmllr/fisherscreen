@@ -145,16 +145,41 @@ def test_positive_row_cik_still_files_the_stated_annual_form(ticker, edgar):
 
 @pytest.mark.parametrize("ticker", _NEGATIVE_ROWS)
 def test_negative_row_named_cik_still_shows_no_annual_form(ticker, edgar):
-    """The one half of a negative row that CAN be checked positively.
+    """The one half of a `not_sec_registrant` row that CAN be checked positively.
 
     "Not an SEC registrant" is unprovable by construction — there is no ticker
     to look up, which is the claim. But where the note names the CIK behind the
     depositary's F-6 shell, the falsifier is checkable: if an annual form ever
     appears under that CIK, the issuer has registered and the row is wrong.
 
-    A row whose note names no CIK is SKIPPED, loudly rather than silently: it
-    keeps only the staleness check below, and the run output should say so."""
+    THE CHECK IS REASON-SPECIFIC, and was not always: it reads a named CIK as an
+    F-6 shell and an annual form under it as proof of registration. Both
+    readings only hold for `not_sec_registrant`. A `no_annual_form` row makes a
+    different claim — the issuer IS registered, it just files nothing current —
+    and its note names its OWN CIK, under which `detect_annual_form` legitimately
+    finds something. Running the registrant check against it asked a question the
+    row never answered and reported a correct row as obsolete (BT-A.L, the first
+    negative row of that kind, 2026-09-04). One check under two claims is the
+    same conflation the census buckets were split for.
+
+    Two kinds of row are therefore SKIPPED, loudly rather than silently, and
+    both keep the staleness check below as their only guarantee:
+
+    * a row whose note names no CIK — nothing to look up;
+    * a `no_annual_form` row — the claim is about RECENCY, and
+      `detect_annual_form` searches the whole `recent` window without a date
+      cut, so it cannot distinguish "filed a 20-F six years ago and stopped"
+      from "files a 20-F". Whether that function needs a recency cut is the open
+      question the BT-A.L note itself raises; until it has one, no automated
+      check here can falsify the claim."""
     entry = _ENTRIES[ticker]
+    reason = entry["no_sec_source_reason"]
+    if reason != "not_sec_registrant":
+        pytest.skip(
+            f"{ticker}: a '{reason}' row does not claim the issuer is "
+            f"unregistered, so an annual form under its CIK falsifies nothing — "
+            f"this row rests on the staleness check alone"
+        )
     match = _CIK_IN_NOTE_RE.search(entry["note"])
     if match is None:
         pytest.skip(

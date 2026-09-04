@@ -1,9 +1,10 @@
 import json
 from datetime import date
+from unittest.mock import MagicMock
 
 import pytest
 
-from app.deepdive.adr_resolver import NO_SEC_SOURCE_REASONS
+from app.deepdive.adr_resolver import NO_SEC_SOURCE_REASONS, ADRResolver
 from app.deepdive.adr_table import load_adr_table
 from app.errors import DeepDiveError
 
@@ -421,3 +422,68 @@ def test_real_table_pins_the_verdict_of_each_september_crosshit(ticker):
         assert entry.get("no_sec_source_reason") == expected
     else:
         assert {k: entry[k] for k in expected} == expected
+
+
+# The two rows the identity-matcher change adds, deliberately kept apart from
+# the six above because they are a different KIND of override. Those six correct
+# a verdict the resolver reached on good input. These two correct the INPUT:
+# yfinance answers for GLB.IR with 'Beacon Hill CBO III Ltd' and OpenFIGI
+# answers for BT-A.L with 'BRITANNIA GROUP PLC'. In both cases the name check
+# refused correctly — the counter-basket in test_issuer_normalisation.py pins
+# that both pairs must stay unmatched — and no normalisation rule can or should
+# repair a source that names the wrong company. So they are not matcher debt;
+# without the row they would simply sit in the quant-only path forever.
+#
+# BT-A.L is `no_annual_form` and NOT a positive mapping although
+# `detect_annual_form` would answer '20-F': that function searches the whole
+# `recent` window with no date cut and would find a form from 2020, six years
+# before the dossier. Whether it needs a recency cut is a separate ticket.
+_IDENTITY_OVERRIDE_ROWS = {
+    "GLB.IR": "not_sec_registrant",
+    "BT-A.L": "no_annual_form",
+}
+
+
+@pytest.mark.parametrize("ticker", sorted(_IDENTITY_OVERRIDE_ROWS))
+def test_real_table_pins_the_verdict_of_each_identity_override_row(ticker):
+    """Loading is asserted through `load_adr_table`, which validates: a row
+    misspelt into a shape the loader rejects takes the whole table down, so
+    "the row is there" and "the row is well-formed" are one statement."""
+    entries = load_adr_table()
+    assert ticker in entries, f"{ticker} lost its override row"
+    assert entries[ticker]["no_sec_source_reason"] == _IDENTITY_OVERRIDE_ROWS[ticker]
+
+
+class _ExplodingEUResolver:
+    """Fails AT the forbidden call rather than at an `assert_not_called()` after
+    it, so a precedence violation names itself instead of surfacing as a bare
+    assertion further down."""
+
+    def __call__(self, ticker):
+        raise AssertionError(
+            f"the EU resolver was consulted for {ticker}, which the override "
+            f"table exists to prevent"
+        )
+
+
+@pytest.mark.parametrize("ticker", sorted(_IDENTITY_OVERRIDE_ROWS))
+def test_an_identity_override_row_dominates_the_eu_resolver(ticker):
+    """ORDERING, on the REAL table — the property that makes the row worth
+    having. Both tickers are dotted, so without the override they would be
+    routed straight into the OpenFIGI path whose answer is the very thing the
+    row overrides. The EDGAR mock is asserted untouched for the same reason: a
+    hand decision is a full answer, not a hint to be confirmed against the
+    source it short-circuits."""
+    edgar = MagicMock()
+    resolver = ADRResolver(
+        table=load_adr_table(), edgar=edgar, eu_resolver=_ExplodingEUResolver()
+    )
+
+    r = resolver.resolve(ticker)
+
+    assert r.no_sec_source_reason == _IDENTITY_OVERRIDE_ROWS[ticker]
+    assert r.has_filing_source is False
+    assert r.cik is None and r.form_type is None
+    assert "Override-Tabelle" in r.no_sec_source_note  # provenance for the reader
+    edgar.get_cik.assert_not_called()
+    edgar.detect_annual_form.assert_not_called()

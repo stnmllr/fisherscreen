@@ -59,6 +59,16 @@
       "no_sec_source_reason": "not_sec_registrant",
       "note": "Kein SEC-Hard-Scuttlebutt: Scout24 SE ist kein SEC-Registrant. Bei der SEC existiert nur 'Scout24 AG/ADR' (CIK 1722213) mit F-6EF, kein Jahresformular. Dossier ist quant-only (Quant + Bewertung + Peers).",
       "verified_on": "2026-09-04"
+    },
+    "GLB.IR": {
+      "no_sec_source_reason": "not_sec_registrant",
+      "note": "Kein SEC-Hard-Scuttlebutt: Glanbia plc ist kein SEC-Registrant. Kein Matcher-Fall: yfinance liefert fuer GLB.IR den falschen Namen 'Beacon Hill CBO III Ltd', die Namenspruefung hat korrekt zurueckgewiesen. EDGAR kennt nur CIK 0001057613 'GLANBIA PUBLIC LTD CO /FI' ohne jedes Jahresformular, neuestes Filing 2009. Dossier ist quant-only (Quant + Bewertung + Peers).",
+      "verified_on": "2026-09-04"
+    },
+    "BT-A.L": {
+      "no_sec_source_reason": "no_annual_form",
+      "note": "Kein SEC-Hard-Scuttlebutt: BT Group plc reicht kein aktuelles Jahresformular ein. Kein Matcher-Fall: OpenFIGI liefert fuer das Symbol den falschen Namen 'BRITANNIA GROUP PLC', die Namenspruefung hat korrekt zurueckgewiesen. EDGAR: CIK 0000756620 'BT GROUP PLC', letztes 20-F am 2020-05-21, seither dereregistriert (neuestes Filing SC 13G/A 2024). Bewusst kein positives Verdikt, obwohl detect_annual_form '20-F' faende: die Funktion durchsucht das recent-Fenster ohne Datumsschnitt und wuerde ein sechs Jahre altes Formular ziehen. Ein Quant-only-Dossier ist ehrlicher als eines auf 2020er Zahlen. Dossier ist quant-only (Quant + Bewertung + Peers).",
+      "verified_on": "2026-09-04"
     }
   }
 }
