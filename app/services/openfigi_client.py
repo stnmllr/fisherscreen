@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 class OpenFIGIClient(Protocol):
     def map_ticker(self, local: str, exch_code: str) -> dict | None: ...
     def search_issuer(self, name: str) -> list[dict]: ...
+    def lines_by_share_class(self, share_class_figi: str) -> list[dict]: ...
 
 
 class OpenFIGIClientImpl:
@@ -82,3 +83,26 @@ class OpenFIGIClientImpl:
     def search_issuer(self, name: str) -> list[dict]:
         res = self._post("search", {"query": name, "marketSecDes": "Equity"})
         return res.get("data", []) if isinstance(res, dict) else []
+
+    def lines_by_share_class(self, share_class_figi: str) -> list[dict]:
+        """All listing lines of one share class, from the home line's own
+        `shareClassFIGI`. Unlike /search this is a canonical identifier, so a
+        single mapping call is complete (no `next` cursor, no pagination) and
+        the caller needs no issuer-name comparison.
+
+        Deliberately NO `securityType2` filter, unlike `map_ticker`: the share
+        class is already the anchor, and pre-filtering would discard exactly the
+        lines we are looking for (the sponsored ADR is a Depositary Receipt, the
+        OTC foreign-ordinary line is not always 'Common Stock')."""
+        res = self._post(
+            "mapping",
+            [
+                {
+                    "idType": "ID_BB_GLOBAL_SHARE_CLASS_LEVEL",
+                    "idValue": share_class_figi,
+                }
+            ],
+        )
+        first = res[0] if isinstance(res, list) and res else {}
+        data = first.get("data") if isinstance(first, dict) else None
+        return data if isinstance(data, list) else []

@@ -83,6 +83,20 @@ nicht aufgelöster: er produziert ein plausibles Dossier über die falsche Firma
 Ein reines „mach es toleranter" ist deshalb keine Lösung. Der Fix braucht ein
 Akzeptanzkriterium, das beide Richtungen misst.
 
+**Verschärfung, gemessen am 2026-09-04:** `find_home_identity` ist die **einzige** Wache.
+Der naheliegende Gedanke, `_same_issuer` fange einen falsch aufgelösten Emittenten eine
+Ebene tiefer noch ab, trägt nicht:
+
+```
+norm_issuer(issuer_name("ROCHE HOLDING AG"))        -> 'ROCHE'
+norm_issuer(issuer_name("ROCHE BOBOIS SA-UNSPON ADR")) -> 'ROCHEBOBOIS-UNSPONADR'
+_same_issuer(...)                                    -> True
+```
+
+`" HOLDING"` steht in `_LEGAL_FORMS`, also schrumpft die Referenz auf `ROCHE` — und
+`ROCHE` ist ein Präfix von `ROCHEBOBOIS…`. Die präfix-tolerante Prüfung akzeptiert Bobois.
+Wer also die strikte Gleichheit oben lockert, hat **keinen** Rückhalt weiter unten.
+
 ## Scope
 
 - **Regeln einzeln bauen und einzeln messen.** Der Zähllauf ist das Instrument: nach
