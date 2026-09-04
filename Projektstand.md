@@ -8,18 +8,81 @@
 
 ---
 
-## Letztes Update: 2026-08-20
+## Letztes Update: 2026-09-04
 
-> ⚠️ **Ehrlichkeits-Hinweis:** Alles unterhalb des Viewer-Eintrags stammt vom **2026-06-11**
-> und ist seither nicht fortgeschrieben worden — insbesondere `## Status` (nennt noch 240
-> Tests / 95,39 % Coverage; tatsächlich sind es **1312 Tests / 97,73 %**) und die Phase-1-
-> Abschnitte. Die dazwischenliegende Arbeit (B-Fast, EU-ADR, Akzeptanz-Gate 1.6) ist hier
-> nicht dokumentiert. Nicht als aktuellen Stand lesen, ohne gegen `git log` zu prüfen.
+> ⚠️ **Ehrlichkeits-Hinweis, zweistufig.** Aktuell ist **nur** der Abschnitt
+> „Top of mind — 2026-09-04" direkt unterhalb. Der Viewer-Block darunter beschreibt den
+> Stand vom **2026-08-20**; alles ab `## Status` stammt vom **2026-06-11**.
+>
+> Konkret veraltet: `## Status` nennt 240 Tests / 95,39 % Coverage und ein Universum von
+> 1.389 Tickern — tatsächlich sind es **1559 Tests / 96,68 %** und **1.322 Ticker**. Auch
+> „Nächster Lauf: 2026-06-01" steht dort noch. Die Arbeit dazwischen (B-Fast, EU-ADR,
+> Akzeptanz-Gate 1.6, Sektor-relatives Scoring) ist hier nie dokumentiert worden.
+>
+> Nichts unterhalb des ersten Abschnitts als aktuellen Stand lesen, ohne gegen `git log`
+> zu prüfen.
 
-## Top of mind
+## Top of mind — 2026-09-04
 
-**FisherScreen Viewer — Phase 1 funktional komplett auf `feature/viewer-static-site`
-(2026-08-20, NICHT gemergt, NICHT deployt).** Statischer Site-Generator, der die
+**Sechs PRs auf `main` (Stand `99addbd`), Suite 1559 grün / 96,68 %.** Der August-Stapel
+ist aufgelöst und Tool B ist europafähig geworden — nicht durch eine EU-Quellenschicht,
+sondern durch ehrliche Degradierung.
+
+| PR | Inhalt |
+|---|---|
+| #47 | Viewer Phase 1 + Black nach `main` (der liegengebliebene August-Stapel, 13 Commits) |
+| #48 | **Quant-only-Dossier**: Titel ohne SEC-Quelle brechen nicht mehr ab, sondern liefern Quant + Bewertung + Peers, ehrlich etikettiert. Gemini ist dort strukturell unerreichbar |
+| #49 | **GBp-Minor-Unit**: yfinance mischt Einheiten im selben `info`-Dict (Preis in Pence, Market Cap in Pfund). Normalisierung liegt jetzt einmal im Adapter, Tool As Dublette entfernt |
+| #50 | **`shareClassFIGI`-Anker** statt unpaginierter Volltextsuche — RELX galt als „reines EU-Listing", filet aber 20-F |
+| #51 | **Override-Tabelle für Crosshits** + Laut-scheitern-Regel: unauflösbare Identität rät nicht, sondern führt in den Quant-only-Pfad |
+| #52 | **Identitäts-Matcher neu**: bessere Normalisierung auf beiden Seiten, ausdrücklich *keine* Präfix-Toleranz |
+
+**Die Entscheidung des Tages liegt im Vault:**
+`Wissen/Finanzen/FisherScreen/Entscheidung 2026-09-04 — keine EU-Quellenschicht, ESAP abwarten.md`.
+Grundlage ist ein Zähllauf über alle 416 dotted EU-Titel: **14,4 % haben eine SEC-Quelle**,
+85,6 % nicht. Eine eigene Quellenschicht wäre ein Programm mit bis zu 13 nationalen
+Mechanismen, das ESAP ab 2027 ersetzt. Bis dahin: Quant-only mit ehrlichem Etikett.
+Instrument: `scripts/count_eu_sec_sources.py`, Rohdaten `cache/eu_sec_source_census_v3.json`.
+
+**Der eigentliche Gewinn ist nicht die Quote, sondern die Aussagekraft.** Der Matcher-Umbau
+holte `unverifiable_identity` von 147 auf 49 — aber nur 12 der 98 wurden zu vollen
+Dossiers. Die anderen 86 sind `not_sec_registrant`: „kein Registrant" ist eine Aussage über
+das Unternehmen, „nicht identifizierbar" eine über uns. Vorher konnte Tool B bei einem
+Drittel der EU-Titel nicht sagen, *warum* kein Dossier entsteht.
+
+**Coverage ist gesunken und trotzdem ehrlicher.** 97,73 % → 96,68 %, weil zwei Messlügen
+behoben wurden: `exclude_lines = "\.\.\."` traf `Callable[..., X]` und warf ganze
+Funktionen aus der Messung (`pipeline.py` meldete 25 Statements für 209 Zeilen), und
+`app/services/*` war ausgenommen — ausgerechnet das Modul mit der gesamten neuen
+Adapter-Logik.
+
+**Offen, in dieser Reihenfolge:**
+
+1. **`detect_annual_form` ohne Aktualitätsschnitt** (`tickets/2026-09-04-…`). BT meldet
+   `20-F` aus **2020**. Ein veraltetes Jahresformular liefert ein *falsches* Dossier, nicht
+   bloß ein fehlendes. Der Fix macht die `BT-A.L`-Override-Zeile überflüssig.
+2. **Viewer-Deploy** (`tickets/2026-08-20-viewer-deploy-fisher-subpath.md`) — gemergt, nicht
+   deployt, ältester offener Punkt. Zwei Auflagen im Ticket, darunter: Login-Flow **selbst**
+   durchgehen, `curl -sI` auf 302 fängt die dokumentierte Redirect-Schleife nicht.
+3. Backlog: unsponsored ADRs mit eigener Aktiengattung · Cross-Currency-Etiketten in Tool B
+   · `compose.py` bei 71 % samt ungetesteter Naht Resolver↔Pipeline · 20-F-Segmentierer
+   (ASML weiterhin 15× `[Inferenz]`).
+
+**Ticket-Hygiene fällig:** `openfigi-search-unpaginated` (durch #50 erledigt, Status fehlt),
+`same-issuer-abbreviation-gap` (gegenstandslos — `_same_issuer` gelöscht), und
+`eu-identity-matcher-blocks-a-third-of-europe` (zu zwei Dritteln behoben, 147 → 49).
+
+---
+
+## Stand 2026-08-20 (Viewer Phase 1)
+
+> Der folgende Block beschreibt den Stand vor dem Merge. **Erledigt seit dann:**
+> Merge-Freigabe (PR #47), `markdown-it-py` und `black` als Abhängigkeiten entschieden und
+> gemergt, GBp-Teil des Datenschicht-PRs (PR #49). **Weiterhin offen:** Deploy und die
+> D/E-Einheit in `quant_join.py`.
+
+**FisherScreen Viewer — Phase 1 funktional komplett, gemergt via PR #47 (2026-09-03),
+weiterhin NICHT deployt.** Statischer Site-Generator, der die
 Tool-B-Dossiers aus `output/Watchlist/` als HTML rendert: Übersichtstabelle + eine
 Detailseite je Ticker. Aufruf `uv run python -m app.viewer --in output\Watchlist --out
 output\site`. Verifizierter Lauf über den echten Bestand: **10 Ticker aus 23 Dossiers,
@@ -169,6 +232,12 @@ Tool A ist heute (2026-05-16) live. Die Stufe-3-Diskussion ist immer manuell (V3
 Wichtig: Portfolio Hold-Check (V3 Abschnitt 4.3) ist konzeptionell Tool A, aber für den V3-Hauptworkflow nicht blockierend. Er ergänzt die Universum-Suche um die Portfolio-Beobachtung — beide Schichten arbeiten unabhängig. Daher pragmatische Verschiebung nach Tool B.
 
 ## Status
+
+> ⚠️ **Dieser Abschnitt stammt vom 2026-06-11 und ist nicht fortgeschrieben.** Aktuelle
+> Zahlen stehen in „Top of mind — 2026-09-04": **1559 Tests / 96,68 %**, Universum
+> **1.322 Ticker**, `main` auf `99addbd`. Die Zeilen unten zu Tests, Universum, Revision
+> und „Nächster Lauf" sind sämtlich überholt. Der Rest — Cloud Run, Scheduler, Hard-Stop,
+> Gemini-Modell — ist strukturell weiterhin richtig, aber die Revisionsnummern nicht.
 
 **Aktueller Phase**: Phase 1 produktiv ✅ — Erster Lauf 2026-05-16, Feedback-Loop-Bug behoben.
 **Branch**: `main` — 240 Tests, 95.39% Coverage. Fix gemergt via `d30f581`.
