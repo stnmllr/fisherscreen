@@ -154,3 +154,66 @@ def test_missing_cached_at_field_triggers_refetch():
 
     mock_yf.get_ticker_info.assert_called_once_with("AAPL")
     assert result["shortName"] == "Apple Fresh"
+
+
+# --------------------------------------------------------------------------
+# Minor-unit cache vintage — bypass path 1 of 3 (24 h TTL)
+# --------------------------------------------------------------------------
+
+
+def test_fresh_but_unnormalised_document_is_a_miss_and_refetches():
+    """A document written before minor-unit normalization carries the minor-unit
+    currency code; freshness alone is not enough to serve it.
+
+    CachedYFinanceClient persists the raw dict verbatim with no schema marker, so
+    the stored currency IS the vintage tell. Without this check a London title would
+    keep serving pence prices under a "GBp" label for up to 24 h after the deploy —
+    and again after every Tool A run that refills the cache from an old vintage."""
+    mock_yf = MagicMock()
+    mock_fs = MagicMock()
+    fresh_ts = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    mock_fs.get.return_value = {
+        "shortName": "GSK plc",
+        "currency": "GBp",
+        "currentPrice": 1500.0,
+        "marketCap": 60_000_000_000,
+        "_cached_at": fresh_ts,
+    }
+    mock_yf.get_ticker_info.return_value = {
+        "shortName": "GSK plc",
+        "currency": "GBP",
+        "currentPrice": 15.0,
+        "marketCap": 60_000_000_000,
+    }
+
+    client = _make_client(mock_yf, mock_fs)
+    result = client.get_ticker_info("GSK.L")
+
+    mock_yf.get_ticker_info.assert_called_once_with("GSK.L")
+    assert result["currency"] == "GBP"
+    assert result["currentPrice"] == 15.0
+    mock_fs.set.assert_called_once()  # the normalized payload replaces the old one
+    assert mock_fs.set.call_args[0][2]["currency"] == "GBP"
+
+
+def test_fresh_normalised_document_is_served_without_touching_the_client():
+    """The companion contract: normalization must not turn every cache hit into a
+    fetch. A post-change London payload (ISO code) is served from cache as before."""
+    mock_yf = MagicMock()
+    mock_fs = MagicMock()
+    fresh_ts = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    mock_fs.get.return_value = {
+        "shortName": "GSK plc",
+        "currency": "GBP",
+        "currentPrice": 15.0,
+        "marketCap": 60_000_000_000,
+        "_cached_at": fresh_ts,
+    }
+
+    client = _make_client(mock_yf, mock_fs)
+    result = client.get_ticker_info("GSK.L")
+
+    mock_yf.get_ticker_info.assert_not_called()
+    mock_fs.set.assert_not_called()
+    assert result["currentPrice"] == 15.0
+    assert "_cached_at" not in result

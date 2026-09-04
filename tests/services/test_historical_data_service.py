@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pandas as pd
+import pytest
 
 from app.services.historical_data_service import HistoricalDataServiceImpl
 
@@ -261,3 +262,152 @@ def test_valuation_history_failsoft_on_price_pull_error(caplog):
     vh = s["valuation_history"]
     assert vh.pe.status == "na_data"
     assert s["years"] == [2024, 2023, 2022]
+
+
+# ==========================================================================
+# Regression fence: minor-unit normalization across the whole
+# adapter -> historical_data_service -> valuation_history seam.
+#
+# Before the change, GBP-reporting London titles were protected only BY
+# ACCIDENT: info["currency"] was "GBp", financialCurrency "GBP", and
+# "GBp" != "GBP" made the FX gate in valuation_history fire, so the bands were
+# honestly reported as skipped_fx. Relabelling info to "GBP" opens that gate.
+# If a future refactor normalizes `info` but not the weekly price series, the
+# gate stays open and pence prices flow into price/eps and price*shares — a
+# silent factor-100 error reported as `complete`. Nothing else in the suite
+# catches that, because every other test either mocks the client (so no
+# normalization happens at all) or checks only one of the two halves.
+#
+# These tests therefore drive the REAL YFinanceClientImpl over a stubbed
+# yf.Ticker: both halves of the normalization have to be present for the
+# numbers below to come out.
+# ==========================================================================
+
+_FY_COLS = [
+    "2024-12-31",
+    "2023-12-31",
+    "2022-12-31",
+]
+
+
+class _StubTicker:
+    """yf.Ticker stand-in serving a full London-listing response.
+
+    Prices (info + history) are quoted in pence; the statements are in the
+    financial currency and are not affected by minor units.
+    """
+
+    def __init__(self, info, weekly):
+        self.info = info
+        self._weekly = weekly
+        self.history_metadata = {"currency": info["currency"]}
+        cols = [pd.Timestamp(c) for c in _FY_COLS]
+        self.income_stmt = pd.DataFrame(
+            {
+                c: {
+                    "Total Revenue": 30_000_000_000,
+                    "Gross Profit": 20_000_000_000,
+                    "Operating Income": 6_000_000_000,
+                    "EBIT": 6_000_000_000,
+                    "Interest Expense": -1_000_000_000,
+                    "Net Income": 4_000_000_000,
+                    "Diluted EPS": 1.00,  # GBP per share, NOT pence
+                }
+                for c in cols
+            }
+        )
+        self.cashflow = pd.DataFrame(
+            {
+                c: {
+                    "Repurchase Of Capital Stock": -1_000_000_000,
+                    "Free Cash Flow": 3_000_000_000,
+                }
+                for c in cols
+            }
+        )
+        self.balance_sheet = pd.DataFrame(
+            {
+                c: {
+                    "Share Issued": 4_000_000_000,
+                    "Total Debt": 20_000_000_000,
+                    "Cash And Cash Equivalents": 5_000_000_000,
+                }
+                for c in cols
+            }
+        )
+
+    @property
+    def splits(self):
+        return pd.Series(dtype=float)
+
+    def history(self, period=None, interval=None, auto_adjust=None):
+        return self._weekly
+
+
+def _pence_weekly_frame(pence=1500.0, weeks=160, start="2023-04-03"):
+    """Weekly closes as yfinance quotes them for a London listing: pence."""
+    idx = pd.date_range(start=start, periods=weeks, freq="7D")
+    return pd.DataFrame({"Close": [pence] * weeks}, index=idx)
+
+
+def _london_service(monkeypatch, financial_currency):
+    from app.services import yfinance_client as mod
+
+    info = {
+        "shortName": "GSK plc",
+        "currency": "GBp",  # yfinance's minor-unit label
+        "financialCurrency": financial_currency,
+        "marketCap": 60_000_000_000,  # already pounds
+        "currentPrice": 1500.0,  # pence
+        "trailingEps": 1.00,  # already pounds
+    }
+    ticker = _StubTicker(info, _pence_weekly_frame())
+    monkeypatch.setattr(mod.yf, "Ticker", lambda t: ticker)
+    return HistoricalDataServiceImpl(yfinance=mod.YFinanceClientImpl())
+
+
+def test_gbp_reporting_london_title_computes_multiples_from_normalized_prices(
+    monkeypatch,
+):
+    """GSK.L shape: quoted in pence, reporting in GBP.
+
+    The adapter relabels currency GBp -> GBP, so the FX gate no longer fires and
+    the bands are computed for real. They must be computed from POUNDS: with a
+    15.00 GBP price and 1.00 GBP diluted EPS the P/E is 15, in the plausible tens.
+    Un-normalized pence prices would yield 1500 — arithmetically silent, reported
+    as `complete`, and wrong by exactly the factor this change removes."""
+    svc = _london_service(monkeypatch, financial_currency="GBP")
+
+    vh = svc.get_annual_series("GSK.L")["valuation_history"]
+
+    assert vh.pe.status == "complete"  # the gate is open now, not skipped_fx
+    assert vh.pe.median == pytest.approx(15.0)
+    assert vh.pe.median < 100, "P/E in the hundreds means pence prices leaked in"
+    # implied shares 4e9 -> mcap 60e9, EV 75e9, EBIT 6e9
+    assert vh.ev_ebit.median == pytest.approx(12.5)
+    assert vh.fcf_yield.median == pytest.approx(0.05)
+
+
+def test_london_multiples_are_not_the_pence_valued_ones(monkeypatch):
+    """The explicit counter-value. Spelled out separately so a failure message
+    names the defect instead of just an off-by-100 number."""
+    svc = _london_service(monkeypatch, financial_currency="GBP")
+
+    vh = svc.get_annual_series("GSK.L")["valuation_history"]
+
+    assert vh.pe.median != pytest.approx(1500.0), "prices still in pence"
+    assert vh.ev_ebit.median != pytest.approx(1002.5, rel=1e-3), "prices in pence"
+
+
+def test_usd_reporting_london_title_still_skipped_fx(monkeypatch):
+    """EDV.L shape: quoted in pence, reporting in USD. Normalization fixes the
+    minor-unit mismatch but not the genuine cross-currency one, so the bands must
+    still be honestly skipped rather than computed against a USD EPS."""
+    svc = _london_service(monkeypatch, financial_currency="USD")
+
+    vh = svc.get_annual_series("EDV.L")["valuation_history"]
+
+    assert vh.pe.status == "skipped_fx"
+    assert vh.ev_ebit.status == "skipped_fx"
+    assert vh.fcf_yield.status == "skipped_fx"
+    assert vh.pe.median is None

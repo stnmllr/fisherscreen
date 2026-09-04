@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
+from app.services.yfinance_client import is_unnormalised_payload
+
 if TYPE_CHECKING:
     from app.services.firestore_client import FirestoreClient
     from app.services.yfinance_client import YFinanceClient
@@ -23,7 +25,10 @@ class CachedYFinanceClient:
 
     def get_ticker_info(self, ticker: str) -> dict[str, Any]:
         cached = self._firestore.get(self._collection, ticker)
-        if cached and self._is_fresh(cached):
+        # A document stored before minor-unit normalization carries the minor-unit
+        # currency code; fresh or not, it is a miss so it gets re-fetched through the
+        # normalizing client. Self-healing — no purge, no schema marker.
+        if cached and self._is_fresh(cached) and not is_unnormalised_payload(cached):
             return {k: v for k, v in cached.items() if k != "_cached_at"}
         data = self._yfinance.get_ticker_info(ticker)
         self._firestore.set(

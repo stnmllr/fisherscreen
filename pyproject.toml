@@ -69,8 +69,16 @@ markers = [
 ]
 
 [tool.coverage.run]
+# app/services/ used to be omitted as "thin wrappers with nothing to measure". That
+# stopped being true: yfinance_client.py now carries the minor-unit normalization —
+# a curated key table, a divisor rule and a cache-vintage predicate — i.e. the whole
+# logic of a correctness fix, in a module that contributed nothing to the reported
+# number. A coverage figure that excludes the code a change is about is worse than a
+# lower honest one. Measured before removing: 5038 statements at 97%, well clear of
+# the 90% floor.
+# scripts/ stays out: ~60 one-shot diagnostic/backfill artefacts, same rationale as
+# [tool.black] force-exclude.
 omit = [
-    "app/services/*",
     "scripts/*",
 ]
 
