@@ -209,6 +209,12 @@ def analyse_no_us_line(args: argparse.Namespace) -> int:
             info = yfinance.get_ticker_info(ticker)
             ref = info.get("longName") or info.get("shortName") or ""
             ident = find_home_identity(ticker, norm_issuer(ref), openfigi=openfigi)
+            if ident is None:
+                # find_home_identity wirft nicht mehr, sondern liefert None
+                # (Laut-scheitern-Regel) -- gleiche Behandlung wie vorher der Raise.
+                print(f"[{n}/{len(candidates)}] {ticker:<12} uebersprungen: "
+                      f"keine verifizierbare Identitaet")
+                continue
             name = ident.get("name", "")
             ident_norm = norm_issuer(issuer_name(name))
             lines = openfigi.search_issuer(name)

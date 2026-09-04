@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import frontmatter
+import pytest
 
 from app.deepdive.adr_resolver import ResolvedTicker
 from app.deepdive.pipeline import run_deep_dive
@@ -269,6 +270,160 @@ def test_quant_only_dossier_is_honestly_labelled(tmp_path):
     assert post["no_sec_source_reason"] == "not_sec_registrant"
     assert post["no_sec_source_note"]
     assert "### Punkt" not in post.content  # no synthesis happened, none claimed
+
+
+def _unverifiable_identity_dossier(tmp_path):
+    """Run the quant-only path on an `unverifiable_identity` verdict and return
+    the dossier's full text, front matter included.
+
+    Raw text rather than a parsed post: the decisive assertion on this dossier
+    is a NEGATIVE over the whole document, and a false claim that landed in the
+    front matter would be exactly as wrong as one in the body.
+
+    The note comes from the real factory rather than being hand-copied, so a
+    wording change in `eu_adr_resolution` cannot leave these tests asserting a
+    string production no longer emits."""
+    from app.deepdive.eu_adr_resolution import unverifiable_identity
+
+    verdict = unverifiable_identity(
+        "EDV.L",
+        cause="keine OpenFIGI-Heimatlinie stimmte mit dem Referenznamen überein",
+    )
+    resolver, quant = _quant_only_deps(
+        reason=verdict.no_sec_source_reason, note=verdict.no_sec_source_note
+    )
+    out = _run_quant_only(tmp_path, resolver, quant)
+    return out.read_text(encoding="utf-8")
+
+
+def _section(content, heading):
+    """The text of one '## ' section of a dossier, heading excluded."""
+    return content.split(heading, 1)[1].split("\n## ", 1)[0]
+
+
+def test_unverifiable_identity_reaches_the_dossier_as_an_unchecked_label(tmp_path):
+    """The end of the chain, and the reason the degrade is defensible at all:
+    the honest label has to arrive on the PRODUCT SURFACE, not merely inside a
+    verdict object. A reader of this dossier must be able to tell that we did
+    not identify the company — as opposed to that the company files nothing.
+
+    Scoped to the WHOLE document, not to the Executive Summary alone. Until the
+    reason -> coverage-state mapping existed, the insider block further down
+    asserted the exact opposite ("kein SEC-Registrant") and the same dossier
+    made two contradicting claims — the false one being the confident one. The
+    characterisation test that pinned that defect has been folded in here."""
+    text = _unverifiable_identity_dossier(tmp_path)
+    post = frontmatter.loads(text)
+
+    assert post["no_sec_source_reason"] == "unverifiable_identity"
+    assert "ungeprüft, nicht widerlegt" in post["no_sec_source_note"]
+
+    summary = _section(post.content, "## Executive Summary")
+    assert "ungeprüft, nicht widerlegt" in summary
+    assert "Dossier ist quant-only" in summary
+
+    # Both surfaces that render the coverage state: the insider block itself and
+    # the one-line SourceCoverage entry. Substrings, not the full sentences —
+    # the wording may be improved, the claim it makes may not.
+    insider = _section(post.content, "## Insider-Transaktionen")
+    assert "der Emittent konnte nicht identifiziert werden" in insider
+    assert "Emittent nicht identifiziert" in post.content
+
+    # THE regression fence. A positive-only assertion above would go green again
+    # the moment someone reintroduces the contradiction elsewhere in the
+    # document, so the claim this path is not entitled to make is asserted
+    # absent from the entire file — body and front matter. Case-insensitive:
+    # a sentence-initial "Kein SEC-Registrant" is the same false claim.
+    assert "kein sec-registrant" not in text.lower(), (
+        "an unverifiable_identity dossier claims a CHECKED non-registration "
+        "somewhere in the document — we never identified the issuer, so that "
+        "claim was never established"
+    )
+
+    # Same structural downgrade as the three issuer verdicts: no filing handles,
+    # no synthesis, and none claimed.
+    assert post["cik"] is None
+    assert post["form_type"] == "kein SEC-Filing"
+    assert "### Punkt" not in post.content
+
+
+def test_insider_state_mapping_is_total_over_the_no_sec_source_reasons():
+    """`_INSIDER_STATE_BY_REASON` is checked for totality by an `assert` at
+    import time — which disappears under `python -O`. Restated here so the
+    invariant is enforced by the suite too, and so a fifth reason surfaces as a
+    set difference instead of a bare import-time AssertionError."""
+    from typing import get_args
+
+    from app.deepdive.adr_resolver import NO_SEC_SOURCE_REASONS
+    from app.models.deep_dive_record import InsiderCoverage
+
+    assert set(pipeline_mod._INSIDER_STATE_BY_REASON) == NO_SEC_SOURCE_REASONS
+    # Every mapped value must be a real coverage state, not a typo that only
+    # shows up as an unrendered branch in a finished dossier.
+    assert set(pipeline_mod._INSIDER_STATE_BY_REASON.values()) <= set(
+        get_args(InsiderCoverage)
+    )
+
+
+def test_the_three_issuer_reasons_still_mean_no_sec_source():
+    """The fix's boundary, pinned from the other side: only
+    `unverifiable_identity` moved. The three verdicts ABOUT THE ISSUER are
+    checked statements that no Form-4 duty exists, and the dossier stays
+    entitled to say so — a fix that dragged them along would have traded one
+    dishonest label for another."""
+    mapping = pipeline_mod._INSIDER_STATE_BY_REASON
+
+    assert mapping["no_us_line"] == "no_sec_source"
+    assert mapping["not_sec_registrant"] == "no_sec_source"
+    assert mapping["no_annual_form"] == "no_sec_source"
+    assert mapping["unverifiable_identity"] == "issuer_unidentified"
+
+
+@pytest.mark.parametrize(
+    "reason", ["no_us_line", "not_sec_registrant", "no_annual_form"]
+)
+def test_issuer_reasons_still_produce_the_registrant_wording(reason, tmp_path):
+    """The counterpart of the negative assertion above, and the reason it is
+    scoped to `unverifiable_identity` only: for the three issuer verdicts the
+    sentence "kein SEC-Registrant" is TRUE and must keep being printed. The
+    fence must fence, not blanket-ban a phrase."""
+    resolver, quant = _quant_only_deps(reason=reason)
+    out = _run_quant_only(tmp_path, resolver, quant)
+    post = frontmatter.loads(out.read_text(encoding="utf-8"))
+
+    insider = _section(post.content, "## Insider-Transaktionen")
+    assert "kein SEC-Registrant" in insider
+    assert "Emittent konnte nicht identifiziert werden" not in insider
+
+
+@pytest.mark.parametrize(
+    "reason",
+    ["no_us_line", "not_sec_registrant", "no_annual_form", "unverifiable_identity"],
+)
+def test_every_no_sec_source_reason_routes_through_the_mapping(
+    reason, tmp_path, monkeypatch
+):
+    """The mapping is CONSULTED, not merely declared. Without driving the
+    pipeline once per reason, the two constant tests above would only prove that
+    a dict equals itself — a hard-coded "no_sec_source" back in `run_deep_dive`
+    would leave them green while the dossier lied again."""
+    resolver, quant = _quant_only_deps(
+        reason=reason, note="Testnote. Dossier ist quant-only."
+    )
+    captured = {}
+    real = pipeline_mod.generate_dossier
+
+    def _capture(record, output_dir):
+        captured["record"] = record
+        return real(record, output_dir)
+
+    monkeypatch.setattr(pipeline_mod, "generate_dossier", _capture)
+    _run_quant_only(tmp_path, resolver, quant)
+
+    assert (
+        captured["record"].insider_summary.coverage_state
+        == pipeline_mod._INSIDER_STATE_BY_REASON[reason]
+    )
 
 
 def test_quant_only_path_still_resolves_peers(tmp_path):

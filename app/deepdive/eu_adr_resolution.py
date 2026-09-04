@@ -107,18 +107,51 @@ def local_symbol_variants(ticker: str) -> list[str]:
 
 def find_home_identity(
     ticker: str, ref_norm: str, *, openfigi: "OpenFIGIClient"
-) -> dict:
+) -> dict | None:
     """Variant ladder + NAME-SANITY-CHECK: accept the first candidate whose
     OpenFIGI issuer name matches the reference (ADR-EU-2). Never 'first answer
-    wins' — guards the variant-ladder false hit (ROCHE -> ROCHE BOBOIS)."""
+    wins' — guards the variant-ladder false hit (ROCHE -> ROCHE BOBOIS).
+
+    None when no candidate matched. That is a legitimate outcome, not an error:
+    an unmatched name means we do not know which issuer this is, and the caller
+    turns it into a classified `unverifiable_identity` verdict. What stays
+    forbidden is the third possibility — returning an unverified match."""
     for exch in home_exch_codes(ticker):
         for cand in local_symbol_variants(ticker):
             ident = openfigi.map_ticker(cand, exch)
             if ident and norm_issuer(issuer_name(ident.get("name", ""))) == ref_norm:
                 return ident
-    raise DeepDiveError(
-        f"{ticker}: no verifiable OpenFIGI identity (no candidate local symbol "
-        f"matched the reference issuer name) — fail-loud, no unverified match."
+    return None
+
+
+def unverifiable_identity(ticker: str, *, cause: str) -> ResolvedTicker:
+    """The verdict for "we do not know which company this ticker is".
+
+    Why this may degrade instead of aborting: the quant half of a dossier hangs
+    on the requested ticker itself, not on the OpenFIGI identity. Price,
+    valuation and peers are correct whether or not a name match succeeded — only
+    the SEC half is missing, and that is exactly what the label says.
+
+    The wording is load-bearing. `not_sec_registrant` means we looked and found
+    no registration; this means we never got far enough to look. "ungeprüft,
+    nicht widerlegt" keeps the dossier from asserting an absence it did not
+    establish.
+
+    NOT CACHED, unlike the three issuer verdicts (see the call sites): this one
+    describes the state of our matcher, not the state of the issuer. The matcher
+    is being repaired, and a cached "could not verify" would outlive its own
+    cause for the whole negative TTL. WARNING, not INFO, for the same reason —
+    an issuer without a US line is expected, an unmatched identity is not."""
+    logger.warning("eu-adr: %s -> unverifiable identity (%s)", ticker, cause)
+    return no_sec_source(
+        ticker,
+        reason="unverifiable_identity",
+        note=(
+            f"Kein SEC-Hard-Scuttlebutt: Die Identität von {ticker} liess sich "
+            f"nicht verifizieren ({cause}) — ob es eine SEC-Quelle gibt, ist "
+            f"damit ungeprüft, nicht widerlegt. Dossier ist quant-only "
+            f"(Quant + Bewertung + Peers)."
+        ),
     )
 
 
@@ -345,11 +378,21 @@ def resolve_eu_adr(
     negative_ttl_days: int,
 ) -> ResolvedTicker:
     """Live EU-ADR resolution (cache layer 2 + live layer 3). Failure != empty:
-    transient OpenFIGI/EDGAR/yfinance errors propagate as DataSourceError; an
-    unverifiable identity — no reference name, no name-matched OpenFIGI hit, or
-    a home line without a share-class anchor — raises DeepDiveError. A verifiable
-    issuer without an SEC filing source is not a failure — it returns a degraded
-    ResolvedTicker that drives a quant-only dossier.
+    transient OpenFIGI/EDGAR/yfinance errors propagate as DataSourceError. A
+    verifiable issuer without an SEC filing source is not a failure — it returns
+    a degraded ResolvedTicker that drives a quant-only dossier.
+
+    Three outcomes, three shapes:
+      * filing source found -> positive ResolvedTicker, cached;
+      * issuer verified, no SEC source -> classified verdict, cached;
+      * identity not verifiable (no reference name, no name-matched OpenFIGI hit)
+        -> `unverifiable_identity` verdict, NOT cached. Guessing an identity is
+        forbidden, but so is aborting over one: the ticker's own quant data is
+        unaffected, so the honest outcome is a labelled quant-only dossier.
+
+    The one remaining raise is the missing share-class anchor in
+    `_classify_us_line`: there the identity IS verified and only the enumeration
+    handle is absent — a different, never-observed case that must stay loud.
 
     `negative_ttl_days` is keyword-only and required: the TTL asymmetry between a
     positive mapping and a no-source verdict is a policy decision, and a default
@@ -361,15 +404,21 @@ def resolve_eu_adr(
     info = yfinance.get_ticker_info(ticker)  # DataSourceError on transient failure
     ref = info.get("longName") or info.get("shortName")
     if not ref:
-        raise DeepDiveError(
-            f"{ticker}: no reference name from yfinance — cannot verify an OpenFIGI "
-            f"match; fail-loud rather than accept an unverified identity."
+        return unverifiable_identity(
+            ticker,
+            cause=(
+                "kein Referenzname von yfinance, gegen den ein OpenFIGI-Treffer "
+                "prüfbar wäre"
+            ),
         )
     ref_norm = norm_issuer(ref)
 
-    # Both fatal raises stay above this line, so an unverifiable identity is
-    # structurally uncacheable — only classified verdicts reach _cache_put.
     ident = find_home_identity(ticker, ref_norm, openfigi=openfigi)
+    if ident is None:
+        return unverifiable_identity(
+            ticker,
+            cause=("keine OpenFIGI-Heimatlinie stimmte mit dem Referenznamen überein"),
+        )
     verdict = _classify_us_line(ticker, ident, openfigi=openfigi, edgar=edgar)
     if not verdict.has_filing_source:
         logger.info(

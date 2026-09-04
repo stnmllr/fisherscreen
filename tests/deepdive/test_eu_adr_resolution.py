@@ -48,13 +48,74 @@ def test_find_home_identity_accepts_only_name_match():
     assert ident["name"] == "NOVO NORDISK A/S-B"
 
 
-def test_find_home_identity_fail_loud_when_no_match():
+def test_find_home_identity_returns_none_when_no_candidate_answers():
+    """`None`, not a raise. "No candidate matched" is a legitimate RESULT and
+    belongs in the return type: it says something about our matcher, not about
+    a failed call, and the caller — not the ladder — decides what it means. A
+    control-flow exception here would also be the kind a later reader can widen
+    until it swallows a genuine DataSourceError from OpenFIGI.
+
+    The third possibility stays forbidden and is pinned by
+    `test_find_home_identity_accepts_only_name_match`: returning an unverified
+    match. None is honest ignorance, a wrong ident is phantom data."""
     from app.deepdive.eu_adr_resolution import find_home_identity, norm_issuer
 
     openfigi = MagicMock()
     openfigi.map_ticker.return_value = None
-    with pytest.raises(DeepDiveError, match="no verifiable OpenFIGI"):
-        find_home_identity("XX-Y.CO", norm_issuer("Whatever Inc"), openfigi=openfigi)
+
+    ident = find_home_identity(
+        "NOVO-B.CO", norm_issuer("Whatever Inc"), openfigi=openfigi
+    )
+
+    assert ident is None
+    # The whole ladder was walked before giving up: 1 home exchange (DC) x 3
+    # local-symbol variants. A short-circuit would make "no match" mean "the
+    # first guess missed", which is a different and much weaker statement.
+    assert openfigi.map_ticker.call_count == 3
+
+
+def test_find_home_identity_returns_none_when_every_answer_is_a_foreign_issuer():
+    """The other way to reach None, and the one that matters: OpenFIGI ANSWERED
+    every time, it just answered with somebody else. Distinguishing this from
+    "no answer" is the NAME-SANITY-CHECK's entire job — accepting here is the
+    ROCHE -> ROCHE BOBOIS false hit."""
+    from app.deepdive.eu_adr_resolution import find_home_identity, norm_issuer
+
+    openfigi = MagicMock()
+    openfigi.map_ticker.return_value = {"name": "ROCHE BOBOIS SA"}
+
+    ident = find_home_identity(
+        "NOVO-B.CO", norm_issuer("Novo Nordisk A/S"), openfigi=openfigi
+    )
+
+    assert ident is None
+    assert openfigi.map_ticker.call_count == 3
+
+
+def test_unverifiable_identity_note_says_unchecked_rather_than_disproven():
+    """THE load-bearing wording of this change, tested at the factory so it
+    cannot drift unnoticed through either call site.
+
+    `not_sec_registrant` means we looked and found no registration.
+    `unverifiable_identity` means we never got far enough to look. A dossier
+    that blurred the two would assert an absence nobody established — so the
+    note must say "ungeprüft, nicht widerlegt" and must NOT contain the claim
+    the registrant verdict makes."""
+    from app.deepdive.eu_adr_resolution import unverifiable_identity
+
+    r = unverifiable_identity("XX-Y.CO", cause="Testursache")
+
+    assert r.has_filing_source is False
+    assert r.no_sec_source_reason == "unverifiable_identity"
+    assert r.cik is None
+    assert r.form_type is None
+    assert r.adr_ticker is None
+    assert "ungeprüft, nicht widerlegt" in r.no_sec_source_note
+    assert "XX-Y.CO" in r.no_sec_source_note  # which ticker we failed on
+    assert "Testursache" in r.no_sec_source_note  # and why, in the reader's words
+    assert "Dossier ist quant-only" in r.no_sec_source_note
+    # The claim we are NOT entitled to make here.
+    assert "kein SEC-Registrant" not in r.no_sec_source_note
 
 
 def test_pick_us_adr_line_prefers_depositary_receipt():
@@ -538,31 +599,162 @@ def test_resolve_eu_adr_without_annual_form_returns_no_annual_form(tmp_path):
     assert "CIK 1854270" in r.no_sec_source_note
 
 
-def test_resolve_eu_adr_unverifiable_identity_still_fail_louds(tmp_path):
-    """REGRESSION FENCE for "only structural causes degrade": an unverifiable
-    OpenFIGI identity is not a statement about SEC registration — we do not know
-    which company we are looking at, so a dossier would be phantom data."""
+def _no_name_match_deps():
+    """Trigger 1: OpenFIGI answers, but no answer matches the reference name."""
     openfigi, edgar, yfinance = _deps()
     openfigi.map_ticker.return_value = None
-    with pytest.raises(DeepDiveError, match="no verifiable OpenFIGI"):
-        _resolve("ASML.AS", tmp_path / "adr.json", (openfigi, edgar, yfinance))
+    return openfigi, edgar, yfinance
 
 
-def test_resolve_eu_adr_no_reference_name_fail_loud(tmp_path):
-    from app.deepdive.eu_adr_resolution import resolve_eu_adr
-
+def _no_reference_name_deps():
+    """Trigger 2: yfinance has no longName/shortName, so there is nothing to
+    check an OpenFIGI hit AGAINST. Reached before OpenFIGI is called at all."""
     openfigi, edgar, yfinance = _deps()
-    yfinance.get_ticker_info.return_value = {}  # no longName/shortName
-    with pytest.raises(DeepDiveError, match="no reference name"):
-        resolve_eu_adr(
-            "ASML.AS",
-            openfigi=openfigi,
-            edgar=edgar,
-            yfinance=yfinance,
-            cache_path=tmp_path / "adr.json",
-            ttl_days=180,
-            negative_ttl_days=30,
-        )
+    yfinance.get_ticker_info.return_value = {}
+    return openfigi, edgar, yfinance
+
+
+def test_resolve_eu_adr_unverifiable_identity_returns_a_classified_verdict(tmp_path):
+    """BEHAVIOUR CHANGE, and the predecessor of this test asserted the opposite.
+
+    It used to raise, which meant CLI exit 1 and no dossier at all. It now
+    degrades, and that is safe for one specific reason: the quant half of a
+    dossier hangs on the REQUESTED TICKER, not on the OpenFIGI identity. Price,
+    valuation and peers are correct whether or not a name match succeeded — only
+    the SEC half is missing, and the label says exactly that.
+
+    What must NOT happen is the third option: guessing an identity. That is
+    still forbidden, and `find_home_identity` returning None is what enforces
+    it."""
+    openfigi, edgar, yfinance = _no_name_match_deps()
+
+    r = _resolve("ASML.AS", tmp_path / "adr.json", (openfigi, edgar, yfinance))
+
+    assert r.has_filing_source is False
+    assert r.no_sec_source_reason == "unverifiable_identity"
+    assert r.cik is None
+    assert r.form_type is None
+    assert r.adr_ticker is None
+    assert "keine OpenFIGI-Heimatlinie" in r.no_sec_source_note
+    assert "ungeprüft, nicht widerlegt" in r.no_sec_source_note
+    assert "Dossier ist quant-only" in r.no_sec_source_note
+    # Nothing downstream was consulted: without an identity there is no share
+    # class to enumerate and no US line to look a CIK up for.
+    openfigi.lines_by_share_class.assert_not_called()
+    edgar.get_cik.assert_not_called()
+
+
+def test_resolve_eu_adr_without_a_reference_name_returns_a_classified_verdict(tmp_path):
+    """Second trigger, same verdict — and it fires one step earlier: with no
+    reference name there is nothing to check an OpenFIGI answer against, so
+    accepting one would be "first answer wins" by another route."""
+    openfigi, edgar, yfinance = _no_reference_name_deps()
+
+    r = _resolve("ASML.AS", tmp_path / "adr.json", (openfigi, edgar, yfinance))
+
+    assert r.has_filing_source is False
+    assert r.no_sec_source_reason == "unverifiable_identity"
+    assert "kein Referenzname von yfinance" in r.no_sec_source_note
+    assert "ungeprüft, nicht widerlegt" in r.no_sec_source_note
+    assert "Dossier ist quant-only" in r.no_sec_source_note
+    openfigi.map_ticker.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "make_deps",
+    [
+        pytest.param(_no_name_match_deps, id="no_name_match"),
+        pytest.param(_no_reference_name_deps, id="no_reference_name"),
+    ],
+)
+def test_unverifiable_identity_is_never_written_to_the_cache(tmp_path, make_deps):
+    """THE load-bearing property of the whole degrade decision.
+
+    The other three verdicts describe the ISSUER, so caching them for the
+    negative TTL is right — an issuer without a US line will still have none
+    tomorrow. This one describes OUR MATCHER, which is being repaired in the
+    next PR. A cached "could not verify" would therefore outlive its own cause
+    for the full TTL and hide the fix from the very tickers it was written for.
+
+    Asserted as file absence rather than as a mocked `_cache_put`: the
+    guarantee is about what is on disk, and a structural absence cannot be
+    reintroduced by someone adding a second write path."""
+    cache = tmp_path / "adr.json"
+
+    r = _resolve("ASML.AS", cache, make_deps())
+
+    assert r.no_sec_source_reason == "unverifiable_identity"
+    assert not cache.exists()
+
+
+def test_unverifiable_identity_leaves_an_existing_cache_byte_identical(tmp_path):
+    """The realistic shape of the previous test: in production the cache file
+    already exists because other tickers resolved into it. File absence would
+    then prove nothing, so this pins the stronger property — no entry appears,
+    and no neighbouring entry is disturbed by a rewrite."""
+    cache = tmp_path / "adr.json"
+    _resolve("RMV.L", cache, _eu_only_deps())  # a real verdict, legitimately cached
+    before = cache.read_text(encoding="utf-8")
+
+    r = _resolve("ASML.AS", cache, _no_name_match_deps())
+
+    assert r.no_sec_source_reason == "unverifiable_identity"
+    assert cache.read_text(encoding="utf-8") == before
+    assert "ASML.AS" not in json.loads(before)
+
+
+def test_uncached_unverifiable_identity_lets_the_very_next_call_resolve(tmp_path):
+    """The consequence that makes the non-caching matter, stated as behaviour
+    rather than as file state: once the matcher can identify the ticker, the
+    next call resolves for real. Had the verdict been cached, this second call
+    would have been served the stale "could not verify" for negative_ttl_days."""
+    cache = tmp_path / "adr.json"
+
+    first = _resolve("ASML.AS", cache, _no_name_match_deps())
+    assert first.no_sec_source_reason == "unverifiable_identity"
+
+    second = _resolve("ASML.AS", cache, _deps())  # the repaired matcher
+
+    assert second.has_filing_source is True
+    assert second.cik == "0000937966"
+
+
+def test_unverifiable_identity_logs_a_warning_not_an_info(tmp_path, caplog):
+    """Level is a claim about expectedness. An issuer without a US line is
+    normal and logs INFO; an identity our matcher cannot resolve is a defect on
+    our side and must be visible at WARNING, otherwise the five known matcher
+    defects degrade silently now that they no longer abort the run."""
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="app.deepdive.eu_adr_resolution"):
+        _resolve("ASML.AS", tmp_path / "adr.json", _no_name_match_deps())
+
+    assert any(
+        "unverifiable identity" in rec.getMessage()
+        and "ASML.AS" in rec.getMessage()
+        and rec.levelno == logging.WARNING
+        for rec in caplog.records
+    )
+
+
+def test_missing_share_class_anchor_still_raises_and_does_not_degrade(tmp_path):
+    """CONTRAST FENCE against the new degrade path — a different concern from
+    `test_home_line_without_share_class_anchor_fail_louds_and_caches_nothing`
+    above, which pins how the anchor value is normalised.
+
+    Here the identity IS verified; only the enumeration handle is missing, so
+    the issuer's US lines are undeterminable rather than absent. Degrading it to
+    `unverifiable_identity` would be doubly false — the identity is known — and
+    degrading it to `no_us_line` would assert an absence from an unexamined
+    universe. Measured across all 416 dotted EU tickers it never occurred, so if
+    it fires it is new information and must stay loud."""
+    cache = tmp_path / "adr.json"
+    openfigi, edgar, yfinance = _no_anchor_deps({"name": "ASML HOLDING NV"})
+
+    with pytest.raises(DeepDiveError, match="carries no shareClassFIGI"):
+        _resolve("ASML.AS", cache, (openfigi, edgar, yfinance))
+
+    assert not cache.exists()
 
 
 def test_transient_openfigi_error_propagates_and_writes_no_cache(tmp_path):

@@ -182,6 +182,11 @@ InsiderCoverage = Literal[
     # Issuer is not an SEC registrant: no Form-4 obligation exists, so neither
     # "skipped" nor "fpi_exempt" would be true. Own state, no phantom claim.
     "no_sec_source",
+    # We never identified the issuer, so we established nothing about it — not
+    # even that it has no Form-4 duty. Deliberately NOT a shade of
+    # "no_sec_source": that state asserts a checked fact about the issuer, this
+    # one asserts a limit of our own lookup. Own state, no phantom claim.
+    "issuer_unidentified",
 ]
 
 

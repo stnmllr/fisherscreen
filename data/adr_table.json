@@ -25,6 +25,40 @@
       "adr_ticker": "MSFT",
       "cik": "0000789019",
       "form_type": "10-K"
+    },
+    "ARGX.BR": {
+      "adr_ticker": "ARGX",
+      "cik": "0001697862",
+      "form_type": "20-F",
+      "note": "SEC company_tickers.json: ARGX -> ARGENX SE, CIK 1697862; detect_annual_form liefert 20-F.",
+      "verified_on": "2026-09-04"
+    },
+    "WISE.L": {
+      "adr_ticker": "WSE",
+      "cik": "0002099039",
+      "form_type": "20-F",
+      "note": "SEC company_tickers.json: WSE -> Wise Group plc, CIK 2099039; detect_annual_form liefert 20-F.",
+      "verified_on": "2026-09-04"
+    },
+    "EDV.L": {
+      "no_sec_source_reason": "not_sec_registrant",
+      "note": "Kein SEC-Hard-Scuttlebutt: Endeavour Mining plc ist kein SEC-Registrant. Bei der SEC existiert nur eine F-6EF-Registrierung der Depotbank (CIK 0002139860), kein 10-K und kein 20-F. Dossier ist quant-only (Quant + Bewertung + Peers).",
+      "verified_on": "2026-09-04"
+    },
+    "ADYEN.AS": {
+      "no_sec_source_reason": "not_sec_registrant",
+      "note": "Kein SEC-Hard-Scuttlebutt: Adyen N.V. ist kein SEC-Registrant. Bei der SEC existiert nur 'Adyen N.V./ADR' (CIK 1788707) mit F-6EF, kein Jahresformular. Dossier ist quant-only (Quant + Bewertung + Peers).",
+      "verified_on": "2026-09-04"
+    },
+    "ANTO.L": {
+      "no_sec_source_reason": "not_sec_registrant",
+      "note": "Kein SEC-Hard-Scuttlebutt: Antofagasta plc ist kein SEC-Registrant. Bei der SEC existiert nur 'Antofagasta PLC/ADR' (CIK 1775167) mit F-6 POS, kein Jahresformular. Dossier ist quant-only (Quant + Bewertung + Peers).",
+      "verified_on": "2026-09-04"
+    },
+    "G24.DE": {
+      "no_sec_source_reason": "not_sec_registrant",
+      "note": "Kein SEC-Hard-Scuttlebutt: Scout24 SE ist kein SEC-Registrant. Bei der SEC existiert nur 'Scout24 AG/ADR' (CIK 1722213) mit F-6EF, kein Jahresformular. Dossier ist quant-only (Quant + Bewertung + Peers).",
+      "verified_on": "2026-09-04"
     }
   }
 }

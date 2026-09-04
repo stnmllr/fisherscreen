@@ -5,15 +5,39 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Callable
 
+from app.deepdive.adr_resolver import NO_SEC_SOURCE_REASONS, NoSecSourceReason
 from app.deepdive.dossier_generator import generate_dossier
 from app.errors import DataSourceError
 from app.deepdive.filing_parser import parse_filing
 from app.deepdive.insider_block import insider_coverage_label
 from app.deepdive.insider_summary import compute_insider_summary
 from app.deepdive.synthesis import run_synthesis
-from app.models.deep_dive_record import DeepDiveRecord, InsiderSummary
+from app.models.deep_dive_record import (
+    DeepDiveRecord,
+    InsiderCoverage,
+    InsiderSummary,
+)
 
 logger = logging.getLogger(__name__)
+
+# Why this mapping exists: the four no-SEC-source reasons do not license the same
+# insider sentence. The first three are checked statements about the ISSUER — it
+# has no Form-4 duty — while `unverifiable_identity` is a statement about US: we
+# never identified the company, so its reporting duty is unknown, not absent.
+# Collapsing them into one state is exactly how the dossier came to contradict
+# its own Executive Summary.
+_INSIDER_STATE_BY_REASON: dict[NoSecSourceReason, InsiderCoverage] = {
+    "no_us_line": "no_sec_source",
+    "not_sec_registrant": "no_sec_source",
+    "no_annual_form": "no_sec_source",
+    "unverifiable_identity": "issuer_unidentified",
+}
+
+# Totality, checked at import: a fifth reason must break here loudly instead of
+# inheriting a wording nobody chose for it.
+assert (
+    set(_INSIDER_STATE_BY_REASON) == NO_SEC_SOURCE_REASONS
+), "insider coverage mapping is not total over NoSecSourceReason"
 
 
 def _build_insider_summary(
@@ -75,9 +99,12 @@ def _quant_only_dossier(
     # without quant would be worthless — degrading twice is the phantom-data slide.
     quant, coverage = build_quant(ticker, use_cache=use_cache)
 
-    # No CIK exists, so no fetcher call is even possible; this is the only
-    # coverage state that asserts nothing false about a non-registrant.
-    insider_summary = InsiderSummary(coverage_state="no_sec_source")
+    # No CIK exists, so no fetcher call is even possible. Which of the two
+    # honest states applies depends on WHY there is no source — see
+    # _INSIDER_STATE_BY_REASON. Unknown reason: KeyError, never a default.
+    insider_summary = InsiderSummary(
+        coverage_state=_INSIDER_STATE_BY_REASON[resolved.no_sec_source_reason]
+    )
 
     # The resolver's note is the single source of truth for the wording.
     coverage.edgar = resolved.no_sec_source_note

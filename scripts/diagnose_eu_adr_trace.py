@@ -52,6 +52,11 @@ def main() -> int:
     print(f"[2] home exch codes  : {home_exch_codes(ticker)}")
     print(f"    symbol variants  : {local_symbol_variants(ticker)}")
     ident = find_home_identity(ticker, norm_issuer(ref or ""), openfigi=figi)
+    if ident is None:
+        # Seit der Laut-scheitern-Regel liefert find_home_identity None statt zu
+        # werfen; ohne Identitaet gibt es nichts mehr zu tracen.
+        print("    home identity    : KEINE -- kein Kandidat matchte den Referenznamen")
+        return 1
     print(f"    home identity    : {json.dumps(ident, ensure_ascii=False)}")
 
     ident_norm = norm_issuer(issuer_name(ident["name"]))
