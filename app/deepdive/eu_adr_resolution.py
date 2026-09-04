@@ -127,33 +127,46 @@ def _same_issuer(line_name: str, ident_norm: str) -> bool:
     descriptors the home identity lacks ('ASML HOLDING NV-NY REG SHS',
     'SAP SE-SPONSORED ADR'), so strict norm-equality against the home identity
     ('ASML HOLDING NV') wrongly drops the ADR line. The home-issuer norm is a
-    prefix of the ADR-line norm — accept when either is a prefix of the other."""
+    prefix of the ADR-line norm — accept when either is a prefix of the other.
+
+    NO PRODUCTION CALLER LEFT since the `search_issuer` fallback was removed:
+    the share-class path needs no name check at all, because every line there
+    belongs to the home line's share class by construction. Kept only because
+    tests and the `scripts/` diagnostics still exercise it — retiring it is a
+    test-side decision, not one to take from here."""
     ln = norm_issuer(issuer_name(line_name))
     return bool(ln) and (ln.startswith(ident_norm) or ident_norm.startswith(ln))
 
 
-def pick_us_adr_line(lines: list[dict], ident_norm: str) -> dict | None:
+def pick_us_adr_line(lines: list[dict]) -> dict | None:
     """Among the issuer's US-listed lines, prefer the Depositary-Receipt line;
     else the first US line. None if the issuer has no US listing (pure-EU,
     EU-Native gap).
 
+    `lines` comes from `lines_by_share_class`, i.e. every line belongs to the
+    home line's share class by construction. A share-class FIGI is a canonical
+    identifier, so no name comparison is needed — and none is wanted: the
+    optional name filter that used to live here is what produced the ROCHE ->
+    ROCHE BOBOIS false-hit channel. It existed for the `search_issuer` fallback,
+    whose full-text hits genuinely could belong to a different issuer; with that
+    fallback gone, selection is purely US exchange code + DR preference.
+
+    Anchoring on the share class is what makes a US line appear AT ALL for large
+    issuers: the single unpaginated /search page returns 100 hits with zero US
+    lines for RELX, Standard Chartered and Enel (measured 2026-09-03), so the
+    verdict — not just the displayed symbol — came out wrong (`no_us_line` for a
+    NYSE-listed 20-F filer).
+
     Operative output downstream is the CIK — it is identical across an issuer's
     US lines (same SEC registrant) and is authoritative. The chosen ticker also
-    serves as adr_ticker, but that is BEST-EFFORT DISPLAY ONLY: the live
-    acceptance (2026-06-17) showed OpenFIGI's single /search page does not always
-    contain the canonical NYSE ADR (NVO, UL), so adr_ticker can fall back to the
-    issuer's OTC foreign-ordinary 'F' line (NONOF for Novo, UNLYF for Unilever).
-    Same CIK, same 20-F — only the displayed symbol differs. Getting the canonical
-    ADR reliably needs a paginated/better search and yields no CIK gain (deferred,
-    YAGNI). A `detect_annual_form` None downstream degrades to a quant-only dossier
-    (reason `no_annual_form`) for an OTC line whose issuer files no annual form
-    (e.g. RTMVF for Rightmove) — it no longer aborts the deep dive."""
-    us = [
-        ln
-        for ln in lines
-        if (ln.get("exchCode") or "").strip() in US_EXCH
-        and _same_issuer(ln.get("name", ""), ident_norm)
-    ]
+    serves as adr_ticker, but that stays BEST-EFFORT DISPLAY ONLY: the share
+    class contains both the sponsored ADR and the OTC foreign-ordinary 'F' line,
+    and the 'F' line can come first (RLXXF for RELX, NONOF for Novo). Same CIK,
+    same 20-F — only the displayed symbol differs. A `detect_annual_form` None
+    downstream degrades to a quant-only dossier (reason `no_annual_form`) for an
+    OTC line whose issuer files no annual form (e.g. RTMVF for Rightmove) — it
+    no longer aborts the deep dive."""
+    us = [ln for ln in lines if (ln.get("exchCode") or "").strip() in US_EXCH]
     if not us:
         return None
     for ln in us:
@@ -172,14 +185,35 @@ def _classify_us_line(
     """Turn a verified home identity into either a filing source (US line ->
     CIK -> annual form) or a structural no-SEC-source verdict.
 
-    Every branch here is a statement about the issuer's SEC registration status,
-    never about a failed call: transient OpenFIGI/EDGAR errors propagate as
-    DataSourceError and are not caught anywhere in this path."""
+    The US line is found via the home line's `shareClassFIGI`: one mapping call
+    returns every sibling line of the same share class. That replaced the
+    full-text `search_issuer`, which reads only the first of a paginated result
+    and therefore reported 'no US line' for issuers whose US lines sit on page
+    two (RELX, Standard Chartered, Enel — 100 hits, 0 US lines, measured
+    2026-09-03). This is a verdict defect, not a display defect.
+
+    A home identity without that anchor raises instead of falling back to the
+    search path, and instead of reporting `no_us_line`: see the raise below.
+
+    Every VERDICT here is a statement about the issuer's SEC registration
+    status, never about a failed call: transient OpenFIGI/EDGAR errors propagate
+    as DataSourceError and are not caught anywhere in this path."""
     ident_name = ident.get("name", "")
-    us = pick_us_adr_line(
-        openfigi.search_issuer(ident_name),
-        norm_issuer(issuer_name(ident_name)),
-    )
+    share_class = (ident.get("shareClassFIGI") or "").strip()
+    if not share_class:
+        # Without the anchor there is nothing to enumerate, so the issuer's US
+        # lines are not merely unfound but undeterminable. Returning `no_us_line`
+        # here would assert an absence we never established — a verdict dressed
+        # up from a blind spot. Raise instead.
+        raise DeepDiveError(
+            f"{ticker}: home identity '{ident_name}' carries no shareClassFIGI — "
+            f"without that anchor the issuer's US lines cannot be determined at "
+            f"all; fail-loud, no verdict from an unexamined universe. Measured "
+            f"across all 416 dotted EU tickers (2026-09-03) this never occurred: "
+            f"if it fires, it is new information, not a known gap."
+        )
+    # Anchored path: canonical identifier, hence no issuer-name filter.
+    us = pick_us_adr_line(openfigi.lines_by_share_class(share_class))
     if us is None:
         return no_sec_source(
             ticker,
@@ -312,9 +346,10 @@ def resolve_eu_adr(
 ) -> ResolvedTicker:
     """Live EU-ADR resolution (cache layer 2 + live layer 3). Failure != empty:
     transient OpenFIGI/EDGAR/yfinance errors propagate as DataSourceError; an
-    unverifiable identity -> DeepDiveError. A verifiable issuer without an SEC
-    filing source is not a failure — it returns a degraded ResolvedTicker that
-    drives a quant-only dossier.
+    unverifiable identity — no reference name, no name-matched OpenFIGI hit, or
+    a home line without a share-class anchor — raises DeepDiveError. A verifiable
+    issuer without an SEC filing source is not a failure — it returns a degraded
+    ResolvedTicker that drives a quant-only dossier.
 
     `negative_ttl_days` is keyword-only and required: the TTL asymmetry between a
     positive mapping and a no-source verdict is a policy decision, and a default

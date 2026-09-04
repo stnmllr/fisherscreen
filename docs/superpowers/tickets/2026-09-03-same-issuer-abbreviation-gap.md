@@ -2,7 +2,28 @@
 
 **Opened:** 2026-09-03
 **Priority:** non-blocking today, but it gets *quieter* with the quant-only dossier. No wrong number is produced — a real US ADR line can be silently dropped, and after the quant-only change that no longer aborts loudly but yields a plausible-looking degraded dossier. See "Why the urgency changed" below.
-**Status:** open
+**Status:** open — voraussichtlich gegenstandslos, siehe Update
+
+## Update 2026-09-04: der Ankerpfad entfernt den Vergleich, statt ihn zu reparieren
+
+`_classify_us_line` sucht US-Linien nicht mehr per Volltextsuche über den Emittentennamen,
+sondern über die `shareClassFIGI` der Heimatlinie (Ticket
+`tickets/2026-09-04-openfigi-search-unpaginated.md`). Die Aktiengattung **ist** die
+Identität, also gibt es auf diesem Pfad keinen Namensabgleich mehr — und damit auch die
+hier beschriebene Abkürzungslücke nicht.
+
+Belege aus dem Zähllauf, bevor die Änderung landete: von 15 `no_us_line`-Titeln waren
+genau **2** echte Kandidaten (`MONY.L`, `VCT.PA`) — US-Linien vorhanden, von
+`_same_issuer` sämtlich verworfen. Beide sollten über den Anker von selbst aufgehen.
+
+`_same_issuer` bleibt vorerst bestehen, weil der befristete `search_issuer`-Rückfall für
+Heimatlinien ohne `shareClassFIGI` ihn noch benutzt. Fällt dieser Rückfall (er wird
+gelöscht, sobald ein Zähllauf zeigt, dass seine WARNING nie feuert), fällt dieses Ticket
+mit ihm.
+
+**Vor dem Schließen zu prüfen:** ein Zähllauf nach der Änderung muss zeigen, dass
+`MONY.L` und `VCT.PA` nicht mehr im Topf `no_us_line` landen. Erst dann ist die Lücke
+belegt geschlossen statt vermutet.
 
 ## Context
 
