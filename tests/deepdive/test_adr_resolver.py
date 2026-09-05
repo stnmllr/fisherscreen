@@ -92,7 +92,12 @@ def test_us_filer_without_annual_form_degrades_to_quant_only():
     assert r.cik is None
     assert r.form_type is None
     assert r.adr_ticker is None
-    assert "reicht weder 10-K noch 20-F ein" in r.no_sec_source_note
+    # "Filed once, stopped" is also None, so the note may not claim the issuer
+    # never filed -- it names the window instead.
+    assert (
+        "reicht kein aktuelles Jahresformular ein "
+        "(weder 10-K noch 20-F in den letzten 18 Monaten)"
+    ) in r.no_sec_source_note
     assert "CIK 111" in r.no_sec_source_note  # evidence kept, but as prose
     assert "quant-only" in r.no_sec_source_note  # honestly labelled downgrade
     edgar.detect_annual_form.assert_called_once_with("111")

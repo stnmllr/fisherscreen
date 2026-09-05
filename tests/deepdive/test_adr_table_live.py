@@ -17,10 +17,11 @@ The two entry shapes are NOT the same verification problem:
 
 * A NEGATIVE row is not. "X is not an SEC registrant" cannot be established
   positively — there is no ticker to look up, and that absence IS the claim.
-  Two partial checks are available instead. Where the note names the CIK of the
-  depositary's F-6 shell, that CIK must still show no annual form (a 20-F
-  turning up there is exactly how the claim would die). And for every negative
-  row, `verified_on` must not have expired.
+  Two partial checks are available instead. Where the note names a CIK —
+  the depositary's F-6 shell for a `not_sec_registrant` row, the issuer's own
+  for a `no_annual_form` row — that CIK must still show no annual form (a 20-F
+  turning up there is exactly how either claim would die). And for every
+  negative row, `verified_on` must not have expired.
 
 Everything is driven off the real `data/adr_table.json`, never off a fixture: a
 row added next month is covered the moment it is added. A fixture would freeze
@@ -152,51 +153,61 @@ def test_negative_row_named_cik_still_shows_no_annual_form(ticker, edgar):
     depositary's F-6 shell, the falsifier is checkable: if an annual form ever
     appears under that CIK, the issuer has registered and the row is wrong.
 
-    THE CHECK IS REASON-SPECIFIC, and was not always: it reads a named CIK as an
-    F-6 shell and an annual form under it as proof of registration. Both
-    readings only hold for `not_sec_registrant`. A `no_annual_form` row makes a
-    different claim — the issuer IS registered, it just files nothing current —
-    and its note names its OWN CIK, under which `detect_annual_form` legitimately
-    finds something. Running the registrant check against it asked a question the
-    row never answered and reported a correct row as obsolete (BT-A.L, the first
-    negative row of that kind, 2026-09-04). One check under two claims is the
-    same conflation the census buckets were split for.
+    THE CHECK IS REASON-SPECIFIC. The assertion is the same for both kinds of
+    row — `detect_annual_form` must still answer None — but it falsifies two
+    different claims, so the diagnosis on red differs:
 
-    Two kinds of row are therefore SKIPPED, loudly rather than silently, and
-    both keep the staleness check below as their only guarantee:
+    * `not_sec_registrant`: the named CIK is the depositary's F-6 shell. An
+      annual form appearing under it means the issuer has registered.
+    * `no_annual_form`: the named CIK is the issuer's OWN. An annual form
+      appearing under it means the issuer has resumed filing.
 
-    * a row whose note names no CIK — nothing to look up;
-    * a `no_annual_form` row — the claim is about RECENCY, and
-      `detect_annual_form` searches the whole `recent` window without a date
-      cut, so it cannot distinguish "filed a 20-F six years ago and stopped"
-      from "files a 20-F". Whether that function needs a recency cut is the open
-      question the BT-A.L note itself raises; until it has one, no automated
-      check here can falsify the claim."""
+    THE `no_annual_form` ROW USED TO BE SKIPPED HERE, and the reason it no
+    longer is, is the point: `detect_annual_form` searched the whole `recent`
+    window with no date cut, so it could not distinguish "filed a 20-F six years
+    ago and stopped" from "files a 20-F", and BT-A.L — the first row of that
+    kind — rested on `verified_on` alone. Since the recency cutoff landed
+    (2026-09-05) the function answers None for a filer that has stopped, which
+    is exactly the claim such a row makes, so the claim became checkable.
+
+    One kind of row is still SKIPPED, loudly rather than silently, and keeps the
+    staleness check below as its only guarantee: a row whose note names no CIK —
+    there is nothing to look up. Reasons other than the two above make no claim
+    about any CIK at all and are skipped for the same reason."""
     entry = _ENTRIES[ticker]
     reason = entry["no_sec_source_reason"]
-    if reason != "not_sec_registrant":
+    if reason not in ("not_sec_registrant", "no_annual_form"):
         pytest.skip(
-            f"{ticker}: a '{reason}' row does not claim the issuer is "
-            f"unregistered, so an annual form under its CIK falsifies nothing — "
-            f"this row rests on the staleness check alone"
+            f"{ticker}: a '{reason}' row makes no claim about a CIK, so an "
+            f"annual form under one falsifies nothing — this row rests on the "
+            f"staleness check alone"
         )
     match = _CIK_IN_NOTE_RE.search(entry["note"])
     if match is None:
         pytest.skip(
             f"{ticker}: the note names no CIK, so there is nothing to look up — "
-            f"'is not a registrant' stays unprovable and this row rests on the "
-            f"staleness check alone"
+            f"the claim stays unprovable and this row rests on the staleness "
+            f"check alone"
         )
     cik = match.group(1).zfill(10)
 
     live = edgar.detect_annual_form(cik)
 
-    assert live is None, (
-        f"{ticker}: CIK {cik} (named in the note as the ADR/F-6 shell) now files "
-        f"a {live} — the issuer appears to have become an SEC registrant, so the "
-        f"negative verdict is obsolete and the row should become a positive "
-        f"mapping. {_REVERIFY}"
-    )
+    if reason == "not_sec_registrant":
+        why = (
+            f"CIK {cik} (named in the note as the ADR/F-6 shell) now files a "
+            f"{live} — the issuer appears to have become an SEC registrant, so "
+            f"the negative verdict is obsolete and the row should become a "
+            f"positive mapping."
+        )
+    else:
+        why = (
+            f"CIK {cik} (the issuer's own) now files a {live} within the "
+            f"recency window — the issuer has resumed SEC reporting, so the "
+            f"'no current annual form' verdict is obsolete and the row should "
+            f"become a positive mapping."
+        )
+    assert live is None, f"{ticker}: {why} {_REVERIFY}"
 
 
 @pytest.mark.parametrize("ticker", _NEGATIVE_ROWS)

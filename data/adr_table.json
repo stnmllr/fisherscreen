@@ -67,7 +67,7 @@
     },
     "BT-A.L": {
       "no_sec_source_reason": "no_annual_form",
-      "note": "Kein SEC-Hard-Scuttlebutt: BT Group plc reicht kein aktuelles Jahresformular ein. Kein Matcher-Fall: OpenFIGI liefert fuer das Symbol den falschen Namen 'BRITANNIA GROUP PLC', die Namenspruefung hat korrekt zurueckgewiesen. EDGAR: CIK 0000756620 'BT GROUP PLC', letztes 20-F am 2020-05-21, seither dereregistriert (neuestes Filing SC 13G/A 2024). Bewusst kein positives Verdikt, obwohl detect_annual_form '20-F' faende: die Funktion durchsucht das recent-Fenster ohne Datumsschnitt und wuerde ein sechs Jahre altes Formular ziehen. Ein Quant-only-Dossier ist ehrlicher als eines auf 2020er Zahlen. Dossier ist quant-only (Quant + Bewertung + Peers).",
+      "note": "Kein SEC-Hard-Scuttlebutt: BT Group plc reicht kein aktuelles Jahresformular ein. Kein Matcher-Fall: OpenFIGI liefert fuer das Symbol den falschen Namen 'BRITANNIA GROUP PLC', die Namenspruefung hat korrekt zurueckgewiesen. EDGAR: CIK 0000756620 'BT GROUP PLC', letztes 20-F am 2020-05-21, seither deregistriert (neuestes Filing SC 13G/A 2024). Die Zeile bleibt bestehen, obwohl detect_annual_form seit 2026-09-05 einen Aktualitaetsschnitt hat: ohne sie faellt BT-A.L in unverifiable_identity, also 'ungeprueft' statt des tatsaechlichen, handgeprueften Befunds. Dossier ist quant-only (Quant + Bewertung + Peers).",
       "verified_on": "2026-09-04"
     }
   }

@@ -576,7 +576,8 @@ def _classify_us_line(
             reason="no_annual_form",
             note=(
                 f"Kein SEC-Hard-Scuttlebutt: {ident_name} (US-Linie {us_ticker}, "
-                f"CIK {cik}) reicht weder 10-K noch 20-F ein. Dossier ist quant-only "
+                f"CIK {cik}) reicht kein aktuelles Jahresformular ein (weder 10-K "
+                f"noch 20-F in den letzten 18 Monaten). Dossier ist quant-only "
                 f"(Quant + Bewertung + Peers)."
             ),
         )
