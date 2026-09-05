@@ -2,7 +2,34 @@
 
 **Opened:** 2026-09-03
 **Priority:** non-blocking today, but it gets *quieter* with the quant-only dossier. No wrong number is produced — a real US ADR line can be silently dropped, and after the quant-only change that no longer aborts loudly but yields a plausible-looking degraded dossier. See "Why the urgency changed" below.
-**Status:** open — voraussichtlich gegenstandslos, siehe Update
+**Status:** CLOSED 2026-09-05 — gegenstandslos, siehe „Resolution" unten.
+
+## Resolution 2026-09-05: `_same_issuer` existiert nicht mehr
+
+Die Bedingung, unter der das Update von 2026-09-04 dieses Ticket fallen ließ, ist
+eingetreten. Der `search_issuer`-Rückfall wurde gelöscht (`8ee31b5`), `_same_issuer` mit
+ihm; im Code steht der Name nicht mehr. `pick_us_adr_line`
+(`app/deepdive/eu_adr_resolution.py:471`) arbeitet ausschließlich auf
+`lines_by_share_class(share_class)` und **vergleicht keine Namen mehr**. Eine Abkürzung im
+Anzeigenamen kann eine Zeile damit nicht länger aus der Liste werfen — nicht weil der
+Vergleich besser wurde, sondern weil es ihn nicht mehr gibt.
+
+**Zum Schließkriterium oben, halb erfüllt und deshalb einzeln beantwortet.** Verlangt war,
+dass `MONY.L` und `VCT.PA` den Topf `no_us_line` verlassen. Zensus v3 (2026-09-04):
+
+- `VCT.PA` ✅ → `not_sec_registrant` (US-Linie SDCVF gefunden, OTC/unsponsored ohne CIK).
+- `MONY.L` ❌ → weiterhin `no_us_line`.
+
+`MONY.L` bleibt also, aber **nicht aus dem hier beschriebenen Grund**. Die Ursache ist
+seit 2026-09-04 eigenständig diagnostiziert und ticketiert: das unsponsored ADR liegt in
+einer *eigenen* Aktiengattung und läuft deshalb am `shareClassFIGI`-Anker vorbei, wo kein
+Namensvergleich mehr stattfindet, der es verwerfen könnte —
+`tickets/2026-09-04-unsponsored-adr-own-share-class.md` (dort zusammen mit `ALLFG.AS`).
+
+Der Rest des Tickets bleibt unverändert stehen: er dokumentiert, warum ein reiner
+Namensabgleich als Identitätsprüfung nicht trägt, und das ist die Begründung, aus der der
+Anker entstanden ist. Der ISIN-Anker
+(`tickets/2026-06-03-isin-canonical-anchor-openfigi.md`) bleibt davon unberührt.
 
 ## Update 2026-09-04: der Ankerpfad entfernt den Vergleich, statt ihn zu reparieren
 

@@ -28,6 +28,13 @@ Moneysupermarket.com. Der alte Namensfilter `_same_issuer` verwarf sie also wege
 **Umfirmierung** — es ist die richtige Firma —, und der neue Anker findet sie aus dem
 Gattungsgrund ebenfalls nicht. Beide Pfade scheitern, aus unterschiedlichen Gründen.
 
+> **Nachtrag 2026-09-05.** `tickets/2026-09-03-same-issuer-abbreviation-gap.md` ist
+> geschlossen (`_same_issuer` gelöscht). Sein Schließkriterium verlangte, dass `MONY.L`
+> und `VCT.PA` den Topf `no_us_line` verlassen; `VCT.PA` tat es, `MONY.L` nicht. Damit
+> ist `MONY.L` restlos ein Fall dieses Tickets — es ist der einzige Titel, den der
+> Ankerwechsel nicht heilen konnte, und der einzige verbliebene Beleg dafür, dass die
+> Gattungslücke echt ist. Zusammen mit `ALLFG.AS` bleibt es bei 2 von 416.
+
 ## Warum die naheliegende Lösung nicht gewählt wurde
 
 „Anker **und** Suche vereinigen" wäre die vollständige Antwort und wurde bewusst

@@ -2,6 +2,39 @@
 
 **Opened:** 2026-09-04
 **Priority:** hoch. Erzeugt **falsche Verdikte**, nicht nur unvollständige Anzeige — und trifft mit `not_sec_registrant` den größten Topf des EU-Zähllaufs. Zusammen mit `tickets/2026-09-04-eu-identity-matcher-blocks-a-third-of-europe.md` macht es den Zähllauf als Entscheidungsgrundlage unbrauchbar.
+**Status:** FIXED 2026-09-04 (PR #50) — siehe „Resolution" unten.
+
+## Resolution
+
+Die Suche wurde **nicht paginiert, sondern ersetzt**. Der Scope oben verlangte, die
+Alternative ernsthaft zu prüfen, bevor paginiert wird — sie trug: die US-Linien eines
+Emittenten hängen an der Aktiengattung seiner Heimatlinie, und `shareClassFIGI` ist ein
+kanonischer Identifikator. `OpenFIGIClientImpl.lines_by_share_class` holt sie mit **einem**
+`/v3/mapping`-Call, vollständig, ohne `next`-Cursor und ohne Seitendeckel (`1d40a5c`).
+
+Das löst zwei Probleme statt eines. Die Pagination hätte nur die Vollständigkeit der
+Trefferliste repariert; der Anker macht zusätzlich den **Namensvergleich auf dem
+US-Pfad überflüssig** — `pick_us_adr_line` bekommt Zeilen, die per Konstruktion demselben
+Emittenten gehören, und `_same_issuer` konnte ersatzlos entfallen. Damit ist auch
+`tickets/2026-09-03-same-issuer-abbreviation-gap.md` gegenstandslos geworden.
+
+Der Rückfall auf `search_issuer` wurde **gelöscht statt als zweites Netz behalten**
+(`8ee31b5`): der Zensus zeigte ihn als tot, und ein stiller Rückfall auf den defekten Pfad
+hätte genau die Verdikte zurückgebracht, die dieses Ticket beschreibt. Heimatlinien ohne
+`shareClassFIGI` scheitern jetzt laut (`no_share_class_anchor`) — ein eigener Zensus-Topf,
+kein Verdikt über den Emittenten.
+
+**Belegt am Zensus v3 (2026-09-04), an den vier im Ticket genannten Fällen:** alle vier
+haben den Topf `no_us_line` verlassen. `REL.L` ist heute `resolved_20f` (RLXXF, CIK
+0000929869) — der Kopffall des Tickets bekommt ein volles Dossier. `STAN.L`, `ENEL.MI` und
+`BNP.PA` sind `not_sec_registrant` mit benannter OTC-Linie (SCBFF, ESOCF, BNPQF): auch das
+ist eine Korrektur, denn „keine US-Notierung" war falsch, „US-Linie vorhanden, aber
+unsponsored und ohne CIK" ist der zutreffende Befund. Der Topf `no_us_line` schrumpfte
+insgesamt von 15 auf 7.
+
+Offen geblieben und ausgelagert: unsponsored ADRs, die in einer **eigenen** Aktiengattung
+liegen und deshalb am Anker vorbeilaufen —
+`tickets/2026-09-04-unsponsored-adr-own-share-class.md` (`ALLFG.AS`, `MONY.L`).
 
 ## Befund
 
