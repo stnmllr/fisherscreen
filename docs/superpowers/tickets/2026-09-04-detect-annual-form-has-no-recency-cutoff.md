@@ -2,7 +2,74 @@
 
 **Opened:** 2026-09-04
 **Priority:** korrektheitsrelevant, aber schmal. Betrifft ehemalige Filer, die sich deregistriert haben. Erzeugt kein falsches Dossier *ohne* Warnung — die Vintage-Kennzeichnung greift —, aber es entsteht ein Dossier auf jahrealten Zahlen, wo ein Quant-only-Dossier ehrlicher wäre.
-**Status:** open
+**Status:** FIXED 2026-09-05 — siehe „Resolution" unten.
+
+## Resolution
+
+`detect_annual_form` liest jetzt `form` und `filingDate` index-parallel aus demselben
+Fetch, nimmt das **neueste** 10-K/20-F nach Datum und gibt `None` zurück, wenn es älter
+ist als `DEFAULT_ANNUAL_FORM_MAX_AGE_DAYS` (540 Tage = 18 Monate, überschreibbar per
+`FISHERSCREEN_ANNUAL_FORM_MAX_AGE_DAYS`). Rückgabewert bleibt `10-K | 20-F | None`.
+
+**Das Fenster ist gemessen, nicht gewählt** — `scripts/measure_annual_form_recency.py`
+über 69 Titel am 2026-09-05:
+
+| Gruppe | Titel | Alter des jüngsten Jahresformulars |
+|---|---|---|
+| aktive Filer | 56 | ≤ 7,0 Monate |
+| — | 0 | 7,0 → 18,2 Monate |
+| deregistriert | 13 | 18,2 – 266,6 Monate |
+
+Vier Dinge, die die Messung gegenüber der Vermutung oben verändert hat:
+
+1. **Die Abnahmefrage ist objektiv beantwortet, nicht eingeschätzt.** Der Scope oben
+   fragt, ob unter den Verlierern ein Titel ist, der tatsächlich noch einreicht. Das
+   Messinstrument liest deshalb die **Form-15-Filings** mit (`15-12B` / `15F-12B` /
+   `15F-12G`, die Bescheinigung über die Beendigung der Registrierung). **Alle dreizehn
+   Verlierer haben eine.** Keiner ist ein verspäteter Filer — das Urteil hängt an einem
+   Dokument der SEC, nicht an einer Meinung über den Emittenten.
+2. **24 Monate wurde verworfen**, obwohl das Ticket 18–24 vorschlug: TEF.MC ist seit
+   2026-01-20 abgemeldet und sein jüngstes 20-F 18,2 Monate alt — bei 24 Monaten bekäme
+   es noch ein halbes Jahr lang ein volles Dossier auf toten Zahlen.
+3. **Die Zahl „46 positive Zensus-Verdikte" im Scope stammt aus Zensus v1** und ist
+   überholt; maßgeblich ist v3 nach dem Matcher-Umbau mit 60.
+4. **Die Wirkung reicht über BT hinaus.** Die 13 sind sämtlich Zensus-Positive. Die
+   Quote „hat eine SEC-Quelle" sinkt damit von 60 auf 47 von 416 EU-Titeln, **14,4 % →
+   11,3 %** — genau die Zahl, die im Vault die ESAP-Entscheidung trägt, und sie bewegt
+   sich in die Richtung, die die Lücke größer macht. Kein bestehendes Dossier ist
+   betroffen: keiner der 13 steht in den September-Crosshits.
+
+Drei Folgen, die der Fix mittragen musste:
+
+- **Die Reihenfolge im Array ist keine tragende Annahme mehr.** `recent` ist heute
+  newest-first, aber der SEC-Vertrag sagt das nirgends, und ein Emittent, der von 20-F
+  auf 10-K wechselt, muss das neuere Formular melden. Fehlende Datumsangaben scheitern
+  laut: ohne sie bliebe nur der datumslose Scan, und der **ist** der Defekt.
+- **Beide `no_annual_form`-Notizen waren danach falsch.** „Reicht weder 10-K noch 20-F
+  ein" trifft auf einen Deregistrierten nicht zu — er reichte ein und hörte auf. Sie
+  nennen jetzt das Fenster.
+- **Der ADR-Cache brauchte ein Werkzeug, das es nicht gab.** Der Schnitt entwertet
+  *positive* Einträge (`resolved_20f` → `no_annual_form`), und die positive TTL beträgt
+  180 Tage. `purge_adr_negative_verdicts.py` bewahrte die positiven ausdrücklich; es
+  heißt jetzt `purge_adr_verdicts.py` und nimmt `--verdicts positive|negative|all`.
+
+**`BT-A.L` bleibt in der Override-Tabelle** — anders als der Scope oben in Aussicht
+stellte. Der Zensus v3 zeigt den Titel im Bucket `unverifiable_identity`: OpenFIGI
+liefert für das Symbol `BRITANNIA GROUP PLC`, die Namensprüfung weist korrekt zurück.
+Ohne die Zeile bekäme BT ein Quant-only-Dossier mit der Begründung „Identität
+ungeprüft" statt des tatsächlichen, handgeprüften Befunds. Die Zeile ist nach dem Fix
+erstmals **maschinell nachprüfbar**, und genau das war der andere versprochene Gewinn:
+`test_negative_row_named_cik_still_shows_no_annual_form` überspringt sie nicht mehr,
+sondern prüft sie — die Live-Probe hat ihren einzigen Skip verloren.
+
+Bewusst nicht mitgemacht: `get_latest_annual_filing` bekommt **keinen** eigenen Schnitt.
+Es wird nur mit einem `form_type` aufgerufen, den `detect_annual_form` gerade
+freigegeben hat, und zieht dann dasselbe jüngste Formular; zwei Schnitte wären zwei
+Definitionen eines Fensters. Ebenfalls offen und unberührt: die 40-F/F-6-Lücke
+(Phase 2) und `VINTAGE_THRESHOLD_DAYS`.
+
+Offen als Folgearbeit: ein erneuter Zensuslauf, der die 11,3 % belegt statt sie
+herzuleiten, und die Zahl im Vault-Entscheidungsdokument.
 
 ## Befund
 
