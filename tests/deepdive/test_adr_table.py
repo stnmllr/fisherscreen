@@ -434,10 +434,13 @@ def test_real_table_pins_the_verdict_of_each_september_crosshit(ticker):
 # repair a source that names the wrong company. So they are not matcher debt;
 # without the row they would simply sit in the quant-only path forever.
 #
-# BT-A.L is `no_annual_form` and NOT a positive mapping although
-# `detect_annual_form` would answer '20-F': that function searches the whole
-# `recent` window with no date cut and would find a form from 2020, six years
-# before the dossier. Whether it needs a recency cut is a separate ticket.
+# BT-A.L is `no_annual_form` and NOT a positive mapping. Until 2026-09-05 the
+# row also had to compensate for a defect — `detect_annual_form` searched the
+# whole `recent` window with no date cut and answered '20-F' off a filing from
+# 2020. That defect is fixed; the function now returns None for BT. The row
+# stays for the OTHER reason it exists: OpenFIGI names the wrong company, so
+# without it BT-A.L falls into `unverifiable_identity`, i.e. "unchecked" rather
+# than the hand-checked finding that it files nothing current.
 _IDENTITY_OVERRIDE_ROWS = {
     "GLB.IR": "not_sec_registrant",
     "BT-A.L": "no_annual_form",

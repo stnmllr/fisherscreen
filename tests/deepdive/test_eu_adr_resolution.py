@@ -582,7 +582,12 @@ def test_resolve_eu_adr_without_annual_form_returns_no_annual_form(tmp_path):
     assert r.has_filing_source is False
     assert r.no_sec_source_reason == "no_annual_form"
     assert r.cik is None  # the discovered CIK lives in the note prose only
-    assert "reicht weder 10-K noch 20-F ein" in r.no_sec_source_note
+    # "Filed once, stopped" is also None, so the note may not claim the issuer
+    # never filed -- it names the window instead.
+    assert (
+        "reicht kein aktuelles Jahresformular ein "
+        "(weder 10-K noch 20-F in den letzten 18 Monaten)"
+    ) in r.no_sec_source_note
     assert "CIK 1854270" in r.no_sec_source_note
 
 

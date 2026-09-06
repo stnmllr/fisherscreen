@@ -49,7 +49,10 @@ def build_openfigi_client() -> OpenFIGIClientImpl:
 
 def build_eu_resolver() -> Callable[[str], Any]:
     openfigi = build_openfigi_client()
-    edgar = EdgarClientImpl(user_agent=settings.edgar_user_agent)
+    edgar = EdgarClientImpl(
+        user_agent=settings.edgar_user_agent,
+        annual_form_max_age_days=settings.annual_form_max_age_days,
+    )
     yfinance = YFinanceClientImpl()
 
     def _resolve(ticker: str):
@@ -67,7 +70,10 @@ def build_eu_resolver() -> Callable[[str], Any]:
 
 
 def build_adr_resolver() -> ADRResolver:
-    edgar = EdgarClientImpl(user_agent=settings.edgar_user_agent)
+    edgar = EdgarClientImpl(
+        user_agent=settings.edgar_user_agent,
+        annual_form_max_age_days=settings.annual_form_max_age_days,
+    )
     return ADRResolver(
         table=load_adr_table(), edgar=edgar, eu_resolver=build_eu_resolver()
     )

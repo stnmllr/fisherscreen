@@ -8,19 +8,78 @@
 
 ---
 
-## Letztes Update: 2026-09-04
+## Letztes Update: 2026-09-06
 
-> ⚠️ **Ehrlichkeits-Hinweis, zweistufig.** Aktuell ist **nur** der Abschnitt
-> „Top of mind — 2026-09-04" direkt unterhalb. Der Viewer-Block darunter beschreibt den
-> Stand vom **2026-08-20**; alles ab `## Status` stammt vom **2026-06-11**.
+> ⚠️ **Ehrlichkeits-Hinweis, dreistufig.** Aktuell ist **nur** der Abschnitt
+> „Top of mind — 2026-09-06" direkt unterhalb. Der Block „Top of mind — 2026-09-04"
+> darunter gilt bis auf die dort korrigierten Punkte weiter; der Viewer-Block beschreibt
+> den Stand vom **2026-08-20**; alles ab `## Status` stammt vom **2026-06-11**.
 >
 > Konkret veraltet: `## Status` nennt 240 Tests / 95,39 % Coverage und ein Universum von
-> 1.389 Tickern — tatsächlich sind es **1559 Tests / 96,68 %** und **1.322 Ticker**. Auch
+> 1.389 Tickern — tatsächlich sind es **1569 Tests / 96,67 %** und **1.322 Ticker**. Auch
 > „Nächster Lauf: 2026-06-01" steht dort noch. Die Arbeit dazwischen (B-Fast, EU-ADR,
 > Akzeptanz-Gate 1.6, Sektor-relatives Scoring) ist hier nie dokumentiert worden.
 >
 > Nichts unterhalb des ersten Abschnitts als aktuellen Stand lesen, ohne gegen `git log`
 > zu prüfen.
+
+## Top of mind — 2026-09-06
+
+**`detect_annual_form` hat einen Aktualitätsschnitt: 18 Monate.** Die Funktion durchsuchte
+das `recent`-Fenster nach dem ersten 10-K/20-F, ohne aufs Datum zu sehen. BT Group, seit
+2020 deregistriert, meldete deshalb „reicht ein" — Tool B hätte ein volles Dossier auf ein
+sechs Jahre altes Filing gebaut. Das ist ein *falsches* Dossier, kein fehlendes: die
+Vintage-Kennzeichnung kappt drei von fünfzehn Punkten, die anderen zwölf hätten totes
+Material als Hard Scuttlebutt präsentiert. Suite 1569 / 96,67 %.
+
+**Das Fenster ist gemessen, nicht gewählt** — und die Messung ist der eigentliche Ertrag.
+`scripts/measure_annual_form_recency.py` über 69 Titel (Zensus-Positive + Override-Tabelle
++ jedes je erzeugte Dossier):
+
+| Gruppe | Titel | Alter des jüngsten Jahresformulars |
+|---|---|---|
+| aktive Filer | 56 | ≤ 7,0 Monate |
+| — | 0 | 7,0 → 18,2 Monate |
+| deregistriert | 13 | 18,2 – 266,6 Monate |
+
+Der Beleg ist nicht die Lücke, sondern dass **alle dreizehn ein Form 15 auf Akte haben**
+(`15-12B`/`15F-12B`/`15F-12G`, die Bescheinigung über die Beendigung der Registrierung).
+Kein einziger ist ein verspäteter Filer. Das Instrument liest diese Filings mit, damit die
+Abnahmefrage „reicht der Titel tatsächlich noch ein?" an einem SEC-Dokument hängt und
+nicht an einer Einschätzung. **24 Monate wurde verworfen**, obwohl das Ticket 18–24
+vorschlug: TEF.MC ist seit 01/2026 abgemeldet und käme darin noch ein halbes Jahr durch.
+
+**Die Grundlagenzahl der ESAP-Entscheidung sinkt: 14,4 % → 11,3 %.** Die 13 sind sämtlich
+Zensus-Positive, also 60 → 47 von 416. Das berührt den Neuverhandlungs-Auslöser, den die
+Entscheidung sich selbst gesetzt hat („wenn die Quote deutlich fällt"), und zwar in die
+Richtung, die die Lücke *größer* macht. Kein bestehendes Dossier ist betroffen — keiner
+der 13 steht in den September-Crosshits. **Die Zahl ist hergeleitet, nicht gemessen:** ein
+erneuter Zensuslauf muss sie belegen, und das Vault-Dokument trägt sie noch nicht.
+
+**Zwei Korrekturen an dem, was Ticket und Vorsatz angenommen hatten.** Die
+`BT-A.L`-Override-Zeile wird **nicht** überflüssig — der Zensus führt BT unter
+`unverifiable_identity` (OpenFIGI liefert „BRITANNIA GROUP PLC"), ohne die Zeile stünde im
+Dossier „Identität ungeprüft" statt des handgeprüften Befunds. Sie bleibt, ist aber
+erstmals maschinell nachprüfbar: die Live-Probe überspringt sie nicht mehr. Und der
+Schnitt entwertet **positive** Cache-Einträge, wofür es kein Werkzeug gab —
+`purge_adr_negative_verdicts.py` bewahrte sie ausdrücklich. Es heißt jetzt
+`purge_adr_verdicts.py` und nimmt `--verdicts positive|negative|all`.
+
+**Offen, in dieser Reihenfolge:**
+
+1. **Zensuslauf**, der die 11,3 % misst statt herleitet — vorher
+   `purge_adr_verdicts.py --verdicts positive`, sonst misst der Lauf den Cache. Danach die
+   Zahl im Vault-Entscheidungsdokument.
+2. **Viewer-Deploy** — unverändert der älteste offene Punkt, siehe unten.
+3. Backlog unverändert, siehe unten.
+
+**Zwei Nebenbefunde, unbearbeitet:** `tests/viewer/test_dossier_parser.py` ist auf `main`
+rot (2 Integration-Tests) — der Viewer-Parser kennt das Segment
+`Bewertungs-Range: n/a (FX: Listing≠Reporting)` aus dem ersten Quant-only-Dossier nicht;
+kein Ticket dafür. Und die Ticket-Hygiene aus dem Block unten liegt in einem eigenen PR
+(`chore/ticket-hygiene-2026-09-05`), ist also erst mit dessen Merge erledigt.
+
+---
 
 ## Top of mind — 2026-09-04
 

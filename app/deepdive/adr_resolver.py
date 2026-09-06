@@ -180,8 +180,9 @@ class ADRResolver:
                 ticker,
                 reason="no_annual_form",
                 note=(
-                    f"Kein SEC-Hard-Scuttlebutt: {ticker} (CIK {cik}) reicht weder "
-                    f"10-K noch 20-F ein — andere Jahresformulare (40-F, F-6) sind "
+                    f"Kein SEC-Hard-Scuttlebutt: {ticker} (CIK {cik}) reicht kein "
+                    f"aktuelles Jahresformular ein (weder 10-K noch 20-F in den "
+                    f"letzten 18 Monaten) — andere Jahresformulare (40-F, F-6) sind "
                     f"Phase 2. Dossier ist quant-only (Quant + Bewertung + Peers)."
                 ),
             )

@@ -43,6 +43,9 @@ class FisherScreenSettings(BaseSettings):
     # an ADR facility can be registered (F-6EF) and a 20-F obligation can follow.
     # The 180-day positive TTL would hide that for half a year; 30d ~ one Tool-A cycle.
     adr_negative_cache_ttl_days: int = 30
+    # Newest 10-K/20-F older than this = the issuer stopped filing (measured, see
+    # DEFAULT_ANNUAL_FORM_MAX_AGE_DAYS in app/services/edgar_client.py)
+    annual_form_max_age_days: int = 540
 
     model_config = {
         "env_prefix": "FISHERSCREEN_",

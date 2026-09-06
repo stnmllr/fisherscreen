@@ -16,6 +16,21 @@ from app.services.rate_limiter import (
 
 logger = logging.getLogger(__name__)
 
+# How old the newest 10-K/20-F may be before the issuer counts as "no longer
+# files an annual form". Measured 2026-09-05 over 69 titles (census positives +
+# override table + watchlist dossiers), NOT estimated: current filers top out at
+# 7.0 months, nothing at all sits between 7.0 and 18.2 months, and every one of
+# the 13 titles beyond 18.2 months has a Form 15 (15-12B / 15F-12B / 15F-12G) on
+# file — formally deregistered, none merely late. 24 months was rejected because
+# it would keep TEF.MC (deregistered 2026-01-20, newest 20-F 18.2 months old)
+# producing a full dossier for another six months.
+DEFAULT_ANNUAL_FORM_MAX_AGE_DAYS = 540  # 18 months
+
+
+def _today() -> date:
+    """Return today's date. Indirection makes the recency cut patchable in tests."""
+    return date.today()
+
 
 @dataclass(frozen=True)
 class RawFiling:
@@ -95,6 +110,7 @@ class EdgarClientImpl:
         user_agent: str,
         *,
         max_requests_per_second: float = DEFAULT_EDGAR_MAX_REQUESTS_PER_SECOND,
+        annual_form_max_age_days: int = DEFAULT_ANNUAL_FORM_MAX_AGE_DAYS,
         rate_limiter: RateLimiter | None = None,
         efts_sleep: Callable[[float], None] | None = None,
         rng: random.Random | None = None,
@@ -105,6 +121,7 @@ class EdgarClientImpl:
             )
         self._headers = {"User-Agent": user_agent}
         self._ticker_map: dict[str, str] | None = None
+        self._annual_form_max_age_days = annual_form_max_age_days
         self._rate_limiter = (
             rate_limiter
             if rate_limiter is not None
@@ -394,17 +411,74 @@ class EdgarClientImpl:
         )
 
     def detect_annual_form(self, cik: str) -> str | None:
-        """Most recent annual form the filer uses: '10-K' (US domestic) or
-        '20-F' (foreign private issuer). None if neither appears in recent
-        submissions. A network failure raises DataSourceError via self._get
-        (failure != empty, ADR-BF-5) — None means 'genuinely no annual form'."""
+        """Annual form the filer CURRENTLY uses: '10-K' (US domestic) or '20-F'
+        (foreign private issuer), taken from the NEWEST such filing — but only if
+        that filing is at most ``annual_form_max_age_days`` (default 540 days =
+        18 months) old.
+
+        None therefore covers two cases that are the same answer for our purpose:
+        the issuer never filed an annual form, OR it filed and stopped (typically
+        deregistered via Form 15). Both mean "no current annual report to build
+        hard scuttlebutt on", and a quant-only dossier is the honest response —
+        a full dossier on a six-year-old 20-F is not.
+
+        A network failure raises DataSourceError via self._get (failure != empty,
+        ADR-BF-5) — None means 'genuinely no current annual form'.
+        """
         padded = cik.zfill(10)
         data = self._get(f"{self._SEC_BASE}/submissions/CIK{padded}.json")
-        forms = data.get("filings", {}).get("recent", {}).get("form", [])
-        for form in forms:
-            if form in ("10-K", "20-F"):
-                return form
-        return None
+        recent = data.get("filings", {}).get("recent", {})
+        forms = recent.get("form", [])
+        dates = recent.get("filingDate", [])
+        # Fail loud rather than degrade: without dates the only possible
+        # behaviour is the dateless scan, and that scan IS the defect this
+        # window exists to close. A silent fallback would reinstate it.
+        if forms and not dates:
+            raise DataSourceError(
+                f"EDGAR submissions for CIK {padded} carry {len(forms)} forms but "
+                f"no filingDate array — cannot apply the annual-form recency cut"
+            )
+        # ISO dates compare correctly as strings, so one precomputed cutoff
+        # replaces per-row date parsing (same technique as has_restatement).
+        cutoff = (_today() - timedelta(days=self._annual_form_max_age_days)).isoformat()
+        # Newest by DATE, not first in the array: `recent` is reverse-
+        # chronological today, but nothing in the SEC contract guarantees it,
+        # and an issuer that switched 20-F -> 10-K must report the newer form.
+        newest_form: str | None = None
+        newest_date: str | None = None
+        for idx, form in enumerate(forms):
+            if form not in ("10-K", "20-F"):
+                continue
+            filing_date = dates[idx] if idx < len(dates) else None
+            if not filing_date:
+                logger.warning(
+                    "edgar: %s at index %d has no filingDate (cik=%s) — row skipped",
+                    form,
+                    idx,
+                    padded,
+                )
+                continue
+            if newest_date is None or filing_date > newest_date:
+                newest_form, newest_date = form, filing_date
+        # `recent` holds only the newest ~1000 filings; older ones overflow into
+        # filings.files[] (not read here, same as get_form4_index). A very chatty
+        # filer can therefore push its annual form out of `recent` entirely and
+        # read as None. That error direction is the conservative one — quant-only
+        # instead of a wrong dossier — but it is a real limit, not an absence.
+        if newest_date is None:
+            return None
+        if newest_date < cutoff:
+            logger.info(
+                "edgar: newest annual form for cik=%s is %s from %s, older than "
+                "the %d-day window (cutoff %s) — treated as no current annual form",
+                padded,
+                newest_form,
+                newest_date,
+                self._annual_form_max_age_days,
+                cutoff,
+            )
+            return None
+        return newest_form
 
     def get_form4_index(self, cik: str, since: str) -> list[Form4Ref]:
         """Form-4 refs filed on/after `since` (ISO date). Deliberate single

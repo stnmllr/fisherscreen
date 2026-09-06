@@ -1,4 +1,5 @@
 import pytest
+from datetime import date
 from unittest.mock import MagicMock, patch
 
 from app.errors import DataSourceError
@@ -1142,40 +1143,195 @@ def test_rate_limiter_acquire_invoked_on_request_path(mock_httpx):
     assert spy.acquire.called
 
 
-@patch("app.services.edgar_client.httpx")
-def test_detect_annual_form_returns_10k(mock_httpx):
+# --- detect_annual_form: recency window ---------------------------------
+# Every case below pins `_today`, never the real calendar: a fixture whose
+# verdict flips with the wall clock would go red on some random morning and
+# would stop being evidence about the code.
+_PINNED_TODAY = date(2026, 9, 5)
+# _PINNED_TODAY - 540 days. Written out rather than recomputed from the
+# production constant, so the boundary is an independent claim.
+_CUTOFF_DATE = "2025-03-14"
+_ONE_DAY_OLDER = "2025-03-13"
+
+
+def _submissions_response(recent: dict[str, list[str]]) -> MagicMock:
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = {
-        "filings": {"recent": {"form": ["8-K", "10-K", "4"]}}
-    }
-    mock_httpx.get.return_value = mock_resp
+    mock_resp.json.return_value = {"filings": {"recent": recent}}
+    return mock_resp
+
+
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_returns_10k(mock_httpx, _mock_today):
+    mock_httpx.get.return_value = _submissions_response(
+        {
+            "form": ["8-K", "10-K", "4"],
+            "filingDate": ["2026-08-01", "2026-02-14", "2025-11-03"],
+        }
+    )
     assert _make_client().detect_annual_form("320193") == "10-K"
 
 
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
 @patch("app.services.edgar_client.httpx")
-def test_detect_annual_form_returns_20f(mock_httpx):
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = {"filings": {"recent": {"form": ["6-K", "20-F"]}}}
-    mock_httpx.get.return_value = mock_resp
+def test_detect_annual_form_returns_20f(mock_httpx, _mock_today):
+    mock_httpx.get.return_value = _submissions_response(
+        {"form": ["6-K", "20-F"], "filingDate": ["2026-07-30", "2026-04-22"]}
+    )
     assert _make_client().detect_annual_form("353278") == "20-F"
 
 
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
 @patch("app.services.edgar_client.httpx")
-def test_detect_annual_form_returns_none_when_no_annual(mock_httpx):
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = {"filings": {"recent": {"form": ["8-K", "4", "S-1"]}}}
-    mock_httpx.get.return_value = mock_resp
+def test_detect_annual_form_returns_none_when_no_annual(mock_httpx, _mock_today):
+    mock_httpx.get.return_value = _submissions_response(
+        {
+            "form": ["8-K", "4", "S-1"],
+            "filingDate": ["2026-08-11", "2026-08-01", "2026-06-30"],
+        }
+    )
     assert _make_client().detect_annual_form("111") is None
 
 
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
 @patch("app.services.edgar_client.httpx")
-def test_detect_annual_form_most_recent_wins(mock_httpx):
-    # recent[] is reverse-chronological -> first annual form encountered wins.
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = {"filings": {"recent": {"form": ["20-F", "10-K"]}}}
-    mock_httpx.get.return_value = mock_resp
+def test_detect_annual_form_most_recent_wins(mock_httpx, _mock_today):
+    # Pre-existing pin, kept verbatim in its verdict: two annual forms in the
+    # window, the newer one answers. Only the dates are new.
+    mock_httpx.get.return_value = _submissions_response(
+        {"form": ["20-F", "10-K"], "filingDate": ["2026-04-22", "2025-05-20"]}
+    )
     assert _make_client().detect_annual_form("999") == "20-F"
+
+
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_prefers_newer_10k_when_filer_switched_from_20f(
+    mock_httpx, _mock_today
+):
+    # The issuer became a US domestic filer: the 20-F is stale, the 10-K current.
+    mock_httpx.get.return_value = _submissions_response(
+        {"form": ["10-K", "20-F"], "filingDate": ["2026-03-01", "2020-05-21"]}
+    )
+    assert _make_client().detect_annual_form("999") == "10-K"
+
+
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_newest_wins_regardless_of_array_order(
+    mock_httpx, _mock_today
+):
+    # Same two filings as the test above, array order reversed. `recent` is
+    # newest-first today, but that ordering must stop being load-bearing:
+    # the verdict is identical.
+    mock_httpx.get.return_value = _submissions_response(
+        {"form": ["20-F", "10-K"], "filingDate": ["2020-05-21", "2026-03-01"]}
+    )
+    assert _make_client().detect_annual_form("999") == "10-K"
+
+
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_keeps_filing_exactly_at_the_boundary(
+    mock_httpx, _mock_today
+):
+    # Age == 540 days is INSIDE the window. Pinned together with the test below
+    # so the boundary is stated from both sides and cannot drift by a day.
+    mock_httpx.get.return_value = _submissions_response(
+        {"form": ["20-F"], "filingDate": [_CUTOFF_DATE]}
+    )
+    assert _make_client().detect_annual_form("999") == "20-F"
+
+
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_drops_filing_one_day_past_the_boundary(
+    mock_httpx, _mock_today
+):
+    mock_httpx.get.return_value = _submissions_response(
+        {"form": ["20-F"], "filingDate": [_ONE_DAY_OLDER]}
+    )
+    assert _make_client().detect_annual_form("999") is None
+
+
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_returns_none_for_deregistered_filer(
+    mock_httpx, _mock_today
+):
+    # BT Group shape: last 20-F 2020, later filings are non-annual. "Filed once,
+    # stopped" is None -- the dossier must be quant-only, not built on 2020 data.
+    mock_httpx.get.return_value = _submissions_response(
+        {
+            "form": ["SC 13G/A", "20-F", "20-F"],
+            "filingDate": ["2024-02-06", "2020-05-21", "2019-05-23"],
+        }
+    )
+    assert _make_client().detect_annual_form("756620") is None
+
+
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_raises_when_filing_dates_missing(mock_httpx, _mock_today):
+    # Without dates the old dateless behaviour is the only fallback, and that
+    # fallback IS the defect. Fail loud instead of quietly reinstating it.
+    mock_httpx.get.return_value = _submissions_response({"form": ["8-K", "20-F"]})
+    with pytest.raises(DataSourceError, match="filingDate"):
+        _make_client().detect_annual_form("999")
+
+
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_skips_row_with_empty_date(mock_httpx, _mock_today):
+    # A single undated row is skipped with a warning; the dated rows still rule.
+    mock_httpx.get.return_value = _submissions_response(
+        {"form": ["20-F", "10-K"], "filingDate": ["", "2026-03-01"]}
+    )
+    assert _make_client().detect_annual_form("999") == "10-K"
+
+
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_returns_none_when_all_dates_empty(mock_httpx, _mock_today):
+    mock_httpx.get.return_value = _submissions_response(
+        {"form": ["20-F"], "filingDate": [""]}
+    )
+    assert _make_client().detect_annual_form("999") is None
+
+
+@patch("app.services.edgar_client._today", return_value=_PINNED_TODAY)
+@patch("app.services.edgar_client.httpx")
+def test_detect_annual_form_honours_injected_max_age(mock_httpx, _mock_today):
+    from app.services.edgar_client import EdgarClientImpl
+
+    mock_httpx.get.return_value = _submissions_response(
+        {"form": ["20-F"], "filingDate": ["2025-06-01"]}
+    )
+    client = EdgarClientImpl(
+        user_agent="Test Agent <test@example.com>",
+        annual_form_max_age_days=30,
+        rate_limiter=RateLimiter(8.0, sleep=lambda _s: None),
+    )
+    assert client.detect_annual_form("999") is None
+
+
+def test_default_annual_form_max_age_is_18_months():
+    from app.services.edgar_client import (
+        DEFAULT_ANNUAL_FORM_MAX_AGE_DAYS,
+        EdgarClientImpl,
+    )
+
+    assert DEFAULT_ANNUAL_FORM_MAX_AGE_DAYS == 540
+    client = EdgarClientImpl(user_agent="Test Agent <test@example.com>")
+    assert client._annual_form_max_age_days == 540
+
+    # The window is written down twice — here and as the settings default — so
+    # that it can be overridden per deployment without a release. Two places
+    # holding one number drift; this pins them together. Asserted against the
+    # DECLARED default, not against `settings`, because a local .env value would
+    # otherwise turn a machine's configuration into a failing test.
+    from app.config import FisherScreenSettings
+
+    declared = FisherScreenSettings.model_fields["annual_form_max_age_days"].default
+    assert declared == DEFAULT_ANNUAL_FORM_MAX_AGE_DAYS
