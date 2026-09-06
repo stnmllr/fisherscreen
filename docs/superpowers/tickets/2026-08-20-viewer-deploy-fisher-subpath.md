@@ -20,8 +20,30 @@ weiter.
 | `AUTH.md` im macro-dashboard-Repo nachgezogen | ✅ Abschnitt „Stand 21.08.2026", inkl. Caddyfile-Block und Tests |
 | Rücklink auf der Dashboard-Seite | ✅ „FisherScreen Deep Dives →" → `/fisher/` |
 | Login-Flow von Hand durchgegangen | ✅ Seite lädt mit bestehender Sitzung; die Probe im **frischen privaten Fenster** bleibt Stephans Schritt (siehe unten) |
-| `--site` als Opt-in in der Deep-Dive-CLI | ❌ nicht gebaut |
+| `--site` als Opt-in in der Deep-Dive-CLI | ✅ gebaut 2026-09-06, siehe unten |
 | **Auffrischung des ausgelieferten Inhalts** | ❌ **es gibt keine** — siehe unten |
+
+### `--site` ist gebaut
+
+`uv run python -m app.deepdive deepdive <TICKER> --site` rendert nach dem Dossier die
+Site neu. Opt-in, nie Vorgabe — ohne die Flag ist der Pfad byte-identisch zu vorher.
+
+Die Auflage des Tickets („ein Renderer-Bug darf den Exit-Code eines 20-Minuten-Laufs nicht
+ändern") ist an drei Stellen ernst genommen worden, zwei davon über den Wortlaut hinaus:
+
+- Der **Rückgabewert** des Viewers wird wie eine Exception behandelt. `app.viewer.__main__`
+  meldet eigene Fehler durch `return 1`, nicht durch Werfen — ein reiner `except`-Wrapper
+  hätte ausgerechnet den wahrscheinlichsten Renderer-Fehler durchgelassen.
+- **`SystemExit`** liegt mit im Netz: der Seam ist ein CLI-Einstiegspunkt, eine künftige
+  argv-Änderung im Viewer käme als `argparse`-`sys.exit(2)`. `KeyboardInterrupt` bleibt
+  bewusst draußen — ein Abbruch durch den Nutzer ist kein Renderer-Bug.
+- **`sys.stdout.flush()`** vor dem Render, nur im `--site`-Zweig: bei Umleitung in eine
+  Datei ist stdout blockgepuffert, und ein hängender Renderer verschluckte sonst genau die
+  Zeile, für die bezahlt wurde.
+
+Scheitert der Render, sagt die Ausgabe, wo das Dossier liegt **und** dass die Site nicht
+aufgefrischt wurde. Der Exit-Code bleibt der des Laufs ohne die Flag — so getestet, nicht
+gegen die Konstante 0 behauptet.
 
 ### Das eigentliche verbliebene Problem: der Inhalt altert still
 
