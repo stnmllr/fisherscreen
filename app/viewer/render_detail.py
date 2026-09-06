@@ -87,6 +87,9 @@ _DEFECT_KEY_BY_LABEL: Final[dict[tuple[str, str], str]] = {
 NO_VALUE_EXACT: Final[frozenset[str]] = frozenset({"", MISSING})
 NO_VALUE_PREFIX: Final[str] = "n/a"
 
+# Separates the label of a raw metric line from its value.
+_LABEL_SEPARATOR: Final[str] = ": "
+
 _TIMESTAMP_FORMAT: Final[str] = "%Y-%m-%d %H:%M %Z"
 _AGE_SUFFIX: Final[str] = "Tage seit Filing"
 _SEGMENT_SEPARATOR: Final[str] = " · "
@@ -243,12 +246,28 @@ def _metric_block(dossier: Dossier, block: str, defects: _DefectCollector) -> st
     )
 
 
+def _range_line_value(raw: str) -> str:
+    """The value part of the range line — everything after its label.
+
+    The line is rendered whole, but the defect check must see the value
+    alone. `Bewertungs-Range: n/a (FX: Listing≠Reporting)` starts with the
+    label, so handing over the whole line makes every abstention look like a
+    value and warns about a comparison that was never made. The label may
+    carry a span prefix (`Bewertungs-Range (~1J, 66 Wo): …`), which is why
+    the FIRST separator ends it. A line without one is judged whole rather
+    than dropped.
+    """
+    _, separator, value = raw.partition(_LABEL_SEPARATOR)
+    return value if separator else raw
+
+
 def _range_line(dossier: Dossier, defects: _DefectCollector) -> str:
     """The multi-year range line, verbatim. Gen-1 dossiers have none."""
     raw = dossier.raw_metric_lines.get(RANGE_BLOCK)
     if raw is None:
         return ""
-    marker = _defect_marker(defects.take(RANGE_BLOCK, RANGE_BLOCK, raw))
+    value = _range_line_value(raw)
+    marker = _defect_marker(defects.take(RANGE_BLOCK, RANGE_BLOCK, value))
     return tag("div", esc(raw) + marker, class_="range-line")
 
 

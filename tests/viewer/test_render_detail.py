@@ -313,6 +313,63 @@ def test_range_line_carries_its_own_defect():
     assert "EV-Definitionen" in page
 
 
+# The three abstentions the generator can write instead of a range
+# (`app/deepdive/valuation_block.py`). None of them carries a comparison,
+# so none of them can carry the EV-definition warning.
+RANGE_ABSTENTIONS = [
+    "Bewertungs-Range: n/a (Historie nicht verfügbar)",
+    "Bewertungs-Range: n/a (FX: Listing≠Reporting)",
+    "Bewertungs-Range: n/a (Mehrjahres-Historie unvollständig)",
+]
+
+
+@pytest.mark.parametrize("raw", RANGE_ABSTENTIONS)
+def test_range_line_without_a_value_gets_no_marker(raw):
+    """`Bewertungs-Range: n/a (…)` states that no range was computed. The
+    EV-definition note describes a comparison of two EV definitions — on a
+    line that compares nothing it warns about a number nobody can see, the
+    same reason `D/E ⚠ n/a` is suppressed."""
+    page = render(raw_metric_lines={"Bewertungs-Range": raw})
+
+    assert esc(raw) in page  # the line itself stays, verbatim
+    assert DEFECT_MARKER not in page
+    assert "EV-Definitionen" not in page
+    assert DEFECT_FOOTNOTE_CLASS not in page
+
+
+def test_prefixed_range_line_without_a_value_gets_no_marker():
+    """The label may carry the span prefix (`(~1J, 66 Wo)`) even when the
+    value is an abstention; the label, not the value, must not decide."""
+    raw = "Bewertungs-Range (~1J, 66 Wo): n/a (FX: Listing≠Reporting)"
+    page = render(raw_metric_lines={"Bewertungs-Range": raw})
+
+    assert esc(raw) in page
+    assert DEFECT_MARKER not in page
+    assert DEFECT_FOOTNOTE_CLASS not in page
+
+
+def test_range_line_with_a_value_keeps_marker_and_footnote():
+    """Regression fence for the two above: suppressing an empty range line
+    must not suppress a real one. Here there is a comparison, so the
+    EV-definition warning applies and belongs in the footnote too."""
+    raw = "Bewertungs-Range (~3J, 181 Wo): P/E TTM 37.9 vs Median 74.9"
+    page = render(raw_metric_lines={"Bewertungs-Range": raw})
+    footnote = page.split(DEFECT_FOOTNOTE_CLASS)[-1]
+
+    assert DEFECT_MARKER in page
+    assert DEFECT_FOOTNOTE_CLASS in page
+    assert "EV-Definitionen" in footnote
+
+
+def test_range_line_without_a_label_separator_is_still_rendered():
+    """A malformed line without `": "` has no separable value. It is judged
+    as a whole rather than crashing the page over a footnote."""
+    raw = "Bewertungs-Range"
+    page = render(raw_metric_lines={"Bewertungs-Range": raw})
+
+    assert "range-line" in page
+
+
 def test_dossier_without_quant_date_keeps_the_undated_markers():
     """Corrected expectation: this used to assert that no marker at all
     appears without a quant date.

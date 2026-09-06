@@ -760,32 +760,38 @@ _real_dossiers_present = pytest.mark.skipif(
 )
 
 
+# One-pagers live in the same directory but are not dossiers; their name
+# is `<TICKER>_OnePager_Executive_Summary_<date>.md`, which does not match
+# the `<TICKER>_<date>.md` pattern `parse_dossier` requires.
+_ONE_PAGER_MARKER = "_OnePager_"
+
+
 @pytest.mark.integration
 @_real_dossiers_present
 def test_real_watchlist_parses_every_dossier():
-    """23 of the 25 .md files are dossiers; the 2 one-pagers are not."""
+    """Every dossier-named file parses; every one-pager is refused.
+
+    Deliberately no total: `output/Watchlist/` is gitignored and grows with
+    every deep dive, so a pinned count expires the next time Tool B runs and
+    says nothing about the property it is here for. The expectation is
+    derived from the files actually present.
+    """
     from app.viewer.dossier_parser import iter_dossiers
 
-    parsed = [parse_dossier(p) for p in sorted(_WATCHLIST_DIR.glob("*.md"))]
-    dossiers = [d for d in parsed if d is not None]
+    parsed = {p.name: parse_dossier(p) for p in sorted(_WATCHLIST_DIR.glob("*.md"))}
+    one_pagers = {n: d for n, d in parsed.items() if _ONE_PAGER_MARKER in n}
+    dossiers = {n: d for n, d in parsed.items() if _ONE_PAGER_MARKER not in n}
 
-    assert len(dossiers) == 23
-    assert all(len(d.points) == 15 for d in dossiers)
-    assert all(d.company_name for d in dossiers)
+    assert dossiers, "no dossier-named file present — the test would be vacuous"
+    assert all(d is None for d in one_pagers.values())
+    assert all(d is not None for d in dossiers.values())
+    assert all(len(d.points) == 15 for d in dossiers.values())
+    assert all(d.company_name for d in dossiers.values())
 
+    # Newest-run-per-ticker itself is covered hermetically above; here it
+    # only has to hold over the real corpus, for whatever tickers it holds.
     newest = iter_dossiers(_WATCHLIST_DIR)
-    assert [d.ticker for d in newest] == [
-        "ARGX",
-        "ASML",
-        "ASML.AS",
-        "FICO",
-        "GOOGL",
-        "KO",
-        "MEDP",
-        "MSCI",
-        "MSFT",
-        "NOVO-B.CO",
-    ]
+    assert [d.ticker for d in newest] == sorted({d.ticker for d in dossiers.values()})
 
 
 @pytest.mark.integration
@@ -854,13 +860,22 @@ def test_real_gen2_googl_keeps_long_point_titles():
 @_real_dossiers_present
 def test_real_dossiers_have_no_unknown_valuation_or_capital_segments():
     """Guard against a new metric being added to the generator without the
-    viewer's vocabulary noticing."""
+    viewer's vocabulary noticing.
+
+    Only for the blocks the viewer renders as tiles: there an unrecognised
+    segment is a metric the tiles would not show. `Bewertungs-Range` is not
+    among them — it is not in `METRIC_BLOCKS` and `_range_line` prints it
+    verbatim, so nothing in that line can be dropped silently and the
+    premise of this guard does not apply to it. The parser still fills
+    `metrics`/`metric_extras` for it (asserted above); that is its contract,
+    not a display channel.
+    """
     unknown: dict[str, list[str]] = {}
     for path in sorted(_WATCHLIST_DIR.glob("*.md")):
         dossier = parse_dossier(path)
         if dossier is None:
             continue
-        for line_label in ("Bewertung", "Kapitalstruktur", "Bewertungs-Range"):
+        for line_label in ("Bewertung", "Kapitalstruktur"):
             extras = dossier.metric_extras.get(line_label)
             if extras:
                 unknown[f"{path.name}:{line_label}"] = extras
