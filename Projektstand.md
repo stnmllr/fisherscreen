@@ -65,19 +65,34 @@ Schnitt entwertet **positive** Cache-Einträge, wofür es kein Werkzeug gab —
 `purge_adr_negative_verdicts.py` bewahrte sie ausdrücklich. Es heißt jetzt
 `purge_adr_verdicts.py` und nimmt `--verdicts positive|negative|all`.
 
+**Der Zensuslauf hat die 11,3 % bestätigt — titelgenau.** Wiederholt am 2026-09-06 nach
+`purge_adr_verdicts.py --verdicts positive` (Rohdaten `cache/eu_sec_source_census_v4.json`):
+**47 von 416 = 11,3 %**. `resolved_20f` 59 → 46, `no_annual_form` 40 → 53, **jeder andere
+Topf unverändert**. Und der Diff v3→v4 nennt exakt die dreizehn vorhergesagten Titel, alle
+in dieselbe Richtung — nicht nur das Aggregat stimmt, sondern der Mechanismus. Nach Börse
+jetzt `.L` 19,8 %, `.MI` 20,0 %, `.AS` 18,2 %, `.ST` 3,6 %; `.OL`, `.VI`, `.LS`, `.WA`,
+`.IR` bei 0 %. Das Vault-Dokument trägt die Zahl seit 2026-09-06 samt Nachtrag — dort ist
+auch vermerkt, dass der selbstgesetzte Neuverhandlungs-Auslöser („deutlich unter 14 %")
+damit gefeuert hat und Stephans Abwägung aussteht.
+
+**Der Viewer ist deployt — das Ticket beschrieb einen überholten Zustand.**
+`https://macro.stnmllr.com/fisher/` liefert die Seite hinter dem Google-Gate, `AUTH.md` im
+macro-dashboard-Repo dokumentiert die Route seit dem 21.08., und der Rücklink steht auf
+dem Dashboard. Nachgeprüft am 2026-09-06 im Browser. Offen ist etwas anderes als „deployen":
+der **ausgelieferte Inhalt altert still** (10 Ticker draußen, 11 im lokalen Build — `EDV.L`
+fehlt), weil das `scp` manuell ist und nirgends steht. Siehe
+`tickets/2026-08-20-viewer-deploy-fisher-subpath.md`, Abschnitt „Befund 2026-09-06".
+
 **Offen, in dieser Reihenfolge:**
 
-1. **Zensuslauf**, der die 11,3 % misst statt herleitet — vorher
-   `purge_adr_verdicts.py --verdicts positive`, sonst misst der Lauf den Cache. Danach die
-   Zahl im Vault-Entscheidungsdokument.
-2. **Viewer-Deploy** — unverändert der älteste offene Punkt, siehe unten.
+1. **Inhalt der ausgelieferten Viewer-Seite auffrischen** (`scp output/site` →
+   `/var/www/fisher/`) und entscheiden, ob die Seite ein sichtbares Erzeugungsdatum
+   bekommt. Ein Lesekanal, der alt aussieht wie neu, ist die gefährlichere Ausfallart.
+2. **Die zwei roten Viewer-Parser-Tests** —
+   `tickets/2026-09-06-viewer-parser-tests-red-on-main.md`. Zwei Ursachen, nur eine ist ein
+   Mangel am Produkt: das FX-Gate-Ergebnis fehlt im Vokabular des Viewers, und der zweite
+   Test pinnt einen Zählwert auf gitignorierte Artefakte und kann gar nicht grün bleiben.
 3. Backlog unverändert, siehe unten.
-
-**Zwei Nebenbefunde, unbearbeitet:** `tests/viewer/test_dossier_parser.py` ist auf `main`
-rot (2 Integration-Tests) — der Viewer-Parser kennt das Segment
-`Bewertungs-Range: n/a (FX: Listing≠Reporting)` aus dem ersten Quant-only-Dossier nicht;
-kein Ticket dafür. Und die Ticket-Hygiene aus dem Block unten liegt in einem eigenen PR
-(`chore/ticket-hygiene-2026-09-05`), ist also erst mit dessen Merge erledigt.
 
 ---
 
@@ -130,6 +145,7 @@ Adapter-Logik.
 **Ticket-Hygiene fällig:** `openfigi-search-unpaginated` (durch #50 erledigt, Status fehlt),
 `same-issuer-abbreviation-gap` (gegenstandslos — `_same_issuer` gelöscht), und
 `eu-identity-matcher-blocks-a-third-of-europe` (zu zwei Dritteln behoben, 147 → 49).
+→ **erledigt am 2026-09-06 mit PR #54.**
 
 ---
 
