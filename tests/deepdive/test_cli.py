@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from app.deepdive.__main__ import build_parser, main
@@ -138,3 +140,146 @@ def test_parser_accepts_no_insider_flag():
 def test_parser_no_insider_defaults_false():
     args = build_parser().parse_args(["deepdive", "MSFT"])
     assert args.no_insider is False
+
+
+# --- --site: re-render the viewer after a successful deep dive -------------
+#
+# The flag is opt-in on purpose. Everything below exists to pin one property:
+# the renderer may not influence the outcome of a 20-minute paid Gemini run.
+
+
+def _stub_builders(monkeypatch, cli) -> None:
+    """Stub the six composition roots so no real client is constructed."""
+    from unittest.mock import MagicMock
+
+    for name in (
+        "build_adr_resolver",
+        "build_filing_fetcher",
+        "build_quant_builder",
+        "build_peer_resolver",
+        "build_insider_fetcher",
+    ):
+        monkeypatch.setattr(cli, name, lambda: MagicMock())
+    monkeypatch.setattr(cli, "build_synthesizer", lambda model: MagicMock())
+
+
+@pytest.fixture
+def site_cli(tmp_path, monkeypatch):
+    """The CLI with a successful deep dive and a recording renderer."""
+    from unittest.mock import MagicMock
+    import app.deepdive.__main__ as cli
+
+    monkeypatch.setattr(cli.settings, "output_dir", str(tmp_path))
+    _stub_builders(monkeypatch, cli)
+    dossier = tmp_path / "Watchlist" / "MSFT_2026-09-06.md"
+    monkeypatch.setattr(cli, "run_deep_dive", MagicMock(return_value=dossier))
+    render = MagicMock(return_value=0)
+    monkeypatch.setattr(cli, "render_site", render)
+    return cli, render, dossier, tmp_path
+
+
+def test_parser_site_defaults_false():
+    args = build_parser().parse_args(["deepdive", "MSFT"])
+    assert args.site is False
+
+
+def test_parser_accepts_site_flag():
+    args = build_parser().parse_args(["deepdive", "MSFT", "--site"])
+    assert args.site is True
+
+
+def test_without_site_flag_the_renderer_is_not_called(site_cli):
+    cli, render, _, _ = site_cli
+
+    assert cli.main(["deepdive", "MSFT"]) == 0
+    render.assert_not_called()
+
+
+def test_site_flag_renders_once_with_paths_from_settings(site_cli):
+    cli, render, _, tmp_path = site_cli
+
+    cli.main(["deepdive", "MSFT", "--site"])
+
+    render.assert_called_once_with(
+        [
+            "--in",
+            str(tmp_path / "Watchlist"),
+            "--out",
+            str(tmp_path / "site"),
+        ]
+    )
+
+
+def test_site_flag_keeps_exit_code_zero_when_render_succeeds(site_cli):
+    cli, _, _, _ = site_cli
+
+    assert cli.main(["deepdive", "MSFT", "--site"]) == 0
+
+
+def test_dossier_path_is_printed_before_the_render_starts(site_cli, capsys):
+    """A hanging or noisy renderer must not obscure the paid-for result."""
+    cli, render, dossier, _ = site_cli
+    seen: list[str] = []
+    render.side_effect = lambda argv: seen.append(capsys.readouterr().out) or 0
+
+    cli.main(["deepdive", "MSFT", "--site"])
+
+    assert str(dossier) in seen[0]
+
+
+def test_render_crash_keeps_the_exit_code_of_the_run_without_site(site_cli):
+    cli, render, _, _ = site_cli
+    without_site = cli.main(["deepdive", "MSFT"])
+    render.side_effect = RuntimeError("renderer exploded")
+
+    assert cli.main(["deepdive", "MSFT", "--site"]) == without_site
+
+
+def test_render_crash_is_logged_with_the_traceback(site_cli, caplog):
+    cli, render, _, _ = site_cli
+    render.side_effect = RuntimeError("renderer exploded")
+
+    with caplog.at_level(logging.ERROR, logger="app.deepdive.__main__"):
+        cli.main(["deepdive", "MSFT", "--site"])
+
+    record = caplog.records[-1]
+    assert record.exc_info is not None
+    assert "renderer exploded" in caplog.text
+
+
+def test_render_crash_still_names_the_dossier_and_says_the_site_is_stale(
+    site_cli, capsys
+):
+    cli, render, dossier, _ = site_cli
+    render.side_effect = RuntimeError("renderer exploded")
+
+    cli.main(["deepdive", "MSFT", "--site"])
+    printed = capsys.readouterr().out
+
+    assert str(dossier) in printed
+    assert "NOT refreshed" in printed
+
+
+def test_render_systemexit_keeps_the_deep_dive_exit_code(site_cli, capsys):
+    """The seam is a CLI entry point, so argparse can raise SystemExit —
+    which `except Exception` would let through."""
+    cli, render, dossier, _ = site_cli
+    render.side_effect = SystemExit(2)
+
+    exit_code = cli.main(["deepdive", "MSFT", "--site"])
+
+    assert exit_code == 0
+    assert "NOT refreshed" in capsys.readouterr().out
+
+
+def test_render_nonzero_exit_keeps_the_deep_dive_exit_code(site_cli, capsys):
+    """The viewer reports its own failures by returning 1, not by raising."""
+    cli, render, dossier, _ = site_cli
+    render.return_value = 1
+
+    exit_code = cli.main(["deepdive", "MSFT", "--site"])
+    printed = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert str(dossier) in printed
+    assert "NOT refreshed" in printed

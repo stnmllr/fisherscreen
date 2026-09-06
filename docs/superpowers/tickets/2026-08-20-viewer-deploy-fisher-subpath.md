@@ -2,7 +2,78 @@
 
 **Opened:** 2026-08-20
 **Priority:** blocked on nothing technical; waiting for a deliberate deploy window.
-**Status:** open — phase 1 of the viewer ships **without** any deploy code, on purpose.
+**Status:** open — **aber nicht mehr aus dem Grund im Titel.** Der Deploy ist erfolgt; offen ist, dass niemand ihn nachgetragen hat und dass es keine Auffrischung gibt. Siehe „Befund 2026-09-06".
+
+## Befund 2026-09-06: der Deploy ist längst passiert
+
+Dieses Ticket galt bis heute als „ältester offener Punkt, gemergt aber nicht deployt".
+Nachgeprüft am 2026-09-06, im Browser hinter dem echten Google-Gate:
+
+**`https://macro.stnmllr.com/fisher/` liefert den Viewer.** Die Seite lädt, die Sitzung
+greift, die Übersichtstabelle steht. Die Auflagen unten sind zum größten Teil bereits
+erfüllt — nur hat das niemand hier vermerkt, und `Projektstand.md` trug den falschen Stand
+weiter.
+
+| Auflage / Punkt | Stand |
+|---|---|
+| Caddy-Block `/fisher/*` hinter `import authgate` | ✅ live, Seite lädt hinter dem Gate |
+| `AUTH.md` im macro-dashboard-Repo nachgezogen | ✅ Abschnitt „Stand 21.08.2026", inkl. Caddyfile-Block und Tests |
+| Rücklink auf der Dashboard-Seite | ✅ „FisherScreen Deep Dives →" → `/fisher/` |
+| Login-Flow von Hand durchgegangen | ✅ Seite lädt mit bestehender Sitzung; die Probe im **frischen privaten Fenster** bleibt Stephans Schritt (siehe unten) |
+| `--site` als Opt-in in der Deep-Dive-CLI | ✅ gebaut 2026-09-06, siehe unten |
+| **Auffrischung des ausgelieferten Inhalts** | ❌ **es gibt keine** — siehe unten |
+
+### `--site` ist gebaut
+
+`uv run python -m app.deepdive deepdive <TICKER> --site` rendert nach dem Dossier die
+Site neu. Opt-in, nie Vorgabe — ohne die Flag ist der Pfad byte-identisch zu vorher.
+
+Die Auflage des Tickets („ein Renderer-Bug darf den Exit-Code eines 20-Minuten-Laufs nicht
+ändern") ist an drei Stellen ernst genommen worden, zwei davon über den Wortlaut hinaus:
+
+- Der **Rückgabewert** des Viewers wird wie eine Exception behandelt. `app.viewer.__main__`
+  meldet eigene Fehler durch `return 1`, nicht durch Werfen — ein reiner `except`-Wrapper
+  hätte ausgerechnet den wahrscheinlichsten Renderer-Fehler durchgelassen.
+- **`SystemExit`** liegt mit im Netz: der Seam ist ein CLI-Einstiegspunkt, eine künftige
+  argv-Änderung im Viewer käme als `argparse`-`sys.exit(2)`. `KeyboardInterrupt` bleibt
+  bewusst draußen — ein Abbruch durch den Nutzer ist kein Renderer-Bug.
+- **`sys.stdout.flush()`** vor dem Render, nur im `--site`-Zweig: bei Umleitung in eine
+  Datei ist stdout blockgepuffert, und ein hängender Renderer verschluckte sonst genau die
+  Zeile, für die bezahlt wurde.
+
+Scheitert der Render, sagt die Ausgabe, wo das Dossier liegt **und** dass die Site nicht
+aufgefrischt wurde. Der Exit-Code bleibt der des Laufs ohne die Flag — so getestet, nicht
+gegen die Konstante 0 behauptet.
+
+### Das eigentliche verbliebene Problem: der Inhalt altert still
+
+Die ausgelieferte Seite zeigt **10 Ticker**. Ein lokaler Build aus demselben Repo
+(`uv run python -m app.viewer --in output\Watchlist --out output\site`) erzeugt **11** —
+`EDV.L` fehlt, das erste Quant-only- und erste London-Dossier vom 2026-09-03. Der Stand
+draußen ist der vom Deploy-Tag.
+
+Das ist der Preis der bewussten Entscheidung, keinen Deploy-Code in den Generator zu legen:
+ein manuelles `scp` passiert einmal und dann nicht mehr. Der Viewer behauptet nichts
+Falsches — er zeigt schlicht einen älteren Bestand, ohne dass ihm das anzusehen wäre. Für
+einen Lesekanal „für unterwegs" ist genau das die gefährliche Ausfallart: er sieht aktuell
+aus.
+
+**Zwei Wege, und die Wahl ist nicht offensichtlich.** Entweder das `scp` bleibt manuell und
+bekommt eine Stelle, an der es *steht* (README des Repos, neben dem Tool-B-Aufruf) — dann
+ist die Auffrischung ein bewusster Schritt und der Viewer darf altern. Oder die Seite
+bekommt ein sichtbares Erzeugungsdatum, damit „alt" im Produkt steht und nicht nur im Kopf
+des Betreibers. Das Zweite ist billiger als es klingt und passt zur Ehrlichkeits-Linie des
+Projekts; das Erste ändert am Verhalten nichts. Beides schließt einen Automatismus nicht
+ein — der bleibt ausgeschlossen, siehe „Context" unten.
+
+### Was noch offen bleibt
+
+- **`--site` als Opt-in** — der einzige unerledigte Punkt aus der ursprünglichen Liste.
+- **Die Probe im frischen privaten Fenster** ist nicht nachgeholt worden und lässt sich von
+  außen auch nicht ersetzen: die heutige Prüfung lief mit bestehender Sitzung, das umgeht
+  genau den Pfad (`/oauth2/start` → Google → Rücksprung), auf dem die dokumentierte
+  Redirect-Schleife entstünde. `curl -sI` fängt sie ebenfalls nicht — deshalb steht die
+  Auflage weiter. Sie ist vermutlich am 21.08. erfüllt worden, nur nicht vermerkt.
 
 ## Context
 
