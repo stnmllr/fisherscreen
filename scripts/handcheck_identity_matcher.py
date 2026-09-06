@@ -29,7 +29,22 @@ from app.deepdive.eu_adr_resolution import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CORPUS = REPO_ROOT / "cache" / "identity_name_corpus.json"
-CENSUS = REPO_ROOT / "cache" / "eu_sec_source_census_v2.json"
+
+
+def newest_census() -> Path | None:
+    """The most recently written census file, not a pinned one.
+
+    This was pinned to `eu_sec_source_census_v2.json`, which was the current
+    census the day the script ran. Census files accumulate (v2, v3, ...), so a
+    pinned name means a re-run silently harvests names from a corpus that
+    predates the very change being hand-checked, and reports it as if it were
+    current. Picking the newest and PRINTING which one was picked keeps that
+    from happening quietly."""
+    files = sorted(
+        REPO_ROOT.glob("cache/eu_sec_source_census*.json"),
+        key=lambda p: p.stat().st_mtime,
+    )
+    return files[-1] if files else None
 
 # The census notes quote the OpenFIGI identity that was actually resolved, which
 # is a far wider stump survey than the 90-entry corpus: ~400 real EU issuer
@@ -87,8 +102,10 @@ def main() -> int:
             if name:
                 norms[norm_issuer(name)].append(f"{ticker}.{side}")
     census_names = 0
-    if CENSUS.exists():
-        census = json.loads(CENSUS.read_text(encoding="utf-8"))
+    census_path = newest_census()
+    if census_path is not None:
+        print(f"Zensus-Quelle: {census_path.name}")
+        census = json.loads(census_path.read_text(encoding="utf-8"))
         for ticker, entry in census.items():
             found = _NAME_IN_NOTE.search(entry.get("detail") or "")
             if found:

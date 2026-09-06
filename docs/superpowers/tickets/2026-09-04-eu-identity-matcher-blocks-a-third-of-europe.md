@@ -2,7 +2,54 @@
 
 **Opened:** 2026-09-04
 **Priority:** blockierend für die EU-Native-Entscheidung. Kein falscher Wert wird produziert — aber die Zahl, die über eine Architekturentscheidung entscheiden soll, ist unbrauchbar, solange ihr größter Einzelposten ein Bug ist.
-**Status:** open
+**Status:** open — zu zwei Dritteln behoben (147 → 49), siehe „Update" unten.
+
+## Update 2026-09-05: 147 → 49, und der Systemdefekt ist weg
+
+Der Matcher-Umbau (PR #52, `97c0077` — „Rebuild the issuer-name normalisation, and refuse
+to guess instead of loosening") ist gelaufen und mit dem Zähllauf gegengemessen
+(`cache/eu_sec_source_census_v3.json`, 2026-09-04). `unverifiable_identity` fiel von
+**147 auf 49** von 416.
+
+**Die Diagnose oben trägt: der Kronzeuge ist umgeschlagen.** Das Ticket führt `.ST` mit
+28/28 und `.MC` mit 21/21 als Beweis, dass hundert Prozent zweier Börsen kein
+Namensrauschen sein können. Heute:
+
+| Börse | vorher | nachher |
+|---|---|---|
+| `.ST` | 28 / 28 (100 %) | 4 / 28 (14 %) |
+| `.MC` | 21 / 21 (100 %) | 5 / 21 (24 %) |
+
+Der Rest von 49 verteilt sich auf **dreizehn Börsen mit 7–15 %** (Ausreißer `.MC` mit
+24 %, und `.IR` mit 1/1, wo n=1 nichts aussagt). Kein Suffix steht mehr bei 100 %. Das
+Muster, das den Systemdefekt belegte, ist verschwunden — was bleibt, sieht nach
+Einzelfällen aus, nicht nach einer kaputten Regel.
+
+Jeder im Ticket namentlich genannte Fall hat den Topf verlassen: `BP.L` → `resolved_20f`
+(der direkte Beleg aus Ursache 5), `BYG.L` und `JD.L` → `not_sec_registrant`, ebenso
+`JMT.LS` (Diakritika), `ALFA.ST` (`(publ)`), `STERV.HE` (`-B SHS`) und `FLOW.AS`
+(Präfix/Punkt). `SWEC-B.ST` → `no_us_line`.
+
+**Was der Umbau nicht gebracht hat, gehört mit ins Bild.** Von den 98 zurückgewonnenen
+Titeln wurden nur **12** zu vollen Dossiers; **86** sind `not_sec_registrant`. Die Quote
+„hat eine SEC-Quelle" stieg damit von 11,1 % auf 14,4 % — der eigentliche Gewinn ist
+nicht die Quote, sondern dass die Zahl jetzt eine *Messung* ist und keine Untergrenze
+mehr, hinter der ein Bug 35 % der Titel versteckte. Genau dafür war das Ticket
+blockierend, und in dieser Hinsicht ist es erledigt: die EU-Native-Entscheidung konnte am
+2026-09-04 auf belastbarer Grundlage fallen.
+
+**Die Spannung wurde nicht aufgelöst, sondern respektiert.** Der Umbau lockert die strikte
+Gleichheit *nicht* zu Präfix-Toleranz — er normalisiert beide Seiten besser und weist im
+Zweifel zurück. Der Gegenproben-Korb (`ROCHE` vs. `ROCHE BOBOIS`) steht.
+
+**Offen bleiben die 49.** Sie sind der Grund, warum dieses Ticket nicht geschlossen wird.
+Ob darunter noch Regeln stecken oder nur Quellen, die schlicht den falschen Namen liefern
+(wie `GLB.IR` → „Beacon Hill CBO III Ltd", inzwischen Override-Zeile), ist ungeprüft.
+
+**Vor dem Schließen zu prüfen:** eine Stichprobe aus den 49 — mindestens 15 —, klassifiziert
+nach „Normalisierungsregel fehlt" gegen „Quelle nennt eine andere Firma". Nur die erste
+Gruppe ist Matcher-Schuld. Ist sie leer, ist dieses Ticket erledigt und der Rest gehört
+zu `tickets/2026-06-03-isin-canonical-anchor-openfigi.md`.
 
 ## Kontext
 
