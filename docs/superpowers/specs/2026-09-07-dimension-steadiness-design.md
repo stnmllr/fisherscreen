@@ -1,8 +1,17 @@
 # Design: vierte Tool-A-Dimension „Stetigkeit"
 
-**Datum:** 2026-09-07
-**Status:** Spec, keine Implementierung. Zwei Punkte sind vor dem Bau zu entscheiden
-(Abschnitt 5 und 8), einer ist vor dem Aktivieren zu messen (Abschnitt 9).
+**Datum:** 2026-09-07, überarbeitet 2026-09-07 (Entscheidungsrunde nach PR #60)
+**Status:** Spec, keine Implementierung.
+
+**Entschieden** (in dieser Fassung eingearbeitet): Kennzahlen S1/S2/S3 in ihrer heutigen Form
+(§5 — Anzahl Rückgangsjahre, Margeneinbruch vom Hoch, schlechteste Nettomarge; Eigenkapital
+entfällt); die Gate-Regel „alle bewertbaren Merit-Achsen, mindestens drei" samt der Auflage,
+dass „bewertbar" an einem eigenen Feld hängt (§8, §8.1); die neue Collection
+`dev_edgar_annual_series` mit Schlüssel CIK, TTL-Jitter und Negativ-Caching (§9.1.1).
+
+**Offen bis zum Kalibrierungslauf** (§9.2): B1 die Zusammenführung `mean` gegen `min`;
+B2 die Schwellen für S2 und S3; B3 ob NVDA und TER fallen dürfen. Für diese drei liefert der
+Kalibrierungsbericht Zahlen, **keine Empfehlung**.
 **Vorlauf:** `docs/superpowers/diagnostic-reports/2026-09-07-edgar-history-coverage.md`
 **Branch:** `feature/tool-a-cyclicals`
 
@@ -55,13 +64,19 @@ benötigten Reihen über ≥10 zusammenhängende Jahre; 568 (93,1 %) über ≥7.
 | Umsatz | `Revenues`, `RevenueFromContractWithCustomerExcludingAssessedTax`, `SalesRevenueNet`, `RevenueFromContractWithCustomerIncludingAssessedTax`, `SalesRevenueGoodsNet`, `SalesRevenueServicesNet` |
 | Operatives Ergebnis | `OperatingIncomeLoss`, `IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest`, `IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments` |
 | Nettogewinn | `NetIncomeLoss`, `ProfitLoss`, `NetIncomeLossAvailableToCommonStockholdersBasic`, `IncomeLossFromContinuingOperations` |
-| Eigenkapital | `StockholdersEquity`, `StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest` |
+
+**Drei Reihen, nicht vier.** Eigenkapital ist entfallen, seit S3 die Nettomarge misst
+(Abschnitt 5). Das kostet nichts und spart die größte Namenslücke der Messung:
+`StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest` betraf 86 Titel.
 
 Ohne die jeweils hinteren Einträge fällt die Abdeckung von 85,1 % auf **59,7 %**. Die Differenz
-ist eine Namens-, keine Datenlücke; vier Tags erklären sie fast vollständig
-(`StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest` 86 Titel, `ProfitLoss`
-70, `IncomeLossFromContinuingOperationsBeforeIncomeTaxes…` 59,
+ist eine Namens-, keine Datenlücke; drei der verbliebenen Tags erklären sie fast vollständig
+(`ProfitLoss` 70 Titel, `IncomeLossFromContinuingOperationsBeforeIncomeTaxes…` 59,
 `RevenueFromContractWithCustomerIncludingAssessedTax` 21).
+
+> Die Prozentzahlen dieses Abschnitts sind über **vier** Reihen gemessen (Stand der Probe vom
+> 2026-09-07) und sind damit eine **Untergrenze** für die Abdeckung über drei: wer alle vier
+> hatte, hat auch die drei. Die genaue Drei-Reihen-Quote liefert der Kalibrierungslauf.
 
 > **Diese Reihen sind für die FORM einer Zeitreihe bestimmt, nicht für ihr NIVEAU.**
 > `Revenues` und `RevenueFromContractWithCustomerExcludingAssessedTax` dürfen in einer
@@ -95,19 +110,40 @@ Fenster; zehn Jahre mit Loch in der Mitte sind keine zehn Jahre.
 
 | # | Kennzahl | Berechnung |
 |---|---|---|
-| S1 | Wachstumsstetigkeit | `consistency_ratio(revenues)` — `(Übergänge − Rückgangsjahre) / Übergänge` |
-| S2 | Margenschwankung | Standardabweichung der jährlichen operativen Marge (`operating_income / revenue`) in **Prozentpunkten** |
-| S3 | Schlechteste Eigenkapitalrendite | `min(net_income_t / equity_t)` über das Fenster |
+| S1 | Rückgangsjahre | **Anzahl** der Jahre mit fallendem Umsatz im Fenster (`down_years`) |
+| S2 | Margeneinbruch | größter Rückgang der operativen Marge (`operating_income / revenue`) **vom bisherigen Hoch** im Fenster, in Prozentpunkten |
+| S3 | Schlechteste Nettomarge | `min(net_income_t / revenue_t)` über das Fenster |
 
-**S1 existiert bereits.** `consistency_ratio()` in `app/screener/growth_consistency.py:11` nimmt
-eine Umsatzreihe entgegen und ist quellenblind — sie sieht heute nur vier Jahre. Es ist keine
-neue Kennzahl nötig, nur eine längere Reihe.
+**Zu S1 — gezählt, nicht als Quote gebändert.** `consistency_ratio()` in
+`app/screener/growth_consistency.py:11` bleibt die Quelle der Zählung (`down_years` aus
+`classify_revenue_trajectory`), aber die Bänder hängen an der **Anzahl**, nicht am Verhältnis.
+Grund: bei neun Übergängen ist die Quote quantisiert — 1,00 / 0,89 / 0,78 / 0,67 —, „≥ 0,90 für
+die 5" heißt real „null Rückgangsjahre", und ein einziges schlechtes Jahr fällt knapp auf die 4.
+Die Anzahl sagt dasselbe, nur ohne die Scheingenauigkeit. Für ein Fenster von 7–9 Jahren gilt
+**dieselbe Anzahl-Tabelle**, es wird nicht auf die Fensterlänge umgerechnet: drei schlechte
+Jahre sind drei schlechte Jahre.
 
-**Zu S3:** Eigenkapital ist eine Bestandsgröße zum Stichtag; gerechnet wird mit dem
-Jahresendwert, nicht mit einem Durchschnitt. Für eine Stetigkeitsaussage genügt das, und es hält
-die Reihe bei genau einem Wert pro Jahr. Jahre mit `equity ≤ 0` liefern keine sinnvolle Rendite
-und werden übersprungen; besteht das Fenster danach aus weniger als der Mindestzahl Jahre, ist
-S3 nicht bestimmt und die Dimension neutral (Abschnitt 7).
+**Zu S2 — Rückgang vom Hoch, nicht Standardabweichung.** Eine stetig steigende Marge hat eine
+hohe Standardabweichung und ist doch das Gegenteil von zyklisch; die Streuung bestraft hier
+genau das Falsche. Gesucht ist der Einbruch im Tal, und den misst der maximale Rückgang vom
+bisherigen Hoch (`max(peak_bis_t − marge_t)` über das Fenster, Prozentpunkte). Die Kennzahl ist
+richtungsabhängig — eine Marge, die nur steigt, hat einen Rückgang von 0.
+
+**Zu S3 — Nettomarge statt Eigenkapitalrendite.** Die ursprüngliche Fassung nahm die
+schlechteste Eigenkapitalrendite. Das bricht an den eigenen Abnahmefällen: FICO und TDG haben
+durch jahrelange Rückkäufe **negatives Eigenkapital**, wären also nach der „`equity ≤ 0`
+überspringen"-Regel neutral gestellt worden — obwohl §10.2 verlangt, dass genau sie oben
+bleiben. Die Nettomarge ist gegen die Kapitalstruktur unempfindlich und misst dieselbe Frage:
+trägt das Geschäft im schlechtesten Jahr des Fensters noch.
+
+**Folge für die Datengrundlage:** die Eigenkapital-Reihe entfällt. Gebraucht werden nur noch
+**drei** Reihen (Umsatz, operatives Ergebnis, Nettogewinn) — §4.1 ist entsprechend gekürzt. Das
+ist nebenbei die größte Namenslücke der Messung: `StockholdersEquityIncludingPortionAttributable\
+ToNoncontrollingInterest` betraf 86 Titel und wird nicht mehr gebraucht. Die Regel
+„`equity ≤ 0` überspringen" entfällt ersatzlos.
+
+Ein Jahr mit `revenue ≤ 0` ist für S2 und S3 nicht bestimmt und wird übersprungen; bleibt das
+Fenster darunter unter der Mindestlänge, ist die Dimension neutral (Abschnitt 7).
 
 ### 5.1 Absolute Bänder, ausdrücklich keine sektor-relativen Perzentile
 
@@ -119,17 +155,33 @@ alle Goldminen schwanken — die relative Statistik verschluckt genau das Urteil
 Dimension fällen soll. Dasselbe Muster hat im Repo schon dreimal dieselbe Antwort erzwungen
 (Tier-B Punkt 2: absoluter Below-Median-Gap statt skalen-relativer Norm).
 
-Vorschlag, **kalibrierungspflichtig** (Abschnitt 9):
+**S1 ist entschieden** — die Anzahl ist keine Verteilungsfrage:
 
-| Score | S1 Wachstumsstetigkeit | S2 Margenschwankung (pp) | S3 schlechteste EK-Rendite |
-|---|---|---|---|
-| 5 | ≥ 0,90 | ≤ 3 | ≥ 10 % |
-| 4 | ≥ 0,75 | ≤ 6 | ≥ 5 % |
-| 3 | ≥ 0,60 | ≤ 10 | ≥ 0 % |
-| 2 | ≥ 0,45 | ≤ 15 | ≥ −10 % |
-| 1 | sonst | sonst | sonst |
+| Score | S1 Rückgangsjahre im Fenster |
+|---|---|
+| 5 | 0 |
+| 4 | 1 |
+| 3 | 2 |
+| 2 | 3 |
+| 1 | mehr als 3 |
 
-`steadiness = round(mean(S1, S2, S3), 2)`, Skala 0–5 wie die übrigen Achsen.
+**S2 und S3 sind VORSCHLAG und werden durch die Kalibrierung ersetzt** (Abschnitt 9.2). Die
+Zahlen unten stehen nur da, damit die Größenordnung nicht offen bleibt — sie sind nicht
+gemessen und dürfen nicht implementiert werden, bevor die Verteilung vorliegt:
+
+| Score | S2 Margeneinbruch vom Hoch (pp) — Vorschlag | S3 schlechteste Nettomarge — Vorschlag |
+|---|---|---|
+| 5 | ≤ 2 | ≥ 10 % |
+| 4 | ≤ 5 | ≥ 5 % |
+| 3 | ≤ 10 | ≥ 0 % |
+| 2 | ≤ 20 | ≥ −10 % |
+| 1 | sonst | sonst |
+
+**Zusammenführung offen (B1):** die Spec sah `mean(S1, S2, S3)` vor. Ob das trägt, entscheidet
+die Kalibrierung — `mean` lässt eine Kombination 5/4/3 mit genau 4,0 durch, was für eine
+Dimension, die Zykliker aussortieren soll, weich sein könnte. Gegenkandidat ist
+`min(S1, S2, S3)`. Der Kalibrierungsbericht stellt beide nebeneinander; die Entscheidung fällt
+danach, nicht hier. Skala 0–5 wie die übrigen Achsen.
 
 ## 6. Fensterlänge: abgestuft ab sieben Jahren, mit Deckel
 
@@ -175,7 +227,8 @@ sie falsch.
 
 ## 8. Gewichtung und Crosshit-Schwellwert
 
-> **ENTSCHEIDUNG (2) — die eigentliche Weiche. Vor dem Bau zu treffen.**
+> **ENTSCHIEDEN am 2026-09-07: der Hauptvorschlag wird gebaut.** Die Alternative bleibt als
+> dokumentierter Rückfall stehen und wird **nicht** implementiert.
 
 Heute: `MERIT_DIMENSIONS` = growth, profitability, resilience; Crosshit = ≥3 von 3 Achsen ≥4,0
 (`app/screener/dimensions.py:30`, `crosshits_min_dimensions=3`).
@@ -189,16 +242,30 @@ schief:
   32,6 % des Universums, darunter alle europäischen. Bestrafung durch die Hintertür, im
   Widerspruch zu Abschnitt 7.
 
-**Vorschlag: Crosshit = ≥4,0 in allen BEWERTBAREN Merit-Achsen, mindestens jedoch in drei.**
+**Gebaut wird: Crosshit = ≥4,0 in allen BEWERTBAREN Merit-Achsen, mindestens jedoch in drei.**
 Stetigkeit zählt mit, wenn sie bestimmt ist, und wird übersprungen, wenn sie es nicht ist. Damit
 gilt für einen Titel mit Historie eine strengere Hürde als heute, für einen ohne Historie
 exakt die heutige. Das ist „neutral = weder Vor- noch Nachteil", präzise ausgedrückt.
 
+### 8.1 Auflage: „bewertbar" hängt an einem Feld, nie am Score-Wert
+
+`steadiness == 3.0` darf **niemals** als „nicht bewertbar" gelesen werden. Eine echte Stetigkeit
+von 3,0 ist ein normales Messergebnis (etwa 2 Rückgangsjahre, mittlerer Margeneinbruch, magere
+Nettomarge) und **muss am Gate scheitern** — sie liegt unter 4,0. Der Sentinel-3 der
+Nicht-Bewertbaren sieht identisch aus und muss übersprungen werden. Wer die beiden über den Wert
+unterscheidet, verwechselt sie zwangsläufig, und zwar zugunsten des zyklischen Titels.
+
+Deshalb trägt der Record ein **eigenes Feld** — `steadiness_reason` mit den drei Neutral-Gründen
+aus Abschnitt 7 (`no_sec_registrant`, `series_too_short`, `no_concept`) und `None`, wenn die
+Achse bewertet wurde. Das Gate liest ausschließlich dieses Feld. Dieselbe Trennung gilt für die
+Report-Spalte: `n/a` kommt aus dem Grund, nicht aus dem Wert.
+
 Alternative, falls das zu viel Mechanik ist: Stetigkeit wird **nur angezeigt und ins Ranking
 gezogen** (Sortierschlüssel vor dem Ø-Score), das Gate bleibt auf den drei bestehenden Achsen.
 Schwächer, aber ohne jede Umstellung des Gates — und mit der Preisnehmer-Spalte zusammen
-vermutlich schon ausreichend. Ich empfehle den Hauptvorschlag; die Alternative ist der Rückfall,
-wenn der Regressionslauf (Abschnitt 10) zu viele richtige Titel verliert.
+vermutlich schon ausreichend. **Nicht gewählt** — sie steht hier als Rückfall für den Fall, dass
+der Regressionslauf (Abschnitt 10) zu viele richtige Titel verliert, und wird sonst nicht
+gebaut.
 
 `crosshits_score_threshold` (4,0) bleibt in beiden Fällen unverändert.
 
@@ -208,22 +275,63 @@ wenn der Regressionslauf (Abschnitt 10) zu viele richtige Titel verliert.
 
 | Neu/geändert | Was |
 |---|---|
-| `app/services/edgar_facts_client.py` | Thin Wrapper um companyfacts. Die Extraktion aus `scripts/probe_edgar_history.py` wandert hierher — sie ist gemessen und getestet, kein Neubau. |
-| `app/services/cached_edgar_facts.py` | Firestore-Cache, TTL 400 Tage (wie `revenue_series_cache`: Jahresdaten ändern sich jährlich). **Nur den Extrakt speichern** — companyfacts-Rohdokumente sind mehrere MB und sprengen das 1-MiB-Dokumentlimit. |
-| `app/screener/steadiness.py` | S1/S2/S3, Bänder, Fenster-Deckel, Neutral-Sentinel. Reine Funktionen auf Reihen, keine I/O. |
-| `app/screener/deterministic_scorer.py` | Achse `steadiness` ergänzen. |
+| `app/services/edgar_annual_series_client.py` | Thin Wrapper um companyfacts. Die Extraktion aus `scripts/probe_edgar_history.py` wandert hierher — sie ist gemessen und getestet, kein Neubau. |
+| `app/services/cached_edgar_annual_series.py` | Firestore-Cache, siehe 9.1.1. **Nur den Extrakt speichern** — companyfacts-Rohdokumente sind mehrere MB und sprengen das 1-MiB-Dokumentlimit. |
+| `app/screener/steadiness.py` | S1/S2/S3, Bänder, Fenster-Deckel, Neutral-Grund. Reine Funktionen auf Reihen, keine I/O. |
+| `app/screener/deterministic_scorer.py` | Achse `steadiness` + Feld `steadiness_reason` (Abschnitt 8.1). |
 | `app/screener/dimensions.py` | `MERIT_DIMENSIONS` + Gate-Regel aus Abschnitt 8. |
 | `app/output/crosshits_generator.py` | Spalte **Stetigkeit** + Legende. |
-| `scripts/backfill_edgar_facts.py` | Cache vorwärmen (Vorbild: `scripts/backfill_revenue_series.py`). |
-| `data/`/Firestore | Neue Collection `dev_edgar_facts`. **CLAUDE.md verlangt dafür eine ausdrückliche Architektur-Entscheidung** — sie ist mit dieser Spec zu treffen, nicht implizit. |
+| `scripts/backfill_edgar_annual_series.py` | Cache vorwärmen (Vorbild: `scripts/backfill_revenue_series.py`). |
+| `app/config.py` | `edgar_annual_series_collection`, `edgar_annual_series_ttl_days`, `edgar_annual_series_negative_ttl_days` — analog `revenue_series_*`. |
+
+#### 9.1.1 Architektur-Entscheidung: neue Collection `dev_edgar_annual_series`
+
+CLAUDE.md verlangt für jede weitere Collection eine ausdrückliche Entscheidung. Hier ist sie.
+
+- **Name `dev_edgar_annual_series`**, nicht `dev_edgar_facts`. „facts" benennt das
+  companyfacts-Rohdokument — genau das, was hier ausdrücklich **nicht** gespeichert wird — und
+  ist von `dev_edgar_cache` (Restatement-/Going-Concern-Signale) kaum zu unterscheiden. Der Name
+  sagt jetzt, was drinsteht: Jahresreihen.
+- **Schlüssel: CIK**, nicht Ticker. GOOG und GOOGL teilen sich einen Emittenten und damit ein
+  Dokument; über den Ticker geschlüsselt würde dieselbe Reihe zweimal geladen und zweimal
+  gespeichert.
+- **Inhalt:** nur der Extrakt — je Konzept die Jahre und Werte, plus die Schema-Version der
+  Extraktion. Ändert sich die Extraktion, wird der Eintrag verworfen statt still warmgehalten
+  (dasselbe Muster wie `EXTRACT_SCHEMA` in der Messprobe).
+- **TTL 400 Tage mit Jitter ±60 Tage.** Ohne Jitter läuft alles, was der Backfill an einem Tag
+  geschrieben hat, auch an einem Tag ab — und ein einzelner Monatslauf trüge die vollen ~7
+  Minuten Nachladen auf einmal, direkt gegen die Deadline aus 9.3. Der Jitter verteilt das über
+  ein Vierteljahr.
+- **Negativergebnisse werden gecacht**, mit kurzer eigener TTL (30–90 Tage, Vorbild
+  `adr_negative_cache_ttl_days`): kein CIK auflösbar, 404 auf companyfacts, kein Konzept
+  getroffen. Ohne das laden rund 90 Titel jeden Monat ihr mehrere MB großes Dokument, um erneut
+  festzustellen, dass nichts drinsteht. Die kurze TTL ist gewollt asymmetrisch — ein
+  Negativergebnis ist eine Aussage über heute, nicht über das Unternehmen.
+
+Die Tabelle „Firestore Collections" in CLAUDE.md wird im selben Zug auf den Ist-Stand gebracht;
+sie nannte vier Collections, im Code sind es sechs, und der Stack-Abschnitt sprach von zweien.
 
 ### 9.2 Bandkalibrierung vor dem Bau
 
-Die Bänder in 5.1 sind ein Vorschlag, keine Messung. Vor der Implementierung ein
-Kalibrierungsskript (Vorbild `scripts/calibrate_anchor_bands.py`) über die bereits gemessenen
-Reihen in `cache/edgar_history_coverage.json`: Verteilung von S1/S2/S3 über die 519 bewertbaren
-Titel, dazu die Werte der acht Preisnehmer und der drei Positivfälle im Klartext. Die Bänder
-werden an dieser Verteilung festgezogen, nicht an einer Intuition.
+Die Bänder für S2 und S3 in 5.1 sind ein Vorschlag, keine Messung. S1 ist entschieden (Anzahl
+Rückgangsjahre) und nicht kalibrierungspflichtig.
+
+`scripts/calibrate_steadiness_bands.py` (Vorbild `scripts/calibrate_anchor_bands.py`) liest
+ausschließlich `cache/edgar_history_coverage.json` — kein Netz, kein Firestore — und liefert:
+
+- die Verteilung von S1, S2 und S3 über die bewertbaren Titel;
+- die Teilwerte **und die Jahresreihen im Klartext** für HL, NEM, MU, TPL, MEDP, FAST, FICO,
+  NVDA (Abnahme auf Primärevidenz, §10.3);
+- `mean(S1,S2,S3)` gegen `min(S1,S2,S3)` nebeneinander, mit der Zahl der Titel ≥ 4,0 je
+  Variante (offener Punkt B1).
+
+**Zielkorridor für die Schwellen: 50–65 % der bewertbaren Titel mit Stetigkeit ≥ 4,0.** Die
+Dimension soll Zykliker aussortieren, nicht die Hälfte der guten Titel gleich mit. Harte
+Nebenbedingungen: HL, NEM und MU müssen unter 4,0 liegen; MEDP, FAST und FICO darüber. TPL
+(8 Jahre, Deckel 4) ist der Prüfstein und darf in beide Richtungen ausgehen.
+
+Die Bänder werden an dieser Verteilung festgezogen, nicht an einer Intuition, und die Spec wird
+danach mit den gemessenen Werten aktualisiert.
 
 ### 9.3 Laufzeit — der operative Engpass
 
@@ -238,7 +346,10 @@ Auflagen daraus, nicht verhandelbar:
 
 1. Der Cache wird **vor** der Aktivierung per Backfill-Skript vorgewärmt, nie im Monatslauf
    erstmalig gefüllt.
-2. TTL 400 Tage, damit ein Monatslauf im Regelfall gar keine companyfacts-Requests macht.
+2. TTL 400 Tage, damit ein Monatslauf im Regelfall gar keine companyfacts-Requests macht —
+   **mit Jitter ±60 Tage** (9.1.1). Ein Backfill schreibt alle Einträge am selben Tag; ohne
+   Jitter laufen sie auch am selben Tag ab, und dann trägt genau ein Monatslauf die vollen
+   ~7 Minuten Nachladen. Der Jitter verteilt die Erneuerung über ein Vierteljahr.
 3. Vor dem Scharfschalten ein kalter Dry-Run mit Zeitmessung. Bleibt die Gesamtlaufzeit über
    ~25 min, ist der synchrone Endpunkt der falsche Ort — dann zuerst das offene Ticket
    `2026-06-03-toolA-run-as-cloud-run-job.md` ziehen.
@@ -250,10 +361,15 @@ Auflagen daraus, nicht verhandelbar:
 - **Extraktion:** die Tests aus `tests/scripts/test_probe_edgar_history.py` wandern mit dem Code
   nach `tests/services/` — inklusive der drei Regressionsfälle (Vergleichsjahre, ASC-606-Wechsel,
   Quartalsstichtag).
-- **S1/S2/S3:** Bandgrenzen je einmal von beiden Seiten; `equity ≤ 0` wird übersprungen;
-  Fenster < 7 Jahre → neutral; Fenster 7–9 Jahre → Score ≤ 4 auch bei perfekten Eingaben.
-- **Gate:** ein Titel mit neutraler Stetigkeit verhält sich exakt wie heute; ein Titel mit
-  Stetigkeit 3,0 und drei Achsen ≥4,0 ist **kein** Crosshit mehr.
+- **S1/S2/S3:** Bandgrenzen je einmal von beiden Seiten; Fenster < 7 Jahre → neutral;
+  Fenster 7–9 Jahre → Score ≤ 4 auch bei perfekten Eingaben. Für S2 eigens: eine **stetig
+  steigende** Marge hat einen Rückgang von 0 und damit die 5 — die Kennzahl ist
+  richtungsabhängig, und eine Streuungskennzahl wäre hier zum gegenteiligen Urteil gekommen.
+- **Gate — die beiden Dreien:** ein Titel mit **echter** Stetigkeit 3,0 und drei Achsen ≥4,0 ist
+  **kein** Crosshit; ein Titel mit **Sentinel**-3 (`steadiness_reason` gesetzt) und drei Achsen
+  ≥4,0 **bleibt** einer. Beide tragen denselben Zahlenwert; wird das Gate über den Wert statt
+  über den Grund entschieden, fallen sie zusammen — und zwar zugunsten des zyklischen Titels.
+  Dieser Test ist der Wächter über Abschnitt 8.1.
 - **Report:** neutrale Titel zeigen `n/a` mit Grund-Marker, nie eine 3.
 
 ### 10.2 Regression über die 24 Septembertitel
@@ -262,21 +378,38 @@ Der Abnahmefall. Erwartung, an der die Dimension gemessen wird:
 
 | Erwartung | Titel |
 |---|---|
-| fallen deutlich | HL, NEM, MU — bewertbar und zyklisch |
-| bleiben oben | MEDP (11 J.), FAST (19 J.), FICO (18 J.) |
+| **müssen fallen** | HL, NEM, MU — bewertbar und zyklisch |
+| **müssen oben bleiben** | MEDP (11 J.), FAST (19 J.), FICO (18 J.) |
 | bleiben neutral, unverändert in der Liste, aber als Preisnehmer gekennzeichnet | EDV.L, ANTO.L (kein SEC), RGLD (5 J.), SNDK (4 J.) |
 | Prüfstein | TPL (8 J., gedeckelt auf 4) — soll an der Schwankung scheitern |
+| **dürfen fallen** (vorläufig, siehe B3) | NVDA, TER — Halbleiter-Zykliker; NVDA hatte FY2020 einen Umsatzrückgang und starke Margenschwankung. Fallen sie, ist das **kein Fehler**. Ob die Erwartung so bleibt, wird am Kalibrierungsergebnis entschieden. |
 
 Wie bei den Ticker-Listen in `tests/output/test_crosshits_generator.py` hängt der Test an den
 **Listen**, nicht an einer Anzahl: eine spätere Erweiterung darf ihn nicht rot färben.
 
+**Merksatz zu S1, gegen die Messdaten geprüft:** Newmont hat im Fenster 2016–2025 nur **drei**
+Umsatz-Rückgangsjahre (2018, 2022, 2023) — das Fenster liegt fast vollständig in einem
+Goldbullenmarkt, in dem der Umsatz von 6,7 auf 22,7 Mrd steigt. S1 allein stellt einen
+Preisnehmer also nicht: NEM fällt über S2 und S3, nicht über die Wachstumsstetigkeit. Genau
+deshalb hängt die Kalibrierung (B2) an S2 und S3.
+
+> Randnotiz zur Zahl: nach der **neuen** S1-Tabelle sind drei Rückgangsjahre Score **2**, nicht
+> 3 — die 3 stammte aus den alten Quotenbändern (6/9 = 0,67 → „≥ 0,60"). Die Aussage bleibt
+> dieselbe, der Punkt wird sogar etwas stärker: die Umstellung auf Anzahl verschärft S1 hier um
+> eine Stufe. Belastbar wird beides erst mit der Kalibrierung, weil das Fenster dort auf zehn
+> Jahre begrenzt wird und NEM 14 Jahre Historie hat.
+
 ### 10.3 Abnahme auf Primärevidenz, nicht auf Aggregat
 
-Ein Zähltest beweist nicht, dass der Mechanismus greift. Vor dem Merge sind für HL, NEM, MU und
-TPL die drei Teilwerte **im Klartext** zu lesen — Wachstumsstetigkeit, Margen-Standardabweichung,
-schlechteste EK-Rendite, samt der zugrundeliegenden Jahresreihen. Fällt einer der vier aus dem
-falschen Grund (etwa an einer Datenlücke statt an der Schwankung), ist die Dimension nicht
-abgenommen, auch wenn die Zahl stimmt.
+Ein Zähltest beweist nicht, dass der Mechanismus greift. Für **HL, NEM, MU, TPL, MEDP, FAST,
+FICO und NVDA** sind die drei Teilwerte **im Klartext** zu lesen — Rückgangsjahre,
+Margeneinbruch vom Hoch, schlechteste Nettomarge — samt der zugrundeliegenden Jahresreihen.
+Diese acht stehen schon im Kalibrierungsbericht (§9.2), damit die Bänder nicht an einer
+Verteilung festgezogen werden, deren Einzelfälle niemand gesehen hat.
+
+Fällt einer aus dem **falschen Grund** — an einer Datenlücke statt an der Schwankung, an einem
+verkürzten Fenster statt an der Zyklik —, ist die Dimension nicht abgenommen, auch wenn die
+Aggregatzahl stimmt.
 
 ## 11. Was diese Dimension nicht leistet
 
