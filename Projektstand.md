@@ -8,20 +8,83 @@
 
 ---
 
-## Letztes Update: 2026-09-06
+## Letztes Update: 2026-09-07
 
-> ⚠️ **Ehrlichkeits-Hinweis, dreistufig.** Aktuell ist **nur** der Abschnitt
-> „Top of mind — 2026-09-06" direkt unterhalb. Der Block „Top of mind — 2026-09-04"
+> ⚠️ **Ehrlichkeits-Hinweis, vierstufig.** Aktuell ist **nur** der Abschnitt
+> „Top of mind — 2026-09-07" direkt unterhalb. Der Block „Top of mind — 2026-09-06"
+> darunter gilt weiter. Der Block „Top of mind — 2026-09-04"
 > darunter gilt bis auf die dort korrigierten Punkte weiter; der Viewer-Block beschreibt
 > den Stand vom **2026-08-20**; alles ab `## Status` stammt vom **2026-06-11**.
 >
 > Konkret veraltet: `## Status` nennt 240 Tests / 95,39 % Coverage und ein Universum von
-> 1.389 Tickern — tatsächlich sind es **1569 Tests / 96,67 %** und **1.322 Ticker**. Auch
+> 1.389 Tickern — tatsächlich sind es **1635 Tests / 96,70 %** und **1.322 Ticker**. Auch
 > „Nächster Lauf: 2026-06-01" steht dort noch. Die Arbeit dazwischen (B-Fast, EU-ADR,
 > Akzeptanz-Gate 1.6, Sektor-relatives Scoring) ist hier nie dokumentiert worden.
 >
 > Nichts unterhalb des ersten Abschnitts als aktuellen Stand lesen, ohne gegen `git log`
 > zu prüfen.
+
+## Top of mind — 2026-09-07
+
+**Sieben von 24 September-Crosshits sind Preisnehmer — acht, genau gezählt.** Gold (EDV.L,
+HL, NEM, RGLD), Kupfer (ANTO.L), Landbesitz (TPL), Speicher (MU, SNDK). Die Ursache steht im
+Code, nicht in der Vermutung: Tool A scort auf Momentaufnahmen, und der einzige
+Zyklik-Dämpfer `consistency_cap()` rechnet über die vier Geschäftsjahre, die yfinance
+liefert — drei Übergänge, im Rohstoffboom alle aufwärts, der Cap steht auf 5. Der Dämpfer
+feuert genau dort nicht, wo er gebraucht wird. Suite **1635 / 96,70 %**.
+
+**Gemessen, bevor am Scoring etwas geändert wurde.** `scripts/probe_edgar_history.py` über
+610 US-Titel, 6,8 min, $0, 0 Fehler; Bericht in
+`docs/superpowers/diagnostic-reports/2026-09-07-edgar-history-coverage.md`.
+
+| alle vier benötigten Reihen ≥10 zusammenhängende Jahre | Titel | Anteil |
+|---|---|---|
+| mit der naheliegenden Konzeptliste | 364 | 59,7 % |
+| mit vier zusätzlichen us-gaap-Tags | 519 | 85,1 % |
+
+Die Differenz ist eine **Namens-, keine Datenlücke**:
+`StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest` (86 Titel),
+`ProfitLoss` (70), `IncomeLossFromContinuingOperationsBeforeIncomeTaxes…` (59),
+`RevenueFromContractWithCustomerIncludingAssessedTax` (21).
+
+**Der Befund, der die Reihenfolge umgedreht hat.** 85 % Abdeckung im Aggregat — aber eine
+EDGAR-gestützte Dimension erreicht nur **drei der acht** Preisnehmer (HL, NEM, MU). EDV.L
+und ANTO.L sind keine SEC-Registranten; RGLD (5 J.), SNDK (4 J.) und TPL (8 J.) haben zu
+junge XBRL-Historie. Preisnehmer sind überdurchschnittlich oft jung oder europäisch — genau
+die Population, die EDGAR nicht abdeckt. Deshalb **erst kennzeichnen, dann messen**, nicht
+umgekehrt.
+
+**Drei Extraktionsfallen, alle im Aggregat unsichtbar, alle durch Tests gepinnt.**
+(1) `fy`/`fp` benennen das *meldende Filing*, nicht die Periode — nach `fy` zu deduplizieren
+zieht die Vergleichsjahre eines 10-K zu einem Jahr zusammen (417 statt 505 Titel mit ≥10 J.).
+(2) ASC 606 hat 2018 die Umsatz-Tags gewechselt: „erster Tag mit Daten gewinnt" liefert bei
+Agilent eine Reihe, die **2017 endet** — 9 Jahre statt 19. (3) Ein 10-K taggt auch
+Quartals-Bilanzstichtage; Akamais `2022-03-31` trägt das Etikett 2021 und verdrängte dort den
+echten Jahresabschluss — aus 20 Jahren wurden 4. Gefunden wurden (2) und (3), weil einzelne
+Reihen unplausibel kurz aussahen, nicht weil eine Quote schlecht war.
+
+**Live: Preisnehmer-Kennzeichnung.** `data/price_takers.json` +
+`app/screener/price_takers.py`, neue Spalte im Crosshits-Report. **Kennzeichnung, kein
+Ausschluss — der Score ist unverändert, die Liste vollständig.** MU und SNDK brauchen einen
+Ticker-Override (yfinance kennt kein „Semiconductor Memory"; MU teilt `Semiconductors` mit
+NVDA), TPL braucht keinen (`Oil & Gas E&P` greift schon). Der Loader ist fail-loud bei
+fehlender Datei: eine fehlende Tabelle würde „nein" neben jeden Titel schreiben, und das ist
+ein falsches Label, kein fehlendes.
+
+**Nur Spec, nicht gebaut: vierte Dimension „Stetigkeit"**
+(`docs/superpowers/specs/2026-09-07-dimension-steadiness-design.md`). Offen vor dem Bau:
+absolute Bänder kalibrieren; die Gate-Regel („≥4,0 in allen *bewertbaren* Merit-Achsen,
+mindestens drei" — drei von vier wäre lockerer als heute, vier von vier bestraft 32,6 % des
+Universums durch die Hintertür); und die Collection `dev_edgar_facts`, die laut CLAUDE.md
+eine ausdrückliche Entscheidung braucht. **Operativer Engpass:** ein kalter
+companyfacts-Durchlauf legt 6,8 min auf einen ~23-min-Monatslauf gegen eine harte
+1800-s-Scheduler-Deadline — Cache vorher per Backfill wärmen, nie im Monatslauf erstmalig
+füllen.
+
+**Aufgeräumt nebenbei:** `reports/` war ein zweiter, versehentlicher Ablageort für
+Diagnose-Berichte. Datei nach `docs/superpowers/diagnostic-reports/` verschoben, **und der
+Ausgabepfad im Skript mitgezogen** — sonst hätte der nächste Lauf die Doppelablage still neu
+angelegt. `/reports/` steht jetzt root-anchored in `.gitignore`.
 
 ## Top of mind — 2026-09-06
 
