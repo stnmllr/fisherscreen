@@ -61,7 +61,7 @@ FisherScreen ist ein persönliches Werkzeug, das Phil Fishers 15 Prinzipien aus
 |---|---|---|
 | Backend | FastAPI (Python 3.12) | async/await durchgängig |
 | Hosting | Cloud Run (europe-west3) | Free-Tier reicht |
-| Datenbank | Firestore (Native Mode) | 2 Collections |
+| Datenbank | Firestore (Native Mode) | 6 Collections, eine siebte geplant — siehe Tabelle unten |
 | Scheduler | Cloud Scheduler | 1 Job, gratis |
 | Secrets | Secret Manager | Nie `.env` auf Cloud Run |
 | LLM Bulk | Gemini Flash Lite | Nur Tool B — Tool A scort seit 2026-06 deterministisch (kein LLM) |
@@ -217,18 +217,30 @@ APIFY_MAX_RUNS_PER_DEEPDIVE = int(os.environ.get("FISHERSCREEN_APIFY_RUN_CAP", "
 
 ### Firestore Collections
 
-<!-- ⚠️ TODO: dev_edgar_cache fehlt in dieser Tabelle, wird aber im Funnel-Cold-Run gepurgt.
-     Falls Firestore-Collection → eintragen; falls lokaler File-Cache → "2 Collections" oben und
-     "keine weiteren Collections" unten sind dann irreführend, klarstellen.
-     Erledigt: dev_screener_runs ist jetzt auch im Kostenkontroll-Abschnitt konsistent benannt. -->
-| Collection | Zweck | Schlüssel |
-|---|---|---|
-| `universe_cache` | yfinance-Daten mit TTL | ticker |
-| `buy_snapshots` | Kennzahlen-Snapshot bei Kauf | ticker |
-| `dev_gemini_scores` | Gemini-Scores per Ticker (TTL 30d) | ticker |
-| `dev_screener_runs` | Cost-Tracking pro Run | run_id (ISO-Timestamp) |
+Ist-Stand, abgeglichen mit `app/config.py` am 2026-09-07. Die Tabelle nannte vorher vier
+Collections, zwei davon existierten nur hier und in keiner Codezeile.
 
-Naming: snake_case lowercase. Keine weiteren Collections ohne explizite Architektur-Entscheidung.
+| Collection | Config-Feld | Zweck | Schlüssel | TTL | Kaltlauf-Purge |
+|---|---|---|---|---|---|
+| `dev_ticker_cache` | `ticker_collection` | yfinance-`.info` je Ticker | ticker | 24 h | ja — `scripts/purge_ticker_cache_all.py` |
+| `dev_edgar_cache` | `edgar_collection` | Restatement- + Going-Concern-Signale | cik | 7 d | ja — `scripts/purge_edgar_cache_all.py` |
+| `dev_gemini_scores` | `gemini_score_collection` | Scores je Ticker. **Tool A scort seit 2026-06 deterministisch** — die Collection wird vom Live-Pfad nicht mehr geschrieben | ticker | 2 d | ja — `scripts/purge_gemini_scores_all.py` |
+| `dev_screener_runs` | `screener_runs_collection` | Cost-Tracking pro Run | run_id (ISO-Timestamp) | — | nein (Historie) |
+| `dev_revenue_series` | `revenue_series_collection` | Mehrjahres-Umsatzreihen (yfinance, ~4 GJ) | ticker | 400 d | nein — kein Purge-Skript |
+| `dev_deepdive_peers` | `deepdive_peers_collection` | Peer-Gruppen für Tool B | ticker | — | nein |
+| `dev_edgar_annual_series` | `edgar_annual_series_collection` | **geplant, noch nicht gebaut:** EDGAR-Jahresreihen für die Stetigkeits-Dimension. Nur der Extrakt, nie companyfacts roh | **cik** | 400 d ± 60 d Jitter; Negativ 30–90 d | nein — Backfill statt Purge |
+
+Nicht in dieser Liste, weil **lokale Dateien** unter `cache/`, keine Collections:
+`adr_resolved.json` (Tool B), `filings/`, `insider/`, `yfinance_historical/`.
+
+`universe_cache` und `buy_snapshots` sind **gestrichen**: sie standen seit der ersten Fassung
+hier, kommen aber in keiner Codezeile vor (`grep` über `app/`, `scripts/`, `tests/` am
+2026-09-07: null Treffer). Ein Schema, das Collections nennt, die es nicht gibt, ist schlechter
+als eines, das schweigt.
+
+Naming: snake_case lowercase. Keine weiteren Collections ohne explizite Architektur-Entscheidung
+— die für `dev_edgar_annual_series` steht in
+`docs/superpowers/specs/2026-09-07-dimension-steadiness-design.md` §9.1.1.
 
 ---
 

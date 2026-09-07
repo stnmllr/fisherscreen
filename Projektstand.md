@@ -81,6 +81,28 @@ companyfacts-Durchlauf legt 6,8 min auf einen ~23-min-Monatslauf gegen eine hart
 1800-s-Scheduler-Deadline — Cache vorher per Backfill wärmen, nie im Monatslauf erstmalig
 füllen.
 
+**Nachtrag desselben Tages: die Stetigkeits-Spec ist baureif.** Kennzahlen entschieden
+(S1 = Anzahl Rückgangsjahre, S2 = Margeneinbruch vom Hoch in pp, S3 = schlechteste Nettomarge;
+Eigenkapital entfällt aus der Konzeptliste). Kalibrierungslauf über die vorhandenen Messdaten
+gelaufen — kein Netz, $0 —, Bänder festgezogen: S2 ≤ 5/12/24/48 pp, S3 ≥ 5/0/−5/−15 %,
+Zusammenführung Mittelwert. Gate: „≥ 4,0 in allen **bewertbaren** Merit-Achsen, mindestens
+drei", wobei „bewertbar" an einem eigenen Feld `steadiness_reason` hängt und **nie** an
+`steadiness == 3.0` — beide Dreien tragen denselben Zahlenwert, und wer sie über den Wert
+unterscheidet, verwechselt sie zugunsten des Zyklikers.
+
+**Zwei Dinge, die die Messung an den Vorgaben korrigiert hat.** Erstens war der Zielkorridor
+„50–65 % der Titel mit ≥ 4,0" vor der Verteilung geschätzt und ist zurückgezogen: der
+Median-Titel ist ein 3/3/3, und ihn auf 4 zu heben hätte die S3-Kante ins Negative geschoben —
+eine 4 für „Stetigkeit" an einen Titel mit Verlustjahr. Maßstab ist jetzt allein die
+Regressionserwartung über die Septemberliste. Zweitens sind **PLTR (8 J.) und ABNB (7 J.)
+bewertbar, nicht neutral**: die abgestufte Regel greift ab sieben Jahren. Damit werden 16 der 24
+Septembertitel bewertet, nicht 13.
+
+Ergebnis auf der Septemberliste: es fallen NEM und MU (je 1,33), ABNB, HL, TER, PLTR, TPL und
+META; es bleiben FICO und FAST (5,0), GOOG/GOOGL, MEDP, MNST (4,67) sowie **NVDA und TDG mit
+exakt 4,0** — die Kantenlage ist gewollt, ein weiteres schwaches Margenjahr kippt beide.
+Der Bau ist freigegeben, kommt aber als eigener PR.
+
 **Aufgeräumt nebenbei:** `reports/` war ein zweiter, versehentlicher Ablageort für
 Diagnose-Berichte. Datei nach `docs/superpowers/diagnostic-reports/` verschoben, **und der
 Ausgabepfad im Skript mitgezogen** — sonst hätte der nächste Lauf die Doppelablage still neu
