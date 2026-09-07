@@ -83,16 +83,23 @@ der **ausgelieferte Inhalt altert still** (10 Ticker draußen, 11 im lokalen Bui
 fehlt), weil das `scp` manuell ist und nirgends steht. Siehe
 `tickets/2026-08-20-viewer-deploy-fisher-subpath.md`, Abschnitt „Befund 2026-09-06".
 
-**Offen, in dieser Reihenfolge:**
+**Beides erledigt am 2026-09-07.** Der Viewer-Deploy ist geschlossen: die ausgelieferte
+Seite trägt 11 Ticker inklusive `EDV.L`, an der Live-Seite gegengeprüft, und der
+Upload-Schritt steht jetzt im Vault-Runbook neben dem Tool-B-Aufruf. Drei Stolpersteine
+sind dabei ans Licht gekommen und im Ticket festgehalten: `/var/www/fisher/` gehörte `root`
+(einmalig per `chown` behoben), der `!`-Prefix in Claude Code hat kein TTY (`ssh` kann dort
+nicht nach der Passphrase fragen), und für `/fisher/` setzt Caddy keinen
+`Cache-Control`-Header — direkt nach dem Upload zeigte die Übersicht noch den alten Stand
+über neuen Detailseiten.
 
-1. **Inhalt der ausgelieferten Viewer-Seite auffrischen** (`scp output/site` →
-   `/var/www/fisher/`) und entscheiden, ob die Seite ein sichtbares Erzeugungsdatum
-   bekommt. Ein Lesekanal, der alt aussieht wie neu, ist die gefährlichere Ausfallart.
-2. **Die zwei roten Viewer-Parser-Tests** —
-   `tickets/2026-09-06-viewer-parser-tests-red-on-main.md`. Zwei Ursachen, nur eine ist ein
-   Mangel am Produkt: das FX-Gate-Ergebnis fehlt im Vokabular des Viewers, und der zweite
-   Test pinnt einen Zählwert auf gitignorierte Artefakte und kann gar nicht grün bleiben.
-3. Backlog unverändert, siehe unten.
+Die zwei roten Parser-Tests sind grün (PR #57), und dahinter steckte ein echter Defekt: ein
+**⚠ an einer Zeile, die `n/a` sagt**. Die Regel dagegen war längst geschrieben, sie bekam
+nur die ganze Rohzeile statt des Werts. Das Ticket trägt einen Abschnitt darüber, dass seine
+eigene erste Diagnose falsch war — vom Testnamen auf die Anzeige geschlossen, statt in das
+gebaute HTML zu sehen.
+
+**Offen:** nur noch der Backlog unten. Dazu die Probe im frischen privaten Fenster für den
+Login-Flow, die weiterhin niemand nachgeholt hat.
 
 ---
 

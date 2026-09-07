@@ -2,7 +2,51 @@
 
 **Opened:** 2026-08-20
 **Priority:** blocked on nothing technical; waiting for a deliberate deploy window.
-**Status:** open — **aber nicht mehr aus dem Grund im Titel.** Der Deploy ist erfolgt; offen ist, dass niemand ihn nachgetragen hat und dass es keine Auffrischung gibt. Siehe „Befund 2026-09-06".
+**Status:** CLOSED 2026-09-07 — siehe „Abschluss 2026-09-07" unten. Der Deploy war seit August live; die Auffrischung ist nachgeholt und dokumentiert.
+
+## Abschluss 2026-09-07: die Seite trägt den aktuellen Stand
+
+Der letzte offene Punkt — der ausgelieferte Inhalt — ist erledigt. `output/site` ist neu
+gebaut und hochgeladen (14 Dateien), und **an der ausgelieferten Seite gegengeprüft**, nicht
+am Upload-Protokoll:
+
+- `https://macro.stnmllr.com/fisher/` listet **11 Ticker inklusive `EDV.L`** (vorher 10).
+- Auf `…/ticker/EDV.L.html` steht `Bewertungs-Range: n/a (FX: Listing≠Reporting)` **ohne ⚠**,
+  und die Fußnote nennt nur noch den echten D/E-Defekt (PR #57).
+
+Der Schritt hat jetzt eine Stelle: `Vault/Wissen/Finanzen/FisherScreen/fisherscreen Tool B
+manueller Lauf.md`, Abschnitt „Veröffentlichen (Viewer)", direkt neben dem Tool-B-Aufruf.
+Damit ist die im Befund unten gestellte Frage beantwortet — **dokumentierte Stelle**, nicht
+sichtbares Erzeugungsdatum. Ein Automatismus bleibt ausgeschlossen.
+
+### Drei Dinge, die der erste echte Upload zutage gefördert hat
+
+1. **`/var/www/fisher/` gehörte `root`.** Der August-Deploy lief laut `AUTH.md` als Root, also
+   scheiterte `scp` als `stef` mit `dest open …: Permission denied` — pro Datei, während die
+   drei Dateien der obersten Ebene teils schon durch waren. Einmalig behoben mit
+   `ssh -t … "sudo chown -R stef:stef /var/www/fisher"`. Das `-t` ist nötig, sonst kann
+   `sudo` nicht fragen. Kommt wieder, falls das Verzeichnis je neu als root angelegt wird.
+
+2. **Der `!`-Prefix in Claude Code hat kein TTY.** `ssh` kann dort nicht nach der Passphrase
+   fragen und scheitert mit `Permission denied (publickey)` — das sieht wie ein
+   Schlüsselproblem aus und ist keines. Deploy-Schritte gehören in ein echtes `cmd.exe`-Fenster.
+
+3. **Für `/fisher/` setzt Caddy keinen `Cache-Control`-Header.** Unmittelbar nach dem Upload
+   zeigte die Übersicht noch zehn Ticker, während die Detailseiten bereits neu waren — ein
+   gemischtes Bild, das in sich stimmig aussieht. Es lag am Browser-Cache, nicht am Server;
+   mit `?cachebust=1` erschienen alle elf. **Das ist dieselbe Ausfallart wie die veraltete
+   Seite selbst, eine Ebene tiefer: es sieht aktuell aus.** Ein `header /fisher/*
+   Cache-Control "no-cache"` im Caddyfile würde es abstellen — die Datei liegt im
+   macro-dashboard-Repo, also gilt dort dieselbe Vorsicht wie unten: eine Auflage, die in
+   einem anderen Repo abgehakt wird, kommt von selbst nicht zurück. Nicht gebaut, bewusst:
+   erst beobachten, ob es im Alltag stört.
+
+### Weiterhin offen, aber nicht in diesem Ticket
+
+Die Probe im **frischen privaten Fenster** ist nach wie vor nicht nachgeholt. Alle Prüfungen
+liefen mit bestehender Sitzung und umgehen damit `/oauth2/start` → Google → Rücksprung, also
+genau den Pfad der dokumentierten Redirect-Schleife. Sie ist vermutlich am 21.08. erfüllt
+worden, nur nicht vermerkt; ein einmaliger Handgriff bei nächster Gelegenheit.
 
 ## Befund 2026-09-06: der Deploy ist längst passiert
 
@@ -21,7 +65,7 @@ weiter.
 | Rücklink auf der Dashboard-Seite | ✅ „FisherScreen Deep Dives →" → `/fisher/` |
 | Login-Flow von Hand durchgegangen | ✅ Seite lädt mit bestehender Sitzung; die Probe im **frischen privaten Fenster** bleibt Stephans Schritt (siehe unten) |
 | `--site` als Opt-in in der Deep-Dive-CLI | ✅ gebaut 2026-09-06, siehe unten |
-| **Auffrischung des ausgelieferten Inhalts** | ❌ **es gibt keine** — siehe unten |
+| **Auffrischung des ausgelieferten Inhalts** | ✅ nachgeholt 2026-09-07, siehe „Abschluss" oben |
 
 ### `--site` ist gebaut
 
