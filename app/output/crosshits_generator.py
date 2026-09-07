@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from app.screener.dimensions import qualifying_dimensions
+from app.screener.price_takers import PriceTakerTable, is_price_taker, load_price_takers
 
 if TYPE_CHECKING:
     from app.models.run_record import RunRecord
@@ -37,6 +38,7 @@ def generate(
     min_dimensions: int = 2,
     cap: int = 50,
     header: str | None = None,
+    price_takers: PriceTakerTable | None = None,
 ) -> Path:
     output_dir = output_dir / "Universum"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -44,10 +46,17 @@ def generate(
     run_month = run_record.run_id[:7]  # "YYYY-MM"
     out_path = output_dir / f"{run_month}-Crosshits.md"
 
+    # Loaded here, not at import: the loader is fail-loud on an absent table, and
+    # an import-time raise would take down anything that merely imports this
+    # module. Injectable so tests can pin the table instead of the committed one.
+    table = price_takers if price_takers is not None else load_price_takers()
+
     scored = [r for r in records if r.gemini_dimensions is not None]
     crosshits = _compute_crosshits(scored, score_threshold, min_dimensions, cap)
 
-    body = _build_body(crosshits, run_month, score_threshold, min_dimensions, header)
+    body = _build_body(
+        crosshits, run_month, score_threshold, min_dimensions, header, table
+    )
     out_path.write_text(body, encoding="utf-8")
 
     logger.info("crosshits: wrote %s (%d crosshits)", out_path.name, len(crosshits))
@@ -90,7 +99,9 @@ def _build_body(
     score_threshold: float,
     min_dimensions: int,
     header: str | None = None,
+    price_takers: PriceTakerTable | None = None,
 ) -> str:
+    table = price_takers if price_takers is not None else load_price_takers()
     lines = [f"# Universum {run_month} — Crosshits", ""]
     if header:
         lines += [header.rstrip("\n"), ""]
@@ -105,14 +116,27 @@ def _build_body(
         ]
     else:
         lines += [
-            "| # | Ticker | Name | Sektor | Crosshits | Dimensionen | Ø Score |",
-            "|---|---|---|---|---|---|---|",
+            "| # | Ticker | Name | Sektor | Crosshits | Dimensionen | Ø Score "
+            "| Preisnehmer |",
+            "|---|---|---|---|---|---|---|---|",
         ]
         for i, entry in enumerate(crosshits, 1):
             r = entry["record"]
             dims_str = ", ".join(entry["qualifying_dims"])
+            # Label only — it never enters the score or the ranking above.
+            taker = "ja" if is_price_taker(r.ticker, r.gics_industry, table) else "nein"
             lines.append(
                 f"| {i} | {r.ticker} {_flags(r)} | {r.name or ''} | {r.gics_sector or ''} "
-                f"| {len(entry['qualifying_dims'])} | {dims_str} | {entry['avg_score']} |"
+                f"| {len(entry['qualifying_dims'])} | {dims_str} | {entry['avg_score']} "
+                f"| {taker} |"
             )
+        lines += [
+            "",
+            "> **Preisnehmer** = das Unternehmen verkauft zu einem Preis, den es nicht "
+            "setzt (Rohstoffe, Speicherchips). In einem Preiszyklus faerben sich alle "
+            "drei Achsen gleichzeitig gruen, ohne dass sich am Geschaeft etwas geaendert "
+            "haette. Die Spalte ist eine Kennzeichnung, kein Ausschluss: der Score ist "
+            "unveraendert, die Liste vollstaendig. Grundlage ist `data/price_takers.json` "
+            "(yfinance-`industry`, bewusst grob).",
+        ]
     return "\n".join(lines) + "\n"
