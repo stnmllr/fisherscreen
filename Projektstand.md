@@ -98,8 +98,13 @@ nur die ganze Rohzeile statt des Werts. Das Ticket trägt einen Abschnitt darüb
 eigene erste Diagnose falsch war — vom Testnamen auf die Anzeige geschlossen, statt in das
 gebaute HTML zu sehen.
 
-**Offen:** nur noch der Backlog unten. Dazu die Probe im frischen privaten Fenster für den
-Login-Flow, die weiterhin niemand nachgeholt hat.
+Die Login-Probe im frischen privaten Fenster ist am 2026-09-07 nachgeholt und **bestanden** —
+`/fisher/` → `/oauth2/start` → Google → Rücksprung, keine Redirect-Schleife. Sie war die
+letzte unerfüllte Auflage des Deploy-Tickets und ließ sich nicht automatisiert ersetzen:
+jede Prüfung mit bestehender Sitzung berührt genau diesen Pfad nicht, und `curl -sI` liefert
+für ein funktionierendes wie für ein schleifendes Gate dasselbe `302`.
+
+**Offen:** nur noch der Backlog unten.
 
 ---
 

@@ -41,12 +41,21 @@ sichtbares Erzeugungsdatum. Ein Automatismus bleibt ausgeschlossen.
    einem anderen Repo abgehakt wird, kommt von selbst nicht zurück. Nicht gebaut, bewusst:
    erst beobachten, ob es im Alltag stört.
 
-### Weiterhin offen, aber nicht in diesem Ticket
+### Die Login-Probe ist nachgeholt — 2026-09-07, bestanden
 
-Die Probe im **frischen privaten Fenster** ist nach wie vor nicht nachgeholt. Alle Prüfungen
-liefen mit bestehender Sitzung und umgehen damit `/oauth2/start` → Google → Rücksprung, also
-genau den Pfad der dokumentierten Redirect-Schleife. Sie ist vermutlich am 21.08. erfüllt
-worden, nur nicht vermerkt; ein einmaliger Handgriff bei nächster Gelegenheit.
+Der Vollständigkeit halber, weil sie bis zuletzt die einzige unerfüllte Auflage war: Stephan
+hat den Login-Flow im **frischen privaten Fenster** durchlaufen. Er funktioniert —
+`/fisher/` → `/oauth2/start` → Google → Rücksprung auf die Ticker-Liste, keine
+Redirect-Schleife.
+
+Warum das nicht ersetzbar war: Jede automatisierte Prüfung lief mit bestehender Sitzung und
+berührte damit genau den Pfad nicht, auf dem der in `AUTH.md` dokumentierte Fehler entsteht
+(flach geschriebene Direktiven → `/oauth2/start` läuft selbst durch die Sperre → 401 →
+Umleitung auf sich selbst). `curl -sI` unterscheidet die beiden Fälle ebenfalls nicht: ein
+funktionierendes Gate leitet mit `302` auf Google um, ein kaputtes mit `302` auf sich selbst.
+Man muss den `Location` lesen und ihm folgen — oder eben ein Fenster ohne Cookie nehmen.
+
+Damit ist jede Auflage dieses Tickets erfüllt.
 
 ## Befund 2026-09-06: der Deploy ist längst passiert
 
@@ -63,7 +72,7 @@ weiter.
 | Caddy-Block `/fisher/*` hinter `import authgate` | ✅ live, Seite lädt hinter dem Gate |
 | `AUTH.md` im macro-dashboard-Repo nachgezogen | ✅ Abschnitt „Stand 21.08.2026", inkl. Caddyfile-Block und Tests |
 | Rücklink auf der Dashboard-Seite | ✅ „FisherScreen Deep Dives →" → `/fisher/` |
-| Login-Flow von Hand durchgegangen | ✅ Seite lädt mit bestehender Sitzung; die Probe im **frischen privaten Fenster** bleibt Stephans Schritt (siehe unten) |
+| Login-Flow von Hand durchgegangen | ✅ vollständig — Probe im frischen privaten Fenster am 2026-09-07 bestanden (siehe oben) |
 | `--site` als Opt-in in der Deep-Dive-CLI | ✅ gebaut 2026-09-06, siehe unten |
 | **Auffrischung des ausgelieferten Inhalts** | ✅ nachgeholt 2026-09-07, siehe „Abschluss" oben |
 
