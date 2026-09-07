@@ -29,6 +29,11 @@ das rohe JSON -- das waeren Gigabytes), ein erneuter Aufruf ueberspringt bereits
 gemessene Titel. Ein Netzfehler wird NICHT persistiert: das ist eine Aussage
 ueber die API, nicht ueber den Titel.
 
+Der Bericht liegt unter docs/superpowers/diagnostic-reports/ -- dort, wo die
+uebrigen Diagnose-Artefakte liegen. `reports/` im Repo-Root ist ausdruecklich
+NICHT der Ort und in .gitignore gesperrt: ein zweiter Ablageort haette bei jedem
+Lauf die handgeschriebene Empfehlung ins Leere laufen lassen.
+
 Die gemessenen Abschnitte des Berichts werden bei jedem Lauf neu geschrieben;
 alles unterhalb von HAND_MARKER bleibt stehen. Die Messung ist reproduzierbar,
 die Bewertung darunter nicht -- deshalb ueberschreibt die eine die andere nicht.
@@ -62,7 +67,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MONTH = "2026-09"
 UNIVERSE_JSON = REPO_ROOT / "data" / "universe.json"
 DEFAULT_STATE = REPO_ROOT / "cache" / "edgar_history_coverage.json"
-DEFAULT_REPORT = REPO_ROOT / "reports" / "edgar_history_coverage.md"
+DEFAULT_REPORT = (
+    REPO_ROOT
+    / "docs"
+    / "superpowers"
+    / "diagnostic-reports"
+    / "2026-09-07-edgar-history-coverage.md"
+)
 
 # Nur der Jahresabschluss zaehlt. 20-F wird bewusst NICHT mitgezaehlt: ein
 # US-notierter Foreign Private Issuer meldet unter ifrs-full mit anderen Tags,
