@@ -54,13 +54,20 @@ import json
 import sys
 import time
 from collections import Counter
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from datetime import date
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Sequence
 
 from app.config import settings
 from app.errors import DataSourceError
+from app.services.edgar_annual_series_client import (
+    EXTRACTION_SCHEMA,
+    TAXONOMY,
+    available_tags,
+    extract_concept,
+    taxonomies,
+)
 from app.services.edgar_client import EdgarClientImpl
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -79,17 +86,12 @@ DEFAULT_REPORT = (
 # US-notierter Foreign Private Issuer meldet unter ifrs-full mit anderen Tags,
 # das waere eine zweite Messung mit eigener Konzeptliste. Der Bericht weist
 # diese Titel getrennt aus, statt sie stumm als "keine Daten" zu fuehren.
-ANNUAL_FORMS = ("10-K", "10-K/A")
 
 # Eine Jahresperiode. 52/53-Wochen-Geschaeftsjahre (Handel) schwanken um einige
 # Tage, ein Rumpfjahr nach Umstellung des Geschaeftsjahresendes faellt raus.
-DURATION_MIN_DAYS = 340
-DURATION_MAX_DAYS = 400
 
 # Abstand zwischen zwei aufeinanderfolgenden Jahresenden. Grosszuegiger als das
 # Periodenfenster, weil hier zwei Stichtage verglichen werden, keine Dauer.
-GAP_MIN_DAYS = 300
-GAP_MAX_DAYS = 430
 
 # Wie weit ein Stichtag vom Jahresabschluss-Jahrestag abweichen darf. Ein 10-K
 # taggt auch Quartals-Bilanzstichtage (nachgewiesen an Akamai, CIK 1086222:
@@ -98,13 +100,10 @@ GAP_MAX_DAYS = 430
 # und verdraengt dort den echten Jahresabschluss. 45 Tage lassen
 # 52/53-Wochen-Geschaeftsjahre und Jahreswechsel-Stichtage durch, ein Quartal
 # nicht.
-ANNIVERSARY_TOLERANCE_DAYS = 45
 
 # Version der Extraktionslogik. Hochzaehlen, sobald sich aendert, WAS aus
 # companyfacts gelesen wird -- der Zwischenstand wird dann verworfen.
-EXTRACT_SCHEMA = 2
 
-TAXONOMY = "us-gaap"
 
 # Konzepte samt us-gaap-Fallbacks, in der Reihenfolge des Auftrags.
 CONCEPTS: dict[str, tuple[str, list[str]]] = {
@@ -176,224 +175,13 @@ HAND_MARKER = "<!-- HANDGESCHRIEBEN AB HIER — ein erneuter Lauf laesst dies st
 EVIDENCE_TICKERS = ("FAST", "NEM", "XOM")
 
 
-# --------------------------------------------------------------------------
-# reine Logik (ohne Netz, unter Test)
-# --------------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class ConceptCoverage:
-    concept: str | None
-    unit: str | None
-    years: tuple[int, ...]
-    values: tuple[float, ...]
-    contiguous: int
-    restatements: int
-    naive_fy_count: int
-
-
-EMPTY_COVERAGE = ConceptCoverage(
-    concept=None,
-    unit=None,
-    years=(),
-    values=(),
-    contiguous=0,
-    restatements=0,
-    naive_fy_count=0,
-)
-
-
 def is_us_ticker(ticker: str) -> bool:
     """Konvention aus app/screener/runner.py:263 -- US-Klassenaktien tragen
-    einen Bindestrich (BRK-B), ein Punkt markiert eine Nicht-US-Boerse."""
+    einen Bindestrich (BRK-B), ein Punkt markiert eine Nicht-US-Boerse.
+
+    Bleibt hier und wandert nicht in den Service: der Service kennt CIKs, keine
+    Yahoo-Tickersyntax."""
     return "." not in ticker
-
-
-def fiscal_label(end: date) -> int:
-    """Geschaeftsjahr-Etikett eines Periodenendes. Ein Handelsjahr, das am
-    31.01.2025 schliesst, ist Geschaeftsjahr 2024. Nur Anzeige -- die
-    Zusammenhangspruefung rechnet auf den Stichtagen selbst."""
-    return end.year if end.month >= 6 else end.year - 1
-
-
-def contiguous_run(ends: Sequence[date]) -> int:
-    """Laenge der Kette aufeinanderfolgender Jahre, die am JUENGSTEN Stichtag
-    endet. Eine Luecke davor beendet die Kette -- zehn Jahre mit Loch in der
-    Mitte sind keine zehn Jahre Historie."""
-    if not ends:
-        return 0
-    ordered = sorted(ends)
-    run = 1
-    for newer, older in zip(reversed(ordered), reversed(ordered[:-1])):
-        gap = (newer - older).days
-        if GAP_MIN_DAYS <= gap <= GAP_MAX_DAYS:
-            run += 1
-        else:
-            break
-    return run
-
-
-def taxonomies(facts: dict[str, Any]) -> list[str]:
-    return sorted(facts.get("facts", {}))
-
-
-def available_tags(facts: dict[str, Any], taxonomy: str) -> list[str]:
-    return sorted(facts.get("facts", {}).get(taxonomy, {}))
-
-
-def _parse_date(raw: str) -> date | None:
-    try:
-        return date.fromisoformat(raw)
-    except (TypeError, ValueError):
-        return None
-
-
-def _annual_entries(entries: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Jahres-Fakten aus 10-K/10-K/A, als (period_key, end, entry)."""
-    out: list[dict[str, Any]] = []
-    for entry in entries:
-        if entry.get("form") not in ANNUAL_FORMS:
-            continue
-        end = _parse_date(entry.get("end", ""))
-        if end is None:
-            continue
-        start_raw = entry.get("start")
-        if start_raw is None:  # Bestandsgroesse: Stichtag
-            out.append({"key": ("i", end), "end": end, "entry": entry})
-            continue
-        start = _parse_date(start_raw)
-        if start is None:
-            continue
-        if not DURATION_MIN_DAYS <= (end - start).days <= DURATION_MAX_DAYS:
-            continue
-        out.append({"key": ("d", start, end), "end": end, "entry": entry})
-    return out
-
-
-def _coverage_for(pooled: list[dict[str, Any]], candidates: Sequence[str]) -> ConceptCoverage:
-    # 1. Perioden-Bucket: dieselbe Periode, in mehreren Filings gemeldet --
-    #    und moeglicherweise unter mehreren Tags.
-    buckets: dict[Any, list[dict[str, Any]]] = {}
-    for item in pooled:
-        buckets.setdefault(item["key"], []).append(item)
-
-    chosen: list[dict[str, Any]] = []
-    for items in buckets.values():
-        # 2. Gewinner: der frueheste Kandidat der Liste, darin das spaeteste
-        #    `filed` -- die Korrektur schlaegt das Original.
-        winner = min(
-            items, key=lambda i: (i["priority"], _negated(i["entry"].get("filed", "")))
-        )
-        val = winner["entry"].get("val")
-        if val is None:
-            continue
-        # 3. Restatement nur INNERHALB eines Tags. Zwei Tags koennen dieselbe
-        #    Periode mit verschiedener Definition melden (Gesamtumsatz gegen
-        #    Umsatz aus Vertraegen) -- das ist keine Korrektur.
-        same_tag = {
-            i["entry"].get("val") for i in items if i["tag"] == winner["tag"]
-        }
-        chosen.append(
-            {
-                "label": fiscal_label(winner["end"]),
-                "end": winner["end"],
-                "val": float(val),
-                "restated": 1 if len(same_tag) > 1 else 0,
-                "tag": winner["tag"],
-                "unit": winner["unit"],
-                "priority": winner["priority"],
-            }
-        )
-
-    # 4. Auf den Jahresabschluss verankern. Der juengste Stichtag gibt den
-    #    Jahrestag vor; was mehr als ANNIVERSARY_TOLERANCE_DAYS davon abweicht,
-    #    ist kein Jahresabschluss und faellt raus, statt um ein Etikett zu
-    #    konkurrieren.
-    if not chosen:
-        return EMPTY_COVERAGE
-    anchor = max(chosen, key=lambda r: r["end"])["end"]
-    for row in chosen:
-        row["offset"] = _anniversary_distance(row["end"], anchor)
-    chosen = [r for r in chosen if r["offset"] <= ANNIVERSARY_TOLERANCE_DAYS]
-
-    # 5. Ein Geschaeftsjahr-Etikett, ein Wert: der Stichtag, der dem Jahrestag am
-    #    naechsten liegt.
-    per_label: dict[int, dict[str, Any]] = {}
-    for row in chosen:
-        held = per_label.get(row["label"])
-        if held is None or (-row["offset"], row["end"], -row["priority"]) > (
-            -held["offset"],
-            held["end"],
-            -held["priority"],
-        ):
-            per_label[row["label"]] = row
-    if not per_label:
-        return EMPTY_COVERAGE
-
-    ordered = [per_label[label] for label in sorted(per_label)]
-    contributing = [c for c in candidates if any(r["tag"] == c for r in ordered)]
-    naive = {
-        i["entry"].get("fy")
-        for i in pooled
-        if i["entry"].get("fp") == "FY" and i["entry"].get("fy") is not None
-    }
-    return ConceptCoverage(
-        concept="+".join(contributing),
-        unit=ordered[-1]["unit"],
-        years=tuple(row["label"] for row in ordered),
-        values=tuple(row["val"] for row in ordered),
-        contiguous=contiguous_run([row["end"] for row in ordered]),
-        restatements=sum(row["restated"] for row in ordered),
-        naive_fy_count=len(naive),
-    )
-
-
-def _anniversary_distance(end: date, anchor: date) -> int:
-    """Abstand in Tagen zum naechsten Jahrestag des Anker-Stichtags."""
-    best = 10**6
-    for year in (end.year - 1, end.year, end.year + 1):
-        try:
-            anniversary = date(year, anchor.month, anchor.day)
-        except ValueError:  # 29. Februar in einem Nicht-Schaltjahr
-            anniversary = date(year, anchor.month, anchor.day - 1)
-        best = min(best, abs((end - anniversary).days))
-    return best
-
-
-def _negated(filed: str) -> tuple[int, ...]:
-    """Sortierschluessel, der ein spaeteres `filed` nach vorne holt, damit
-    `min()` ueber (priority, filed-absteigend) gebildet werden kann."""
-    return tuple(-ord(c) for c in filed)
-
-
-def extract_concept(
-    facts: dict[str, Any],
-    candidates: Sequence[str],
-    *,
-    taxonomy: str = TAXONOMY,
-) -> ConceptCoverage:
-    """Abdeckung EINES Konzepts ueber alle seine Kandidatenbezeichnungen.
-
-    Die Kandidaten werden zusammengefuehrt, nicht der Reihe nach probiert: ASC
-    606 hat die meisten US-Filer um 2018 von `Revenues` auf
-    `RevenueFromContractWithCustomerExcludingAssessedTax` umgestellt. Wer den
-    ersten Tag nimmt, der ueberhaupt Daten traegt, bekommt eine Reihe, die 2017
-    endet, und misst die Abdeckung kaputt (nachgewiesen an Agilent, CIK 1090872).
-
-    Bei Ueberschneidung gewinnt der frueher gelistete Kandidat -- die Reihenfolge
-    der Liste ist die Definitionsrangfolge."""
-    node = facts.get("facts", {}).get(taxonomy, {})
-    pooled: list[dict[str, Any]] = []
-    for priority, name in enumerate(candidates):
-        units = node.get(name, {}).get("units", {})
-        if not units:
-            continue
-        unit = "USD" if "USD" in units else sorted(units)[0]
-        for item in _annual_entries(units[unit]):
-            pooled.append({**item, "tag": name, "priority": priority, "unit": unit})
-    if not pooled:
-        return EMPTY_COVERAGE
-    return _coverage_for(pooled, candidates)
 
 
 def preserve_handwritten(body: str, existing: str) -> str:
@@ -479,10 +267,10 @@ def load_state(path: Path) -> dict[str, Any]:
     # Der Zwischenstand haelt Extrakte, keine Rohdaten. Aendert sich die
     # Extraktion, sind die alten Werte falsch -- und ein warmer Cache, der eine
     # Verifikation maskiert, ist in diesem Repo schon einmal teuer gewesen.
-    if state.get("schema") != EXTRACT_SCHEMA:
+    if state.get("schema") != EXTRACTION_SCHEMA:
         print(
             f"Zwischenstand hat Schema {state.get('schema')}, Skript erwartet "
-            f"{EXTRACT_SCHEMA} -- Messung beginnt neu"
+            f"{EXTRACTION_SCHEMA} -- Messung beginnt neu"
         )
         return {}
     return state
@@ -547,7 +335,7 @@ def run_probe(
     tickers: Sequence[str], edgar: EdgarClientImpl, state_path: Path
 ) -> dict[str, Any]:
     state = load_state(state_path)
-    state["schema"] = EXTRACT_SCHEMA
+    state["schema"] = EXTRACTION_SCHEMA
     results: dict[str, Any] = state.setdefault("tickers", {})
     state.setdefault("requests", 0)
     state.setdefault("elapsed_seconds", 0.0)

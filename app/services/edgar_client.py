@@ -55,6 +55,7 @@ class GoingConcernHit:
 
 class EdgarClient(Protocol):
     def get_cik(self, ticker: str) -> str | None: ...
+    def get_company_facts(self, cik: str) -> dict[str, Any]: ...
     def has_restatement(self, cik: str, years: int = 3) -> bool: ...
     def has_going_concern(self, cik: str, months: int = 24) -> bool: ...
     def going_concern_hit(
@@ -168,6 +169,16 @@ class EdgarClientImpl:
                 )
                 self._ticker_map = {}  # empty dict prevents repeated retries
         return self._ticker_map.get(ticker.upper())
+
+    def get_company_facts(self, cik: str) -> dict[str, Any]:
+        """Rohes companyfacts-Dokument: alle XBRL-Fakten eines Emittenten in
+        EINEM Abruf, alle Konzepte und alle Jahre.
+
+        Bewusst ohne Caching an dieser Stelle — das Dokument ist mehrere MB
+        groß und gehört nie in einen Speicher; gecacht wird der Extrakt
+        (app/services/edgar_annual_series_client.py)."""
+        padded = cik.zfill(10)
+        return self._get(f"{self._SEC_BASE}/api/xbrl/companyfacts/CIK{padded}.json")
 
     def has_restatement(self, cik: str, years: int = 3) -> bool:
         padded = cik.zfill(10)
