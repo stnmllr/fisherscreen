@@ -9,9 +9,13 @@ entfällt); die Gate-Regel „alle bewertbaren Merit-Achsen, mindestens drei" sa
 dass „bewertbar" an einem eigenen Feld hängt (§8, §8.1); die neue Collection
 `dev_edgar_annual_series` mit Schlüssel CIK, TTL-Jitter und Negativ-Caching (§9.1.1).
 
-**Offen bis zum Kalibrierungslauf** (§9.2): B1 die Zusammenführung `mean` gegen `min`;
-B2 die Schwellen für S2 und S3; B3 ob NVDA und TER fallen dürfen. Für diese drei liefert der
-Kalibrierungsbericht Zahlen, **keine Empfehlung**.
+**Nach dem Kalibrierungslauf entschieden** (2026-09-07): B1 Mittelwert, `min` verworfen;
+B2 die Bänder in §5.1; B3 NVDA bleibt (genau auf der Kante), TER fällt. Damit ist die Spec
+**baureif** — offen ist nur noch der Bau selbst.
+
+**Maßstab der Dimension ist allein die Regressionserwartung in §10.2** — kein Anteil über das
+Universum. Eine solche Quote war zwischenzeitlich als Kriterium vorgesehen und wurde nach der
+Messung verworfen; die Begründung steht im Kalibrierungsbericht, Befund 3.
 **Vorlauf:** `docs/superpowers/diagnostic-reports/2026-09-07-edgar-history-coverage.md`
 **Branch:** `feature/tool-a-cyclicals`
 
@@ -165,23 +169,32 @@ Dimension fällen soll. Dasselbe Muster hat im Repo schon dreimal dieselbe Antwo
 | 2 | 3 |
 | 1 | mehr als 3 |
 
-**S2 und S3 sind VORSCHLAG und werden durch die Kalibrierung ersetzt** (Abschnitt 9.2). Die
-Zahlen unten stehen nur da, damit die Größenordnung nicht offen bleibt — sie sind nicht
-gemessen und dürfen nicht implementiert werden, bevor die Verteilung vorliegt:
+**S2 und S3 sind an der gemessenen Verteilung festgezogen** (Kalibrierungslauf 2026-09-07,
+Bericht `docs/superpowers/diagnostic-reports/2026-09-07-steadiness-band-calibration.md`):
 
-| Score | S2 Margeneinbruch vom Hoch (pp) — Vorschlag | S3 schlechteste Nettomarge — Vorschlag |
+| Score | S2 Margeneinbruch vom Hoch (pp) | S3 schlechteste Nettomarge |
 |---|---|---|
-| 5 | ≤ 2 | ≥ 10 % |
-| 4 | ≤ 5 | ≥ 5 % |
-| 3 | ≤ 10 | ≥ 0 % |
-| 2 | ≤ 20 | ≥ −10 % |
+| 5 | ≤ 5 | ≥ 5 % |
+| 4 | ≤ 12 | ≥ 0 % |
+| 3 | ≤ 24 | ≥ −5 % |
+| 2 | ≤ 48 | ≥ −15 % |
 | 1 | sonst | sonst |
 
-**Zusammenführung offen (B1):** die Spec sah `mean(S1, S2, S3)` vor. Ob das trägt, entscheidet
-die Kalibrierung — `mean` lässt eine Kombination 5/4/3 mit genau 4,0 durch, was für eine
-Dimension, die Zykliker aussortieren soll, weich sein könnte. Gegenkandidat ist
-`min(S1, S2, S3)`. Der Kalibrierungsbericht stellt beide nebeneinander; die Entscheidung fällt
-danach, nicht hier. Skala 0–5 wie die übrigen Achsen.
+**Warum diese beiden Kanten:**
+
+- **S3 bei 0 % ist die Definition, keine Kalibrierung.** Ein Verlustjahr im Fenster schließt die
+  4 aus. „Stetig" und „hat im schlechtesten Jahr Geld verloren" sind unvereinbar; jede Kante im
+  negativen Bereich würde dem Wort widersprechen.
+- **S2 bei 12 pp liegt knapp über dem Median (9,1 pp).** Eine 4 heißt damit „stetiger als der
+  typische Titel" — dieselbe Lesart wie bei den sektor-relativen Achsen, nur absolut gemessen.
+  Die 5er-Kante ist von gemessenen 4,8 auf 5 gerundet.
+
+**Zusammenführung: `steadiness = round(mean(S1, S2, S3), 2)`**, gedeckelt nach Abschnitt 6.
+`min(S1, S2, S3)` wurde geprüft und verworfen: es kippt MEDP (4,67 → 3) und GOOG (4,67 → 3),
+also genau die Titel, die oben bleiben sollen, und bringt bei den Preisnehmern nichts — NEM und
+MU fallen auch mit dem Mittelwert auf 1,33. MEDPs schwächstes Jahr ist zudem 2016 mit 3,2 %
+Nettomarge, als das Unternehmen jung war; danach 9–19 %. Das ist keine Zyklik, und `min` würde
+es als solche behandeln. Skala 0–5 wie die übrigen Achsen.
 
 ## 6. Fensterlänge: abgestuft ab sieben Jahren, mit Deckel
 
@@ -313,25 +326,28 @@ sie nannte vier Collections, im Code sind es sechs, und der Stack-Abschnitt spra
 
 ### 9.2 Bandkalibrierung vor dem Bau
 
-Die Bänder für S2 und S3 in 5.1 sind ein Vorschlag, keine Messung. S1 ist entschieden (Anzahl
-Rückgangsjahre) und nicht kalibrierungspflichtig.
+**Erledigt am 2026-09-07.** `scripts/calibrate_steadiness_bands.py` liest ausschließlich
+`cache/edgar_history_coverage.json` — kein Netz, kein Firestore, $0 — und lieferte die
+Verteilung über 567 bewertbare Titel (521 mit ≥ 10 Jahren), die Teilwerte und Jahresreihen der
+Prüftitel im Klartext sowie `mean` gegen `min`. Bericht:
+`docs/superpowers/diagnostic-reports/2026-09-07-steadiness-band-calibration.md`.
 
-`scripts/calibrate_steadiness_bands.py` (Vorbild `scripts/calibrate_anchor_bands.py`) liest
-ausschließlich `cache/edgar_history_coverage.json` — kein Netz, kein Firestore — und liefert:
+Die daraus festgezogenen Bänder stehen in §5.1. Gemessene Verteilung, auf die sie sich stützen
+(Titel mit ≥ 10 Jahren):
 
-- die Verteilung von S1, S2 und S3 über die bewertbaren Titel;
-- die Teilwerte **und die Jahresreihen im Klartext** für HL, NEM, MU, TPL, MEDP, FAST, FICO,
-  NVDA (Abnahme auf Primärevidenz, §10.3);
-- `mean(S1,S2,S3)` gegen `min(S1,S2,S3)` nebeneinander, mit der Zahl der Titel ≥ 4,0 je
-  Variante (offener Punkt B1).
+| Größe | P10 | P25 | P50 | P75 | P90 |
+|---|---|---|---|---|---|
+| Rückgangsjahre (von 9) | 0 | 1 | 2 | 3 | 4 |
+| Margeneinbruch vom Hoch (pp) | 2,0 | 4,2 | **9,1** | 21,6 | 50,3 |
+| schlechteste Nettomarge (%) | −34,0 | −7,9 | **2,2** | 7,9 | 13,9 |
 
-**Zielkorridor für die Schwellen: 50–65 % der bewertbaren Titel mit Stetigkeit ≥ 4,0.** Die
-Dimension soll Zykliker aussortieren, nicht die Hälfte der guten Titel gleich mit. Harte
-Nebenbedingungen: HL, NEM und MU müssen unter 4,0 liegen; MEDP, FAST und FICO darüber. TPL
-(8 Jahre, Deckel 4) ist der Prüfstein und darf in beide Richtungen ausgehen.
+Der Nebenbefund, der die Konzeptentscheidung aus §5 bestätigt: **41 Titel** haben zu wenige
+Jahre mit positivem Eigenkapital für eine EK-Rendite — darunter FICO (fünf solche Jahre) und
+TDG. Mit der ursprünglichen S3 wären beide neutral gestellt worden, obwohl §10.2 sie oben
+verlangt. Mit der Nettomarge ist **kein** Titel unbestimmbar.
 
-Die Bänder werden an dieser Verteilung festgezogen, nicht an einer Intuition, und die Spec wird
-danach mit den gemessenen Werten aktualisiert.
+**Ein erneuter Kalibrierungslauf ist nötig**, sobald sich eine Kennzahl ändert — etwa wenn das
+Ticket `2026-09-07-steadiness-relative-margin-drawdown.md` gezogen wird.
 
 ### 9.3 Laufzeit — der operative Engpass
 
@@ -376,16 +392,52 @@ Auflagen daraus, nicht verhandelbar:
 
 Der Abnahmefall. Erwartung, an der die Dimension gemessen wird:
 
-| Erwartung | Titel |
-|---|---|
-| **müssen fallen** | HL, NEM, MU — bewertbar und zyklisch |
-| **müssen oben bleiben** | MEDP (11 J.), FAST (19 J.), FICO (18 J.) |
-| bleiben neutral, unverändert in der Liste, aber als Preisnehmer gekennzeichnet | EDV.L, ANTO.L (kein SEC), RGLD (5 J.), SNDK (4 J.) |
-| Prüfstein | TPL (8 J., gedeckelt auf 4) — soll an der Schwankung scheitern |
-| **dürfen fallen** (vorläufig, siehe B3) | NVDA, TER — Halbleiter-Zykliker; NVDA hatte FY2020 einen Umsatzrückgang und starke Margenschwankung. Fallen sie, ist das **kein Fehler**. Ob die Erwartung so bleibt, wird am Kalibrierungsergebnis entschieden. |
+**Der Maßstab der Dimension.** Mit den Bändern aus §5.1 nachgerechnet (Kalibrierungsdaten,
+2026-09-07). Von den 24 Titeln sind **16 bewertbar**, 8 neutral.
+
+| Ticker | J. | Rückg. | Einbruch pp | schl. NM % | S1/S2/S3 | Score | Erwartung |
+|---|---|---|---|---|---|---|---|
+| NEM | 10 | 3 | 55,1 | −21,1 | 2/1/1 | **1,33** | fällt |
+| MU | 10 | 3 | 86,3 | −37,5 | 2/1/1 | **1,33** | fällt |
+| ABNB | 7 | 1 | 95,8 | −135,7 | 4/1/1 | **2,0** | fällt |
+| HL | 10 | 3 | 23,9 | −14,1 | 2/3/2 | **2,33** | fällt |
+| TER | 10 | 3 | 13,7 | −2,5 | 2/3/3 | **2,67** | fällt |
+| PLTR | 8 | 0 | 29,8 | −106,7 | 5/2/1 | **2,67** | fällt |
+| TPL | 8 | 2 | 15,1 | 58,2 | 2/3/5 | **3,33** | fällt |
+| META | 10 | 1 | 24,9 | 19,9 | 4/2/5 | **3,67** | fällt |
+| NVDA | 10 | 1 | 21,6 | 16,2 | 4/3/5 | **4,0** | bleibt — auf der Kante |
+| TDG | 10 | 2 | 9,1 | 13,7 | 3/4/5 | **4,0** | bleibt — auf der Kante |
+| GOOG | 10 | 0 | 6,2 | 11,4 | 5/4/5 | **4,67** | bleibt |
+| GOOGL | 10 | 0 | 6,2 | 11,4 | 5/4/5 | **4,67** | bleibt |
+| MEDP | 10 | 0 | 1,2 | 3,2 | 5/5/4 | **4,67** | bleibt |
+| MNST | 10 | 0 | 10,5 | 18,9 | 5/4/5 | **4,67** | bleibt |
+| FAST | 10 | 0 | 0,8 | 12,6 | 5/5/5 | **5,0** | bleibt |
+| FICO | 10 | 0 | 2,6 | 12,3 | 5/5/5 | **5,0** | bleibt |
+| EDV.L, ANTO.L, ARGX.BR, ADYEN.AS, G24.DE, WISE.L | — | — | — | — | — | `n/a ∅` | neutral, kein SEC-Registrant |
+| RGLD (5 J.), SNDK (4 J.) | — | — | — | — | — | `n/a ↧` | neutral, Reihe zu kurz |
+
+**META fällt bewusst.** Die operative Marge geht 2021→2022 von **39,6 % auf 24,8 %** — ein
+Einbruch über zwei Jahre, den die Dimension nicht entschuldigen soll. Bei einer S2-Kante von
+15 pp statt 12 bliebe META mit 4,0 stehen, sonst wäre das Bild identisch; 12 ist die gewählte
+Kante.
+
+**NVDA und TDG stehen exakt auf 4,0.** Das ist die Kante, kein Defekt: ein weiteres schwaches
+Margenjahr kippt beide. Bei einem Halbleiter-Titel ist genau das das erwartete Verhalten.
 
 Wie bei den Ticker-Listen in `tests/output/test_crosshits_generator.py` hängt der Test an den
-**Listen**, nicht an einer Anzahl: eine spätere Erweiterung darf ihn nicht rot färben.
+**Listen**, nicht an einer Anzahl: eine spätere Erweiterung darf ihn nicht rot färben. Die
+Score-Werte in der Tabelle sind dagegen gepinnt — sie sind das Abnahmekriterium.
+
+> **Drei Korrekturen gegenüber der Erwartung, die vor dem Nachrechnen im Umlauf war**, alle aus
+> den Messdaten:
+> 1. **PLTR (8 J.) und ABNB (7 J.) sind bewertbar, nicht neutral.** Die abgestufte Regel aus §6
+>    setzt die Grenze bei sieben Jahren; beide liegen darüber und werden gedeckelt bewertet.
+>    Beide fallen. Neutral sind nur RGLD (5) und SNDK (4). Bewertbar sind damit **16** Titel,
+>    nicht 13.
+> 2. **HL fällt mit 2,33, nicht mit 1,33.** Die 1,33 stammte aus den engeren Vorschlagsbändern;
+>    mit den endgültigen Kanten liegt HLs Einbruch von 23,9 pp knapp unter der 24er-Grenze.
+>    Am Ergebnis ändert das nichts — HL fällt weiterhin deutlich.
+> 3. **TDG steht ebenfalls exakt auf 4,0**, nicht nur NVDA. Die Kantenlage gilt für beide.
 
 **Merksatz zu S1, gegen die Messdaten geprüft:** Newmont hat im Fenster 2016–2025 nur **drei**
 Umsatz-Rückgangsjahre (2018, 2022, 2023) — das Fenster liegt fast vollständig in einem

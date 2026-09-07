@@ -18,7 +18,14 @@ Dieser Bericht liefert **Zahlen für die offenen Punkte B1, B2 und B3**. Er enth
    EK-Rendite zu bilden — darunter **FICO** (5 Jahre mit Eigenkapital ≤ 0) und **TDG**. Beide
    stehen in der Septemberliste und sollen laut §10.2 oben bleiben; mit der EK-Rendite wären sie
    **neutral** geworden. Mit der Nettomarge sind es **0 unbestimmbare Titel**.
-3. **Der Zielkorridor von 50–65 % wird von keiner der drei getesteten Bandtabellen erreicht.**
+3. **GEPRÜFT UND VERWORFEN.** Die Vorgabe „Zielkorridor 50–65 %" wurde am 2026-09-07 aufgrund
+   dieser Messung zurückgezogen: der Median-Titel ist ein 3/3/3, und das ist richtig — die
+   Hälfte des Universums *ist* mittelmäßig stetig. Den Korridor zu erzwingen hätte die S3-Kante
+   ins Negative geschoben, also einem Titel mit Verlustjahr eine 4 für „Stetigkeit" gegeben.
+   Zudem ist die Universumsquote der falsche Maßstab: das Gate wirkt nur auf Titel, die bereits
+   drei strenge Achsen überstanden haben. Maßstab ist die Septemberliste (§10.2 der Spec). Die
+   Zahlen bleiben als Beleg stehen:
+   **Der Zielkorridor wird von keiner der drei getesteten Bandtabellen erreicht.**
    Bester Wert über alle Kombinationen: **42 %** (alte Spec-Bänder, Std/EK-Rendite, Mittelwert).
    Unter den **entschiedenen** Kennzahlen (Margenrückgang + Nettomarge, S1 nach Anzahl) sind es
    **23 %** mit Mittelwert und **12 %** mit Minimum. Die vorgeschlagenen Schwellen sind also
@@ -281,3 +288,66 @@ Nachschlagetabelle, KEINE Empfehlung. S1 = entschiedene Anzahl-Baender.
 - Die Nachschlagetabelle spannt S2- und S3-Bänder **um ihre Score-4-Kante herum** auf (S2: 0,4× / 1× / 2× / 4× der Kante; S3: Kante +5 / Kante / −5 / −15 Prozentpunkte). Das ist dieselbe Form wie der Vorschlag in §5.1, aber eine Form**annahme** — eine anders geschnittene Bandfamilie käme zu anderen Anteilen.
 - Das Fenster ist auf zehn Jahre gekappt. NEM etwa hat 14 Jahre Historie; die vier ältesten (2012–2015, drei Rückgangsjahre in Folge) liegen außerhalb und gehen in keine Zahl ein.
 - Gemessen ist die Verteilung über die **bewertbaren** Titel. Die 275 neutralen Titel (kein SEC-Registrant, Reihe zu kurz, kein Konzept) kommen in keiner Quote vor.
+
+---
+
+## Nachtrag 2026-09-07: Nachrechnung mit den ENDGÜLTIGEN Bändern
+
+Entschieden: Mittelwert; S1 nach Anzahl Rückgangsjahre; S2 ≤ 5 / 12 / 24 / 48 pp;
+S3 ≥ 5 / 0 / −5 / −15 %. Die 5er-Kante von S2 ist von gemessenen 4,8 auf 5 gerundet — deshalb
+ist die Regressionstabelle hier **neu gerechnet** und nicht aus dem Lauf oben übernommen.
+
+Drei Abweichungen gegenüber der Erwartung, die vor dieser Nachrechnung im Umlauf war:
+
+1. **PLTR (8 J.) und ABNB (7 J.) sind bewertbar**, nicht neutral — die abgestufte Regel aus §6
+   greift ab sieben Jahren. Beide fallen (2,67 bzw. 2,0). Neutral sind nur RGLD (5 J.) und
+   SNDK (4 J.). Damit sind **16** Titel der Septemberliste bewertbar, nicht 13.
+2. **HL fällt mit 2,33**, nicht mit 1,33 — die 1,33 stammte aus den engeren Vorschlagsbändern.
+   Sein Margeneinbruch von 23,9 pp liegt knapp unter der 24er-Kante. Am Ergebnis ändert das
+   nichts.
+3. **TDG steht wie NVDA exakt auf 4,0.** Die Kantenlage betrifft zwei Titel, nicht einen.
+
+```
+== Septemberliste unter den ENDGUELTIGEN Baendern (mean, S2 12pp, S3 0%) ==
+Ticker     J. down  DD pp   wNM % | S1 S2 S3 | Score  Folge
+EDV.L      --  nicht bewertbar -> neutral
+FICO       10    0    2.6    12.3 |  5  5  5 |     5  BLEIBT
+HL         10    3   23.9   -14.1 |  2  3  2 |  2.33  faellt
+NEM        10    3   55.1   -21.1 |  2  1  1 |  1.33  faellt
+NVDA       10    1   21.6    16.2 |  4  3  5 |   4.0  BLEIBT
+PLTR        8    0   29.8  -106.7 |  5  2  1 |  2.67  faellt
+RGLD       --  nicht bewertbar -> neutral
+TDG        10    2    9.1    13.7 |  3  4  5 |   4.0  BLEIBT
+TPL         8    2   15.1    58.2 |  2  3  5 |  3.33  faellt
+ABNB        7    1   95.8  -135.7 |  4  1  1 |   2.0  faellt
+ARGX.BR    --  nicht bewertbar -> neutral
+META       10    1   24.9    19.9 |  4  2  5 |  3.67  faellt
+MU         10    3   86.3   -37.5 |  2  1  1 |  1.33  faellt
+SNDK       --  nicht bewertbar -> neutral
+ADYEN.AS   --  nicht bewertbar -> neutral
+ANTO.L     --  nicht bewertbar -> neutral
+FAST       10    0    0.8    12.6 |  5  5  5 |     5  BLEIBT
+G24.DE     --  nicht bewertbar -> neutral
+GOOG       10    0    6.2    11.4 |  5  4  5 |  4.67  BLEIBT
+GOOGL      10    0    6.2    11.4 |  5  4  5 |  4.67  BLEIBT
+MEDP       10    0    1.2     3.2 |  5  5  4 |  4.67  BLEIBT
+MNST       10    0   10.5    18.9 |  5  4  5 |  4.67  BLEIBT
+TER        10    3   13.7    -2.5 |  2  3  3 |  2.67  faellt
+WISE.L     --  nicht bewertbar -> neutral
+
+fallen  (8): HL, NEM, PLTR, TPL, ABNB, META, MU, TER
+bleiben (8): FICO, NVDA, TDG, FAST, GOOG, GOOGL, MEDP, MNST
+neutral (8): EDV.L, RGLD, ARGX.BR, SNDK, ADYEN.AS, ANTO.L, G24.DE, WISE.L
+bewertbar: 16
+
+zum Vergleich Universum: 234/567 (41 %) bewertbare Titel >= 4,0
+
+== META: operative Marge im Fenster ==
+  2016: 45.0%, 2017: 49.7%, 2018: 44.6%, 2019: 33.9%, 2020: 38.0%, 2021: 39.6%, 2022: 24.8%, 2023: 34.7%, 2024: 42.2%, 2025: 41.4%
+  Rueckgang vom Hoch: 24.9 pp, Rueckgangsjahre: 1, schlechteste Nettomarge: 19.9%
+
+== MEDP: Nettomarge je Jahr (Herkunft der 3,2 %) ==
+  2016: 3.2%, 2017: 9.0%, 2018: 10.4%, 2019: 11.7%, 2020: 15.7%, 2021: 15.9%, 2022: 16.8%, 2023: 15.0%, 2024: 19.2%, 2025: 17.8%
+```
+
+Zum Vergleich, ausdruecklich NICHT als Kriterium: ueber das ganze bewertbare Universum ergeben diese Baender 234 von 567 Titeln (41 %) mit >= 4,0. Diese Quote ist seit Befund 3 kein Massstab mehr.
