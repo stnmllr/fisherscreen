@@ -42,3 +42,9 @@ desktop.ini
 # app/output/ from the Cloud Build context -> ModuleNotFoundError 'app.output' in prod (2026-06-09).
 /output/
 /output-test/
+
+# Diagnose-Berichte gehoeren nach docs/superpowers/diagnostic-reports/. `reports/`
+# entstand einmal versehentlich als zweiter Ablageort (2026-09-07) — der Pfad ist im
+# Skript korrigiert, dieser Eintrag verhindert, dass ein `--report reports/...` die
+# Doppelablage still wieder anlegt. Root-anchored, wie alle Generated-Output-Muster.
+/reports/

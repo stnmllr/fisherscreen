@@ -228,3 +228,157 @@ def test_flags_partial_evidence_marker():
         partial_evidence_axes=["profitability"],
     )
     assert "~" in _flags(r)
+
+
+# --- price-taker column ----------------------------------------------------
+#
+# The September 2026 crosshits, with the yfinance `industry` each carried when
+# the list was measured (2026-09-07). Captured rather than fetched so the test
+# stays offline and deterministic; if yfinance relabels a title, the marking
+# changes in production and this fixture goes stale — which is a reason to
+# re-measure, not a reason to fetch at test time.
+SEPTEMBER_INDUSTRIES = {
+    "EDV.L": "Gold",
+    "FICO": "Software - Application",
+    "HL": "Other Precious Metals & Mining",
+    "NEM": "Gold",
+    "NVDA": "Semiconductors",
+    "PLTR": "Software - Infrastructure",
+    "RGLD": "Gold",
+    "TDG": "Aerospace & Defense",
+    "TPL": "Oil & Gas E&P",
+    "ABNB": "Travel Services",
+    "ARGX.BR": "Biotechnology",
+    "META": "Internet Content & Information",
+    "MU": "Semiconductors",
+    "SNDK": "Computer Hardware",
+    "ADYEN.AS": "Software - Infrastructure",
+    "ANTO.L": "Copper",
+    "FAST": "Industrial Distribution",
+    "G24.DE": "Internet Content & Information",
+    "GOOG": "Internet Content & Information",
+    "GOOGL": "Internet Content & Information",
+    "MEDP": "Diagnostics & Research",
+    "MNST": "Beverages - Non-Alcoholic",
+    "TER": "Semiconductor Equipment & Materials",
+    "WISE.L": "Information Technology Services",
+}
+
+# Named by hand from the September list. The tests below assert these are all
+# marked; they deliberately do NOT assert how many there are, so the config can
+# grow without a test needing to be touched.
+SEPTEMBER_PRICE_TAKERS = (
+    "EDV.L",
+    "HL",
+    "NEM",
+    "RGLD",
+    "ANTO.L",
+    "TPL",
+    "MU",
+    "SNDK",
+)
+
+
+def _september_records():
+    return [
+        _industry_record(ticker, industry)
+        for ticker, industry in SEPTEMBER_INDUSTRIES.items()
+    ]
+
+
+def _industry_record(ticker: str, industry: str) -> ScreenerRecord:
+    return ScreenerRecord(
+        ticker=ticker,
+        name=f"{ticker} Corp",
+        gics_sector="Technology",
+        gics_industry=industry,
+        gemini_dimensions={
+            "growth": 4,
+            "profitability": 4,
+            "management": 3,
+            "innovation": 3,
+            "resilience": 4,
+        },
+    )
+
+
+def _marks(text: str) -> dict[str, str]:
+    """ticker -> the value in the Preisnehmer column."""
+    header = next(line for line in text.splitlines() if "| Ticker |" in line)
+    columns = [c.strip() for c in header.strip("|").split("|")]
+    ticker_at, mark_at = columns.index("Ticker"), columns.index("Preisnehmer")
+    marks = {}
+    for line in text.splitlines():
+        if not line.startswith("| ") or "| Ticker |" in line or set(line) <= set("|- "):
+            continue
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if len(cells) != len(columns):
+            continue
+        marks[cells[ticker_at].split()[0]] = cells[mark_at]
+    return marks
+
+
+def test_the_table_has_a_price_taker_column(tmp_path):
+    path = generate(_september_records(), _run_record(), tmp_path, min_dimensions=3)
+    assert "| Preisnehmer |" in path.read_text(encoding="utf-8")
+
+
+def test_every_configured_price_taker_in_the_table_is_marked(tmp_path):
+    """The expectation is derived from the committed config, not restated here:
+    extend data/price_takers.json and this test follows without an edit."""
+    from app.screener.price_takers import is_price_taker, load_price_takers
+
+    table = load_price_takers()
+    path = generate(_september_records(), _run_record(), tmp_path, min_dimensions=3)
+    marks = _marks(path.read_text(encoding="utf-8"))
+
+    assert marks, "no rows rendered - the fixture stopped producing crosshits"
+    for ticker, industry in SEPTEMBER_INDUSTRIES.items():
+        expected = "ja" if is_price_taker(ticker, industry, table) else "nein"
+        assert marks[ticker] == expected, ticker
+
+
+def test_the_september_price_takers_are_all_caught(tmp_path):
+    """The acceptance case from the brief. A subset assertion, not an equality:
+    naming a ninth price taker later must not turn this red."""
+    path = generate(_september_records(), _run_record(), tmp_path, min_dimensions=3)
+    marks = _marks(path.read_text(encoding="utf-8"))
+
+    unmarked = [t for t in SEPTEMBER_PRICE_TAKERS if marks[t] != "ja"]
+    assert not unmarked, f"price takers left unmarked: {unmarked}"
+
+
+def test_the_shared_semiconductor_industry_is_not_dragged_in(tmp_path):
+    """MU is marked by ticker override, NVDA and TER share or neighbour its
+    yfinance industry and must stay unmarked -- otherwise the override was
+    written as an industry rule by mistake."""
+    path = generate(_september_records(), _run_record(), tmp_path, min_dimensions=3)
+    marks = _marks(path.read_text(encoding="utf-8"))
+
+    assert marks["MU"] == "ja"
+    for ticker in ("NVDA", "TER", "FICO", "MEDP", "FAST"):
+        assert marks[ticker] == "nein", ticker
+
+
+def test_marking_changes_no_score_and_drops_no_title(tmp_path):
+    """The column is a label. Same titles, same scores, with and without it."""
+    from app.screener.price_takers import PriceTakerTable
+
+    records = _september_records()
+    marked = generate(records, _run_record(), tmp_path / "a", min_dimensions=3)
+    unmarked = generate(
+        records,
+        _run_record(),
+        tmp_path / "b",
+        min_dimensions=3,
+        price_takers=PriceTakerTable(industries=frozenset(), tickers=frozenset()),
+    )
+
+    def rows(text):
+        return [
+            line.rsplit("|", 2)[0]  # drop the Preisnehmer cell and the trailing pipe
+            for line in text.splitlines()
+            if line.startswith("| ") and "Ticker" not in line
+        ]
+
+    assert rows(marked.read_text("utf-8")) == rows(unmarked.read_text("utf-8"))
