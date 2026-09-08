@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 _RED_FLAG = 0
 _DE_REDFLAG_THRESHOLD = 300.0  # percent-points: >300% (3x equity)
+# Sentinel der nicht bewertbaren Stetigkeit. Traegt bewusst dieselbe Zahl wie
+# ein gemessener mittelmaessiger Titel -- unterschieden wird am Grund, nie am
+# Wert (Spec 8.1).
+NEUTRAL_STEADINESS = 3.0
 
 
 def _mean_axis_score(
@@ -145,11 +149,41 @@ def score_record(record: "ScreenerRecord") -> None:
     record.partial_evidence_axes = partial
 
 
-def run_deterministic_scoring(records, revenue_cache, run_tracker):
+def annotate_steadiness(records, annual_series, run_tracker=None) -> None:
+    """Vierte Achse aus den EDGAR-Jahresreihen.
+
+    LIEST NUR (Spec 9.3.1): ein abgelaufener Eintrag wird benutzt, ein fehlender
+    stellt den Titel neutral. Der Monatslauf geht hier unter keinen Umstaenden
+    zur SEC -- sonst haenge die 1800-s-Deadline am Cache-Zustand.
+
+    Ohne CIK gibt es keine Reihe: der Titel ist kein SEC-Registrant. Das ist ein
+    eigener Grund und keine schlechte Bewertung."""
+    from app.screener.steadiness import (
+        NO_SEC_REGISTRANT,
+        steadiness_from_record,
+    )
+
+    for record in records:
+        if not record.cik:
+            record.steadiness = NEUTRAL_STEADINESS
+            record.steadiness_reason = NO_SEC_REGISTRANT
+            continue
+        lookup = annual_series.read_annual_series(record.cik)
+        if run_tracker is not None:
+            run_tracker.record_steadiness_lookup(lookup.status)
+        result = steadiness_from_record(lookup.record)
+        record.steadiness = result.score
+        record.steadiness_reason = result.reason
+
+
+def run_deterministic_scoring(records, revenue_cache, run_tracker, annual_series=None):
     """Tool-A scoring entry point (replaces run_gemini_scoring). For each record:
     fetch its multi-year revenue series (cached), compute growth_consistency, then
     annotate percentiles across the whole cohort, then score each deterministically.
-    Records zero tokens per ticker (LLM-free) so cost tracking stays accurate."""
+    Records zero tokens per ticker (LLM-free) so cost tracking stays accurate.
+
+    `annual_series` ist optional: fehlt es, bleibt die Stetigkeits-Achse
+    unbesetzt und das Gate verhaelt sich exakt wie vor ihrer Einfuehrung."""
     from app.screener.growth_consistency import consistency_ratio
     from app.screener.sector_percentiles import annotate_percentiles
 
@@ -157,6 +191,8 @@ def run_deterministic_scoring(records, revenue_cache, run_tracker):
         revenues = revenue_cache.get_revenue_series(record.ticker)
         record.growth_consistency = consistency_ratio(revenues)
     annotate_percentiles(records)
+    if annual_series is not None:
+        annotate_steadiness(records, annual_series, run_tracker)
     for record in records:
         score_record(record)
         run_tracker.record_ticker(0, 0)

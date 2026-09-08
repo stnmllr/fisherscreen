@@ -34,6 +34,7 @@ def test_monthly_run_endpoint_exists() -> None:
         patch("app.main.build_screener_pipeline"),
         patch("app.main.build_edgar_pipeline"),
         patch("app.main.build_revenue_series_cache"),
+        patch("app.main.build_edgar_annual_series"),
         patch("app.main.build_run_tracker"),
         patch("app.main.build_github_client"),
         patch("app.main.run_screener", return_value=_mock_run_result()),
@@ -48,6 +49,7 @@ def test_monthly_run_returns_run_record_json() -> None:
         patch("app.main.build_screener_pipeline"),
         patch("app.main.build_edgar_pipeline"),
         patch("app.main.build_revenue_series_cache"),
+        patch("app.main.build_edgar_annual_series"),
         patch("app.main.build_run_tracker"),
         patch("app.main.build_github_client"),
         patch("app.main.run_screener", return_value=_mock_run_result()),
@@ -74,7 +76,8 @@ def test_dry_run_returns_report_and_skips_paid_pipeline() -> None:
     with (
         patch("app.main.build_screener_pipeline") as mock_screener,
         patch("app.main.build_edgar_pipeline") as mock_edgar,
-        patch("app.main.build_revenue_series_cache") as mock_revenue_cache,
+        patch("app.main.build_revenue_series_cache"),
+        patch("app.main.build_edgar_annual_series") as mock_revenue_cache,
         patch("app.main.build_run_tracker") as mock_tracker,
         patch("app.main.build_github_client") as mock_github,
         patch("app.main.run_screener") as mock_run_screener,
@@ -132,6 +135,7 @@ def test_monthly_run_commit_message_includes_skip_ci(tmp_path: Path) -> None:
         patch("app.main.build_screener_pipeline"),
         patch("app.main.build_edgar_pipeline"),
         patch("app.main.build_revenue_series_cache"),
+        patch("app.main.build_edgar_annual_series"),
         patch("app.main.build_run_tracker"),
         patch("app.main.build_github_client", return_value=mock_github),
         patch(

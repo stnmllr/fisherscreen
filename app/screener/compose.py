@@ -2,9 +2,11 @@ from app.config import settings
 from app.screener.run_tracker import RunTracker
 from app.screener.sector_buckets import SectorMedianTable
 from app.screener.sector_median_table import load_sector_median_table
+from app.services.cached_edgar_annual_series import CachedEdgarAnnualSeries
 from app.services.cached_edgar_client import CachedEdgarClient
 from app.services.cached_gemini_client import CachedGeminiClient
 from app.services.cached_yfinance_client import CachedYFinanceClient
+from app.services.edgar_annual_series_client import EdgarAnnualSeriesClientImpl
 from app.services.edgar_client import EdgarClient, EdgarClientImpl
 from app.services.firestore_client import FirestoreClientImpl
 from app.services.gemini_client import GeminiClient, GeminiClientImpl
@@ -74,6 +76,28 @@ def build_revenue_series_cache() -> CachedRevenueSeries:
         firestore=firestore,
         collection=settings.revenue_series_collection,
         ttl_days=settings.revenue_series_ttl_days,
+    )
+
+
+def build_edgar_annual_series() -> CachedEdgarAnnualSeries:
+    """EDGAR-Jahresreihen fuer die Stetigkeits-Dimension, Firestore-gecacht.
+
+    Der eigene EdgarClientImpl ist Absicht: `build_edgar_pipeline` liefert den
+    CachedEdgarClient, dessen Firestore-Schicht auf Restatement- und
+    Going-Concern-Signale zugeschnitten ist. Zwei Caches uebereinander waeren
+    eine Einladung, den falschen zu purgen."""
+    edgar = EdgarClientImpl(
+        user_agent=settings.edgar_user_agent,
+        max_requests_per_second=settings.edgar_max_requests_per_second,
+    )
+    firestore = FirestoreClientImpl(project_id=settings.gcp_project_id)
+    return CachedEdgarAnnualSeries(
+        client=EdgarAnnualSeriesClientImpl(edgar),
+        firestore=firestore,
+        collection=settings.edgar_annual_series_collection,
+        ttl_days=settings.edgar_annual_series_ttl_days,
+        ttl_jitter_days=settings.edgar_annual_series_ttl_jitter_days,
+        negative_ttl_days=settings.edgar_annual_series_negative_ttl_days,
     )
 
 

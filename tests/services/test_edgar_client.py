@@ -1335,3 +1335,43 @@ def test_default_annual_form_max_age_is_18_months():
 
     declared = FisherScreenSettings.model_fields["annual_form_max_age_days"].default
     assert declared == DEFAULT_ANNUAL_FORM_MAX_AGE_DAYS
+
+
+@patch("app.services.edgar_client.httpx")
+def test_get_company_facts_pads_the_cik_and_hits_the_xbrl_endpoint(mock_httpx):
+    """companyfacts is keyed by a zero-padded 10-digit CIK. An unpadded one
+    returns 404, and the whole annual-series path would go dark on it."""
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"entityName": "Apple Inc.", "facts": {}}
+    mock_httpx.get.return_value = mock_resp
+
+    facts = _make_client().get_company_facts("320193")
+
+    assert facts["entityName"] == "Apple Inc."
+    url = mock_httpx.get.call_args[0][0]
+    assert url == "https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json"
+
+
+@patch("app.services.edgar_client.httpx")
+def test_get_company_facts_accepts_an_already_padded_cik(mock_httpx):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"facts": {}}
+    mock_httpx.get.return_value = mock_resp
+
+    _make_client().get_company_facts("0000320193")
+
+    assert "CIK0000320193.json" in mock_httpx.get.call_args[0][0]
+
+
+@patch("app.services.edgar_client.httpx")
+def test_get_company_facts_raises_on_non_200(mock_httpx):
+    """A 404 here means "this registrant has no XBRL facts" — a statement about
+    the issuer that the caller must be able to tell apart from an empty result."""
+    mock_resp = MagicMock()
+    mock_resp.status_code = 404
+    mock_httpx.get.return_value = mock_resp
+
+    with pytest.raises(DataSourceError, match="404"):
+        _make_client().get_company_facts("320193")

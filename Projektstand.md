@@ -103,6 +103,25 @@ META; es bleiben FICO und FAST (5,0), GOOG/GOOGL, MEDP, MNST (4,67) sowie **NVDA
 exakt 4,0** — die Kantenlage ist gewollt, ein weiteres schwaches Margenjahr kippt beide.
 Der Bau ist freigegeben, kommt aber als eigener PR.
 
+**Nachtrag 2026-09-08: die Stetigkeits-Dimension ist gebaut** (Branch
+`feature/steadiness-annual-series`, nicht gemergt, nicht deployt). Reihenfolge nach Spec §9:
+Extraktion als Service (`edgar_annual_series_client`), Firestore-Cache nach CIK
+(`dev_edgar_annual_series`, 890 Dokumente vorgewärmt), Backfill-Skript, Achse
+(`app/screener/steadiness.py`), Gate, Report-Spalte. Suite 1709 / 96,26 %.
+
+**Zwei Messungen haben Annahmen gekippt.** Erstens: der kalte Durchlauf kostet mit
+Firestore **15,7 min**, nicht die geschätzten 6,8 — für die 610 US-Titel im Scoring wären
+das ~2040 s gegen eine harte 1800-s-Deadline. Der Monatslauf **liest deshalb nur** und
+benutzt auch abgelaufene Reihen; nachgeladen wird ausschließlich per Backfill
+(`docs/infra/annual-series-backfill.md`). Warm gemessen: **31,7 s** Aufschlag, das ist der
+reale Preis. Zweitens: TPL steht bei **3,67**, nicht 3,33 — die alte Zahl kam aus der
+Quoten-Lesart von S1, die an der Fensterlänge hängt. Genau deswegen war die Umstellung auf
+die Anzahl richtig.
+
+**Der Formularfilter ist die tragende Sicherung, nicht die Taxonomiewahl:** ASML führt 623
+us-gaap-Tags und reicht auf Form 20-F ein. Ohne `ANNUAL_FORMS = ('10-K', '10-K/A')` bekäme
+der Titel eine Stetigkeit aus 20-F-Zahlen. Als Regressionstest festgehalten.
+
 **Aufgeräumt nebenbei:** `reports/` war ein zweiter, versehentlicher Ablageort für
 Diagnose-Berichte. Datei nach `docs/superpowers/diagnostic-reports/` verschoben, **und der
 Ausgabepfad im Skript mitgezogen** — sonst hätte der nächste Lauf die Doppelablage still neu

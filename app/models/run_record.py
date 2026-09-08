@@ -18,6 +18,12 @@ class RunRecord(BaseModel):
     status: str = "success"  # "success" | "partial" | "aborted"
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: datetime | None = None
+    # Betriebszahlen der Stetigkeits-Achse. Der Scoring-Pfad laedt NIE nach
+    # (Spec 9.3.1); veraltete Reihen faellen daher nicht von selbst auf.
+    # Diese beiden Zahlen sind das einzige Signal, wann der Backfill faellig
+    # ist -- siehe docs/infra/annual-series-backfill.md.
+    steadiness_stale: int = 0
+    steadiness_missing: int = 0
 
     def compute_cost(self) -> float:
         return (self.tokens_in_total / 1_000_000 * COST_PER_1M_INPUT_USD) + (

@@ -228,7 +228,7 @@ Collections, zwei davon existierten nur hier und in keiner Codezeile.
 | `dev_screener_runs` | `screener_runs_collection` | Cost-Tracking pro Run | run_id (ISO-Timestamp) | — | nein (Historie) |
 | `dev_revenue_series` | `revenue_series_collection` | Mehrjahres-Umsatzreihen (yfinance, ~4 GJ) | ticker | 400 d | nein — kein Purge-Skript |
 | `dev_deepdive_peers` | `deepdive_peers_collection` | Peer-Gruppen für Tool B | ticker | — | nein |
-| `dev_edgar_annual_series` | `edgar_annual_series_collection` | **geplant, noch nicht gebaut:** EDGAR-Jahresreihen für die Stetigkeits-Dimension. Nur der Extrakt, nie companyfacts roh | **cik** | 400 d ± 60 d Jitter; Negativ 30–90 d | nein — Backfill statt Purge |
+| `dev_edgar_annual_series` | `edgar_annual_series_collection` | EDGAR-Jahresreihen für die Stetigkeits-Dimension. Nur der Extrakt, nie companyfacts roh. **Cache gebaut und vorgewärmt (890 Dok., 2026-09-08), noch nicht im Monatslauf verdrahtet** (Spec-Schritte 4–5 offen) | **cik** | 400 d ± 60 d Jitter; Negativ 60 d ohne Jitter | nein — Backfill statt Purge; Schema-Version invalidiert |
 
 Nicht in dieser Liste, weil **lokale Dateien** unter `cache/`, keine Collections:
 `adr_resolved.json` (Tool B), `filings/`, `insider/`, `yfinance_historical/`.

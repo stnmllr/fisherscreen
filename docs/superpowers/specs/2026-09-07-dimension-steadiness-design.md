@@ -1,7 +1,9 @@
 # Design: vierte Tool-A-Dimension „Stetigkeit"
 
-**Datum:** 2026-09-07, überarbeitet 2026-09-07 (Entscheidungsrunde nach PR #60)
-**Status:** Spec, keine Implementierung.
+**Datum:** 2026-09-07, überarbeitet 2026-09-08
+**Status:** **GEBAUT** auf `feature/steadiness-annual-series` (Schritte 1–7), noch nicht
+gemergt und noch nicht deployt. Diese Spec beschreibt ab hier den Ist-Stand, nicht mehr
+einen Plan.
 
 **Entschieden** (in dieser Fassung eingearbeitet): Kennzahlen S1/S2/S3 in ihrer heutigen Form
 (§5 — Anzahl Rückgangsjahre, Margeneinbruch vom Hoch, schlechteste Nettomarge; Eigenkapital
@@ -10,14 +12,14 @@ dass „bewertbar" an einem eigenen Feld hängt (§8, §8.1); die neue Collectio
 `dev_edgar_annual_series` mit Schlüssel CIK, TTL-Jitter und Negativ-Caching (§9.1.1).
 
 **Nach dem Kalibrierungslauf entschieden** (2026-09-07): B1 Mittelwert, `min` verworfen;
-B2 die Bänder in §5.1; B3 NVDA bleibt (genau auf der Kante), TER fällt. Damit ist die Spec
-**baureif** — offen ist nur noch der Bau selbst.
+B2 die Bänder in §5.1; B3 NVDA bleibt (genau auf der Kante), TER fällt.
 
 **Maßstab der Dimension ist allein die Regressionserwartung in §10.2** — kein Anteil über das
 Universum. Eine solche Quote war zwischenzeitlich als Kriterium vorgesehen und wurde nach der
 Messung verworfen; die Begründung steht im Kalibrierungsbericht, Befund 3.
 **Vorlauf:** `docs/superpowers/diagnostic-reports/2026-09-07-edgar-history-coverage.md`
-**Branch:** `feature/tool-a-cyclicals`
+**Branch:** `feature/steadiness-annual-series` (Bau); Vorlauf `feature/tool-a-cyclicals`
+und `chore/steadiness-spec-decisions`, beide gemergt (PR #60, #61)
 
 ---
 
@@ -49,7 +51,12 @@ bestraft.
   (27,6 % des gescorten Universums) ohne Stetigkeit. Das ist eine bekannte Asymmetrie, kein
   offener Punkt.
 - Keine 20-F-/`ifrs-full`-Auswertung. Wäre eine eigene Konzeptliste, eigener Aufwand, eigene
-  Entscheidung.
+  Entscheidung. **Durchgesetzt wird das vom Formularfilter `ANNUAL_FORMS = ("10-K", "10-K/A")`,
+  nicht von der Taxonomiewahl** — und der Unterschied ist nicht theoretisch: ASML
+  (CIK 937966) führt **623 us-gaap-Tags** und reicht auf Form 20-F ein. Ohne den Filter bekäme
+  der Titel eine Stetigkeit aus einer Reihe, die diese Spec nie geprüft hat. Gemessen am
+  2026-09-08: ASML und Novo Nordisk liefern beide `no_concept`. Ein Regressionstest hält den
+  ASML-Fall fest (`tests/services/test_edgar_annual_series_client.py`).
 - Kein Ersatz für die Preisnehmer-Kennzeichnung. Die Messung zeigt, dass fünf der acht
   gemeldeten Fälle von dieser Dimension **nicht erreicht** werden (Abschnitt 10).
 
@@ -255,10 +262,36 @@ schief:
   32,6 % des Universums, darunter alle europäischen. Bestrafung durch die Hintertür, im
   Widerspruch zu Abschnitt 7.
 
-**Gebaut wird: Crosshit = ≥4,0 in allen BEWERTBAREN Merit-Achsen, mindestens jedoch in drei.**
+**Entschieden: Crosshit = ≥4,0 in allen BEWERTBAREN Merit-Achsen, mindestens jedoch in
+drei.** Wie das umgesetzt ist und warum die Umsetzung anders formuliert ist als dieser
+Satz, steht in §8.0.
 Stetigkeit zählt mit, wenn sie bestimmt ist, und wird übersprungen, wenn sie es nicht ist. Damit
 gilt für einen Titel mit Historie eine strengere Hürde als heute, für einen ohne Historie
 exakt die heutige. Das ist „neutral = weder Vor- noch Nachteil", präzise ausgedrückt.
+
+### 8.0 Umgesetzt als: bestehende Regel plus Stetigkeit — und warum
+
+Der Code sagt es anders als der Absatz darüber, und das ist Absicht.
+`is_crosshit` (`app/screener/dimensions.py`) prüft:
+
+```
+len(qualifying_dimensions(record, threshold)) >= min_dimensions
+    UND (falls Stetigkeit bewertbar) steadiness >= threshold
+```
+
+Also: die drei yfinance-Achsen behalten ihre bisherige `min_dimensions`-Regel, und die
+Stetigkeit kommt **additiv** obendrauf, wenn sie bestimmt ist.
+
+**In Produktion sind beide Formulierungen identisch:** `crosshits_min_dimensions` ist 3 und es
+gibt genau drei yfinance-Achsen — „mindestens drei von drei" *ist* „alle". Sie gehen nur
+auseinander, wenn `min_dimensions` unter 3 gesetzt wird, und das passiert in lokalen Versuchen
+(`.env` trägt eine 2).
+
+Genau dort ist die wörtliche Fassung schädlich: „alle bewertbaren Merit-Achsen" würde den
+Knopf `crosshits_min_dimensions` unterhalb von 3 **still wirkungslos** machen. Ein
+Konfigurationswert, der aussieht, als täte er etwas, und nichts tut, ist schlimmer als keiner —
+dieselbe Sorte stiller Verhaltensänderung, gegen die §8.1 und die Schema-Version im Cache
+gebaut sind. Deshalb die additive Form.
 
 ### 8.1 Auflage: „bewertbar" hängt an einem Feld, nie am Score-Wert
 
@@ -353,15 +386,79 @@ Ticket `2026-09-07-steadiness-relative-margin-drawdown.md` gezogen wird.
 
 **Das ist die Stelle, an der diese Dimension den Monatslauf gefährden kann.**
 
-Der Monatslauf scort heute kalt in ~23 min. Die Messung von 610 Titeln über companyfacts
-dauerte **6,8 min**. Ein kalter Lauf käme damit auf ~30 min = ~1800 s — und die harte
-Scheduler-Deadline liegt bei 1800 s; ein Überschreiten löst einen Scheduler-Retry und damit
-einen Doppellauf aus (bekanntes Restrisiko, siehe `punkt3-revenue-growth-floor-state`).
+Der Monatslauf scort heute kalt in ~23 min. Die harte Scheduler-Deadline liegt bei 1800 s; ein
+Überschreiten löst einen Scheduler-Retry und damit einen Doppellauf aus (bekanntes Restrisiko,
+siehe `punkt3-revenue-growth-floor-state`).
+
+**Gemessen am 2026-09-08 mit `scripts/backfill_edgar_annual_series.py`, 890 eindeutige CIKs über
+das volle Universum:**
+
+| Pfad | Laufzeit | je CIK |
+|---|---|---|
+| **kalt** (SEC-Abruf + Firestore-Schreiben) | **15,7 min** | ~1,06 s |
+| **warm** (nur Firestore-Lesen) | **0,7 min** | ~47 ms |
+
+Die Schätzung in der ersten Fassung dieser Spec — 6,8 min — war die reine companyfacts-Messung
+**ohne Firestore**. Der Speicherzugriff kostet rund die Hälfte obendrauf. Das verschiebt die
+Lage in beide Richtungen, und zwar deutlich:
+
+- **Kalt ist schlimmer als angenommen.** Für die ~610 US-Titel, die den Scoring-Schritt
+  erreichen, wären das ~10,8 min auf ~23 min Grundlast = **~34 min ≈ 2040 s**. Das reißt die
+  Deadline, es kommt ihr nicht nur nahe. Ein Monatslauf darf diesen Cache unter keinen
+  Umständen erstmalig füllen.
+- **Warm ist unkritisch.** Am 2026-09-08 auf dem echten Scoring-Pfad gemessen —
+  `annotate_steadiness` über die 843 gescorten Titel des Septemberlaufs:
+  **31,7 s** (38 ms je Titel), `stale=0`, `missing=0`. Das ist der Preis, den die
+  Dimension im Regelbetrieb tatsächlich kostet: ~0,5 min auf ~23 min.
+  Ergebnisverteilung dabei: 568 bewertet, 236 kein SEC-Registrant, 35 Reihe zu kurz,
+  4 kein Konzept; von den 568 erreichen 236 (42 %) die 4,0.
+
+### 9.3.1 Der Monatslauf liest nur — er lädt nie nach
+
+**Entschieden am 2026-09-08, als Folge der Messung oben.** Die ursprüngliche Fassung sagte
+„Cache warm, TTL lang, im Regelfall keine Requests". Das ist die Sorte Zusage, die meistens
+hält: der TTL-Jitter verteilt die Abläufe über rund vier Monate (340–460 Tage nach dem
+Backfill), und in jedem dieser Monate wären ~150 Titel fällig — bei 1,06 s je Titel ~2,7 min,
+also ~25,7 min gegen die 25-Minuten-Warnlinie. Nicht tödlich, aber vom Zufall abhängig.
+
+Deshalb sind die beiden Pfade getrennt:
+
+| Pfad | Methode | Verhalten |
+|---|---|---|
+| Monatslauf (Scoring) | `read_annual_series` | liest ausschließlich; ein **abgelaufener** Eintrag wird **benutzt** |
+| Wartung | `get_annual_series` (Backfill-Skript) | lädt nach und schreibt |
+
+Ein abgelaufener Eintrag ist brauchbar: eine Stetigkeit über zehn Jahre ändert sich nicht
+dadurch, dass das jüngste Jahr fehlt. Ein Eintrag aus einer **älteren Extraktion** dagegen gilt
+als `missing`, nicht als `stale` — alt und richtig darf man weiterverwenden, alt und nach
+anderen Regeln erzeugt nicht.
+
+Damit ist die Deadline **strukturell** sicher und nicht nur bei warmem Cache: der Scoring-Pfad
+hat keinen Netzzugriff, den er überziehen könnte.
+
+Der Preis dafür ist, dass Veralten unsichtbar würde — deshalb zählt der Monatslauf `stale` und
+`missing` mit und schreibt beide Zahlen nach `dev_screener_runs`. **Daran, und nur daran, sieht
+man, wann der Backfill fällig ist.** Betriebsanweisung:
+`docs/infra/annual-series-backfill.md`.
 
 Auflagen daraus, nicht verhandelbar:
 
 1. Der Cache wird **vor** der Aktivierung per Backfill-Skript vorgewärmt, nie im Monatslauf
-   erstmalig gefüllt.
+   erstmalig gefüllt. **Erledigt am 2026-09-08:** 890 Dokumente in
+   `dev_edgar_annual_series`, 859 mit verwertbaren Reihen, 31 ohne greifendes Konzept
+   (Banken melden Zinsertrag statt `Revenues`, REITs kein `OperatingIncomeLoss`), 0 Fehler.
+   Die 31 tragen die 60-Tage-Negativ-TTL und werden turnusmäßig erneut geprüft — bei Exxon
+   ist das nicht theoretisch: der Titel steht seit einer Neuregistrierung unter einer
+   anderen CIK ohne Faktenbestand.
+
+   **Zur Zahl 890 gegen die ~610 gescorten Titel:** die Differenz sind **keine EU-Titel**.
+   Der Backfill überspringt Suffix-Ticker, bevor er überhaupt eine CIK nachschlägt, also ist
+   kein einziger EU-Titel im Bestand. Das Universum enthält 906 US-Symbole; 13 haben keine
+   CIK in `company_tickers.json`, drei fallen durch die CIK-Deduplizierung weg (GOOG/GOOGL
+   und Konsorten) → 890. Von den 906 erreichen nur 610 das Scoring; die übrigen **296**
+   scheiden vorher aus (276 Basis-Gates, 12 Resolution, 8 EDGAR-Gates). Der Backfill wärmt
+   sie mit, weil sich die Gate-Ergebnisse monatlich ändern können und ein Nachwärmen im
+   Monatslauf ausgeschlossen ist (§9.3.1).
 2. TTL 400 Tage, damit ein Monatslauf im Regelfall gar keine companyfacts-Requests macht —
    **mit Jitter ±60 Tage** (9.1.1). Ein Backfill schreibt alle Einträge am selben Tag; ohne
    Jitter laufen sie auch am selben Tag ab, und dann trägt genau ein Monatslauf die vollen
@@ -403,7 +500,7 @@ Der Abnahmefall. Erwartung, an der die Dimension gemessen wird:
 | HL | 10 | 3 | 23,9 | −14,1 | 2/3/2 | **2,33** | fällt |
 | TER | 10 | 3 | 13,7 | −2,5 | 2/3/3 | **2,67** | fällt |
 | PLTR | 8 | 0 | 29,8 | −106,7 | 5/2/1 | **2,67** | fällt |
-| TPL | 8 | 2 | 15,1 | 58,2 | 2/3/5 | **3,33** | fällt |
+| TPL | 8 | 2 | 15,1 | 58,2 | 3/3/5 | **3,67** | fällt |
 | META | 10 | 1 | 24,9 | 19,9 | 4/2/5 | **3,67** | fällt |
 | NVDA | 10 | 1 | 21,6 | 16,2 | 4/3/5 | **4,0** | bleibt — auf der Kante |
 | TDG | 10 | 2 | 9,1 | 13,7 | 3/4/5 | **4,0** | bleibt — auf der Kante |
@@ -420,6 +517,14 @@ Der Abnahmefall. Erwartung, an der die Dimension gemessen wird:
 Einbruch über zwei Jahre, den die Dimension nicht entschuldigen soll. Bei einer S2-Kante von
 15 pp statt 12 bliebe META mit 4,0 stehen, sonst wäre das Bild identisch; 12 ist die gewählte
 Kante.
+
+**Korrektur am 2026-09-08 gegen die Implementierung:** TPL steht bei **3,67**, nicht 3,33.
+Die 3,33 stammte aus dem Kalibrierungsskript, das S1 noch als **Quote** bändert — und die
+hängt an der Fensterlänge: TPLs acht Jahre sind sieben Übergänge, zwei Rückgangsjahre
+ergeben 0,714 und fallen knapp unter die 0,72-Kante. Nach der entschiedenen **Anzahl**-
+Tabelle sind zwei Rückgangsjahre S1 = 3, unabhängig von der Fensterlänge (§5). Genau diese
+Quantisierung war der Grund für die Umstellung. Am Verdikt ändert sich nichts, TPL fällt
+weiterhin. Die übrigen 15 bewertbaren Titel stimmen auf die zweite Nachkommastelle.
 
 **NVDA und TDG stehen exakt auf 4,0.** Das ist die Kante, kein Defekt: ein weiteres schwaches
 Margenjahr kippt beide. Bei einem Halbleiter-Titel ist genau das das erwartete Verhalten.
