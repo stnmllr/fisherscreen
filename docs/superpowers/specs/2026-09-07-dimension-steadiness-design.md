@@ -12,14 +12,14 @@ dass „bewertbar" an einem eigenen Feld hängt (§8, §8.1); die neue Collectio
 `dev_edgar_annual_series` mit Schlüssel CIK, TTL-Jitter und Negativ-Caching (§9.1.1).
 
 **Nach dem Kalibrierungslauf entschieden** (2026-09-07): B1 Mittelwert, `min` verworfen;
-B2 die Bänder in §5.1; B3 NVDA bleibt (genau auf der Kante), TER fällt. Damit ist die Spec
-**baureif** — offen ist nur noch der Bau selbst.
+B2 die Bänder in §5.1; B3 NVDA bleibt (genau auf der Kante), TER fällt.
 
 **Maßstab der Dimension ist allein die Regressionserwartung in §10.2** — kein Anteil über das
 Universum. Eine solche Quote war zwischenzeitlich als Kriterium vorgesehen und wurde nach der
 Messung verworfen; die Begründung steht im Kalibrierungsbericht, Befund 3.
 **Vorlauf:** `docs/superpowers/diagnostic-reports/2026-09-07-edgar-history-coverage.md`
-**Branch:** `feature/tool-a-cyclicals`
+**Branch:** `feature/steadiness-annual-series` (Bau); Vorlauf `feature/tool-a-cyclicals`
+und `chore/steadiness-spec-decisions`, beide gemergt (PR #60, #61)
 
 ---
 
@@ -262,10 +262,36 @@ schief:
   32,6 % des Universums, darunter alle europäischen. Bestrafung durch die Hintertür, im
   Widerspruch zu Abschnitt 7.
 
-**Gebaut wird: Crosshit = ≥4,0 in allen BEWERTBAREN Merit-Achsen, mindestens jedoch in drei.**
+**Entschieden: Crosshit = ≥4,0 in allen BEWERTBAREN Merit-Achsen, mindestens jedoch in
+drei.** Wie das umgesetzt ist und warum die Umsetzung anders formuliert ist als dieser
+Satz, steht in §8.0.
 Stetigkeit zählt mit, wenn sie bestimmt ist, und wird übersprungen, wenn sie es nicht ist. Damit
 gilt für einen Titel mit Historie eine strengere Hürde als heute, für einen ohne Historie
 exakt die heutige. Das ist „neutral = weder Vor- noch Nachteil", präzise ausgedrückt.
+
+### 8.0 Umgesetzt als: bestehende Regel plus Stetigkeit — und warum
+
+Der Code sagt es anders als der Absatz darüber, und das ist Absicht.
+`is_crosshit` (`app/screener/dimensions.py`) prüft:
+
+```
+len(qualifying_dimensions(record, threshold)) >= min_dimensions
+    UND (falls Stetigkeit bewertbar) steadiness >= threshold
+```
+
+Also: die drei yfinance-Achsen behalten ihre bisherige `min_dimensions`-Regel, und die
+Stetigkeit kommt **additiv** obendrauf, wenn sie bestimmt ist.
+
+**In Produktion sind beide Formulierungen identisch:** `crosshits_min_dimensions` ist 3 und es
+gibt genau drei yfinance-Achsen — „mindestens drei von drei" *ist* „alle". Sie gehen nur
+auseinander, wenn `min_dimensions` unter 3 gesetzt wird, und das passiert in lokalen Versuchen
+(`.env` trägt eine 2).
+
+Genau dort ist die wörtliche Fassung schädlich: „alle bewertbaren Merit-Achsen" würde den
+Knopf `crosshits_min_dimensions` unterhalb von 3 **still wirkungslos** machen. Ein
+Konfigurationswert, der aussieht, als täte er etwas, und nichts tut, ist schlimmer als keiner —
+dieselbe Sorte stiller Verhaltensänderung, gegen die §8.1 und die Schema-Version im Cache
+gebaut sind. Deshalb die additive Form.
 
 ### 8.1 Auflage: „bewertbar" hängt an einem Feld, nie am Score-Wert
 

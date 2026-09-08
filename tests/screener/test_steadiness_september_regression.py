@@ -20,7 +20,11 @@ from app.screener.steadiness import (
     compute_steadiness,
 )
 
-_FIXTURE = Path(__file__).parent / "september_2026_annual_series.json"
+_FIXTURE = (
+    Path(__file__).resolve().parents[1]
+    / "fixtures"
+    / "september_2026_annual_series.json"
+)
 
 # Spec 10.2. Scores are pinned; the lists are what the test iterates, so naming
 # a ninth title later does not turn this red on its own.
@@ -51,6 +55,12 @@ THRESHOLD = 4.0
 
 
 def _fixture():
+    """Fail loud if the fixture is absent.
+
+    It is committed on purpose: a fixture parked under cache/ would be
+    gitignored, and the acceptance case would be green locally and missing in
+    CI. Same trap data/price_takers.json avoided in PR #60."""
+    assert _FIXTURE.exists(), f"fixture missing: {_FIXTURE}"
     return json.loads(_FIXTURE.read_text(encoding="utf-8"))
 
 
