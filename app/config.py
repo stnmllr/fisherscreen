@@ -35,6 +35,17 @@ class FisherScreenSettings(BaseSettings):
     revenue_series_ttl_days: int = (
         400  # annual revenue changes yearly; long TTL is correct here
     )
+    # EDGAR annual series for the steadiness dimension. Keyed by CIK, holds the
+    # extract only — never the multi-MB companyfacts document.
+    edgar_annual_series_collection: str = "dev_edgar_annual_series"
+    edgar_annual_series_ttl_days: int = 400  # annual data; same reasoning as above
+    # Jitter, because a backfill writes every entry on one day and would
+    # otherwise expire them all on one day — handing a single monthly run the
+    # full ~7 minutes of refetching against the hard 1800s deadline.
+    edgar_annual_series_ttl_jitter_days: int = 60
+    # A negative verdict is a statement about today: an issuer can start tagging
+    # a concept. Short, and deliberately without jitter (60 +/- 60 could be 0).
+    edgar_annual_series_negative_ttl_days: int = 60
     insider_lookback_days: int = 365
     deepdive_peers_collection: str = "dev_deepdive_peers"
     openfigi_api_key: str = ""

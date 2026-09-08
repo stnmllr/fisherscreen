@@ -557,15 +557,21 @@ def test_the_long_operating_income_fallbacks_are_spelled_exactly():
 
 
 def test_coverage_survives_a_round_trip_through_the_persisted_shape():
-    """What gets cached is the extract, never the multi-MB companyfacts doc."""
+    """What gets cached is the extract, never the multi-MB companyfacts doc.
+
+    The written shape uses lists, not tuples: Firestore has no tuple type and
+    returns arrays as lists either way. Writing tuples would make the value
+    read back differ from the value written — a difference that only shows up
+    against a real store, never against a dict-shaped fake."""
     from app.services.edgar_annual_series_client import (
-        ConceptCoverage,
         build_annual_series,
+        coverage_from_dict,
         coverage_to_dict,
     )
 
     record = build_annual_series("1", _three_concept_facts())
     payload = coverage_to_dict(record.concepts["revenue"])
 
-    assert payload["years"] == (2023, 2024, 2025)
-    assert ConceptCoverage(**payload) == record.concepts["revenue"]
+    assert payload["years"] == [2023, 2024, 2025]
+    assert isinstance(payload["values"], list)
+    assert coverage_from_dict(payload) == record.concepts["revenue"]

@@ -99,7 +99,10 @@ CONCEPTS: dict[str, list[str]] = {
 }
 
 # Grund, aus dem eine Reihe unbrauchbar ist. Er wird als eigenes Feld geführt
-# und NIE aus einem Zahlenwert abgeleitet (Spec §8.1).
+# und NIE aus einem Zahlenwert abgeleitet (Spec §8.1). Ein 404 auf companyfacts
+# — der Emittent hat gar keine XBRL-Fakten — ist der Extremfall desselben
+# Befunds und trägt denselben Grund, damit der Report bei den drei Marken aus
+# Spec §7 bleibt.
 NO_CONCEPT = "no_concept"
 
 
@@ -375,5 +378,47 @@ def extract_concept(
 
 def coverage_to_dict(coverage: ConceptCoverage) -> dict[str, Any]:
     """Für die Persistenz: nur der Extrakt, nie das companyfacts-Rohdokument
-    (mehrere MB, sprengt das 1-MiB-Dokumentlimit von Firestore)."""
-    return asdict(coverage)
+    (mehrere MB, sprengt das 1-MiB-Dokumentlimit von Firestore).
+
+    Tupel werden zu Listen: Firestore kennt keine Tupel und gäbe sie beim Lesen
+    ohnehin als Listen zurück. Die Umwandlung hier explizit zu machen hält
+    Schreib- und Leseform gleich, statt sie erst im Speicher auseinanderlaufen
+    zu lassen."""
+    payload = asdict(coverage)
+    payload["years"] = list(coverage.years)
+    payload["values"] = list(coverage.values)
+    return payload
+
+
+def coverage_from_dict(payload: dict[str, Any]) -> ConceptCoverage:
+    """Gegenstück zu `coverage_to_dict`."""
+    return ConceptCoverage(
+        concept=payload.get("concept"),
+        unit=payload.get("unit"),
+        years=tuple(payload.get("years") or ()),
+        values=tuple(float(v) for v in payload.get("values") or ()),
+        contiguous=int(payload.get("contiguous", 0)),
+        restatements=int(payload.get("restatements", 0)),
+        naive_fy_count=int(payload.get("naive_fy_count", 0)),
+    )
+
+
+def record_to_dict(record: AnnualSeriesRecord) -> dict[str, Any]:
+    return {
+        "schema": EXTRACTION_SCHEMA,
+        "cik": record.cik,
+        "entity": record.entity,
+        "reason": record.reason,
+        "concepts": {k: coverage_to_dict(v) for k, v in record.concepts.items()},
+    }
+
+
+def record_from_dict(payload: dict[str, Any]) -> AnnualSeriesRecord:
+    return AnnualSeriesRecord(
+        cik=str(payload.get("cik", "")),
+        entity=str(payload.get("entity", "")),
+        concepts={
+            k: coverage_from_dict(v) for k, v in (payload.get("concepts") or {}).items()
+        },
+        reason=payload.get("reason"),
+    )

@@ -136,3 +136,37 @@ def test_build_revenue_series_cache_wires_components():
             ttl_days=400,
         )
         assert result == mock_cached_cls.return_value
+
+
+def test_build_edgar_annual_series_wires_components():
+    with (
+        patch("app.screener.compose.EdgarClientImpl") as mock_edgar_cls,
+        patch("app.screener.compose.EdgarAnnualSeriesClientImpl") as mock_series_cls,
+        patch("app.screener.compose.FirestoreClientImpl") as mock_fs_cls,
+        patch("app.screener.compose.CachedEdgarAnnualSeries") as mock_cached_cls,
+        patch("app.screener.compose.settings", spec=True) as mock_settings,
+    ):
+        mock_settings.gcp_project_id = "test-project"
+        mock_settings.edgar_user_agent = "Test Agent <t@example.com>"
+        mock_settings.edgar_max_requests_per_second = 8.0
+        mock_settings.edgar_annual_series_collection = "dev_edgar_annual_series"
+        mock_settings.edgar_annual_series_ttl_days = 400
+        mock_settings.edgar_annual_series_ttl_jitter_days = 60
+        mock_settings.edgar_annual_series_negative_ttl_days = 60
+
+        result = compose_module.build_edgar_annual_series()
+
+        mock_edgar_cls.assert_called_once_with(
+            user_agent="Test Agent <t@example.com>",
+            max_requests_per_second=8.0,
+        )
+        mock_series_cls.assert_called_once_with(mock_edgar_cls.return_value)
+        mock_cached_cls.assert_called_once_with(
+            client=mock_series_cls.return_value,
+            firestore=mock_fs_cls.return_value,
+            collection="dev_edgar_annual_series",
+            ttl_days=400,
+            ttl_jitter_days=60,
+            negative_ttl_days=60,
+        )
+        assert result == mock_cached_cls.return_value
