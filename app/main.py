@@ -13,6 +13,7 @@ from app.logging_config import configure_logging
 from app.screener.compose import (
     build_edgar_pipeline,
     build_github_client,
+    build_edgar_annual_series,
     build_revenue_series_cache,
     build_run_tracker,
     build_screener_pipeline,
@@ -91,6 +92,7 @@ def run_monthly(dry_run: bool = False) -> dict[str, Any]:
         return {"dry_run": True, **report.to_dict()}
 
     revenue_cache = build_revenue_series_cache()
+    annual_series = build_edgar_annual_series()
     tracker = build_run_tracker()
     github = build_github_client()
     output_dir = Path(settings.output_dir)
@@ -100,6 +102,7 @@ def run_monthly(dry_run: bool = False) -> dict[str, Any]:
         yfinance=yfinance,
         edgar=edgar,
         revenue_cache=revenue_cache,
+        annual_series=annual_series,
         run_tracker=tracker,
         output_dir=output_dir,
     )

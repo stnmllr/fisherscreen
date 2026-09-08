@@ -304,9 +304,14 @@ def _industry_record(ticker: str, industry: str) -> ScreenerRecord:
 
 def _marks(text: str) -> dict[str, str]:
     """ticker -> the value in the Preisnehmer column."""
+    return _marks_col(text, "Preisnehmer")
+
+
+def _marks_col(text: str, column: str) -> dict[str, str]:
+    """ticker -> the value in the named column."""
     header = next(line for line in text.splitlines() if "| Ticker |" in line)
     columns = [c.strip() for c in header.strip("|").split("|")]
-    ticker_at, mark_at = columns.index("Ticker"), columns.index("Preisnehmer")
+    ticker_at, mark_at = columns.index("Ticker"), columns.index(column)
     marks = {}
     for line in text.splitlines():
         if not line.startswith("| ") or "| Ticker |" in line or set(line) <= set("|- "):
@@ -382,3 +387,66 @@ def test_marking_changes_no_score_and_drops_no_title(tmp_path):
         ]
 
     assert rows(marked.read_text("utf-8")) == rows(unmarked.read_text("utf-8"))
+
+
+# --- steadiness column -----------------------------------------------------
+
+
+def _steady_record(ticker, score, reason=None, industry="Software - Application"):
+    record = _industry_record(ticker, industry)
+    record.steadiness = score
+    record.steadiness_reason = reason
+    return record
+
+
+def test_the_table_has_a_steadiness_column(tmp_path):
+    path = generate(
+        [_steady_record("FAST", 5.0)], _run_record(), tmp_path, min_dimensions=3
+    )
+    assert "| Stetigkeit |" in path.read_text(encoding="utf-8")
+
+
+def test_an_assessed_title_shows_its_score(tmp_path):
+    path = generate(
+        [_steady_record("MEDP", 4.67)], _run_record(), tmp_path, min_dimensions=3
+    )
+    assert _marks_col(path.read_text(encoding="utf-8"), "Stetigkeit")["MEDP"] == "4.67"
+
+
+def test_an_unassessed_title_shows_na_with_a_reason_marker_never_the_three(tmp_path):
+    """Showing the sentinel 3 would be the visible half of the mistake the gate
+    avoids: it looks like a measurement and is not one."""
+    records = [
+        _steady_record("EDV", 3.0, reason="no_sec_registrant"),
+        _steady_record("RGLD", 3.0, reason="series_too_short"),
+        _steady_record("XOM", 3.0, reason="no_concept"),
+    ]
+    cells = _marks_col(
+        generate(records, _run_record(), tmp_path, min_dimensions=3).read_text("utf-8"),
+        "Stetigkeit",
+    )
+
+    assert cells["EDV"] == "n/a ∅"
+    assert cells["RGLD"] == "n/a ↧"
+    assert cells["XOM"] == "n/a ⊘"
+    assert "3.0" not in set(cells.values())
+
+
+def test_a_measured_three_is_shown_as_a_number_not_as_na(tmp_path):
+    path = generate(
+        [_steady_record("CYC", 3.0)], _run_record(), tmp_path, min_dimensions=3
+    )
+    assert _marks_col(path.read_text(encoding="utf-8"), "Stetigkeit")["CYC"] == "3.0"
+
+
+def test_the_legend_names_how_many_of_the_list_are_assessed(tmp_path):
+    records = [
+        _steady_record("FAST", 5.0),
+        _steady_record("EDV", 3.0, reason="no_sec_registrant"),
+    ]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+
+    assert "**1 von 2** Titeln dieser Liste sind bewertet" in text
+    assert "weder belohnt noch bestraft" in text

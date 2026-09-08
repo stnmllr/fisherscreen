@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from app.screener.dimensions import qualifying_dimensions
+from app.screener.dimensions import qualifying_dimensions, steadiness_is_assessable
 from app.screener.price_takers import PriceTakerTable, is_price_taker, load_price_takers
 
 if TYPE_CHECKING:
@@ -12,6 +12,27 @@ if TYPE_CHECKING:
     from app.models.screener_record import ScreenerRecord
 
 logger = logging.getLogger(__name__)
+
+
+# Grund-Marker der nicht bewerteten Stetigkeit. Sie stehen NEBEN dem `n/a`,
+# nicht neben dem Ticker: die vorhandenen Ticker-Marker (⌖ ⚠ ~) haben eine
+# andere Bedeutungsebene und duerfen nicht verwaessert werden (Spec §7).
+_STEADINESS_MARKS = {
+    "no_sec_registrant": "∅",
+    "series_too_short": "↧",
+    "no_concept": "⊘",
+}
+
+
+def _steadiness_cell(record) -> str:
+    """Bewertet -> der Score. Nicht bewertet -> `n/a` mit Grund, NIE die 3.
+
+    Die 3 anzuzeigen waere die sichtbare Haelfte desselben Fehlers, den das
+    Gate vermeidet: sie sieht aus wie ein Messergebnis und ist keins."""
+    if steadiness_is_assessable(record):
+        return str(record.steadiness)
+    mark = _STEADINESS_MARKS.get(record.steadiness_reason or "", "")
+    return f"n/a {mark}".strip()
 
 
 def _flags(record) -> str:
@@ -117,8 +138,8 @@ def _build_body(
     else:
         lines += [
             "| # | Ticker | Name | Sektor | Crosshits | Dimensionen | Ø Score "
-            "| Preisnehmer |",
-            "|---|---|---|---|---|---|---|---|",
+            "| Stetigkeit | Preisnehmer |",
+            "|---|---|---|---|---|---|---|---|---|",
         ]
         for i, entry in enumerate(crosshits, 1):
             r = entry["record"]
@@ -128,9 +149,18 @@ def _build_body(
             lines.append(
                 f"| {i} | {r.ticker} {_flags(r)} | {r.name or ''} | {r.gics_sector or ''} "
                 f"| {len(entry['qualifying_dims'])} | {dims_str} | {entry['avg_score']} "
-                f"| {taker} |"
+                f"| {_steadiness_cell(r)} | {taker} |"
             )
+        assessed = sum(1 for e in crosshits if steadiness_is_assessable(e["record"]))
         lines += [
+            "",
+            f"> **Stetigkeit** = vierte Achse ueber bis zu zehn Jahre EDGAR-Jahreszahlen "
+            f"(Rueckgangsjahre, Margeneinbruch vom Hoch, schlechteste Nettomarge). "
+            f"**{assessed} von {len(crosshits)}** Titeln dieser Liste sind bewertet; "
+            f"`n/a` heisst nicht bewertbar und wird weder belohnt noch bestraft: "
+            f"`∅` kein SEC-Registrant, `↧` Reihe kuerzer als sieben Jahre, "
+            f"`⊘` kein Konzept getroffen. Bei sieben bis neun Jahren ist der "
+            f"Hoechstwert 4.",
             "",
             "> **Preisnehmer** = das Unternehmen verkauft zu einem Preis, den es nicht "
             "setzt (Rohstoffe, Speicherchips). In einem Preiszyklus faerben sich alle "

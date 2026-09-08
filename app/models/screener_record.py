@@ -74,6 +74,13 @@ class ScreenerRecord(BaseModel):
     partial_evidence_axes: list[str] | None = (
         None  # merit axes scored on only 1 of 2 inputs
     )
+    # Vierte Achse. Der SCORE allein sagt nicht, ob sie bewertbar war: ein
+    # gemessener 3,0-Titel und ein neutral gestellter tragen dieselbe Zahl.
+    # Bewertbar ist ausschliesslich, wo `steadiness_reason is None` (Spec 8.1).
+    steadiness: float | None = None
+    steadiness_reason: str | None = (
+        None  # "no_sec_registrant" | "series_too_short" | "no_concept"
+    )
 
     # Filter tracking
     filter_passed_basis: bool | None = None

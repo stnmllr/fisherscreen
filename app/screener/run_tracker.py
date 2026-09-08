@@ -25,6 +25,8 @@ class RunTracker:
         self._tokens_out = 0
         self._finished = False
         self._truncated = False
+        self._steadiness_stale = 0
+        self._steadiness_missing = 0
 
     def record_ticker(self, tokens_in: int, tokens_out: int) -> None:
         self._tickers_processed += 1
@@ -33,6 +35,15 @@ class RunTracker:
 
     def record_skip(self) -> None:
         self._tickers_skipped += 1
+
+    def record_steadiness_lookup(self, status: str) -> None:
+        """Zaehlt, wie oft die Jahresreihe abgelaufen (`stale`) oder gar nicht
+        vorhanden (`missing`) war. Der Monatslauf laedt nicht nach, also ist das
+        das einzige Signal dafuer, dass der Backfill faellig wird."""
+        if status == "stale":
+            self._steadiness_stale += 1
+        elif status == "missing":
+            self._steadiness_missing += 1
 
     def mark_truncated(self) -> None:
         """Signal that the run stopped early (e.g. token cap hit) — derives status=partial."""
@@ -56,6 +67,8 @@ class RunTracker:
             status=status,
             started_at=self._started_at,
             completed_at=completed_at,
+            steadiness_stale=self._steadiness_stale,
+            steadiness_missing=self._steadiness_missing,
         )
         record.estimated_cost_usd = record.compute_cost()
         # Firestore failure propagates intentionally — fail loud (CLAUDE.md convention)
@@ -63,7 +76,8 @@ class RunTracker:
             self._collection, self._run_id, record.model_dump(mode="json")
         )
         logger.info(
-            "run=%s status=%s tickers=%d skipped=%d tokens_in=%d tokens_out=%d cost=$%.4f",
+            "run=%s status=%s tickers=%d skipped=%d tokens_in=%d tokens_out=%d "
+            "cost=$%.4f steadiness_stale=%d steadiness_missing=%d",
             self._run_id,
             status,
             self._tickers_processed,
@@ -71,5 +85,7 @@ class RunTracker:
             self._tokens_in,
             self._tokens_out,
             record.estimated_cost_usd,
+            self._steadiness_stale,
+            self._steadiness_missing,
         )
         return record

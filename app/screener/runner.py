@@ -32,6 +32,7 @@ from app.services.income_statement import (
 )
 
 if TYPE_CHECKING:
+    from app.services.cached_edgar_annual_series import AnnualSeriesSource
     from app.models.run_record import RunRecord
     from app.screener.run_tracker import RunTracker
     from app.services.edgar_client import EdgarClient
@@ -446,6 +447,7 @@ def run_screener(
     run_tracker: "RunTracker",
     output_dir: Path,
     *,
+    annual_series: "AnnualSeriesSource | None" = None,
     score_threshold: float | None = None,
     crosshits_min_dimensions: int | None = None,
     crosshits_cap: int | None = None,
@@ -474,7 +476,9 @@ def run_screener(
 
     basis = run_basis_filter(tickers, yfinance)
     edgar_passed = run_edgar_filter(basis.passed, edgar)
-    scored = run_deterministic_scoring(edgar_passed, revenue_cache, run_tracker)
+    scored = run_deterministic_scoring(
+        edgar_passed, revenue_cache, run_tracker, annual_series
+    )
     run_record = run_tracker.finish()
     run_month = run_record.run_id[:7]
 

@@ -1,7 +1,9 @@
 # Design: vierte Tool-A-Dimension „Stetigkeit"
 
-**Datum:** 2026-09-07, überarbeitet 2026-09-07 (Entscheidungsrunde nach PR #60)
-**Status:** Spec, keine Implementierung.
+**Datum:** 2026-09-07, überarbeitet 2026-09-08
+**Status:** **GEBAUT** auf `feature/steadiness-annual-series` (Schritte 1–7), noch nicht
+gemergt und noch nicht deployt. Diese Spec beschreibt ab hier den Ist-Stand, nicht mehr
+einen Plan.
 
 **Entschieden** (in dieser Fassung eingearbeitet): Kennzahlen S1/S2/S3 in ihrer heutigen Form
 (§5 — Anzahl Rückgangsjahre, Margeneinbruch vom Hoch, schlechteste Nettomarge; Eigenkapital
@@ -378,8 +380,12 @@ Lage in beide Richtungen, und zwar deutlich:
   erreichen, wären das ~10,8 min auf ~23 min Grundlast = **~34 min ≈ 2040 s**. Das reißt die
   Deadline, es kommt ihr nicht nur nahe. Ein Monatslauf darf diesen Cache unter keinen
   Umständen erstmalig füllen.
-- **Warm ist unkritisch.** ~610 Treffer × 47 ms ≈ **29 s**. Das ist der Preis, den die Dimension
-  im Regelbetrieb tatsächlich kostet.
+- **Warm ist unkritisch.** Am 2026-09-08 auf dem echten Scoring-Pfad gemessen —
+  `annotate_steadiness` über die 843 gescorten Titel des Septemberlaufs:
+  **31,7 s** (38 ms je Titel), `stale=0`, `missing=0`. Das ist der Preis, den die
+  Dimension im Regelbetrieb tatsächlich kostet: ~0,5 min auf ~23 min.
+  Ergebnisverteilung dabei: 568 bewertet, 236 kein SEC-Registrant, 35 Reihe zu kurz,
+  4 kein Konzept; von den 568 erreichen 236 (42 %) die 4,0.
 
 ### 9.3.1 Der Monatslauf liest nur — er lädt nie nach
 
@@ -468,7 +474,7 @@ Der Abnahmefall. Erwartung, an der die Dimension gemessen wird:
 | HL | 10 | 3 | 23,9 | −14,1 | 2/3/2 | **2,33** | fällt |
 | TER | 10 | 3 | 13,7 | −2,5 | 2/3/3 | **2,67** | fällt |
 | PLTR | 8 | 0 | 29,8 | −106,7 | 5/2/1 | **2,67** | fällt |
-| TPL | 8 | 2 | 15,1 | 58,2 | 2/3/5 | **3,33** | fällt |
+| TPL | 8 | 2 | 15,1 | 58,2 | 3/3/5 | **3,67** | fällt |
 | META | 10 | 1 | 24,9 | 19,9 | 4/2/5 | **3,67** | fällt |
 | NVDA | 10 | 1 | 21,6 | 16,2 | 4/3/5 | **4,0** | bleibt — auf der Kante |
 | TDG | 10 | 2 | 9,1 | 13,7 | 3/4/5 | **4,0** | bleibt — auf der Kante |
@@ -485,6 +491,14 @@ Der Abnahmefall. Erwartung, an der die Dimension gemessen wird:
 Einbruch über zwei Jahre, den die Dimension nicht entschuldigen soll. Bei einer S2-Kante von
 15 pp statt 12 bliebe META mit 4,0 stehen, sonst wäre das Bild identisch; 12 ist die gewählte
 Kante.
+
+**Korrektur am 2026-09-08 gegen die Implementierung:** TPL steht bei **3,67**, nicht 3,33.
+Die 3,33 stammte aus dem Kalibrierungsskript, das S1 noch als **Quote** bändert — und die
+hängt an der Fensterlänge: TPLs acht Jahre sind sieben Übergänge, zwei Rückgangsjahre
+ergeben 0,714 und fallen knapp unter die 0,72-Kante. Nach der entschiedenen **Anzahl**-
+Tabelle sind zwei Rückgangsjahre S1 = 3, unabhängig von der Fensterlänge (§5). Genau diese
+Quantisierung war der Grund für die Umstellung. Am Verdikt ändert sich nichts, TPL fällt
+weiterhin. Die übrigen 15 bewertbaren Titel stimmen auf die zweite Nachkommastelle.
 
 **NVDA und TDG stehen exakt auf 4,0.** Das ist die Kante, kein Defekt: ein weiteres schwaches
 Margenjahr kippt beide. Bei einem Halbleiter-Titel ist genau das das erwartete Verhalten.
