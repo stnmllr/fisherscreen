@@ -575,3 +575,42 @@ def test_coverage_survives_a_round_trip_through_the_persisted_shape():
     assert payload["years"] == [2023, 2024, 2025]
     assert isinstance(payload["values"], list)
     assert coverage_from_dict(payload) == record.concepts["revenue"]
+
+
+def test_a_20f_filer_with_us_gaap_tags_still_yields_nothing():
+    """Measured on ASML (CIK 937966): it carries 623 us-gaap tags and files on
+    Form 20-F. Only the form filter keeps those facts out — without it the title
+    would receive a steadiness score built from a series the spec never examined
+    (spec section 3 excludes 20-F/ifrs-full deliberately).
+
+    Novo Nordisk is the easy half of the case: it reports under ifrs-full and
+    has no us-gaap node at all. ASML is the hard half, and the one that needs a
+    test."""
+    from app.services.edgar_annual_series_client import build_annual_series
+
+    facts = {
+        "entityName": "ASML HOLDING NV",
+        "facts": {
+            "us-gaap": {
+                "Revenues": {
+                    "units": {
+                        "USD": [
+                            _duration(
+                                f"{y}-01-01",
+                                f"{y}-12-31",
+                                float(y),
+                                fy=y,
+                                filed=f"{y + 1}-02-01",
+                                form="20-F",
+                            )
+                            for y in range(2015, 2026)
+                        ]
+                    }
+                }
+            }
+        },
+    }
+    record = build_annual_series("0000937966", facts)
+
+    assert record.reason == "no_concept"
+    assert record.concepts["revenue"].years == ()

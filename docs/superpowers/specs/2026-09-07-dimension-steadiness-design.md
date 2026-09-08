@@ -49,7 +49,12 @@ bestraft.
   (27,6 % des gescorten Universums) ohne Stetigkeit. Das ist eine bekannte Asymmetrie, kein
   offener Punkt.
 - Keine 20-F-/`ifrs-full`-Auswertung. Wäre eine eigene Konzeptliste, eigener Aufwand, eigene
-  Entscheidung.
+  Entscheidung. **Durchgesetzt wird das vom Formularfilter `ANNUAL_FORMS = ("10-K", "10-K/A")`,
+  nicht von der Taxonomiewahl** — und der Unterschied ist nicht theoretisch: ASML
+  (CIK 937966) führt **623 us-gaap-Tags** und reicht auf Form 20-F ein. Ohne den Filter bekäme
+  der Titel eine Stetigkeit aus einer Reihe, die diese Spec nie geprüft hat. Gemessen am
+  2026-09-08: ASML und Novo Nordisk liefern beide `no_concept`. Ein Regressionstest hält den
+  ASML-Fall fest (`tests/services/test_edgar_annual_series_client.py`).
 - Kein Ersatz für die Preisnehmer-Kennzeichnung. Die Messung zeigt, dass fünf der acht
   gemeldeten Fälle von dieser Dimension **nicht erreicht** werden (Abschnitt 10).
 
@@ -376,6 +381,34 @@ Lage in beide Richtungen, und zwar deutlich:
 - **Warm ist unkritisch.** ~610 Treffer × 47 ms ≈ **29 s**. Das ist der Preis, den die Dimension
   im Regelbetrieb tatsächlich kostet.
 
+### 9.3.1 Der Monatslauf liest nur — er lädt nie nach
+
+**Entschieden am 2026-09-08, als Folge der Messung oben.** Die ursprüngliche Fassung sagte
+„Cache warm, TTL lang, im Regelfall keine Requests". Das ist die Sorte Zusage, die meistens
+hält: der TTL-Jitter verteilt die Abläufe über rund vier Monate (340–460 Tage nach dem
+Backfill), und in jedem dieser Monate wären ~150 Titel fällig — bei 1,06 s je Titel ~2,7 min,
+also ~25,7 min gegen die 25-Minuten-Warnlinie. Nicht tödlich, aber vom Zufall abhängig.
+
+Deshalb sind die beiden Pfade getrennt:
+
+| Pfad | Methode | Verhalten |
+|---|---|---|
+| Monatslauf (Scoring) | `read_annual_series` | liest ausschließlich; ein **abgelaufener** Eintrag wird **benutzt** |
+| Wartung | `get_annual_series` (Backfill-Skript) | lädt nach und schreibt |
+
+Ein abgelaufener Eintrag ist brauchbar: eine Stetigkeit über zehn Jahre ändert sich nicht
+dadurch, dass das jüngste Jahr fehlt. Ein Eintrag aus einer **älteren Extraktion** dagegen gilt
+als `missing`, nicht als `stale` — alt und richtig darf man weiterverwenden, alt und nach
+anderen Regeln erzeugt nicht.
+
+Damit ist die Deadline **strukturell** sicher und nicht nur bei warmem Cache: der Scoring-Pfad
+hat keinen Netzzugriff, den er überziehen könnte.
+
+Der Preis dafür ist, dass Veralten unsichtbar würde — deshalb zählt der Monatslauf `stale` und
+`missing` mit und schreibt beide Zahlen nach `dev_screener_runs`. **Daran, und nur daran, sieht
+man, wann der Backfill fällig ist.** Betriebsanweisung:
+`docs/infra/annual-series-backfill.md`.
+
 Auflagen daraus, nicht verhandelbar:
 
 1. Der Cache wird **vor** der Aktivierung per Backfill-Skript vorgewärmt, nie im Monatslauf
@@ -385,6 +418,15 @@ Auflagen daraus, nicht verhandelbar:
    Die 31 tragen die 60-Tage-Negativ-TTL und werden turnusmäßig erneut geprüft — bei Exxon
    ist das nicht theoretisch: der Titel steht seit einer Neuregistrierung unter einer
    anderen CIK ohne Faktenbestand.
+
+   **Zur Zahl 890 gegen die ~610 gescorten Titel:** die Differenz sind **keine EU-Titel**.
+   Der Backfill überspringt Suffix-Ticker, bevor er überhaupt eine CIK nachschlägt, also ist
+   kein einziger EU-Titel im Bestand. Das Universum enthält 906 US-Symbole; 13 haben keine
+   CIK in `company_tickers.json`, drei fallen durch die CIK-Deduplizierung weg (GOOG/GOOGL
+   und Konsorten) → 890. Von den 906 erreichen nur 610 das Scoring; die übrigen **296**
+   scheiden vorher aus (276 Basis-Gates, 12 Resolution, 8 EDGAR-Gates). Der Backfill wärmt
+   sie mit, weil sich die Gate-Ergebnisse monatlich ändern können und ein Nachwärmen im
+   Monatslauf ausgeschlossen ist (§9.3.1).
 2. TTL 400 Tage, damit ein Monatslauf im Regelfall gar keine companyfacts-Requests macht —
    **mit Jitter ±60 Tage** (9.1.1). Ein Backfill schreibt alle Einträge am selben Tag; ohne
    Jitter laufen sie auch am selben Tag ab, und dann trägt genau ein Monatslauf die vollen

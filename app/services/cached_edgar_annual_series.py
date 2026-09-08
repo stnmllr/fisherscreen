@@ -33,8 +33,9 @@ Aussage über die API, nicht über den Titel, und fliegt weiter.
 from __future__ import annotations
 
 import random
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from app.errors import DataSourceError
 from app.services.edgar_annual_series_client import (
@@ -50,6 +51,25 @@ if TYPE_CHECKING:
     from app.services.firestore_client import FirestoreClient
 
 _EXPIRES_AT = "_expires_at"
+
+FRESH = "fresh"
+STALE = "stale"
+MISSING = "missing"
+
+
+@dataclass(frozen=True)
+class AnnualSeriesLookup:
+    """Ergebnis eines NUR-LESEN-Zugriffs.
+
+    `status` ist die Betriebszahl, nicht der Inhalt: `stale` heißt, der Eintrag
+    wurde benutzt UND der Backfill ist fällig."""
+
+    record: AnnualSeriesRecord | None
+    status: str
+
+
+class AnnualSeriesSource(Protocol):
+    def read_annual_series(self, cik: str) -> AnnualSeriesLookup: ...
 
 
 class CachedEdgarAnnualSeries:
@@ -74,7 +94,35 @@ class CachedEdgarAnnualSeries:
         self._rng = rng if rng is not None else random.Random()
         self._now = now if now is not None else (lambda: datetime.now(timezone.utc))
 
+    def read_annual_series(self, cik: str) -> AnnualSeriesLookup:
+        """NUR LESEN — der Pfad des Monatslaufs. Geht unter keinen Umständen
+        zur SEC.
+
+        Ein abgelaufener Eintrag wird **benutzt**, nicht nachgeladen. Eine
+        Stetigkeit über zehn Jahre ändert sich nicht dadurch, dass das jüngste
+        Jahr fehlt; ein Nachladen im Monatslauf dagegen kostet ~1,06 s je Titel
+        und würde die 1800-s-Deadline zur Glückssache machen — der TTL-Jitter
+        verteilt die Abläufe über vier Monate, in denen jeweils ~150 Titel
+        fällig wären (~2,7 min). Damit ist die Deadline strukturell sicher und
+        nicht nur bei warmem Cache.
+
+        Ein Eintrag aus einer ÄLTEREN Extraktion gilt als `missing`, nicht als
+        `stale`: alt und richtig darf man weiterverwenden, alt und nach anderen
+        Regeln erzeugt nicht.
+
+        Der Aufrufer zählt `stale` und `missing` mit — daran, und nur daran,
+        sieht man, wann der Backfill fällig ist."""
+        key = cik.zfill(10)
+        cached = self._firestore.get(self._collection, key)
+        if cached is None or cached.get("schema") != EXTRACTION_SCHEMA:
+            return AnnualSeriesLookup(record=None, status=MISSING)
+        status = FRESH if self._is_fresh(cached) else STALE
+        return AnnualSeriesLookup(record=record_from_dict(cached), status=status)
+
     def get_annual_series(self, cik: str) -> AnnualSeriesRecord:
+        """Lesen und bei Bedarf nachladen — der Pfad des BACKFILL-Skripts.
+
+        Bewusst nicht der Pfad des Monatslaufs: siehe `read_annual_series`."""
         key = cik.zfill(10)
         cached = self._firestore.get(self._collection, key)
         if cached is not None and self._is_usable(cached):
@@ -109,8 +157,9 @@ class CachedEdgarAnnualSeries:
         einer aelteren Extraktion sieht gueltig aus und traegt trotzdem falsche
         Reihen. Ein warmer Cache, der eine Verhaltensaenderung verdeckt, hat in
         diesem Projekt schon einmal eine Verifikation wertlos gemacht."""
-        if cached.get("schema") != EXTRACTION_SCHEMA:
-            return False
+        return cached.get("schema") == EXTRACTION_SCHEMA and self._is_fresh(cached)
+
+    def _is_fresh(self, cached: dict[str, Any]) -> bool:
         raw = cached.get(_EXPIRES_AT)
         if not raw:
             return False

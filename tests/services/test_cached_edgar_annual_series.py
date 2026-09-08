@@ -233,3 +233,69 @@ def test_values_survive_firestore_turning_tuples_into_lists():
 
     assert record.concepts["revenue"].years == (2023, 2024, 2025)
     assert record.concepts["revenue"].values == (2023.0, 2024.0, 2025.0)
+
+
+# --- the monthly run reads, it never fetches -------------------------------
+
+
+def _lookup(store, client=None, **kw):
+    return _cache(client or _FakeClient(), store, **kw).read_annual_series("320193")
+
+
+def _stored(expires_in_days, schema=None):
+    payload = record_to_dict(_record())
+    payload["_expires_at"] = (_NOW + timedelta(days=expires_in_days)).isoformat()
+    if schema is not None:
+        payload["schema"] = schema
+    return _FakeStore({("series", "0000320193"): payload})
+
+
+def test_a_fresh_entry_reads_as_fresh():
+    result = _lookup(_stored(100))
+    assert result.status == "fresh"
+    assert result.record.entity == "Apple Inc."
+
+
+def test_an_expired_entry_is_used_and_flagged_stale_not_refetched():
+    """A ten-year steadiness does not change because the newest year is
+    missing. Refetching inside the monthly run would cost ~1.06 s per title and
+    make the 1800s deadline a matter of luck."""
+    client = _FakeClient()
+    store = _stored(-30)
+
+    result = _cache(client, store).read_annual_series("320193")
+
+    assert result.status == "stale"
+    assert result.record is not None
+    assert client.calls == []  # the decisive assertion: no SEC request
+
+
+def test_the_read_path_never_touches_the_client_even_on_a_miss():
+    client = _FakeClient()
+    store = _FakeStore()
+
+    result = _cache(client, store).read_annual_series("320193")
+
+    assert result.status == "missing"
+    assert result.record is None
+    assert client.calls == []
+    assert store.writes == []
+
+
+def test_an_older_extraction_reads_as_missing_not_stale():
+    """Old-but-right may be reused; old-and-produced-by-other-rules may not.
+    Serving it would score ten years of wrong series."""
+    result = _lookup(_stored(300, schema=EXTRACTION_SCHEMA - 1))
+
+    assert result.status == "missing"
+    assert result.record is None
+
+
+def test_the_backfill_path_still_refetches_what_the_read_path_tolerates():
+    """The two paths differ on purpose: only the backfill goes to the network."""
+    client = _FakeClient()
+    store = _stored(-30)
+
+    _cache(client, store).get_annual_series("320193")
+
+    assert client.calls == ["0000320193"]
