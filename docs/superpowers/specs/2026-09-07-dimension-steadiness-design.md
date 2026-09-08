@@ -353,15 +353,38 @@ Ticket `2026-09-07-steadiness-relative-margin-drawdown.md` gezogen wird.
 
 **Das ist die Stelle, an der diese Dimension den Monatslauf gefährden kann.**
 
-Der Monatslauf scort heute kalt in ~23 min. Die Messung von 610 Titeln über companyfacts
-dauerte **6,8 min**. Ein kalter Lauf käme damit auf ~30 min = ~1800 s — und die harte
-Scheduler-Deadline liegt bei 1800 s; ein Überschreiten löst einen Scheduler-Retry und damit
-einen Doppellauf aus (bekanntes Restrisiko, siehe `punkt3-revenue-growth-floor-state`).
+Der Monatslauf scort heute kalt in ~23 min. Die harte Scheduler-Deadline liegt bei 1800 s; ein
+Überschreiten löst einen Scheduler-Retry und damit einen Doppellauf aus (bekanntes Restrisiko,
+siehe `punkt3-revenue-growth-floor-state`).
+
+**Gemessen am 2026-09-08 mit `scripts/backfill_edgar_annual_series.py`, 890 eindeutige CIKs über
+das volle Universum:**
+
+| Pfad | Laufzeit | je CIK |
+|---|---|---|
+| **kalt** (SEC-Abruf + Firestore-Schreiben) | **15,7 min** | ~1,06 s |
+| **warm** (nur Firestore-Lesen) | **0,7 min** | ~47 ms |
+
+Die Schätzung in der ersten Fassung dieser Spec — 6,8 min — war die reine companyfacts-Messung
+**ohne Firestore**. Der Speicherzugriff kostet rund die Hälfte obendrauf. Das verschiebt die
+Lage in beide Richtungen, und zwar deutlich:
+
+- **Kalt ist schlimmer als angenommen.** Für die ~610 US-Titel, die den Scoring-Schritt
+  erreichen, wären das ~10,8 min auf ~23 min Grundlast = **~34 min ≈ 2040 s**. Das reißt die
+  Deadline, es kommt ihr nicht nur nahe. Ein Monatslauf darf diesen Cache unter keinen
+  Umständen erstmalig füllen.
+- **Warm ist unkritisch.** ~610 Treffer × 47 ms ≈ **29 s**. Das ist der Preis, den die Dimension
+  im Regelbetrieb tatsächlich kostet.
 
 Auflagen daraus, nicht verhandelbar:
 
 1. Der Cache wird **vor** der Aktivierung per Backfill-Skript vorgewärmt, nie im Monatslauf
-   erstmalig gefüllt.
+   erstmalig gefüllt. **Erledigt am 2026-09-08:** 890 Dokumente in
+   `dev_edgar_annual_series`, 859 mit verwertbaren Reihen, 31 ohne greifendes Konzept
+   (Banken melden Zinsertrag statt `Revenues`, REITs kein `OperatingIncomeLoss`), 0 Fehler.
+   Die 31 tragen die 60-Tage-Negativ-TTL und werden turnusmäßig erneut geprüft — bei Exxon
+   ist das nicht theoretisch: der Titel steht seit einer Neuregistrierung unter einer
+   anderen CIK ohne Faktenbestand.
 2. TTL 400 Tage, damit ein Monatslauf im Regelfall gar keine companyfacts-Requests macht —
    **mit Jitter ±60 Tage** (9.1.1). Ein Backfill schreibt alle Einträge am selben Tag; ohne
    Jitter laufen sie auch am selben Tag ab, und dann trägt genau ein Monatslauf die vollen
