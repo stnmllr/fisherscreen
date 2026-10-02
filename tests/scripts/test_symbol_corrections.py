@@ -74,3 +74,20 @@ def test_combined_pipeline_drops_keys_and_dedups():
     assert not (set(bu.SYMBOL_CORRECTIONS) & set(corrected))
     assert "SKY.L" not in corrected
     assert "BNP.PA" in corrected and "AAPL" in corrected
+
+
+# --- PR #66 additions (live-verified 2026-10-02) ---
+def test_glanbia_remapped_to_gl9():
+    # GLB.IR on Yahoo is 'Beacon Hill CBO III Ltd'; GL9.IR is Glanbia plc.
+    assert bu.SYMBOL_CORRECTIONS["GLB.IR"] == "GL9.IR"
+    assert bu._apply_symbol_corrections(["GLB.IR"]) == ["GL9.IR"]
+
+
+def test_renault_stale_line_dropped():
+    assert "RNL.PA" in bu.SYMBOL_DROP
+    assert bu._apply_symbol_corrections(["RNL.PA"]) == []
+
+
+def test_renault_stale_line_with_live_listing_yields_only_rno():
+    corrected = sorted(set(bu._apply_symbol_corrections(["RNL.PA", "RNO.PA"])))
+    assert corrected == ["RNO.PA"]

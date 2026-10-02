@@ -2,18 +2,25 @@
 """
 Build data/universe.json from S&P 500 + S&P 400 + STOXX Europe 600.
 
-Run: uv run python scripts/build_universe.py
+Run: uv run python scripts/build_universe.py [--allow-partial-stoxx]
 
 Sources:
   S&P 500   Wikipedia — https://en.wikipedia.org/wiki/List_of_S%26P_500_companies
   S&P 400   Wikipedia — https://en.wikipedia.org/wiki/List_of_S%26P_400_companies
-  STOXX 600 Wikipedia — https://en.wikipedia.org/wiki/STOXX_Europe_600 (primary)
-            iShares holdings CSV — two known URLs (Option B / C, both tried)
+  STOXX 600 iShares STOXX Europe 600 UCITS ETF (DE) (EXSA) holdings CSV (primary;
+            ISHARES_URLS tried in order, tiers "ishares-b", "ishares-c", ...)
+            Wikipedia — https://en.wikipedia.org/wiki/STOXX_Europe_600 (fallback;
+            the table had only 467 of 600 rows as of 2026-10)
             Hardcoded fallback of ~55 major components (last resort)
+
+Completeness guard: if the winning STOXX tier yields fewer than
+STOXX_MIN_COMPLETE tickers, main() raises RuntimeError before writing anything,
+unless --allow-partial-stoxx is passed (then it logs a WARNING and continues).
 
 Ticker normalisation to yfinance format:
   US tickers:    no suffix (AAPL, MSFT, BRK-B)
-  EU tickers:    exchange suffix derived from Wikipedia country column
+  EU tickers:    exchange suffix from the iShares "Exchange" column
+                 (Wikipedia fallback: derived from the country column)
                  (.AS, .DE, .PA, .L, .SW, .CO, .MC, .MI, .ST, .OL, .HE, ...)
   Multi-class:   space replaced with hyphen (NOVO B → NOVO-B, then .CO suffix)
 
@@ -21,8 +28,10 @@ Wikipedia requires a properly identifying bot User-Agent per its policy (https:/
 iShares and other financial sites use a browser-like User-Agent.
 """
 
+import argparse
 import json
 import logging
+import math
 import re
 from io import StringIO
 from pathlib import Path
@@ -38,6 +47,18 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 REQUEST_TIMEOUT = 30  # seconds
+
+# STOXX Europe 600 has 600 members; the EXSA ETF holds ~602 equity lines (index
+# changes are held briefly in parallel). Below this the STOXX source is treated
+# as incomplete and main() fails loud (see --allow-partial-stoxx).
+STOXX_MIN_COMPLETE = 590
+
+# Minimum rows for an iShares response to count as a real holdings CSV at all
+# (a login wall / error page parses to a handful of rows).
+ISHARES_MIN_ROWS = 50
+
+# iShares "Asset Class" value of real holdings; Cash, FX, Futures etc. are dropped.
+ISHARES_EQUITY_ASSET_CLASS = "Equity"
 
 # Wikipedia's bot policy requires an identifying User-Agent including contact info.
 WIKIPEDIA_UA = (
@@ -76,22 +97,38 @@ COUNTRY_SUFFIX: dict[str, str] = {
     "United Kingdom": ".L",
 }
 
-# iShares STOXX Europe 600 holdings CSV — two known URL patterns, tried in order.
+# iShares STOXX Europe 600 holdings CSV URLs, tried in order. Tier label of the
+# n-th URL is "ishares-<chr(ord('b') + n)>" ("ishares-b" for the first).
+# The former SXXP URLs (uk/251783, us/251781) were dead (HTTP 500/404) by 2026-10.
 ISHARES_URLS: list[str] = [
+    # iShares STOXX Europe 600 UCITS ETF (DE), EXSA — verified 2026-10-02.
     (
-        "https://www.ishares.com/uk/individual/en/products/251783/"
-        "ishares-stoxx-europe-600-ucits-etf/1478372549651.ajax"
-        "?fileType=csv&fileName=SXXP_holdings&dataType=fund"
-    ),
-    (
-        "https://www.ishares.com/us/products/251781/"
-        "ishares-stoxx-europe-600-ucits-etf-de-fund/1478372549651.ajax"
-        "?fileType=csv&fileName=SXXP_holdings&dataType=fund"
+        "https://www.ishares.com/ch/individual/en/products/251931/"
+        "ishares-stoxx-europe-600-ucits-etf-de-fund/1495092304805.ajax"
+        "?fileType=csv&fileName=EXSA_holdings&dataType=fund"
     ),
 ]
 
-# Exchange-code → yfinance suffix used when parsing iShares CSV "Exchange" column.
+# Exchange label → yfinance suffix used when parsing the iShares "Exchange" column.
+# The block at the top holds the exact labels of the EXSA holdings CSV (01 Oct 2026).
+# "Nasdaq Omx Nordic" is iShares' label for Nasdaq Stockholm: all 51 rows carrying
+# it have Location "Sweden" (Helsinki and Copenhagen have their own labels), so it
+# maps straight to .ST.
+# "Eurex Deutschland" is deliberately absent: it only carries the index-futures
+# line (Asset Class "Futures"), which the Equity filter drops before the lookup.
 ISHARES_EXCHANGE_SUFFIX: dict[str, str] = {
+    "Nyse Euronext - Euronext Paris": ".PA",
+    "Nasdaq Omx Nordic": ".ST",
+    "Omx Nordic Exchange Copenhagen A/S": ".CO",
+    "Oslo Bors Asa": ".OL",
+    "Warsaw Stock Exchange/Equities/Main Market": ".WA",
+    "Nasdaq Omx Helsinki Ltd.": ".HE",
+    "Nyse Euronext - Euronext Brussels": ".BR",
+    "Athens Exchange S.A. Cash Market": ".AT",
+    "Wiener Boerse Ag": ".VI",
+    "Irish Stock Exchange - All Market": ".IR",
+    "Nyse Euronext - Euronext Lisbon": ".LS",
+    "Bolsa De Madrid": ".MC",
     "Euronext Amsterdam": ".AS",
     "Amsterdam": ".AS",
     "XAMS": ".AS",
@@ -171,8 +208,9 @@ STOXX_FALLBACK: list[str] = [
 
 # Verified, provenance-native symbol corrections from GATE 1 (Wikipedia-Company anchor;
 # docs/superpowers/audits/2026-06-06-0a-symbol-contaminants/correction_table.md).
-# RIC/contaminated symbol -> correct Yahoo symbol. 20 remaps, all live-verified
-# (EQUITY + Wikipedia-Company longName agreement + exchange).
+# RIC/contaminated symbol -> correct Yahoo symbol. 21 remaps, all live-verified
+# (EQUITY + Wikipedia-Company longName agreement + exchange): 20 from GATE 1,
+# plus GLB.IR added in PR #66 (live-verified 2026-10-02).
 SYMBOL_CORRECTIONS: dict[str, str] = {
     "AIRP.PA": "AI.PA",    # Air Liquide
     "ATOS.PA": "ATO.PA",   # Atos
@@ -194,12 +232,18 @@ SYMBOL_CORRECTIONS: dict[str, str] = {
     "SGOB.PA": "SGO.PA",   # Saint-Gobain
     "SOGN.PA": "GLE.PA",   # Societe Generale
     "FTI.L": "FTI",        # TechnipFMC (twin-collapse onto existing NYSE listing)
+    # Glanbia: GLB.IR on Yahoo is "Beacon Hill CBO III Ltd" (different security, no
+    # market cap); GL9.IR is Glanbia plc (ISE, EUR) = iShares EXSA ticker. 2026-10-02.
+    "GLB.IR": "GL9.IR",    # Glanbia
 }
 
 # Dead listings / unresolvable ambiguities — dropped, not remapped (drop-not-guess).
 SYMBOL_DROP: set[str] = {
     "LII.L",   # Liberty Global (LII US = Lennox, different company; listing ambiguous)
     "SKY.L",   # Sky Group (delisted 2018)
+    # Renault SA stale Yahoo line (no market cap/volume); duplicate of RNO.PA, the live
+    # Renault listing already in the universe. Live-verified 2026-10-02.
+    "RNL.PA",  # Renault (stale line)
 }
 
 
@@ -307,58 +351,120 @@ def _apply_country_suffix(raw_ticker: str, country: str) -> str | None:
 # iShares CSV parsing helper
 # ---------------------------------------------------------------------------
 
+# U+FEFF byte-order mark; httpx' response.text keeps it at the start of the CSV.
+_BOM = chr(0xFEFF)
+
+
+def _find_ishares_header(lines: list[str]) -> int:
+    """Index of the column-header row (first field exactly "Ticker").
+
+    Skips the "Fund Holdings as of" preamble, the non-breaking-space line and a
+    leading UTF-8 BOM."""
+    for i, line in enumerate(lines):
+        first_field = line.lstrip(_BOM).strip().split(",", 1)[0].strip('"')
+        if first_field == "Ticker":
+            return i
+    raise ValueError("Could not locate 'Ticker' header row in iShares CSV")
+
+
+def _normalise_ishares_ticker(raw: str) -> str:
+    """iShares local ticker -> yfinance base symbol (without suffix).
+
+    "ASSA B" -> "ASSA-B" (class share), "RR." -> "RR" (LSE trailing dot),
+    "BT.A" -> "BT-A" (LSE class share with internal dot; Yahoo: BT-A.L),
+    "ERICb" -> "ERIC-B" (via _normalise_class_suffix)."""
+    ticker = raw.strip().replace(" ", "-").rstrip(".").replace(".", "-")
+    return _normalise_class_suffix(ticker)
+
+
+# Thousands separators in iShares number cells: U+2019 (right single quotation
+# mark, CH site), "," and "'".
+_ISHARES_THOUSANDS_SEPARATORS = (chr(0x2019), ",", "'")
+
+
+def _parse_ishares_shares(raw: str) -> float | None:
+    """Parse an iShares "Shares" cell ("303’478.00", "1,234.00", "1234").
+
+    Returns None when the value is missing or unparseable (incl. NaN)."""
+    text = raw.strip()
+    for separator in _ISHARES_THOUSANDS_SEPARATORS:
+        text = text.replace(separator, "")
+    try:
+        shares = float(text)
+    except ValueError:
+        return None
+    return None if math.isnan(shares) else shares
+
+
 def _parse_ishares_csv(csv_text: str) -> list[str]:
     """
-    Parse iShares holdings CSV and return a list of yfinance-format tickers.
+    Parse an iShares holdings CSV and return a list of yfinance-format tickers.
 
-    The iShares CSV has metadata rows at the top before the actual column headers.
-    We skip rows until we find the header row (which contains 'Ticker').
+    Only rows with Asset Class "Equity" are kept (cash, FX, futures dropped).
+    The suffix comes from the "Exchange" column via ISHARES_EXCHANGE_SUFFIX —
+    explicitly not "Location", which precedes it and names the domicile.
+    Equity rows held with <= 0 shares (former members still listed at 0 weight)
+    are dropped and counted at INFO; an unparseable Shares cell keeps the row
+    (treated as held) and logs a WARNING naming the ticker.
+    Equity rows on an unmapped exchange are skipped and reported as one WARNING
+    with count and labels, never dropped silently.
     """
     lines = csv_text.splitlines()
-
-    header_index: int | None = None
-    for i, line in enumerate(lines):
-        if "Ticker" in line:
-            header_index = i
-            break
-
-    if header_index is None:
-        raise ValueError("Could not locate 'Ticker' column in iShares CSV")
+    header_index = _find_ishares_header(lines)
 
     table_text = "\n".join(lines[header_index:])
     df = pd.read_csv(StringIO(table_text), dtype=str, on_bad_lines="skip")
     df.columns = [c.strip() for c in df.columns]
 
-    if "Ticker" not in df.columns:
-        raise ValueError(f"'Ticker' column missing after parse. Columns: {list(df.columns)}")
-
-    exchange_col = next(
-        (c for c in df.columns if "exchange" in c.lower() or "location" in c.lower()),
-        None,
-    )
+    missing = {"Ticker", "Exchange", "Asset Class", "Shares"} - set(df.columns)
+    if missing:
+        raise ValueError(
+            f"iShares CSV lacks columns {sorted(missing)}; got {list(df.columns)}"
+        )
 
     tickers: list[str] = []
-    skipped = 0
+    non_equity = 0
+    zero_shares = 0
+    unknown: dict[str, int] = {}
 
     for _, row in df.iterrows():
-        raw_ticker = str(row.get("Ticker", "")).strip()
-        exchange = str(row.get(exchange_col, "")) if exchange_col else ""
+        if str(row["Asset Class"]).strip() != ISHARES_EQUITY_ASSET_CLASS:
+            non_equity += 1
+            continue
 
-        ticker = raw_ticker.replace(" ", "-")
-        ticker = _normalise_class_suffix(ticker)
+        ticker = _normalise_ishares_ticker(str(row["Ticker"]))
         if not ticker or ticker in ("-", "nan"):
             continue
 
-        suffix = ISHARES_EXCHANGE_SUFFIX.get(exchange.strip())
-        if suffix:
-            tickers.append(f"{ticker}{suffix}")
-        else:
-            skipped += 1
-            logger.debug("iShares: unknown exchange '%s' for '%s' — skipped", exchange, ticker)
+        shares = _parse_ishares_shares(str(row["Shares"]))
+        if shares is None:
+            logger.warning(
+                "iShares CSV: unparseable Shares %r for '%s' — kept as held",
+                row["Shares"],
+                ticker,
+            )
+        elif shares <= 0:
+            zero_shares += 1
+            continue
 
-    if skipped:
-        logger.warning("STOXX CSV: %d tickers skipped — exchange not in mapping", skipped)
+        exchange = str(row["Exchange"]).strip()
+        suffix = ISHARES_EXCHANGE_SUFFIX.get(exchange)
+        if suffix is None:
+            unknown[exchange] = unknown.get(exchange, 0) + 1
+            logger.debug("iShares: unknown exchange '%s' for '%s'", exchange, ticker)
+            continue
+        tickers.append(f"{ticker}{suffix}")
 
+    if non_equity:
+        logger.info("iShares CSV: %d non-equity rows dropped", non_equity)
+    if zero_shares:
+        logger.info("iShares CSV: %d equity rows held with 0 shares dropped", zero_shares)
+    if unknown:
+        logger.warning(
+            "STOXX CSV: %d equity tickers skipped — exchange not in mapping: %s",
+            sum(unknown.values()),
+            unknown,
+        )
     return tickers
 
 
@@ -447,18 +553,18 @@ def _fetch_stoxx600_ishares() -> tuple[list[str], str] | None:
     """
     Attempt to fetch STOXX Europe 600 from iShares holdings CSV.
 
-    Tries the two known URL patterns in order.  On success returns
-    ``(tickers, tier)`` where tier is ``"ishares-b"`` or ``"ishares-c"``
-    depending on which option succeeded.  Returns ``None`` when both fail
-    or return too few rows (likely a login-wall redirect).
+    Tries ISHARES_URLS in order.  On success returns ``(tickers, tier)`` where
+    tier is ``"ishares-b"`` for the first URL, ``"ishares-c"`` for the second,
+    and so on.  Returns ``None`` when all fail or return too few rows (likely
+    a login-wall redirect).
     """
     for option_idx, url in enumerate(ISHARES_URLS):
-        label = chr(ord("B") + option_idx)  # "B", "C"
+        label = chr(ord("B") + option_idx)  # "B", "C", ...
         logger.info("STOXX 600: trying Option %s (iShares CSV) ...", label)
         try:
             csv_text = _get(url)
             tickers = _parse_ishares_csv(csv_text)
-            if len(tickers) < 50:
+            if len(tickers) < ISHARES_MIN_ROWS:
                 logger.warning(
                     "Option %s returned only %d tickers — likely not a real holdings CSV",
                     label,
@@ -478,22 +584,23 @@ def fetch_stoxx600() -> tuple[list[str], str]:
     Fetch STOXX Europe 600 tickers in yfinance format.
 
     Priority:
-      1. Wikipedia component table (primary — reliable, ~530 tickers)
-      2. iShares holdings CSV, Option B then C (fallback)
+      1. iShares EXSA holdings CSV (primary — ~602 equity lines)
+      2. Wikipedia component table (fallback — only 467 rows as of 2026-10)
       3. Hardcoded list of ~55 major components (last resort)
 
     Returns ``(tickers, tier)`` where tier reports which source actually
-    fired: ``"wikipedia"``, ``"ishares-b"``, ``"ishares-c"`` or
-    ``"hardcoded-fallback"``.
+    fired: ``"ishares-b"`` (``"ishares-c"``, ... for further URLs),
+    ``"wikipedia"`` or ``"hardcoded-fallback"``. Completeness is enforced
+    by main(), not here.
     """
+    ishares = _fetch_stoxx600_ishares()
+    if ishares:
+        return ishares
+
+    logger.warning("STOXX 600: iShares unavailable — falling back to Wikipedia")
     tickers = _fetch_stoxx600_wikipedia()
     if tickers:
         return tickers, "wikipedia"
-
-    ishares = _fetch_stoxx600_ishares()
-    if ishares:
-        tickers, label = ishares
-        return tickers, label
 
     logger.warning(
         "All STOXX 600 sources failed. Using hardcoded fallback (%d tickers). "
@@ -507,10 +614,43 @@ def fetch_stoxx600() -> tuple[list[str], str]:
 # Main
 # ---------------------------------------------------------------------------
 
-def main() -> None:
+def _parse_args(argv: list[str] | None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build data/universe.json.")
+    parser.add_argument(
+        "--allow-partial-stoxx",
+        action="store_true",
+        help=(
+            "continue with a WARNING when the STOXX 600 source yields fewer than "
+            f"{STOXX_MIN_COMPLETE} tickers, instead of aborting"
+        ),
+    )
+    return parser.parse_args(argv)
+
+
+def _check_stoxx_completeness(count: int, tier: str, allow_partial: bool) -> None:
+    """Fail loud on an incomplete STOXX 600 source unless explicitly allowed."""
+    if count >= STOXX_MIN_COMPLETE:
+        return
+    message = (
+        f"STOXX 600 incomplete: tier '{tier}' yielded {count} tickers "
+        f"(< {STOXX_MIN_COMPLETE})"
+    )
+    if not allow_partial:
+        raise RuntimeError(f"{message}; rerun with --allow-partial-stoxx to accept")
+    logger.warning("%s — continuing because --allow-partial-stoxx was given", message)
+
+
+def main(argv: list[str] | None = None, data_dir: Path | None = None) -> None:
+    """Build universe.json + universe_provenance.json.
+
+    ``argv`` defaults to sys.argv[1:]; ``data_dir`` defaults to the repo's data/
+    directory (tests pass a tmp dir so the real files are never touched).
+    """
+    args = _parse_args(argv)
     sp500 = fetch_sp500()
     sp400 = fetch_sp400()
     stoxx, stoxx_tier = fetch_stoxx600()
+    _check_stoxx_completeness(len(stoxx), stoxx_tier, args.allow_partial_stoxx)
 
     combined = sorted(set(_apply_symbol_corrections(sp500 + sp400 + stoxx)))
     # Guard: no contaminated key may survive into the universe (fail loud).
@@ -528,7 +668,8 @@ def main() -> None:
     logger.info("STOXX 600:    %d tickers (tier: %s)", len(stoxx), stoxx_tier)
     logger.info("Total unique: %d tickers", len(combined))
 
-    data_dir = Path(__file__).parent.parent / "data"
+    if data_dir is None:
+        data_dir = Path(__file__).parent.parent / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
 
     out_path = data_dir / "universe.json"
