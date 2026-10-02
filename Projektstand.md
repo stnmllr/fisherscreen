@@ -8,11 +8,11 @@
 
 ---
 
-## Letztes Update: 2026-09-08
+## Letztes Update: 2026-10-02
 
-> ⚠️ **Ehrlichkeits-Hinweis, fünfstufig.** Aktuell ist **nur** der Abschnitt
-> „Top of mind — 2026-09-08" direkt unterhalb. Die Blöcke „Top of mind — 2026-09-07"
-> und „2026-09-06" darunter gelten weiter. Der Block „Top of mind — 2026-09-04"
+> ⚠️ **Ehrlichkeits-Hinweis, sechsstufig.** Aktuell ist **nur** der Abschnitt
+> „Top of mind — 2026-10-02" direkt unterhalb. Die Blöcke „Top of mind — 2026-09-08",
+> „2026-09-07" und „2026-09-06" darunter gelten weiter. Der Block „Top of mind — 2026-09-04"
 > darunter gilt bis auf die dort korrigierten Punkte weiter; der Viewer-Block beschreibt
 > den Stand vom **2026-08-20**; alles ab `## Status` stammt vom **2026-06-11**.
 >
@@ -23,6 +23,66 @@
 >
 > Nichts unterhalb des ersten Abschnitts als aktuellen Stand lesen, ohne gegen `git log`
 > zu prüfen.
+
+## Top of mind — 2026-10-02
+
+**Der Oktober-Lauf (2026-10-01) hat die Stetigkeits-Achse erstmals scharf geschaltet — und
+drei Widersprüche offengelegt.** Funnel: 17 Crosshits. Die Tabelle in `2026-10-Crosshits.md`
+zeigte 25 (nur Drei-Achsen-Regel), das Frontmatter von `2026-10-Dimensions.md` ~50 (zwei von
+fünf Dimensionen inkl. Sentinel-Achsen, gedeckelt). Es gab **drei** Crosshit-Definitionen.
+Beide Ausgaben nutzen jetzt `is_crosshit`; der bereits gepushte Oktober-Output auf `main`
+stammt noch vom alten Code und wird nicht neu erzeugt.
+
+**Offene PRs (alle grün, keiner gemergt):**
+
+| PR | Inhalt |
+|---|---|
+| #64 | Crosshit-Tabelle folgt `is_crosshit`; eigener Abschnitt „Am Stetigkeits-Gate gescheitert"; Achsen-Scores in der `detail`-Spalte der dropouts.csv; `data/reference_fisher.json` (74 Titel) + `scripts/reference_check.py` |
+| #65 | Frontmatter-Crosshits in `dimensions_generator.py` über `is_crosshit` (kein Code-Leser des Keys, `changes_generator` liest nur `dimensions`) |
+| #66 | STOXX 600 aus den iShares-EXSA-Holdings statt Wikipedia; Vollständigkeits-Guard (< 590 → Abbruch, `--allow-partial-stoxx`); Zeilen mit 0 Stück verworfen; `GLB.IR → GL9.IR`, `RNL.PA` gedroppt |
+| #67 | Market Cap aus `sharesOutstanding × Kurs` ableiten, wenn Yahoo 0/nichts liefert (`market_cap_source`); Cache hält fehlenden Cap nicht fest; ein Retry vor `NO_RAW_MC`; WARNING ab > 10 `RESOLUTION_NO_SYMBOL_DATA` |
+
+**Universum ist deutlich unvollständiger als gedacht.** Die Wikipedia-Tabelle des STOXX 600
+hatte nur **467 von 600 Zeilen**; `universe.json` (Stand 2026-06-07) hält 416 EU-Ticker, EXSA
+602 (599 nach 0-Stück-Filter). Geschätzt **150–200 echte Mitglieder fehlen** (u. a. Dassault
+Systèmes, BESI, Heineken, Merck KGaA, Deutsche Bank, Legrand, DSV). Rational stand dort als
+„FRA" → `FRA.DE` = **Fraport** wurde gescreent. HEICO ist in **keinem** unserer US-Indizes
+(weder SPY noch MDY) — Index-Auswahl, kein Build-Fehler.
+
+**`RESOLUTION_NO_SYMBOL_DATA` war überwiegend transient:** September 32 Titel (alle
+`NO_RAW_MC`), davon liefen 29 im Oktober mit unverändertem Symbol normal durch. Rest:
+GLB.IR (falsches Wertpapier), RNL.PA (Renault-Duplikat), ML.PA (Yahoo `marketCap=0`).
+
+### Nächste Schritte (Reihenfolge)
+
+1. **PRs reviewen/mergen** — #64, #65, #67 unabhängig; #66 vor dem Universum-Neubau.
+2. **Universum-Neubau** (eigener Schritt, nach #66): `uv run python scripts\build_universe.py`,
+   danach neue Symbole live gegen Yahoo prüfen (unsicher u. a. `OCTV-SDB.ST`, `ALSYDB.CO`,
+   `HBAN.SW`). Erwartet: +~260 EU-Ticker, −~77 (Index-Abgänge sowie Listing-Wechsel
+   `SHEL.L → SHELL.AS`, `STMPA.PA → STMMI.MI`, die die Vormonats-Historie im Changes-Diff
+   brechen). Geprüft: Handkorrekturen aus eb37dd7/8d24901/24e9629 werden nicht zurückgedreht.
+   Laufzeit-Effekt auf den Monatslauf (1800-s-Deadline!) vorher abschätzen.
+3. **Nach dem nächsten Monatslauf:** `uv run python scripts\reference_check.py` laufen lassen
+   und auswerten, **an welcher Achse** die ~56 Referenzfirmen scheitern, die heute kein
+   Crosshit sind (erst ab #64 stehen die Achsen-Scores in der dropouts.csv).
+4. **Darauf aufbauend Design-Diskussion** (nicht vorher bauen):
+   - Wachstum über mehrere Jahre statt TTM-YoY
+   - ROIC statt ROE
+   - Innovations-Proxy (F&E-Quote) statt Sentinel-3
+   - Preisnehmer **vor** dem Scoring ausschließen (heute nur Label)
+   - Rangliste statt fester Perzentil-Quote — `percentiles.py` ist auf ~25 Crosshits kalibriert,
+     das Stetigkeits-Gate allein drückt auf 17; mit größerem Universum verschiebt sich das erneut
+   - Kategorie „Fisher im Werden" (Titel knapp unter dem Gate mit Trend nach oben)
+   - Index-Auswahl US (S&P 400 vs. Russell 1000; HEICO fehlt in beiden S&P-Indizes)
+
+### Kleinere offene Entscheidungen
+
+- `_MINOR_UNIT` normalisiert nur `GBp`; GBX/ILA/ZAc nicht (aufgefallen in #67).
+- Ranking-Logik existiert nach #64/#65 zweimal (`crosshits_generator` / `dimensions_generator`) —
+  zusammenführen.
+- Sonderfälle für GLB.IR / RNL.PA in Tool-B-Tests (`SAME_COMPANY_ALIASES`, `test_adr_table.py`,
+  `test_issuer_normalisation.py`) nach dem Neubau ggf. überflüssig.
+- `run_tests.bat` existiert nicht — kanonisch bleibt `uv run python -m pytest`.
 
 ## Top of mind — 2026-09-08
 
