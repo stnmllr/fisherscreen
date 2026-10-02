@@ -181,6 +181,89 @@ def test_frontmatter_dimension_tickers_sorted_by_score_descending(tmp_path):
     assert tickers.index("HIGH") < tickers.index("LOW")
 
 
+def _crosshit_entries(path: Path) -> dict[str, dict]:
+    post = frontmatter.load(str(path))
+    return {entry["ticker"]: entry for entry in post.metadata["crosshits"]}
+
+
+def test_frontmatter_crosshits_ignore_sentinel_axes(tmp_path):
+    # management/innovation are sentinel-3 axes — they must never carry merit.
+    records = [_record("SENT", management=5, innovation=5, growth=5)]
+    path = generate(
+        records, _run_record(), tmp_path, score_threshold=4.0, min_dimensions=2
+    )
+    assert "SENT" not in _crosshit_entries(path)
+
+
+@pytest.mark.parametrize("min_dimensions, expected", [(2, True), (3, False)])
+def test_frontmatter_crosshits_honour_min_dimensions(
+    tmp_path, min_dimensions, expected
+):
+    records = [_record("TWO", growth=5, profitability=5, resilience=3)]
+    path = generate(
+        records,
+        _run_record(),
+        tmp_path,
+        score_threshold=4.0,
+        min_dimensions=min_dimensions,
+    )
+    assert ("TWO" in _crosshit_entries(path)) is expected
+
+
+def test_frontmatter_crosshits_exclude_measured_steadiness_below_threshold(tmp_path):
+    record = _record("WOBBLY", growth=5, profitability=5, resilience=5)
+    record.steadiness = 3.5
+    record.steadiness_reason = None
+    path = generate(
+        [record], _run_record(), tmp_path, score_threshold=4.0, min_dimensions=3
+    )
+    assert "WOBBLY" not in _crosshit_entries(path)
+
+
+def test_frontmatter_crosshits_keep_unmeasured_steadiness_sentinel(tmp_path):
+    record = _record("NOHIST", growth=5, profitability=5, resilience=5)
+    record.steadiness = 3.0
+    record.steadiness_reason = "insufficient history"
+    path = generate(
+        [record], _run_record(), tmp_path, score_threshold=4.0, min_dimensions=3
+    )
+    assert "NOHIST" in _crosshit_entries(path)
+
+
+def test_frontmatter_crosshit_dimensions_list_only_merit_axes(tmp_path):
+    records = [
+        _record(
+            "ALL",
+            growth=5,
+            profitability=4,
+            resilience=5,
+            management=5,
+            innovation=5,
+        )
+    ]
+    path = generate(
+        records, _run_record(), tmp_path, score_threshold=4.0, min_dimensions=2
+    )
+    entry = _crosshit_entries(path)["ALL"]
+    assert entry["dimensions"] == ["growth", "profitability", "resilience"]
+    assert entry["avg_score"] == pytest.approx(4.67)
+
+
+def test_frontmatter_crosshits_ranked_by_dims_then_fives_then_avg(tmp_path):
+    # Threshold 3: NO_FIVE and ONE_FIVE tie on avg (4.0); the count of fives
+    # must break the tie, independent of input order.
+    records = [
+        _record("NO_FIVE", growth=4, profitability=4, resilience=2),
+        _record("ONE_FIVE", growth=5, profitability=3, resilience=2),
+        _record("THREE_DIMS", growth=3, profitability=3, resilience=3),
+    ]
+    path = generate(
+        records, _run_record(), tmp_path, score_threshold=3.0, min_dimensions=2
+    )
+    order = list(_crosshit_entries(path))
+    assert order == ["THREE_DIMS", "ONE_FIVE", "NO_FIVE"]
+
+
 def test_frontmatter_qualifying_count_is_pre_cap(tmp_path):
     records = [_record(f"T{i}", growth=5) for i in range(60)]
     path = generate(records, _run_record(), tmp_path, score_threshold=4.0, cap=50)
