@@ -23,6 +23,7 @@ Ticker,Name,Sector,Asset Class,Market Value,Weight (%),Notional Value,Shares,Pri
 "ABI","ANHEUSER-BUSCH INBEV SA","Consumer Staples","Equity","52’380’304.08","0.51","52’380’304.08","811’343.00","64.56","Belgium","Nyse Euronext - Euronext Brussels","EUR"
 "EDP","EDP ENERGIAS DE PORTUGAL","Utilities","Equity","11’184’314.25","0.11","11’184’314.25","2’330’551.00","4.80","Portugal","Nyse Euronext - Euronext Lisbon","EUR"
 "EBS","ERSTE GROUP BANK AG","Financials","Equity","27’242’180.40","0.27","27’242’180.40","235’659.00","115.60","Austria","Wiener Boerse Ag","EUR"
+"TIT","TELECOM ITALIA","Communication","Equity","0.00","0.00","0.00","0.00","0.00","Italy","Borsa Italiana","EUR"
 "EUR","EUR CASH","Cash and/or Derivatives","Cash","40’853’765.36","0.40","40’853’765.36","40’853’765.00","100.00","European Union","-","EUR"
 "SXOZ6","STOXX EUROPE 600 DEC 26","Cash and/or Derivatives","Futures","0.00","0.00","62’066’790.00","1’971.00","629.80","European Union","Eurex Deutschland","EUR"
  

@@ -82,12 +82,12 @@ def test_parser_drops_non_equity_rows(trimmed_tickers):
 
 def test_parser_handles_bom_and_preamble():
     text = _read(TRIMMED_CSV)
-    assert text.startswith("﻿")
+    assert text.startswith(chr(0xFEFF))
     assert bu._parse_ishares_csv(text)[0] == "ASML.AS"
 
 
 def test_parser_without_bom_gives_same_result():
-    text = _read(TRIMMED_CSV).lstrip("﻿")
+    text = _read(TRIMMED_CSV).lstrip(chr(0xFEFF))
     assert bu._parse_ishares_csv(text) == bu._parse_ishares_csv(_read(TRIMMED_CSV))
 
 
@@ -101,11 +101,58 @@ _HEADER = (
 )
 
 
-def _row(ticker: str, exchange: str, asset_class: str = "Equity") -> str:
+def _row(
+    ticker: str, exchange: str, asset_class: str = "Equity", shares: str = "1.00"
+) -> str:
     return (
-        f'"{ticker}","X","Y","{asset_class}","1.00","0.01","1.00","1.00",'
+        f'"{ticker}","X","Y","{asset_class}","1.00","0.01","1.00","{shares}",'
         f'"1.00","Nowhere","{exchange}","EUR"\n'
     )
+
+
+def test_parser_drops_zero_share_equity_row_from_fixture(trimmed_tickers):
+    # TIT (Telecom Italia) is listed as Equity but held with 0 shares.
+    assert "TIT.MI" not in trimmed_tickers
+
+
+@pytest.mark.parametrize("shares", ["0.00", "0", "-5.00", "0’000.00"])
+def test_parser_drops_non_positive_shares(shares):
+    csv_text = (
+        _HEADER
+        + _row("ASML", "Euronext Amsterdam")
+        + _row("TIT", "Borsa Italiana", shares=shares)
+    )
+    assert bu._parse_ishares_csv(csv_text) == ["ASML.AS"]
+
+
+def test_parser_logs_zero_share_count_at_info(caplog):
+    csv_text = (
+        _HEADER
+        + _row("TIT", "Borsa Italiana", shares="0.00")
+        + _row("SDR", "London Stock Exchange", shares="0.00")
+    )
+    with caplog.at_level(logging.INFO, logger=bu.logger.name):
+        assert bu._parse_ishares_csv(csv_text) == []
+    infos = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+    assert any("2" in m and "0 shares" in m for m in infos)
+
+
+@pytest.mark.parametrize("shares", ["1’234’567.00", "1,234,567.00", "1234567"])
+def test_parser_accepts_thousands_separators(shares, caplog):
+    csv_text = _HEADER + _row("ASML", "Euronext Amsterdam", shares=shares)
+    with caplog.at_level(logging.WARNING, logger=bu.logger.name):
+        assert bu._parse_ishares_csv(csv_text) == ["ASML.AS"]
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+@pytest.mark.parametrize("shares", ["", "n/a", "-"])
+def test_parser_keeps_row_with_unparseable_shares_and_warns(shares, caplog):
+    csv_text = _HEADER + _row("ASML", "Euronext Amsterdam", shares=shares)
+    with caplog.at_level(logging.WARNING, logger=bu.logger.name):
+        tickers = bu._parse_ishares_csv(csv_text)
+    assert tickers == ["ASML.AS"]
+    warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("ASML" in m for m in warnings)
 
 
 def test_parser_unknown_exchange_is_counted_warning(caplog):
@@ -125,6 +172,11 @@ def test_parser_unknown_exchange_is_counted_warning(caplog):
 def test_parser_uses_exchange_not_location_column():
     # Location precedes Exchange in the real header; Location must not win.
     csv_text = _HEADER + _row("ASML", "Euronext Amsterdam")
+    assert bu._parse_ishares_csv(csv_text) == ["ASML.AS"]
+
+
+def test_parser_bom_directly_before_header():
+    csv_text = chr(0xFEFF) + _HEADER + _row("ASML", "Euronext Amsterdam")
     assert bu._parse_ishares_csv(csv_text) == ["ASML.AS"]
 
 
@@ -161,7 +213,14 @@ def test_full_file_all_equity_rows_map(full_tickers, caplog):
     with caplog.at_level(logging.WARNING, logger=bu.logger.name):
         bu._parse_ishares_csv(_read(FULL_CSV))
     assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
-    assert len(full_tickers) == 602
+    # 602 equity rows minus TIT, SDR, BEZ (listed with 0 shares).
+    assert len(full_tickers) == 599
+    assert len(full_tickers) >= bu.STOXX_MIN_COMPLETE
+
+
+@pytest.mark.parametrize("dropped", ["TIT.MI", "SDR.L", "BEZ.L"])
+def test_full_file_drops_zero_share_rows(full_tickers, dropped):
+    assert dropped not in full_tickers
 
 
 def test_full_file_has_no_malformed_tickers(full_tickers):

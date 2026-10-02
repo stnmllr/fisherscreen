@@ -31,6 +31,7 @@ iShares and other financial sites use a browser-like User-Agent.
 import argparse
 import json
 import logging
+import math
 import re
 from io import StringIO
 from pathlib import Path
@@ -343,13 +344,17 @@ def _apply_country_suffix(raw_ticker: str, country: str) -> str | None:
 # iShares CSV parsing helper
 # ---------------------------------------------------------------------------
 
+# U+FEFF byte-order mark; httpx' response.text keeps it at the start of the CSV.
+_BOM = chr(0xFEFF)
+
+
 def _find_ishares_header(lines: list[str]) -> int:
     """Index of the column-header row (first field exactly "Ticker").
 
     Skips the "Fund Holdings as of" preamble, the non-breaking-space line and a
-    leading UTF-8 BOM (httpx' response.text keeps it)."""
+    leading UTF-8 BOM."""
     for i, line in enumerate(lines):
-        first_field = line.lstrip("﻿").strip().split(",", 1)[0].strip('"')
+        first_field = line.lstrip(_BOM).strip().split(",", 1)[0].strip('"')
         if first_field == "Ticker":
             return i
     raise ValueError("Could not locate 'Ticker' header row in iShares CSV")
@@ -365,6 +370,25 @@ def _normalise_ishares_ticker(raw: str) -> str:
     return _normalise_class_suffix(ticker)
 
 
+# Thousands separators in iShares number cells: U+2019 (right single quotation
+# mark, CH site), "," and "'".
+_ISHARES_THOUSANDS_SEPARATORS = (chr(0x2019), ",", "'")
+
+
+def _parse_ishares_shares(raw: str) -> float | None:
+    """Parse an iShares "Shares" cell ("303’478.00", "1,234.00", "1234").
+
+    Returns None when the value is missing or unparseable (incl. NaN)."""
+    text = raw.strip()
+    for separator in _ISHARES_THOUSANDS_SEPARATORS:
+        text = text.replace(separator, "")
+    try:
+        shares = float(text)
+    except ValueError:
+        return None
+    return None if math.isnan(shares) else shares
+
+
 def _parse_ishares_csv(csv_text: str) -> list[str]:
     """
     Parse an iShares holdings CSV and return a list of yfinance-format tickers.
@@ -372,6 +396,9 @@ def _parse_ishares_csv(csv_text: str) -> list[str]:
     Only rows with Asset Class "Equity" are kept (cash, FX, futures dropped).
     The suffix comes from the "Exchange" column via ISHARES_EXCHANGE_SUFFIX —
     explicitly not "Location", which precedes it and names the domicile.
+    Equity rows held with <= 0 shares (former members still listed at 0 weight)
+    are dropped and counted at INFO; an unparseable Shares cell keeps the row
+    (treated as held) and logs a WARNING naming the ticker.
     Equity rows on an unmapped exchange are skipped and reported as one WARNING
     with count and labels, never dropped silently.
     """
@@ -382,7 +409,7 @@ def _parse_ishares_csv(csv_text: str) -> list[str]:
     df = pd.read_csv(StringIO(table_text), dtype=str, on_bad_lines="skip")
     df.columns = [c.strip() for c in df.columns]
 
-    missing = {"Ticker", "Exchange", "Asset Class"} - set(df.columns)
+    missing = {"Ticker", "Exchange", "Asset Class", "Shares"} - set(df.columns)
     if missing:
         raise ValueError(
             f"iShares CSV lacks columns {sorted(missing)}; got {list(df.columns)}"
@@ -390,6 +417,7 @@ def _parse_ishares_csv(csv_text: str) -> list[str]:
 
     tickers: list[str] = []
     non_equity = 0
+    zero_shares = 0
     unknown: dict[str, int] = {}
 
     for _, row in df.iterrows():
@@ -399,6 +427,17 @@ def _parse_ishares_csv(csv_text: str) -> list[str]:
 
         ticker = _normalise_ishares_ticker(str(row["Ticker"]))
         if not ticker or ticker in ("-", "nan"):
+            continue
+
+        shares = _parse_ishares_shares(str(row["Shares"]))
+        if shares is None:
+            logger.warning(
+                "iShares CSV: unparseable Shares %r for '%s' — kept as held",
+                row["Shares"],
+                ticker,
+            )
+        elif shares <= 0:
+            zero_shares += 1
             continue
 
         exchange = str(row["Exchange"]).strip()
@@ -411,6 +450,8 @@ def _parse_ishares_csv(csv_text: str) -> list[str]:
 
     if non_equity:
         logger.info("iShares CSV: %d non-equity rows dropped", non_equity)
+    if zero_shares:
+        logger.info("iShares CSV: %d equity rows held with 0 shares dropped", zero_shares)
     if unknown:
         logger.warning(
             "STOXX CSV: %d equity tickers skipped — exchange not in mapping: %s",
