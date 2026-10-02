@@ -57,7 +57,8 @@ GLB.IR (falsches Wertpapier), RNL.PA (Renault-Duplikat), ML.PA (Yahoo `marketCap
 
 1. ~~PRs reviewen/mergen~~ — #64–#68 gemergt 2026-10-02 (main `6585a1f`, Cloud Run
    Revision 00128 verifiziert).
-2. **Universum-Neubau — gebaut 2026-10-02** (Branch `chore/rebuild-universe-2026-10`):
+2. **Universum-Neubau — gemergt 2026-10-02** (#69, main `6c00dbd`, Cloud Run Revision
+   00129 verifiziert):
    1322 → **1502** (US 906 → 903, EU 416 → 599; STOXX-Stufe `ishares-b`). US +28/−31 sind
    Indexwechsel seit Juni (u. a. `BK → BNY`); EU +263/−80 (Index-Abgänge sowie Listing-
    Wechsel `SHEL.L → SHELL.AS`, `STMPA.PA → STMMI.MI`, die die Vormonats-Historie im
@@ -68,10 +69,11 @@ GLB.IR (falsches Wertpapier), RNL.PA (Renault-Duplikat), ML.PA (Yahoo `marketCap
    eingecheckt (Report-Header zeigte bisher „STOXX-Quellstufe: nicht erfasst").
    **Laufzeit:** Oktober-Lauf 1136 s (Resolution 318 s, Basis 221 s, Scoring/Output 591 s);
    Schätzung mit +180 Titeln warm ~1290 s, erster Lauf mit kalten Caches ~1400–1450 s —
-   unter 1800 s, aber im Blick behalten. **Vor dem nächsten Lauf:** EDGAR-Backfill
-   (`docs/infra/annual-series-backfill.md`) für die neuen US-Titel — Dry-Run: 900 CIKs
-   (vorher 890), alle US-Ticker mit CIK.
-3. **Nach dem nächsten Monatslauf:** `uv run python scripts\reference_check.py` laufen lassen
+   unter 1800 s, aber im Blick behalten. **EDGAR-Backfill erledigt 2026-10-02**
+   (`docs/infra/annual-series-backfill.md`): 900 CIKs, 868 mit Reihen, 32 ohne Konzept,
+   0 Fehler, 1,1 min.
+3. **Nach dem nächsten Monatslauf (2026-11-01):** Laufzeit gegen die 1800-s-Deadline prüfen
+   (Schätzung 1400–1450 s), dann `uv run python scripts\reference_check.py` laufen lassen
    und auswerten, **an welcher Achse** die ~56 Referenzfirmen scheitern, die heute kein
    Crosshit sind (erst ab #64 stehen die Achsen-Scores in der dropouts.csv).
 4. **Darauf aufbauend Design-Diskussion** (nicht vorher bauen):
