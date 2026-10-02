@@ -37,9 +37,10 @@ FisherScreen ist ein persönliches Werkzeug, das Phil Fishers 15 Prinzipien aus
 **Pull statt Push:** Tool B läuft nur, wenn Stephan es aktiv auslöst.
 
 **Drei Töpfe:**
-- **Universum** — ~1.322 Titel (S&P 500 + S&P 400 + STOXX Europe 600), Negativ-Filter → ~100
-<!-- Count nach 0a-Dedup festgeschrieben (Cold-Dry-Run 2026-06-07: 1332 → 1322, RIC-/FR-
-     Kontaminanten korrigiert). Composition an Code-Realität angeglichen: build_universe.py
+- **Universum** — ~1.502 Titel (S&P 500 + S&P 400 + STOXX Europe 600), Negativ-Filter → ~100
+<!-- Count nach Neubau 2026-10-02 festgeschrieben: STOXX 600 jetzt aus den iShares-EXSA-
+     Holdings (599 Titel) statt der lückenhaften Wikipedia-Tabelle (467 Zeilen); vorher 1.322
+     (0a-Dedup, Cold-Dry-Run 2026-06-07: 1332 → 1322, RIC-/FR-Kontaminanten korrigiert). Composition an Code-Realität angeglichen: build_universe.py
      nutzt S&P 400, nicht das ursprünglich genannte Russell 1000 — ob S&P 400 oder Russell 1000
      gewollt ist, ist eine separate Entscheidung (nicht 0a). -->
 - **Watchlist** — 5–15 Titel, manuell von Stephan
@@ -144,7 +145,7 @@ in Unit-Tests. Wer einen direkten `yfinance.download()`-Aufruf in Tool-A-Code si
 ### Tool A / Tool B Separation
 
 Tool A (Monthly Screener) verarbeitet das gesamte Universum
-(~1.322 Stocks) automatisiert. Tool B (Deep Dive) läuft manuell
+(~1.502 Stocks) automatisiert. Tool B (Deep Dive) läuft manuell
 auf einzelne Stocks.
 
 #### Kostenkontrolle Tool A

@@ -55,13 +55,22 @@ GLB.IR (falsches Wertpapier), RNL.PA (Renault-Duplikat), ML.PA (Yahoo `marketCap
 
 ### Nächste Schritte (Reihenfolge)
 
-1. **PRs reviewen/mergen** — #64, #65, #67 unabhängig; #66 vor dem Universum-Neubau.
-2. **Universum-Neubau** (eigener Schritt, nach #66): `uv run python scripts\build_universe.py`,
-   danach neue Symbole live gegen Yahoo prüfen (unsicher u. a. `OCTV-SDB.ST`, `ALSYDB.CO`,
-   `HBAN.SW`). Erwartet: +~260 EU-Ticker, −~77 (Index-Abgänge sowie Listing-Wechsel
-   `SHEL.L → SHELL.AS`, `STMPA.PA → STMMI.MI`, die die Vormonats-Historie im Changes-Diff
-   brechen). Geprüft: Handkorrekturen aus eb37dd7/8d24901/24e9629 werden nicht zurückgedreht.
-   Laufzeit-Effekt auf den Monatslauf (1800-s-Deadline!) vorher abschätzen.
+1. ~~PRs reviewen/mergen~~ — #64–#68 gemergt 2026-10-02 (main `6585a1f`, Cloud Run
+   Revision 00128 verifiziert).
+2. **Universum-Neubau — gebaut 2026-10-02** (Branch `chore/rebuild-universe-2026-10`):
+   1322 → **1502** (US 906 → 903, EU 416 → 599; STOXX-Stufe `ishares-b`). US +28/−31 sind
+   Indexwechsel seit Juni (u. a. `BK → BNY`); EU +263/−80 (Index-Abgänge sowie Listing-
+   Wechsel `SHEL.L → SHELL.AS`, `STMPA.PA → STMMI.MI`, die die Vormonats-Historie im
+   Changes-Diff brechen). **Alle 291 neuen Symbole live geprüft:** 290 EQUITY mit Market Cap
+   und Volumen, keine Namensdubletten; `OCTV-SDB.ST` (Octave Intelligence, SDR) ohne Market
+   Cap — bleibt drin und landet sichtbar in `RESOLUTION_NO_SYMBOL_DATA`. Handkorrekturen aus
+   eb37dd7/8d24901/24e9629 werden nicht zurückgedreht. `data/universe_provenance.json` jetzt
+   eingecheckt (Report-Header zeigte bisher „STOXX-Quellstufe: nicht erfasst").
+   **Laufzeit:** Oktober-Lauf 1136 s (Resolution 318 s, Basis 221 s, Scoring/Output 591 s);
+   Schätzung mit +180 Titeln warm ~1290 s, erster Lauf mit kalten Caches ~1400–1450 s —
+   unter 1800 s, aber im Blick behalten. **Vor dem nächsten Lauf:** EDGAR-Backfill
+   (`docs/infra/annual-series-backfill.md`) für die neuen US-Titel — Dry-Run: 900 CIKs
+   (vorher 890), alle US-Ticker mit CIK.
 3. **Nach dem nächsten Monatslauf:** `uv run python scripts\reference_check.py` laufen lassen
    und auswerten, **an welcher Achse** die ~56 Referenzfirmen scheitern, die heute kein
    Crosshit sind (erst ab #64 stehen die Achsen-Scores in der dropouts.csv).
