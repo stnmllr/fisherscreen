@@ -720,3 +720,125 @@ def test_get_historical_raises_when_metadata_carries_no_currency(monkeypatch):
 
     with pytest.raises(DataSourceError, match="carries no currency"):
         mod.YFinanceClientImpl().get_historical("GSK.L", "1y")
+
+
+# --------------------------------------------------------------------------
+# Usable market cap — reported, or derived from shares x quoted price
+# --------------------------------------------------------------------------
+
+
+def test_resolve_market_cap_prefers_reported_value():
+    from app.services.yfinance_client import (
+        MARKET_CAP_REPORTED,
+        resolve_market_cap,
+    )
+
+    info = {"marketCap": 5e9, "sharesOutstanding": 1e9, "currentPrice": 1.0}
+
+    assert resolve_market_cap(info) == (5e9, MARKET_CAP_REPORTED)
+
+
+def test_resolve_market_cap_derives_from_shares_and_current_price():
+    """Michelin ML.PA, October 2026: Yahoo served marketCap=0 while shares and
+    price were present — the cap is derivable, not missing."""
+    from app.services.yfinance_client import (
+        MARKET_CAP_DERIVED,
+        resolve_market_cap,
+    )
+
+    info = {
+        "marketCap": 0,
+        "sharesOutstanding": 713_302_016,
+        "currentPrice": 33.02,
+        "currency": "EUR",
+    }
+
+    cap, source = resolve_market_cap(info)
+
+    assert source == MARKET_CAP_DERIVED
+    assert cap == pytest.approx(713_302_016 * 33.02)
+
+
+def test_resolve_market_cap_derivation_uses_the_record_price_fallback():
+    """Same price precedence as ScreenerRecord.price: currentPrice, then
+    regularMarketPrice."""
+    from app.services.yfinance_client import resolve_market_cap
+
+    info = {"sharesOutstanding": 1e9, "currentPrice": 0, "regularMarketPrice": 12.5}
+
+    assert resolve_market_cap(info)[0] == pytest.approx(12.5e9)
+
+
+@pytest.mark.parametrize(
+    "info",
+    [
+        {},
+        {"marketCap": 0},
+        {"marketCap": None, "sharesOutstanding": 1e9},
+        {"sharesOutstanding": 1e9, "currentPrice": 0, "regularMarketPrice": 0},
+        {"sharesOutstanding": 0, "currentPrice": 10.0},
+        {"sharesOutstanding": -5, "currentPrice": 10.0},
+        {"sharesOutstanding": 1e9, "currentPrice": -1.0},
+        {"sharesOutstanding": "n/a", "currentPrice": 10.0},
+        {"sharesOutstanding": True, "currentPrice": 10.0},
+        {"sharesOutstanding": float("nan"), "currentPrice": 10.0},
+        {"sharesOutstanding": 1e9, "currentPrice": float("inf")},
+    ],
+)
+def test_resolve_market_cap_returns_none_when_not_derivable(info):
+    from app.services.yfinance_client import has_usable_market_cap, resolve_market_cap
+
+    assert resolve_market_cap(info) == (None, None)
+    assert has_usable_market_cap(info) is False
+
+
+@pytest.mark.parametrize("currency", ["GBp", "GBX", "ILA", "ZAc"])
+def test_resolve_market_cap_refuses_to_derive_from_a_minor_unit_price(currency):
+    """A price still quoted in a minor unit (unnormalized GBp, or a minor-unit code
+    the adapter has no rule for yet) would make shares x price a factor-100 cap.
+    Derivation refuses; a REPORTED cap is unaffected (it is major-unit anyway)."""
+    from app.services.yfinance_client import (
+        MARKET_CAP_REPORTED,
+        resolve_market_cap,
+    )
+
+    derivable = {"currency": currency, "sharesOutstanding": 1e9, "currentPrice": 1500}
+    assert resolve_market_cap(derivable) == (None, None)
+    assert resolve_market_cap({**derivable, "marketCap": 15e9}) == (
+        15e9,
+        MARKET_CAP_REPORTED,
+    )
+
+
+def test_has_usable_market_cap_true_for_reported_and_derivable():
+    from app.services.yfinance_client import has_usable_market_cap
+
+    assert has_usable_market_cap({"marketCap": 5e9}) is True
+    assert has_usable_market_cap({"sharesOutstanding": 1e9, "currentPrice": 2.0})
+
+
+@patch("app.services.yfinance_client.yf")
+def test_derived_market_cap_of_a_london_payload_is_in_major_units(mock_yf):
+    """Unit consistency through the real normalization path: London `info` quotes
+    currentPrice in pence (GBp) but marketCap in pounds, and sharesOutstanding is a
+    plain count (not in _PRICE_KEYS). After the adapter rescales the price, shares x
+    price must land in pounds — equal to what Yahoo reports when it does report."""
+    from app.services.yfinance_client import (
+        MARKET_CAP_DERIVED,
+        MARKET_CAP_REPORTED,
+        resolve_market_cap,
+    )
+
+    shares = 4_000_000_000  # 4bn shares x GBP 15.00 = GBP 60bn == _GBP_MAJOR_UNIT
+    reported = _info_client(mock_yf, _gbp_info(sharesOutstanding=shares))
+    reported_cap = resolve_market_cap(reported.get_ticker_info("GSK.L"))
+
+    missing = _info_client(mock_yf, _gbp_info(sharesOutstanding=shares, marketCap=0))
+    normalized = missing.get_ticker_info("GSK.L")
+    derived_cap = resolve_market_cap(normalized)
+
+    assert normalized["sharesOutstanding"] == shares  # a count is never rescaled
+    assert normalized["currentPrice"] == pytest.approx(15.00)
+    assert reported_cap == (60_000_000_000, MARKET_CAP_REPORTED)
+    assert derived_cap[1] == MARKET_CAP_DERIVED
+    assert derived_cap[0] == pytest.approx(reported_cap[0])

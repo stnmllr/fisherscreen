@@ -217,3 +217,78 @@ def test_fresh_normalised_document_is_served_without_touching_the_client():
     mock_fs.set.assert_not_called()
     assert result["currentPrice"] == 15.0
     assert "_cached_at" not in result
+
+
+# --------------------------------------------------------------------------
+# Missing market cap — a fresh document must not pin a transient Yahoo gap
+# --------------------------------------------------------------------------
+
+
+def _fresh_ts():
+    return (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+
+
+def test_fresh_document_without_usable_market_cap_is_a_miss_and_refetches():
+    """September 2026: 29 of 32 NO_RAW_MC titles resolved fine a month later — the
+    gap was transient. A 24 h cache that keeps serving the gap would turn every
+    retry into the same bad answer."""
+    mock_yf = MagicMock()
+    mock_fs = MagicMock()
+    mock_fs.get.return_value = {
+        "shortName": "Gap Corp",
+        "currency": "EUR",
+        "marketCap": 0,
+        "currentPrice": 10.0,
+        "_cached_at": _fresh_ts(),
+    }
+    mock_yf.get_ticker_info.return_value = {
+        "shortName": "Gap Corp",
+        "currency": "EUR",
+        "marketCap": 5e9,
+        "currentPrice": 10.0,
+    }
+
+    client = _make_client(mock_yf, mock_fs)
+    result = client.get_ticker_info("GAP.PA")
+
+    mock_yf.get_ticker_info.assert_called_once_with("GAP.PA")
+    assert result["marketCap"] == 5e9
+    mock_fs.set.assert_called_once()
+    assert mock_fs.set.call_args[0][2]["marketCap"] == 5e9
+
+
+def test_fresh_document_with_derivable_market_cap_is_served_from_cache():
+    """shares x price is a usable cap — such a document is a hit, not a refetch."""
+    mock_yf = MagicMock()
+    mock_fs = MagicMock()
+    mock_fs.get.return_value = {
+        "shortName": "Michelin",
+        "currency": "EUR",
+        "marketCap": 0,
+        "sharesOutstanding": 713_302_016,
+        "currentPrice": 33.02,
+        "_cached_at": _fresh_ts(),
+    }
+
+    client = _make_client(mock_yf, mock_fs)
+    result = client.get_ticker_info("ML.PA")
+
+    mock_yf.get_ticker_info.assert_not_called()
+    mock_fs.set.assert_not_called()
+    assert result["sharesOutstanding"] == 713_302_016
+
+
+def test_refetched_payload_still_without_market_cap_is_returned_and_stored():
+    """The refetch is the self-heal, not a gate: if Yahoo still has no cap the
+    payload is returned (the runner diverts it) and stored as usual."""
+    mock_yf = MagicMock()
+    mock_fs = MagicMock()
+    mock_fs.get.return_value = {"shortName": "Gap", "_cached_at": _fresh_ts()}
+    mock_yf.get_ticker_info.return_value = {"shortName": "Gap", "marketCap": None}
+
+    client = _make_client(mock_yf, mock_fs)
+    result = client.get_ticker_info("GAP.PA")
+
+    mock_yf.get_ticker_info.assert_called_once_with("GAP.PA")
+    assert result == {"shortName": "Gap", "marketCap": None}
+    mock_fs.set.assert_called_once()
