@@ -1,6 +1,7 @@
 """Provenance/instrumentation tests for scripts/build_universe.py.
 
 Verifies that fetch_stoxx600() reports which source tier actually fired.
+Priority (since 2026-10): iShares EXSA holdings -> Wikipedia -> hardcoded.
 Fixtures-only: sub-fetchers are mocked so no network is hit.
 """
 
@@ -10,8 +11,11 @@ import scripts.build_universe as bu
 
 
 def test_fetch_stoxx600_reports_wikipedia_tier():
-    with patch.object(
-        bu, "_fetch_stoxx600_wikipedia", return_value=["ASML.AS", "SAP.DE"]
+    with (
+        patch.object(bu, "_fetch_stoxx600_ishares", return_value=None),
+        patch.object(
+            bu, "_fetch_stoxx600_wikipedia", return_value=["ASML.AS", "SAP.DE"]
+        ),
     ):
         tickers, tier = bu.fetch_stoxx600()
     assert tier == "wikipedia"
@@ -20,7 +24,7 @@ def test_fetch_stoxx600_reports_wikipedia_tier():
 
 def test_fetch_stoxx600_reports_ishares_b_tier():
     with (
-        patch.object(bu, "_fetch_stoxx600_wikipedia", return_value=[]),
+        patch.object(bu, "_fetch_stoxx600_wikipedia", return_value=["X.DE"]),
         patch.object(
             bu, "_fetch_stoxx600_ishares", return_value=(["A.DE", "B.PA"], "ishares-b")
         ),
@@ -32,7 +36,7 @@ def test_fetch_stoxx600_reports_ishares_b_tier():
 
 def test_fetch_stoxx600_reports_ishares_c_tier():
     with (
-        patch.object(bu, "_fetch_stoxx600_wikipedia", return_value=[]),
+        patch.object(bu, "_fetch_stoxx600_wikipedia", return_value=["X.DE"]),
         patch.object(
             bu, "_fetch_stoxx600_ishares", return_value=(["A.DE"], "ishares-c")
         ),
