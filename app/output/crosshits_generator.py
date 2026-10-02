@@ -4,7 +4,11 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from app.screener.dimensions import qualifying_dimensions, steadiness_is_assessable
+from app.screener.dimensions import (
+    is_crosshit,
+    qualifying_dimensions,
+    steadiness_is_assessable,
+)
 from app.screener.price_takers import PriceTakerTable, is_price_taker, load_price_takers
 
 if TYPE_CHECKING:
@@ -74,14 +78,45 @@ def generate(
 
     scored = [r for r in records if r.gemini_dimensions is not None]
     crosshits = _compute_crosshits(scored, score_threshold, min_dimensions, cap)
+    steadiness_failed = _compute_steadiness_failures(
+        scored, score_threshold, min_dimensions
+    )
 
     body = _build_body(
-        crosshits, run_month, score_threshold, min_dimensions, header, table
+        crosshits,
+        run_month,
+        score_threshold,
+        min_dimensions,
+        header,
+        table,
+        steadiness_failed=steadiness_failed,
     )
     out_path.write_text(body, encoding="utf-8")
 
     logger.info("crosshits: wrote %s (%d crosshits)", out_path.name, len(crosshits))
     return out_path
+
+
+def _entry(record: ScreenerRecord, qualifying: list[str]) -> dict:
+    dims = record.gemini_dimensions or {}
+    avg = sum(dims.get(d, 0) for d in qualifying) / len(qualifying)
+    # Ranking sharpener: more top scores (5) among the qualifying merit
+    # dimensions ranks higher. Monotonic with avg today, but stays correct
+    # if the threshold/min_dimensions knobs change later.
+    num_fives = sum(1 for d in qualifying if dims.get(d) == 5)
+    return {
+        "record": record,
+        "qualifying_dims": qualifying,
+        "avg_score": round(avg, 2),
+        "num_fives": num_fives,
+    }
+
+
+def _ranked(entries: list[dict]) -> list[dict]:
+    return sorted(
+        entries,
+        key=lambda x: (-len(x["qualifying_dims"]), -x["num_fives"], -x["avg_score"]),
+    )
 
 
 def _compute_crosshits(
@@ -90,28 +125,35 @@ def _compute_crosshits(
     min_dimensions: int,
     cap: int,
 ) -> list[dict]:
+    """The crosshit list. Membership is decided by `is_crosshit` -- the same rule
+    the funnel counts with -- so the table and the funnel's `crosshits` stage can
+    never disagree. Before this, the table applied only the three-axis rule and
+    listed titles whose measured steadiness had already failed the gate (October
+    2026: 25 rows against a funnel count of 17)."""
+    result = [
+        _entry(record, qualifying_dimensions(record, score_threshold))
+        for record in scored
+        if is_crosshit(record, score_threshold, min_dimensions)
+    ]
+    return _ranked(result)[:cap]
+
+
+def _compute_steadiness_failures(
+    scored: list[ScreenerRecord],
+    score_threshold: float,
+    min_dimensions: int,
+) -> list[dict]:
+    """Titles that clear the three yfinance axes but fail on a MEASURED steadiness
+    below the threshold. Not crosshits; shown separately so the decision stays
+    visible instead of the titles silently disappearing."""
     result = []
     for record in scored:
         qualifying = qualifying_dimensions(record, score_threshold)
-        if len(qualifying) >= min_dimensions:
-            dims = record.gemini_dimensions or {}
-            avg = sum(dims.get(d, 0) for d in qualifying) / len(qualifying)
-            # Ranking sharpener: more top scores (5) among the qualifying merit
-            # dimensions ranks higher. Monotonic with avg today, but stays correct
-            # if the threshold/min_dimensions knobs change later.
-            num_fives = sum(1 for d in qualifying if dims.get(d) == 5)
-            result.append(
-                {
-                    "record": record,
-                    "qualifying_dims": qualifying,
-                    "avg_score": round(avg, 2),
-                    "num_fives": num_fives,
-                }
-            )
-    result.sort(
-        key=lambda x: (-len(x["qualifying_dims"]), -x["num_fives"], -x["avg_score"])
-    )
-    return result[:cap]
+        if len(qualifying) >= min_dimensions and not is_crosshit(
+            record, score_threshold, min_dimensions
+        ):
+            result.append(_entry(record, qualifying))
+    return _ranked(result)
 
 
 def _build_body(
@@ -121,6 +163,8 @@ def _build_body(
     min_dimensions: int,
     header: str | None = None,
     price_takers: PriceTakerTable | None = None,
+    *,
+    steadiness_failed: list[dict] | None = None,
 ) -> str:
     table = price_takers if price_takers is not None else load_price_takers()
     lines = [f"# Universum {run_month} — Crosshits", ""]
@@ -136,21 +180,7 @@ def _build_body(
             "> in mindestens zwei Dimensionen, oder das Universum war nach Filtern zu klein.",
         ]
     else:
-        lines += [
-            "| # | Ticker | Name | Sektor | Crosshits | Dimensionen | Ø Score "
-            "| Stetigkeit | Preisnehmer |",
-            "|---|---|---|---|---|---|---|---|---|",
-        ]
-        for i, entry in enumerate(crosshits, 1):
-            r = entry["record"]
-            dims_str = ", ".join(entry["qualifying_dims"])
-            # Label only — it never enters the score or the ranking above.
-            taker = "ja" if is_price_taker(r.ticker, r.gics_industry, table) else "nein"
-            lines.append(
-                f"| {i} | {r.ticker} {_flags(r)} | {r.name or ''} | {r.gics_sector or ''} "
-                f"| {len(entry['qualifying_dims'])} | {dims_str} | {entry['avg_score']} "
-                f"| {_steadiness_cell(r)} | {taker} |"
-            )
+        lines += _table(crosshits, table)
         assessed = sum(1 for e in crosshits if steadiness_is_assessable(e["record"]))
         lines += [
             "",
@@ -169,4 +199,35 @@ def _build_body(
             "unveraendert, die Liste vollstaendig. Grundlage ist `data/price_takers.json` "
             "(yfinance-`industry`, bewusst grob).",
         ]
+    if steadiness_failed:
+        lines += [
+            "",
+            "## Am Stetigkeits-Gate gescheitert",
+            "",
+            f"> Diese Titel erreichen auf den drei Achsen die Schwelle, ihre "
+            f"**gemessene** Stetigkeit liegt aber unter {score_threshold}. Sie sind "
+            f"**keine** Crosshits und zaehlen im Funnel nicht mit; sie stehen hier, "
+            f"damit die Entscheidung sichtbar bleibt.",
+            "",
+        ]
+        lines += _table(steadiness_failed, table)
     return "\n".join(lines) + "\n"
+
+
+def _table(entries: list[dict], table: PriceTakerTable) -> list[str]:
+    lines = [
+        "| # | Ticker | Name | Sektor | Crosshits | Dimensionen | Ø Score "
+        "| Stetigkeit | Preisnehmer |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for i, entry in enumerate(entries, 1):
+        r = entry["record"]
+        dims_str = ", ".join(entry["qualifying_dims"])
+        # Label only — it never enters the score or the ranking above.
+        taker = "ja" if is_price_taker(r.ticker, r.gics_industry, table) else "nein"
+        lines.append(
+            f"| {i} | {r.ticker} {_flags(r)} | {r.name or ''} | {r.gics_sector or ''} "
+            f"| {len(entry['qualifying_dims'])} | {dims_str} | {entry['avg_score']} "
+            f"| {_steadiness_cell(r)} | {taker} |"
+        )
+    return lines

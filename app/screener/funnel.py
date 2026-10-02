@@ -234,6 +234,29 @@ def _make_dropout(
     )
 
 
+def _score_detail(record: ScreenerRecord) -> str:
+    """Axis scores of a title that missed the crosshit gate, for the dropouts CSV.
+
+    Without this the CSV only says *that* a title fell, never *where*: a
+    reference check (is MSFT failing on growth, profitability, resilience or
+    steadiness?) had nothing to read. Steadiness keeps its reason, never the
+    sentinel 3 -- the same split the gate and the report make (spec 8.1)."""
+    from app.screener.dimensions import (  # local import avoids cycle
+        MERIT_DIMENSIONS,
+        steadiness_is_assessable,
+    )
+
+    dims = record.gemini_dimensions or {}
+    parts = [f"{d}={dims.get(d, 'n/a')}" for d in MERIT_DIMENSIONS]
+    if steadiness_is_assessable(record):
+        parts.append(f"steadiness={record.steadiness}")
+    elif record.steadiness_reason:
+        parts.append(f"steadiness=n/a({record.steadiness_reason})")
+    else:
+        parts.append("steadiness=n/a")
+    return " ".join(parts)
+
+
 def build_funnel(
     universe: list[str],
     basis: "BasisFilterResult",
@@ -369,6 +392,7 @@ def build_funnel(
                     Stage.CROSSHITS,
                     ReasonCode.SCORE_BELOW_THRESHOLD,
                     sector_wide_sectors,
+                    detail=_score_detail(r),
                 )
             )
         stages.append(

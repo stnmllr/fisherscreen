@@ -1,0 +1,97 @@
+{
+  "_meta": {
+    "purpose": "Gegentest (Recall) fuer Tool A: bekannte Qualitaets-/Fisher-Typen, an denen sichtbar wird, an welcher Funnel-Stufe und an welcher Achse gute Firmen haengenbleiben. Gelesen von scripts/reference_check.py.",
+    "caveat": "Handverlesen am 2026-10-02, KEINE Wahrheit: die Liste beschreibt Firmen, die man allgemein als langfristige Qualitaetswachser sieht. Ein Titel hier muss kein Crosshit sein; auffaellig ist, wenn fast alle an derselben Stelle scheitern.",
+    "edit": "Ticker in der Schreibweise von data/universe.json. Titel ausserhalb des Universums werden als 'nicht im Universum' gemeldet, nicht als Fehler."
+  },
+  "tickers": {
+    "US Technologie": [
+      "MSFT",
+      "AAPL",
+      "ADBE",
+      "NOW",
+      "INTU",
+      "SNPS",
+      "CDNS",
+      "KLAC",
+      "AMAT",
+      "LRCX",
+      "TYL",
+      "ROP"
+    ],
+    "US Finanzdaten/Zahlungen": [
+      "V",
+      "MA",
+      "SPGI",
+      "MCO",
+      "MSCI",
+      "VRSK"
+    ],
+    "US Versicherer": [
+      "PGR",
+      "KNSL",
+      "ERIE"
+    ],
+    "US Gesundheit": [
+      "ISRG",
+      "IDXX",
+      "WST",
+      "ZTS",
+      "MTD",
+      "WAT",
+      "TMO",
+      "DHR",
+      "SYK",
+      "BSX",
+      "EW",
+      "MEDP"
+    ],
+    "US Industrie/Dienste": [
+      "CPRT",
+      "ROL",
+      "CTAS",
+      "ODFL",
+      "POOL",
+      "FAST",
+      "AXON",
+      "HEI",
+      "DCI",
+      "LIN"
+    ],
+    "US Handel": [
+      "COST",
+      "AZO",
+      "ORLY",
+      "AMZN"
+    ],
+    "Europa": [
+      "ASML.AS",
+      "ASM.AS",
+      "BESI.AS",
+      "SAP.DE",
+      "DSY.PA",
+      "RMS.PA",
+      "MC.PA",
+      "EL.PA",
+      "NOVO-B.CO",
+      "ATCO-A.ST",
+      "ASSA-B.ST",
+      "HLMA.L",
+      "EXPN.L",
+      "REL.L",
+      "LSEG.L",
+      "CPG.L",
+      "WKL.AS",
+      "SY1.DE",
+      "RAA.DE",
+      "ITX.MC",
+      "LOGN.SW",
+      "SIKA.SW",
+      "PGHN.SW",
+      "LISN.SW",
+      "GIVN.SW",
+      "ARGX.BR",
+      "ADYEN.AS"
+    ]
+  }
+}

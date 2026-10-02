@@ -450,3 +450,103 @@ def test_the_legend_names_how_many_of_the_list_are_assessed(tmp_path):
 
     assert "**1 von 2** Titeln dieser Liste sind bewertet" in text
     assert "weder belohnt noch bestraft" in text
+
+
+# --- the list obeys the same gate as the funnel ------------------------------
+#
+# October 2026: the table listed 25 titles, the funnel counted 17. The eight
+# extra were exactly the titles whose MEASURED steadiness was below 4.0 -- the
+# table applied only the three-axis rule. These tests pin the table to
+# `is_crosshit`, the rule the funnel counts with.
+
+_FAILED_HEADING = "## Am Stetigkeits-Gate gescheitert"
+
+
+def _main_table(text: str) -> dict[str, str]:
+    """ticker -> Stetigkeit cell, for the crosshit table only (not the
+    steadiness-failure section below it)."""
+    return _marks_col(text.split(_FAILED_HEADING)[0], "Stetigkeit")
+
+
+def test_a_measured_steadiness_below_the_threshold_is_not_a_crosshit(tmp_path):
+    records = [_steady_record("TER", 2.67), _steady_record("FAST", 5.0)]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+
+    assert set(_main_table(text)) == {"FAST"}
+
+
+def test_a_title_failing_on_steadiness_is_shown_in_its_own_section(tmp_path):
+    records = [_steady_record("TER", 2.67), _steady_record("FAST", 5.0)]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+
+    assert _FAILED_HEADING in text
+    failed = _marks_col(text.split(_FAILED_HEADING)[1], "Stetigkeit")
+    assert failed == {"TER": "2.67"}
+
+
+def test_an_unassessed_steadiness_does_not_block_a_crosshit(tmp_path):
+    """Neutral means neither reward nor penalty (spec 8): no SEC history keeps
+    the title on the list."""
+    records = [_steady_record("EDV", 3.0, reason="no_sec_registrant")]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+
+    assert set(_main_table(text)) == {"EDV"}
+    assert _FAILED_HEADING not in text
+
+
+def test_no_failure_section_when_nobody_fails_on_steadiness(tmp_path):
+    path = generate(
+        [_steady_record("FAST", 5.0)], _run_record(), tmp_path, min_dimensions=3
+    )
+    assert _FAILED_HEADING not in path.read_text(encoding="utf-8")
+
+
+def test_the_list_and_the_funnel_agree_on_the_september_titles(tmp_path):
+    """The spec 10.2 regression set: the table must hold exactly the titles
+    `is_crosshit` accepts -- the funnel's count -- and nothing else."""
+    from app.screener.dimensions import is_crosshit
+
+    measured = {
+        "NEM": 1.33,
+        "MU": 1.33,
+        "ABNB": 2.0,
+        "HL": 2.33,
+        "TER": 2.67,
+        "PLTR": 2.67,
+        "TPL": 3.67,
+        "META": 3.67,
+        "NVDA": 4.0,
+        "TDG": 4.0,
+        "GOOG": 4.67,
+        "GOOGL": 4.67,
+        "MEDP": 4.67,
+        "MNST": 4.67,
+        "FAST": 5.0,
+        "FICO": 5.0,
+    }
+    records = []
+    for ticker, industry in SEPTEMBER_INDUSTRIES.items():
+        if ticker in measured:
+            records.append(_steady_record(ticker, measured[ticker], industry=industry))
+        else:
+            records.append(
+                _steady_record(
+                    ticker, 3.0, reason="no_sec_registrant", industry=industry
+                )
+            )
+
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+
+    funnel_hits = {r.ticker for r in records if is_crosshit(r, 4.0, 3)}
+    assert set(_main_table(text)) == funnel_hits
+    assert {"NEM", "MU", "ABNB", "HL", "TER", "PLTR", "TPL", "META"}.isdisjoint(
+        _main_table(text)
+    )
