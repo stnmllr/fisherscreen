@@ -208,8 +208,9 @@ STOXX_FALLBACK: list[str] = [
 
 # Verified, provenance-native symbol corrections from GATE 1 (Wikipedia-Company anchor;
 # docs/superpowers/audits/2026-06-06-0a-symbol-contaminants/correction_table.md).
-# RIC/contaminated symbol -> correct Yahoo symbol. 20 remaps, all live-verified
-# (EQUITY + Wikipedia-Company longName agreement + exchange).
+# RIC/contaminated symbol -> correct Yahoo symbol. 21 remaps, all live-verified
+# (EQUITY + Wikipedia-Company longName agreement + exchange): 20 from GATE 1,
+# plus GLB.IR added in PR #66 (live-verified 2026-10-02).
 SYMBOL_CORRECTIONS: dict[str, str] = {
     "AIRP.PA": "AI.PA",    # Air Liquide
     "ATOS.PA": "ATO.PA",   # Atos
@@ -231,12 +232,18 @@ SYMBOL_CORRECTIONS: dict[str, str] = {
     "SGOB.PA": "SGO.PA",   # Saint-Gobain
     "SOGN.PA": "GLE.PA",   # Societe Generale
     "FTI.L": "FTI",        # TechnipFMC (twin-collapse onto existing NYSE listing)
+    # Glanbia: GLB.IR on Yahoo is "Beacon Hill CBO III Ltd" (different security, no
+    # market cap); GL9.IR is Glanbia plc (ISE, EUR) = iShares EXSA ticker. 2026-10-02.
+    "GLB.IR": "GL9.IR",    # Glanbia
 }
 
 # Dead listings / unresolvable ambiguities — dropped, not remapped (drop-not-guess).
 SYMBOL_DROP: set[str] = {
     "LII.L",   # Liberty Global (LII US = Lennox, different company; listing ambiguous)
     "SKY.L",   # Sky Group (delisted 2018)
+    # Renault SA stale Yahoo line (no market cap/volume); duplicate of RNO.PA, the live
+    # Renault listing already in the universe. Live-verified 2026-10-02.
+    "RNL.PA",  # Renault (stale line)
 }
 
 
