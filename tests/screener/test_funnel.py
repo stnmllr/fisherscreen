@@ -396,3 +396,65 @@ def test_metrik_na_dropout_is_own_bucket_and_reconciles():
     assert bank_drop.reason_code == ReasonCode.FRAMEWORK_METRIK_NA
     # Reconciliation: every universe ticker is either a dropout or in the final stage
     assert len(dropouts) + summary.stage(Stage.CROSSHITS).remaining == 2
+
+
+# --- axis scores on crosshit-stage drops --------------------------------------
+
+
+def _below(ticker, dims, steadiness=None, reason=None):
+    r = _resolved(ticker, dims=dims)
+    r.steadiness = steadiness
+    r.steadiness_reason = reason
+    return r
+
+
+def _crosshit_drops(records):
+    basis = BasisFilterResult(
+        passed=records, unresolved=[], resolved=records, degraded=[]
+    )
+    _, dropouts = build_funnel(
+        universe=[r.ticker for r in records],
+        basis=basis,
+        scored=records,
+        score_threshold=4.0,
+        crosshits_min_dimensions=3,
+    )
+    return {
+        d.ticker: d
+        for d in dropouts
+        if d.reason_code == ReasonCode.SCORE_BELOW_THRESHOLD
+    }
+
+
+def test_a_crosshit_drop_carries_its_axis_scores_in_the_detail():
+    """Without the scores the CSV says that a title fell, never where -- a
+    reference check had nothing to read."""
+    drop = _crosshit_drops(
+        [_below("MSFT", {"growth": 4, "profitability": 5, "resilience": 3}, 4.67)]
+    )["MSFT"]
+
+    assert drop.detail == "growth=4 profitability=5 resilience=3 steadiness=4.67"
+
+
+def test_a_steadiness_failure_names_the_measured_value():
+    drop = _crosshit_drops(
+        [_below("TER", {"growth": 4, "profitability": 4, "resilience": 4}, 2.67)]
+    )["TER"]
+
+    assert drop.detail.endswith("steadiness=2.67")
+
+
+def test_an_unassessed_steadiness_shows_its_reason_never_the_sentinel():
+    drop = _crosshit_drops(
+        [
+            _below(
+                "EDV",
+                {"growth": 3, "profitability": 4, "resilience": 4},
+                3.0,
+                "no_sec_registrant",
+            )
+        ]
+    )["EDV"]
+
+    assert drop.detail.endswith("steadiness=n/a(no_sec_registrant)")
+    assert "3.0" not in drop.detail
