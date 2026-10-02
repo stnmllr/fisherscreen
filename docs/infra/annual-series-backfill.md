@@ -45,10 +45,15 @@ einfach noch einmal starten.
 betroffenen CIKs stehen am Ende der Ausgabe. Ein transienter Fehler bricht den Lauf bewusst
 nicht ab — er wird gezählt und beim nächsten Aufruf nachgeholt.
 
-## Was der Lauf zuletzt ergab (2026-09-08)
+## Was der Lauf zuletzt ergab (2026-10-02)
 
-890 eindeutige CIKs, 859 mit verwertbaren Reihen, 31 ohne greifendes Konzept, 0 Fehler,
-15,7 min. Die 31 sind erwartet: Banken melden Zinsertrag statt `Revenues`, REITs taggen kein
+Nach dem Universum-Neubau (1322 → 1502 Ticker, #69): 900 eindeutige CIKs, 868 mit
+verwertbaren Reihen, 32 ohne greifendes Konzept, 0 Fehler, **1,1 min** (warm; nur die
+neuen US-Titel kalt). Ein geändertes Universum ist damit ein zweiter Anlass für diesen Lauf,
+neben dem jährlichen Turnus — sonst bekommen neue US-Titel `n/a` als Stetigkeit.
+
+Kalter Erstlauf (2026-09-08): 890 eindeutige CIKs, 859 mit verwertbaren Reihen, 31 ohne
+greifendes Konzept, 0 Fehler, 15,7 min. Die 31 sind erwartet: Banken melden Zinsertrag statt `Revenues`, REITs taggen kein
 `OperatingIncomeLoss`. Sie tragen eine 60-Tage-Negativ-TTL und werden turnusmäßig erneut
 geprüft — nicht akademisch: Exxon steht seit einer Neuregistrierung unter einer anderen CIK
 ohne Faktenbestand.
