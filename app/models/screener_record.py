@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.models.definedness import DefinednessOutcome
+from app.services.yfinance_client import quoted_price, resolve_market_cap
 
 
 class ScreenerRecord(BaseModel):
@@ -16,6 +17,9 @@ class ScreenerRecord(BaseModel):
 
     # Market data (from yfinance info)
     market_cap: float | None = None
+    # "REPORTED" (Yahoo marketCap) | "DERIVED" (sharesOutstanding x price, when Yahoo
+    # serves marketCap 0/missing) | None (no usable cap). Same unit either way.
+    market_cap_source: str | None = None
     avg_daily_volume: float | None = None
     price: float | None = None
     bid: float | None = None
@@ -124,14 +128,19 @@ class ScreenerRecord(BaseModel):
         the yfinance adapter, which is the single home for that rule. Do not re-add a
         rescale here — two normalizations of the same quantity in two layers is how a
         double division gets introduced.
+
+        market_cap is the reported cap, else shares x price when derivable — the rule
+        (and its unit guard) lives in `resolve_market_cap`, shared with the cache.
         """
+        market_cap, market_cap_source = resolve_market_cap(info)
         return cls(
             ticker=ticker,
             name=info.get("shortName"),
             currency=info.get("currency"),
-            market_cap=info.get("marketCap") or None,
+            market_cap=market_cap,
+            market_cap_source=market_cap_source,
             avg_daily_volume=info.get("averageVolume") or None,
-            price=info.get("currentPrice") or info.get("regularMarketPrice") or None,
+            price=quoted_price(info),
             bid=info.get("bid") or None,
             ask=info.get("ask") or None,
             gics_sector=info.get("sector"),

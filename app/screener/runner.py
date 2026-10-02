@@ -30,6 +30,7 @@ from app.services.income_statement import (
     extract_revenue_series,
     extract_waterfall_inputs,
 )
+from app.services.yfinance_client import MARKET_CAP_DERIVED
 
 if TYPE_CHECKING:
     from app.services.cached_edgar_annual_series import AnnualSeriesSource
@@ -41,12 +42,17 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# More RESOLUTION_NO_SYMBOL_DATA diversions than this in one run is a data-source
+# incident, not normal attrition: the September 2026 run diverted 32 titles as
+# NO_RAW_MC, 29 of which resolved fine a month later (transient Yahoo gap).
+NO_SYMBOL_DATA_SPIKE_THRESHOLD = 10
+# How many diverted tickers the spike warning lists (keeps the log line bounded).
+_SPIKE_TICKER_SAMPLE = 20
+
 
 class ResolveReason(str, Enum):
     OK = "OK"
-    NO_RAW_MC = (
-        "NO_RAW_MC"  # raw market_cap missing or 0 (collapsed to None at construction)
-    )
+    NO_RAW_MC = "NO_RAW_MC"  # market_cap missing/0 AND not derivable (shares x price)
     NO_CURRENCY = (
         "NO_CURRENCY"  # market_cap present but currency missing -> uninterpretable
     )
@@ -104,6 +110,53 @@ def _resolve_market_cap_eur(
     if rate is None:
         return None, ResolveReason.NO_FX
     return record.market_cap * rate, ResolveReason.OK
+
+
+def _fetch_and_resolve(
+    ticker: str,
+    yfinance: YFinanceClient,
+    fx_cache: dict[str, float],
+) -> tuple[ScreenerRecord, ResolveReason]:
+    """Fetch `info`, build the record and resolve its EUR market cap."""
+    info = yfinance.get_ticker_info(ticker)
+    record = ScreenerRecord.from_yfinance_info(ticker, info)
+    record.market_cap_eur, reason = _resolve_market_cap_eur(record, yfinance, fx_cache)
+    return record, reason
+
+
+def _retry_missing_market_cap(
+    record: ScreenerRecord,
+    yfinance: YFinanceClient,
+    fx_cache: dict[str, float],
+) -> tuple[ScreenerRecord, ResolveReason]:
+    """One immediate re-fetch for a title that resolved as NO_RAW_MC.
+
+    Yahoo's marketCap gaps are mostly transient; the cached client treats a payload
+    without a usable cap as a miss, so this call really goes back to Yahoo. A failed
+    retry keeps the original NO_RAW_MC outcome — the retry must never turn a
+    diversion into an 'unresolved' symbol.
+    """
+    try:
+        return _fetch_and_resolve(record.ticker, yfinance, fx_cache)
+    except (DataSourceError, ValidationError) as exc:
+        logger.warning(
+            "ticker=%s NO_RAW_MC retry failed, keeping diversion: %s",
+            record.ticker,
+            exc,
+        )
+        return record, ResolveReason.NO_RAW_MC
+
+
+def _warn_on_no_symbol_data_spike(no_symbol_data: list[ScreenerRecord]) -> None:
+    if len(no_symbol_data) <= NO_SYMBOL_DATA_SPIKE_THRESHOLD:
+        return
+    logger.warning(
+        "resolution spike: %d titles diverted to RESOLUTION_NO_SYMBOL_DATA "
+        "(threshold %d) — check the data source; first tickers: %s",
+        len(no_symbol_data),
+        NO_SYMBOL_DATA_SPIKE_THRESHOLD,
+        [r.ticker for r in no_symbol_data[:_SPIKE_TICKER_SAMPLE]],
+    )
 
 
 def _is_suspect(record: ScreenerRecord) -> bool:
@@ -273,13 +326,24 @@ def run_basis_filter(
     no_symbol_data: list[ScreenerRecord] = []
     fx_unavailable: list[ScreenerRecord] = []
     fx_cache: dict[str, float] = {}
+    n_mc_retried = n_mc_recovered = 0
     for ticker in tickers:
         try:
-            info = yfinance.get_ticker_info(ticker)
-            record = ScreenerRecord.from_yfinance_info(ticker, info)
-            record.market_cap_eur, reason = _resolve_market_cap_eur(
-                record, yfinance, fx_cache
-            )
+            record, reason = _fetch_and_resolve(ticker, yfinance, fx_cache)
+            if reason == ResolveReason.NO_RAW_MC:
+                n_mc_retried += 1
+                record, reason = _retry_missing_market_cap(record, yfinance, fx_cache)
+                if reason != ResolveReason.NO_RAW_MC:
+                    n_mc_recovered += 1
+            if record.market_cap_source == MARKET_CAP_DERIVED:
+                logger.info(
+                    "ticker=%s market cap derived from sharesOutstanding x price: "
+                    "%.0f %s (price=%s)",
+                    ticker,
+                    record.market_cap,
+                    record.currency,
+                    record.price,
+                )
             # 0b: divert unusable-data records out of the gate path (symbol-data first, then FX).
             if reason == ResolveReason.NO_RAW_MC:
                 record.resolution_detail = "NO_RAW_MC"
@@ -334,6 +398,12 @@ def run_basis_filter(
             len(no_symbol_data),
             len(fx_unavailable),
         )
+    logger.info(
+        "resolution: NO_RAW_MC retry retried=%d recovered=%d",
+        n_mc_retried,
+        n_mc_recovered,
+    )
+    _warn_on_no_symbol_data_spike(no_symbol_data)
 
     # CT-A pre-pass: assess income-statement definedness for the suspect basket
     # BEFORE apply_basis_filters. Only fetch for records that pass BOTH volume and

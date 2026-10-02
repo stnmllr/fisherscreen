@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+import pytest
+
 from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
 
@@ -253,3 +255,48 @@ def test_scoring_annotation_fields_default_none_and_ok():
 def test_partial_evidence_axes_defaults_none():
     r = ScreenerRecord(ticker="AAA")
     assert r.partial_evidence_axes is None
+
+
+# --- market cap provenance (REPORTED | DERIVED) ---
+
+
+def test_market_cap_source_defaults_to_none():
+    assert ScreenerRecord(ticker="X").market_cap_source is None
+
+
+def test_reported_market_cap_is_marked_reported():
+    info = {"marketCap": 5e9, "sharesOutstanding": 1e9, "currentPrice": 1.0}
+    r = ScreenerRecord.from_yfinance_info("X", info)
+    assert r.market_cap == 5e9
+    assert r.market_cap_source == "REPORTED"
+
+
+def test_zero_market_cap_is_derived_from_shares_times_price():
+    """Michelin ML.PA, October 2026: marketCap=0 on Yahoo, shares and price present."""
+    info = {
+        "shortName": "Michelin",
+        "currency": "EUR",
+        "marketCap": 0,
+        "sharesOutstanding": 713_302_016,
+        "currentPrice": 33.02,
+        "averageVolume": 1_500_000,
+    }
+    r = ScreenerRecord.from_yfinance_info("ML.PA", info)
+    assert r.market_cap == pytest.approx(713_302_016 * 33.02)
+    assert r.market_cap_source == "DERIVED"
+    assert r.price == 33.02
+
+
+def test_no_market_cap_and_no_shares_stays_none_without_source():
+    r = ScreenerRecord.from_yfinance_info("X", {"marketCap": 0, "currentPrice": 9.0})
+    assert r.market_cap is None
+    assert r.market_cap_source is None
+
+
+def test_raw_minor_unit_payload_is_not_derived():
+    """A raw GBp payload must never reach the model, but if it does the pence price
+    must not be multiplied into a factor-100 cap."""
+    info = {"currency": "GBp", "currentPrice": 1500.0, "sharesOutstanding": 4e9}
+    r = ScreenerRecord.from_yfinance_info("GSK.L", info)
+    assert r.market_cap is None
+    assert r.market_cap_source is None

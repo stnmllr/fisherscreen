@@ -3,7 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
-from app.services.yfinance_client import is_unnormalised_payload
+from app.services.yfinance_client import (
+    has_usable_market_cap,
+    is_unnormalised_payload,
+)
 
 if TYPE_CHECKING:
     from app.services.firestore_client import FirestoreClient
@@ -28,7 +31,16 @@ class CachedYFinanceClient:
         # A document stored before minor-unit normalization carries the minor-unit
         # currency code; fresh or not, it is a miss so it gets re-fetched through the
         # normalizing client. Self-healing — no purge, no schema marker.
-        if cached and self._is_fresh(cached) and not is_unnormalised_payload(cached):
+        # Likewise a document without a usable market cap (neither reported nor
+        # derivable as shares x price): Yahoo's marketCap gaps are mostly transient
+        # (September 2026: 29 of 32 NO_RAW_MC titles were fine a month later), and a
+        # 24 h hit would pin the gap and defeat the runner's retry.
+        if (
+            cached
+            and self._is_fresh(cached)
+            and not is_unnormalised_payload(cached)
+            and has_usable_market_cap(cached)
+        ):
             return {k: v for k, v in cached.items() if k != "_cached_at"}
         data = self._yfinance.get_ticker_info(ticker)
         self._firestore.set(

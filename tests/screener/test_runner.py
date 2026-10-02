@@ -230,6 +230,196 @@ def test_divert_precedence_volume_before_price():
     assert res.no_symbol_data[0].resolution_detail == "NO_VOLUME"
 
 
+# --- Derived market cap + one retry for NO_RAW_MC + spike warning ---
+
+
+class _SeqYF:
+    """Per-ticker sequence of `info` payloads (or exceptions); records every call.
+
+    The last entry repeats once the sequence is exhausted."""
+
+    def __init__(self, seqs, fx=1.0):
+        self._seqs = {t: list(s) for t, s in seqs.items()}
+        self._fx = fx
+        self.calls: list[str] = []
+
+    def get_ticker_info(self, ticker):
+        self.calls.append(ticker)
+        seq = self._seqs[ticker]
+        item = seq.pop(0) if len(seq) > 1 else seq[0]
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+    def get_fx_rate(self, currency):
+        return self._fx
+
+
+def test_derived_market_cap_flows_through_fx_like_a_reported_one():
+    info = _info(currency="USD", marketCap=0, sharesOutstanding=1e9, currentPrice=40.0)
+    yf = _SeqYF({"DER": [info]}, fx=_FX_USD_EUR)
+
+    res = run_basis_filter(["DER"], yf)
+
+    assert [r.ticker for r in res.resolved] == ["DER"]
+    rec = res.resolved[0]
+    assert rec.market_cap == pytest.approx(40e9)
+    assert rec.market_cap_source == "DERIVED"
+    assert rec.market_cap_eur == pytest.approx(40e9 * _FX_USD_EUR)
+    assert rec.fx_rate == _FX_USD_EUR
+    assert yf.calls == ["DER"]  # derivable -> no retry
+
+
+def test_reported_market_cap_is_marked_reported_and_not_retried():
+    yf = _SeqYF({"OK": [_info()]})
+    res = run_basis_filter(["OK"], yf)
+    assert res.resolved[0].market_cap_source == "REPORTED"
+    assert yf.calls == ["OK"]
+
+
+def test_one_info_log_per_derived_title(caplog):
+    import logging
+
+    infos = {
+        "D1": [_info(marketCap=0, sharesOutstanding=1e8, currentPrice=50.0)],
+        "D2": [_info(marketCap=None, sharesOutstanding=2e8, currentPrice=50.0)],
+        "OK": [_info()],
+    }
+    with caplog.at_level(logging.INFO, logger="app.screener.runner"):
+        run_basis_filter(list(infos), _SeqYF(infos))
+
+    derived = [r for r in caplog.records if "market cap derived" in r.getMessage()]
+    assert len(derived) == 2
+    assert all(r.levelno == logging.INFO for r in derived)
+    assert "ticker=D1" in derived[0].getMessage()
+    assert "ticker=D2" in derived[1].getMessage()
+
+
+def test_missing_market_cap_is_retried_once_and_recovers(caplog):
+    import logging
+
+    yf = _SeqYF({"GAP": [_info(marketCap=0), _info(marketCap=5e9)]})
+
+    with caplog.at_level(logging.INFO, logger="app.screener.runner"):
+        res = run_basis_filter(["GAP"], yf)
+
+    assert yf.calls == ["GAP", "GAP"]
+    assert [r.ticker for r in res.resolved] == ["GAP"]
+    assert res.resolved[0].market_cap_eur == 5e9
+    assert res.no_symbol_data == []
+    summary = [r for r in caplog.records if "NO_RAW_MC retry" in r.getMessage()]
+    assert len(summary) == 1
+    assert summary[0].levelno == logging.INFO
+    assert "retried=1" in summary[0].getMessage()
+    assert "recovered=1" in summary[0].getMessage()
+
+
+def test_missing_market_cap_still_missing_after_retry_is_diverted_no_raw_mc(caplog):
+    import logging
+
+    yf = _SeqYF({"GAP": [_info(marketCap=0)], "OK": [_info()]})
+
+    with caplog.at_level(logging.INFO, logger="app.screener.runner"):
+        res = run_basis_filter(["GAP", "OK"], yf)
+
+    assert yf.calls == ["GAP", "GAP", "OK"]  # exactly one retry, none for OK
+    assert {r.ticker: r.resolution_detail for r in res.no_symbol_data} == {
+        "GAP": "NO_RAW_MC"
+    }
+    summary = [r for r in caplog.records if "NO_RAW_MC retry" in r.getMessage()]
+    assert "retried=1" in summary[0].getMessage()
+    assert "recovered=0" in summary[0].getMessage()
+
+
+def test_retry_failure_keeps_the_original_no_raw_mc_diversion():
+    """A fetch error on the retry must not turn a NO_RAW_MC diversion into an
+    'unresolved' symbol — dropout semantics stay as they were before the retry."""
+    yf = _SeqYF({"GAP": [_info(marketCap=0), DataSourceError("yahoo hiccup")]})
+
+    res = run_basis_filter(["GAP"], yf)
+
+    assert yf.calls == ["GAP", "GAP"]
+    assert res.unresolved == []
+    assert [(r.ticker, r.resolution_detail) for r in res.no_symbol_data] == [
+        ("GAP", "NO_RAW_MC")
+    ]
+
+
+def test_retry_recovers_via_derivation():
+    yf = _SeqYF(
+        {
+            "ML.PA": [
+                _info(marketCap=0),
+                _info(marketCap=0, sharesOutstanding=713_302_016, currentPrice=33.02),
+            ]
+        }
+    )
+    res = run_basis_filter(["ML.PA"], yf)
+    assert res.resolved[0].market_cap_source == "DERIVED"
+    assert res.resolved[0].market_cap == pytest.approx(713_302_016 * 33.02)
+
+
+def test_no_currency_is_not_retried():
+    yf = _SeqYF({"NOCUR": [_info(currency=None)]})
+    res = run_basis_filter(["NOCUR"], yf)
+    assert yf.calls == ["NOCUR"]
+    assert res.no_symbol_data[0].resolution_detail == "NO_CURRENCY"
+
+
+def test_no_symbol_data_spike_threshold_is_ten():
+    from app.screener.runner import NO_SYMBOL_DATA_SPIKE_THRESHOLD
+
+    assert NO_SYMBOL_DATA_SPIKE_THRESHOLD == 10
+
+
+def _spike_warnings(caplog):
+    import logging
+
+    return [
+        r
+        for r in caplog.records
+        if r.levelno == logging.WARNING and "spike" in r.getMessage()
+    ]
+
+
+def test_no_symbol_data_spike_warning_above_threshold(caplog):
+    import logging
+
+    infos = {f"G{i:02d}": [_info(marketCap=0)] for i in range(11)}
+    infos["NOVOL"] = [_info(averageVolume=0)]
+    with caplog.at_level(logging.WARNING, logger="app.screener.runner"):
+        run_basis_filter(list(infos), _SeqYF(infos))
+
+    spikes = _spike_warnings(caplog)
+    assert len(spikes) == 1
+    msg = spikes[0].getMessage()
+    assert "12" in msg
+    assert "G00" in msg and "G10" in msg and "NOVOL" in msg
+
+
+def test_no_symbol_data_spike_warning_silent_at_threshold(caplog):
+    import logging
+
+    infos = {f"G{i:02d}": [_info(marketCap=0)] for i in range(10)}
+    with caplog.at_level(logging.WARNING, logger="app.screener.runner"):
+        run_basis_filter(list(infos), _SeqYF(infos))
+
+    assert _spike_warnings(caplog) == []
+
+
+def test_no_symbol_data_spike_warning_truncates_ticker_list(caplog):
+    import logging
+
+    infos = {f"G{i:02d}": [_info(marketCap=0)] for i in range(25)}
+    with caplog.at_level(logging.WARNING, logger="app.screener.runner"):
+        run_basis_filter(list(infos), _SeqYF(infos))
+
+    msg = _spike_warnings(caplog)[0].getMessage()
+    assert "25" in msg
+    assert "G19" in msg
+    assert "G20" not in msg
+
+
 # --- ITEM 2: yfinance resolution aggregate ---
 
 

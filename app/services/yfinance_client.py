@@ -1,3 +1,4 @@
+import math
 from collections.abc import Mapping
 from typing import Any, Protocol
 
@@ -64,6 +65,63 @@ def is_unnormalised_payload(info: Mapping[str, Any]) -> bool:
     """
     currency = info.get("currency")
     return isinstance(currency, str) and currency in _MINOR_UNIT
+
+
+# Minor-unit currency codes the adapter has NO rescale rule for yet (see _MINOR_UNIT).
+# A price under one of these labels is still in the minor unit, so shares x price would
+# be a factor-100 market cap. Market-cap derivation refuses them; adding a code to
+# _MINOR_UNIT makes its payloads normalized and derivable automatically.
+_UNRULED_MINOR_UNIT_CODES: frozenset[str] = frozenset({"GBX", "ILA", "ZAc"})
+
+# Provenance of a usable market cap (ScreenerRecord.market_cap_source).
+MARKET_CAP_REPORTED = "REPORTED"
+MARKET_CAP_DERIVED = "DERIVED"
+
+
+def quoted_price(info: Mapping[str, Any]) -> Any:
+    """The per-share price a record uses: currentPrice, else regularMarketPrice.
+
+    Single definition shared by ScreenerRecord.price and market-cap derivation, so a
+    derived cap is always shares x the very price the record carries."""
+    return info.get("currentPrice") or info.get("regularMarketPrice") or None
+
+
+def _positive_finite(value: Any) -> bool:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    return math.isfinite(value) and value > 0
+
+
+def resolve_market_cap(info: Mapping[str, Any]) -> tuple[Any, str | None]:
+    """Usable market cap of a (normalized) `info` payload and its provenance.
+
+    Yahoo's `marketCap` wins when present (0 counts as absent — yfinance's OTC
+    placeholder); it is passed through as-is, validation stays with the model.
+    Otherwise derive sharesOutstanding x quoted price: Yahoo sometimes serves
+    marketCap=0 with both factors intact (Michelin ML.PA, October 2026).
+
+    Unit contract: marketCap is reported in the MAJOR unit; quoted prices are major
+    unit only after `_normalize_minor_unit`. sharesOutstanding is a count and never
+    rescaled. Derivation therefore refuses any payload whose price may still be in a
+    minor unit (unnormalized GBp, or a minor-unit code without a rule).
+    """
+    reported = info.get("marketCap")
+    if reported:
+        return reported, MARKET_CAP_REPORTED
+    if is_unnormalised_payload(info) or info.get("currency") in (
+        _UNRULED_MINOR_UNIT_CODES
+    ):
+        return None, None
+    shares = info.get("sharesOutstanding")
+    price = quoted_price(info)
+    if not (_positive_finite(shares) and _positive_finite(price)):
+        return None, None
+    return float(shares) * float(price), MARKET_CAP_DERIVED
+
+
+def has_usable_market_cap(info: Mapping[str, Any]) -> bool:
+    """True when `resolve_market_cap` yields a cap (reported or derivable)."""
+    return resolve_market_cap(info)[0] is not None
 
 
 def _normalize_minor_unit(info: dict[str, Any]) -> dict[str, Any]:
