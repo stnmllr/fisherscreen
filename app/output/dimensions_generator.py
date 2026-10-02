@@ -9,13 +9,16 @@ from typing import TYPE_CHECKING
 import frontmatter
 
 from app.output.crosshits_generator import _flags
-from app.screener.dimensions import DIMENSIONS
+from app.screener.dimensions import DIMENSIONS, is_crosshit, qualifying_dimensions
 
 if TYPE_CHECKING:
     from app.models.run_record import RunRecord
     from app.models.screener_record import ScreenerRecord
 
 logger = logging.getLogger(__name__)
+
+# Top Gemini score; counted as a ranking tiebreaker like in crosshits_generator.
+_MAX_SCORE = 5
 
 # management/innovation are sentinel-3 (not merit). Render an explicit n/a note
 # instead of a "no ticker reached the threshold" list, since the threshold is N/A.
@@ -31,6 +34,7 @@ def generate(
     output_dir: Path,
     *,
     score_threshold: float = 4.0,
+    min_dimensions: int = 2,
     cap: int = 50,
 ) -> Path:
     universum_dir = output_dir / "Universum"
@@ -41,7 +45,9 @@ def generate(
 
     scored = [r for r in records if r.gemini_dimensions is not None]
     dim_data = _compute_dimension_data(scored, score_threshold, cap)
-    crosshits = _compute_crosshits_for_frontmatter(scored, score_threshold, cap)
+    crosshits = _compute_crosshits_for_frontmatter(
+        scored, score_threshold, min_dimensions, cap
+    )
 
     metadata: dict = {
         "run_id": run_record.run_id,
@@ -93,23 +99,26 @@ def _compute_dimension_data(
 def _compute_crosshits_for_frontmatter(
     scored: list[ScreenerRecord],
     score_threshold: float,
+    min_dimensions: int,
     cap: int,
 ) -> list[dict]:
-    crosshits: list[dict] = []
+    """Frontmatter crosshit list, decided by `is_crosshit` — the same rule the
+    funnel counts with — so frontmatter, Crosshits.md table and funnel count
+    cannot disagree. Only merit axes are listed; ranked by (#axes, #fives, avg).
+    """
+    ranked: list[tuple[tuple[int, int, float], dict]] = []
     for record in scored:
+        if not is_crosshit(record, score_threshold, min_dimensions):
+            continue
         dims = record.gemini_dimensions or {}
-        qualifying_dims = [d for d in DIMENSIONS if dims.get(d, 0) >= score_threshold]
-        if len(qualifying_dims) >= 2:
-            avg = sum(dims.get(d, 0) for d in qualifying_dims) / len(qualifying_dims)
-            crosshits.append(
-                {
-                    "ticker": record.ticker,
-                    "dimensions": qualifying_dims,
-                    "avg_score": round(avg, 2),
-                }
-            )
-    crosshits.sort(key=lambda x: (-len(x["dimensions"]), -x["avg_score"]))
-    return crosshits[:cap]
+        qualifying = qualifying_dimensions(record, score_threshold)
+        scores = [dims.get(d, 0) for d in qualifying]
+        avg = round(sum(scores) / len(scores), 2)
+        num_fives = sum(1 for s in scores if s == _MAX_SCORE)
+        entry = {"ticker": record.ticker, "dimensions": qualifying, "avg_score": avg}
+        ranked.append(((-len(qualifying), -num_fives, -avg), entry))
+    ranked.sort(key=lambda item: item[0])
+    return [entry for _, entry in ranked[:cap]]
 
 
 def _build_markdown_body(

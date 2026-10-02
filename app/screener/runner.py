@@ -495,7 +495,12 @@ def run_screener(
 
     paths = [
         generate_dimensions(
-            scored, run_record, output_dir, score_threshold=threshold, cap=cap
+            scored,
+            run_record,
+            output_dir,
+            score_threshold=threshold,
+            min_dimensions=min_dims,
+            cap=cap,
         ),
         generate_crosshits(
             scored,
