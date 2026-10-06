@@ -27,9 +27,26 @@ die Universum-Ticker -- das ist der einzige Netzzugriff und er ist opt-in.
 Crosshits: `is_crosshit` mit Schwelle 4.0 und min_dimensions 3 -- bewusst
 EXPLIZIT, nicht aus settings: das lokale .env traegt eine veraltete 2.
 
+HISTORISCH (Analyse 2026-10-06, Commit 5e63b53): Seit ROIC im Scorer steckt
+(app/screener/roic.py), bildet der Default den Produktivcode ab -- trotz des
+Namens `roe` also schon ROIC. Die `roic*`-Varianten schrieben in das ROE-Feld,
+das der Scorer nicht mehr liest; sie sind deshalb gesperrt. Zum Nachvollziehen
+der Analyse Commit 5e63b53 auschecken. Ihre damalige Beschreibung:
+
+`--profitability roic|roic-de|roic-de-icfree[-fin]` (Default `roe` = Produktivcode bitgleich): ersetzt den
+ROE-Eingang der profitability-Achse durch ROIC = EBIT / (Schulden + Eigenkapital
+- Cash), EBIT = operatingMargins * totalRevenue, Eigenkapital = bookValue *
+sharesOutstanding (`roic`) bzw. totalDebt / debtToEquity (`roic-de`, siehe
+equity_from_info). Nur hier nachgebildet, nicht im Scorer: ROIC wird vor dem
+Perzentil in das ROE-Feld geschrieben (gleiche Sektor-Logik, ROIC < 0 -> 0); ein
+fehlender ROIC (auch investiertes Kapital <= 0) deckelt die Achse auf 3 --
+ausser bei `roic-de-icfree`: dort laeuft sie bei Kapital <= 0 nur auf der op. Marge;
+`roic-de-icfree-fin` deckelt Kapital <= 0 nur in Financial Services (Kundengeld).
+
 Aufruf:
     uv run python scripts\simulate_month_scoring.py --month 2026-10 --out-dir <dir>
     uv run python scripts\simulate_month_scoring.py --month 2026-10 --out-dir <dir> --refresh-cik-map
+    uv run python scripts\simulate_month_scoring.py --month 2026-10 --out-dir <dir> --profitability roic
 """
 
 from __future__ import annotations
@@ -73,6 +90,20 @@ CSV_FIELDS = [
     "detail",
 ]
 BATCH = 300
+ROIC_MISSING_CAP = 3
+EQUITY_SOURCE = {
+    "roic": "book",
+    "roic-de": "de",
+    "roic-de-icfree": "de",
+    "roic-de-icfree-fin": "de",
+}
+# Variant (b): invested capital <= 0 is not capped -- the axis runs on op margin alone
+UNCAPPED_REASONS = {
+    "roic-de-icfree": frozenset({"invested_capital_nonpositive"}),
+    "roic-de-icfree-fin": frozenset({"invested_capital_nonpositive"}),
+}
+# ... except in these sectors, where invested capital <= 0 is client money
+CAPPED_SECTORS = {"roic-de-icfree-fin": frozenset({"Financial Services"})}
 
 
 class ReadOnlyStore:
@@ -219,23 +250,108 @@ def write_dropouts(
             )
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--month", required=True, help="YYYY-MM")
-    ap.add_argument("--out-dir", required=True, type=Path)
-    ap.add_argument("--cik-map", type=Path, default=DEFAULT_CIK_MAP)
-    ap.add_argument("--refresh-cik-map", action="store_true")
-    args = ap.parse_args()
-    month: str = args.month
-    out_dir: Path = args.out_dir
-    out_dir.mkdir(parents=True, exist_ok=True)
+def _num(v: Any) -> float | None:
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
+
+def equity_from_info(info: dict[str, Any], source: str = "book") -> float | None:
+    """Book equity for the ROIC denominator.
+
+    book: bookValue x sharesOutstanding. Two measured defects (diagnose_roic.py,
+      2026-10): bookValue is in the QUOTE currency while debt/cash are in the
+      financial currency (EQNR.OL: NOK vs USD, ~x10), and sharesOutstanding counts
+      one share class only (GOOG: equity too small, ROIC 95 %).
+    de: totalDebt / (debtToEquity / 100) -- balance-sheet currency, whole company.
+      Falls back to `book` only when debt is 0/missing AND quote and financial
+      currency agree; otherwise unknown."""
+    book, shares = _num(info.get("bookValue")), _num(info.get("sharesOutstanding"))
+    book_equity = book * shares if book is not None and shares is not None else None
+    if source == "book":
+        return book_equity
+    debt, de = _num(info.get("totalDebt")), _num(info.get("debtToEquity"))
+    if debt is not None and debt > 0 and de is not None and de != 0:
+        return debt / (de / 100.0)
+    fin = info.get("financialCurrency")
+    if fin is None or fin == info.get("currency"):
+        return book_equity
+    return None
+
+
+def roic_from_info(
+    info: dict[str, Any], equity_source: str = "book"
+) -> tuple[float | None, str | None]:
+    """(ROIC, None) or (None, reason). Reasons: no_ebit, no_equity, no_debt_cash,
+    invested_capital_nonpositive. A missing debt or cash side counts as 0 only if
+    the other is present (same rule as net_debt)."""
+    margin, revenue = _num(info.get("operatingMargins")), _num(info.get("totalRevenue"))
+    equity = equity_from_info(info, equity_source)
+    debt, cash = _num(info.get("totalDebt")), _num(info.get("totalCash"))
+    if margin is None or revenue is None:
+        return None, "no_ebit"
+    if equity is None:
+        return None, "no_equity"
+    if debt is None and cash is None:
+        return None, "no_debt_cash"
+    ic = (debt or 0.0) + equity - (cash or 0.0)
+    if ic <= 0:
+        return None, "invested_capital_nonpositive"
+    return margin * revenue / ic, None
+
+
+def apply_roic_inputs(
+    records: list[ScreenerRecord],
+    infos: dict[str, dict[str, Any]],
+    equity_source: str = "book",
+) -> dict[str, str | None]:
+    """Before scoring: ROIC takes the ROE slot (percentile + negative red flag).
+    Returns the missing-reason per ticker (None = ROIC known)."""
+    reasons: dict[str, str | None] = {}
+    for r in records:
+        r.return_on_equity, reasons[r.ticker] = roic_from_info(
+            infos[r.ticker], equity_source
+        )
+    return reasons
+
+
+def cap_missing_roic(
+    records: list[ScreenerRecord],
+    reasons: dict[str, str | None],
+    uncapped: frozenset[str] = frozenset(),
+    capped_sectors: frozenset[str] = frozenset(),
+) -> None:
+    """After scoring: a missing ROIC never scores better than neutral -- except for
+    reasons in `uncapped`, where the axis runs on operating margin alone."""
+    for r in records:
+        dims = r.gemini_dimensions or {}
+        ev = r.gemini_evidence or {}
+        if "profitability" in ev:
+            ev["profitability"] = ev["profitability"].replace("ROE", "ROIC")
+        if r.return_on_equity is None:
+            if (
+                (reasons.get(r.ticker) not in uncapped or r.gics_sector in capped_sectors)
+                and dims.get("profitability", 0) > ROIC_MISSING_CAP
+            ):
+                dims["profitability"] = ROIC_MISSING_CAP
+                ev["profitability"] += f" — capped at {ROIC_MISSING_CAP}"
+            r.gemini_data_gaps = [*(r.gemini_data_gaps or []), "roic"]
+            r.data_confidence = "low"
+        merit = {k: dims[k] for k in ("growth", "profitability", "resilience") if k in dims}
+        if merit:
+            r.gemini_weakest_dimension = min(merit, key=lambda k: merit[k])
+
+
+def load_inputs(
+    month: str, cik_map_path: Path, refresh: bool
+) -> tuple[
+    list[dict[str, str]], dict[str, dict[str, str]], list[str], dict[str, str], ReadOnlyStore
+]:
+    """(pre-scoring rows, real crosshit rows, cohort, cik map, prefetched store)."""
     universe: list[str] = json.loads((ROOT / "data" / "universe.json").read_text("utf-8"))
-    if args.refresh_cik_map:
-        refresh_cik_map(args.cik_map, universe)
-    if not args.cik_map.exists():
-        sys.exit(f"CIK-Map fehlt: {args.cik_map} -- einmal mit --refresh-cik-map holen")
-    cik_map: dict[str, str] = json.loads(args.cik_map.read_text("utf-8"))
+    if refresh:
+        refresh_cik_map(cik_map_path, universe)
+    if not cik_map_path.exists():
+        sys.exit(f"CIK-Map fehlt: {cik_map_path} -- einmal mit --refresh-cik-map holen")
+    cik_map: dict[str, str] = json.loads(cik_map_path.read_text("utf-8"))
 
     rows = read_dropouts(month)
     pre_rows = [r for r in rows if r["stage"] in PRE_SCORING_STAGES]
@@ -248,9 +364,24 @@ def main() -> None:
     docs |= prefetch(db, settings.revenue_series_collection, cohort)
     ciks = sorted({cik_map[t].zfill(10) for t in cohort if t in cik_map})
     docs |= prefetch(db, settings.edgar_annual_series_collection, ciks)
-    store = ReadOnlyStore(docs)
+    return pre_rows, real_cross_rows, cohort, cik_map, ReadOnlyStore(docs)
 
+
+def build_and_score(
+    store: ReadOnlyStore,
+    cohort: list[str],
+    cik_map: dict[str, str],
+    profitability: str = "roe",
+) -> tuple[list[ScreenerRecord], list[str], ReadOnlyRevenueSeries, NoOpTracker]:
+    """Records from the cached .info, scored like the monthly run (+ ROIC variant).
+    Call once per variant: scoring mutates the records."""
+    if profitability != "roe":
+        sys.exit(
+            "ROIC-Varianten sind seit dem ROIC-Scorer gesperrt (der Default rechnet "
+            "schon ROIC); Analysestand: git checkout 5e63b53"
+        )
     records: list[ScreenerRecord] = []
+    infos: dict[str, dict[str, Any]] = {}
     missing_info: list[str] = []
     for t in cohort:
         info = store.get(settings.ticker_collection, t)
@@ -260,6 +391,10 @@ def main() -> None:
         rec = ScreenerRecord.from_yfinance_info(t, info)
         rec.cik = cik_map.get(t)  # mirrors runner._evaluate_edgar (company_tickers)
         records.append(rec)
+        infos[t] = info
+    reasons: dict[str, str | None] = {}
+    if profitability.startswith("roic"):
+        reasons = apply_roic_inputs(records, infos, EQUITY_SOURCE[profitability])
 
     revenue = ReadOnlyRevenueSeries(store, settings.revenue_series_collection)
     annual = CachedEdgarAnnualSeries(
@@ -271,6 +406,35 @@ def main() -> None:
     scored = run_deterministic_scoring(
         records, revenue_cache=revenue, run_tracker=tracker, annual_series=annual
     )
+    if profitability.startswith("roic"):
+        cap_missing_roic(
+            scored,
+            reasons,
+            UNCAPPED_REASONS.get(profitability, frozenset()),
+            CAPPED_SECTORS.get(profitability, frozenset()),
+        )
+    return scored, missing_info, revenue, tracker
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--month", required=True, help="YYYY-MM")
+    ap.add_argument("--out-dir", required=True, type=Path)
+    ap.add_argument("--cik-map", type=Path, default=DEFAULT_CIK_MAP)
+    ap.add_argument("--refresh-cik-map", action="store_true")
+    ap.add_argument("--profitability", choices=tuple(["roe", *EQUITY_SOURCE]), default="roe")
+    args = ap.parse_args()
+    month: str = args.month
+    out_dir: Path = args.out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    pre_rows, real_cross_rows, cohort, cik_map, store = load_inputs(
+        month, args.cik_map, args.refresh_cik_map
+    )
+    scored, missing_info, revenue, tracker = build_and_score(
+        store, cohort, cik_map, args.profitability
+    )
+    records = scored
 
     cross = [r for r in scored if is_crosshit(r, THRESHOLD, MIN_DIMENSIONS)]
     below = [r for r in scored if not is_crosshit(r, THRESHOLD, MIN_DIMENSIONS)]
@@ -299,8 +463,13 @@ def main() -> None:
         e["record"].ticker
         for e in _compute_steadiness_failures(scored, THRESHOLD, MIN_DIMENSIONS)
     ]
+    prof_dist = Counter((r.gemini_dimensions or {}).get("profitability") for r in scored)
     summary = {
         "month": month,
+        "profitability_variant": args.profitability,
+        "profitability_distribution": {
+            str(k): prof_dist[k] for k in sorted(prof_dist, key=str)
+        },
         "cohort": len(cohort),
         "scored": len(scored),
         "missing_ticker_info": missing_info,
@@ -337,6 +506,7 @@ def main() -> None:
     print(f"  {sim_list}")
     print(f"  neu: {summary['diff_vs_real']['added']}  raus: {summary['diff_vs_real']['removed']}")
     print(f"Preisnehmer: {len(takers)}/{len(cross)} = {summary['price_taker_share']} {sorted(takers)}")
+    print(f"profitability ({args.profitability}): {summary['profitability_distribution']}")
     print(f"resilience-Verteilung: {summary['resilience_distribution']}")
     print(f"resilience=0: {summary['resilience_zero_count']}; Red-Flags (Feld): {red_flags} "
           f"{summary['resilience_red_flags_by_sector']}")

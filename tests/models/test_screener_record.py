@@ -121,6 +121,45 @@ def test_leverage_inputs_default_to_none_when_missing():
     assert record.ebitda is None
 
 
+def test_from_yfinance_info_maps_roic_inputs():
+    info = {
+        "totalRevenue": 8.0e9,
+        "bookValue": 12.5,
+        "sharesOutstanding": 4.0e8,
+        "financialCurrency": "USD",
+    }
+    record = ScreenerRecord.from_yfinance_info("TEST", info)
+    assert record.total_revenue == 8.0e9
+    assert record.book_value_per_share == 12.5
+    assert record.shares_outstanding == 4.0e8
+    assert record.financial_currency == "USD"
+
+
+def test_roic_inputs_default_to_none_when_missing():
+    record = ScreenerRecord.from_yfinance_info("TEST", {})
+    assert record.total_revenue is None
+    assert record.book_value_per_share is None
+    assert record.shares_outstanding is None
+    assert record.financial_currency is None
+    assert record.return_on_invested_capital is None
+    assert record.roic_missing_reason is None
+
+
+@pytest.mark.parametrize("bad", [True, False, "12.5", "Infinity", None, [1.0]])
+def test_non_numeric_roic_inputs_become_none(bad):
+    info = {"totalRevenue": bad, "bookValue": bad, "sharesOutstanding": bad}
+    record = ScreenerRecord.from_yfinance_info("TEST", info)
+    assert record.total_revenue is None
+    assert record.book_value_per_share is None
+    assert record.shares_outstanding is None
+
+
+def test_integer_roic_inputs_become_floats():
+    record = ScreenerRecord.from_yfinance_info("TEST", {"sharesOutstanding": 400})
+    assert record.shares_outstanding == 400.0
+    assert isinstance(record.shares_outstanding, float)
+
+
 def test_resilience_red_flag_defaults_to_none():
     assert ScreenerRecord(ticker="X").resilience_red_flag is None
 

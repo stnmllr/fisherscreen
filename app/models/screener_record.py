@@ -9,6 +9,15 @@ from app.models.definedness import DefinednessOutcome
 from app.services.yfinance_client import quoted_price, resolve_market_cap
 
 
+def _num(value: Any) -> float | None:
+    """A real number as float, else None. bool is excluded although it is an int
+    subclass, and numeric strings are not parsed: yfinance serves either a number
+    or junk, and junk must read as missing, not as a coerced value."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    return None
+
+
 class ScreenerRecord(BaseModel):
     # Identity
     ticker: str
@@ -39,6 +48,17 @@ class ScreenerRecord(BaseModel):
     total_debt: float | None = None  # info['totalDebt']
     total_cash: float | None = None  # info['totalCash']
     ebitda: float | None = None  # info['ebitda'] — may be <= 0
+    # ROIC inputs for Tool-A profitability (see app/screener/roic.py). Non-numeric
+    # yfinance values become None (see _num).
+    total_revenue: float | None = None  # info['totalRevenue'] — financial currency
+    book_value_per_share: float | None = None  # info['bookValue'] — QUOTE currency
+    shares_outstanding: float | None = None  # info['sharesOutstanding'] — one class
+    financial_currency: str | None = None  # info['financialCurrency']
+    # Computed by app.screener.roic.annotate_roic before the percentiles, not from
+    # info. Exactly one is set: the ROIC (decimal) or why it is missing
+    # ("no_ebit" | "no_equity" | "no_debt_cash" | "invested_capital_nonpositive").
+    return_on_invested_capital: float | None = None
+    roic_missing_reason: str | None = None
 
     # FX-normalized market cap — computed in run_basis_filter, not from yfinance directly
     market_cap_eur: float | None = None
@@ -163,4 +183,8 @@ class ScreenerRecord(BaseModel):
             total_debt=info.get("totalDebt"),
             total_cash=info.get("totalCash"),
             ebitda=info.get("ebitda"),
+            total_revenue=_num(info.get("totalRevenue")),
+            book_value_per_share=_num(info.get("bookValue")),
+            shares_outstanding=_num(info.get("sharesOutstanding")),
+            financial_currency=info.get("financialCurrency"),
         )
