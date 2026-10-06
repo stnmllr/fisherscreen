@@ -15,8 +15,13 @@ bugfix/crosshits-list-honours-steadiness-gate). Aeltere Laeufe zeigen dort "—"
 Aufruf:
     uv run python scripts\\reference_check.py                 (juengster Lauf)
     uv run python scripts\\reference_check.py --month 2026-10
+    uv run python scripts\\reference_check.py --month 2026-10 ^
+        --dropouts <sim-dir>\\2026-10-dropouts.csv --out <sim-dir>\\2026-10-Referenzcheck.md
 
 Schreibt output/Universum/<Monat>-Referenzcheck.md und eine Kurzfassung auf die Konsole.
+`--dropouts` / `--out` lenken Ein- und Ausgabe um -- fuer die Offline-Simulation
+(scripts/simulate_month_scoring.py), die einen Lauf neu bewertet, ohne die echten
+Artefakte anzufassen.
 """
 from __future__ import annotations
 
@@ -73,6 +78,16 @@ def failing_axes(axes: dict[str, str]) -> list[str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--month", help="YYYY-MM (Default: juengster Lauf)")
+    parser.add_argument(
+        "--dropouts",
+        type=Path,
+        help="dropouts-CSV (Default: output/Universum/<Monat>-dropouts.csv)",
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        help="Ausgabe-Markdown (Default: output/Universum/<Monat>-Referenzcheck.md)",
+    )
     args = parser.parse_args()
     month = args.month or latest_month()
 
@@ -80,7 +95,7 @@ def main() -> None:
     reference = json.loads(
         (ROOT / "data" / "reference_fisher.json").read_text("utf-8")
     )["tickers"]
-    dropouts_path = UNIVERSUM_DIR / f"{month}-dropouts.csv"
+    dropouts_path = args.dropouts or UNIVERSUM_DIR / f"{month}-dropouts.csv"
     with dropouts_path.open(encoding="utf-8", newline="") as fh:
         dropouts = {row["ticker"]: row for row in csv.DictReader(fh)}
 
@@ -152,7 +167,8 @@ def main() -> None:
             f"| {', '.join(failing) or '—'} |"
         )
 
-    out = UNIVERSUM_DIR / f"{month}-Referenzcheck.md"
+    out = args.out or UNIVERSUM_DIR / f"{month}-Referenzcheck.md"
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     print(f"Referenzcheck {month}: {len(rows)} Titel")
@@ -160,7 +176,8 @@ def main() -> None:
         print(f"  {stage:<22} {n}")
     if by_axis:
         print("  Achsen unter Schwelle: " + ", ".join(f"{a} {n}" for a, n in by_axis.most_common()))
-    print(f"geschrieben: {out.relative_to(ROOT)}")
+    shown = out.relative_to(ROOT) if out.is_relative_to(ROOT) else out
+    print(f"geschrieben: {shown}")
 
 
 if __name__ == "__main__":

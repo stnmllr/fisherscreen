@@ -550,3 +550,131 @@ def test_the_list_and_the_funnel_agree_on_the_september_titles(tmp_path):
     assert {"NEM", "MU", "ABNB", "HL", "TER", "PLTR", "TPL", "META"}.isdisjoint(
         _main_table(text)
     )
+
+
+# --- leverage red-flag failures ----------------------------------------------
+#
+# A title that clears growth + profitability (and steadiness, where measured)
+# but is held to resilience 0 by the net debt/EBITDA > 4.0x red flag is not a
+# crosshit. It is listed in its own section so the decision stays visible.
+
+_LEVERAGE_HEADING = "## Am Verschuldungs-Red-Flag gescheitert"
+
+
+def _levered_record(
+    ticker,
+    *,
+    growth=5,
+    profitability=5,
+    steadiness=3.0,
+    reason="no_sec_registrant",
+    flag="net_debt_to_ebitda_above_4",
+    total_debt=6.0e9,
+    ebitda=1.0e9,
+):
+    record = _industry_record(ticker, "Aerospace & Defense")
+    record.gemini_dimensions = {
+        "growth": growth,
+        "profitability": profitability,
+        "management": 3,
+        "innovation": 3,
+        "resilience": 0,
+    }
+    record.resilience_red_flag = flag
+    record.total_debt = total_debt
+    record.total_cash = 0.0
+    record.ebitda = ebitda
+    record.steadiness = steadiness
+    record.steadiness_reason = reason
+    return record
+
+
+def _leverage_section(text: str) -> str:
+    return text.split(_LEVERAGE_HEADING)[1] if _LEVERAGE_HEADING in text else ""
+
+
+def test_a_leverage_red_flag_title_is_listed_in_its_own_section(tmp_path):
+    records = [_levered_record("TDG", steadiness=4.0, reason=None)]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+    section = _leverage_section(text)
+    assert "| TDG " in section
+    assert "6.0x" in section
+    assert "| Nettoverschuldung/EBITDA |" in section
+    assert "4.0x" in section  # threshold named in the blockquote
+    assert "**keine** Crosshits" in section
+
+
+def test_leverage_section_with_nonpositive_ebitda(tmp_path):
+    records = [
+        _levered_record("NEG", flag="net_debt_with_nonpositive_ebitda", ebitda=-5.0)
+    ]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+    assert "| Nettoschuld, EBITDA ≤ 0 |" in _leverage_section(text)
+
+
+def test_measured_failing_steadiness_excludes_from_leverage_section(tmp_path):
+    records = [_levered_record("CYC", steadiness=2.0, reason=None)]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+    assert _LEVERAGE_HEADING not in text
+
+
+def test_low_growth_excludes_from_leverage_section(tmp_path):
+    records = [_levered_record("SLOW", growth=3)]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+    assert _LEVERAGE_HEADING not in text
+
+
+def test_low_profitability_excludes_from_leverage_section(tmp_path):
+    records = [_levered_record("THIN", profitability=3)]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+    assert _LEVERAGE_HEADING not in text
+
+
+def test_unflagged_resilience_failure_is_not_in_leverage_section(tmp_path):
+    records = [_levered_record("LOWGM", flag=None)]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+    assert _LEVERAGE_HEADING not in text
+
+
+def test_leverage_failures_are_not_crosshits(tmp_path):
+    records = [_levered_record("TDG"), _steady_record("FAST", 5.0)]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+    main = _marks_col(text.split(_LEVERAGE_HEADING)[0], "Stetigkeit")
+    assert set(main) == {"FAST"}
+    assert "| TDG " in _leverage_section(text)
+
+
+def test_leverage_section_follows_steadiness_section(tmp_path):
+    records = [
+        _levered_record("TDG"),
+        _steady_record("TER", 2.67),
+        _steady_record("FAST", 5.0),
+    ]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+    assert text.index(_FAILED_HEADING) < text.index(_LEVERAGE_HEADING)
+    assert "TDG" not in text.split(_FAILED_HEADING)[1].split(_LEVERAGE_HEADING)[0]
+
+
+def test_a_flagged_title_that_is_a_crosshit_is_not_listed_as_failed(tmp_path):
+    # local experiments run min_dimensions=2: growth + profitability suffice
+    records = [_levered_record("TDG")]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=2).read_text(
+        "utf-8"
+    )
+    assert _LEVERAGE_HEADING not in text

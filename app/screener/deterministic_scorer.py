@@ -3,11 +3,17 @@
 Maps the percentile annotations (sector_percentiles.annotate_percentiles) + the absolute
 growth-consistency cap + absolute red-flag overlays to the ScreenerRecord.gemini_*
 fields (schema name kept for output stability). Evidence is code-templated, citing the
-absolute figure AND its percentile. debt_to_equity is in percent-points (45.0 = 45%)."""
+absolute figure AND its percentile (or band).
+
+Resilience = gross-margin percentile averaged with a FIXED ABSOLUTE leverage band on
+net debt / EBITDA. Debt/equity was dropped: buybacks shrink book equity to near zero
+or below, so D/E measured cosmetics (MA scored 0, TDG at 6x net debt/EBITDA scored 5).
+Net debt / EBITDA does not depend on book equity."""
 
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from app.screener.growth_consistency import consistency_cap
@@ -19,21 +25,148 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _RED_FLAG = 0
-_DE_REDFLAG_THRESHOLD = 300.0  # percent-points: >300% (3x equity)
+_NEUTRAL_AXIS = 3
 # Sentinel der nicht bewertbaren Stetigkeit. Traegt bewusst dieselbe Zahl wie
 # ein gemessener mittelmaessiger Titel -- unterschieden wird am Grund, nie am
 # Wert (Spec 8.1).
 NEUTRAL_STEADINESS = 3.0
 
+# --- resilience leverage: net debt / EBITDA ----------------------------------
+# Fixed, deliberately not configurable: a knob would let the red flag drift with
+# whatever a given month seems to need.
+LEVERAGE_REDFLAG_THRESHOLD = 4.0
+# (inclusive upper bound of net debt / EBITDA, band). Net cash (ratio <= 0) earns
+# the full band. Above the last bound: red flag, or band 0 in structural sectors.
+_LEVERAGE_BANDS: tuple[tuple[float, float], ...] = (
+    (0.0, 100.0),
+    (1.0, 85.0),
+    (2.0, 65.0),
+    (3.0, 45.0),
+    (LEVERAGE_REDFLAG_THRESHOLD, 25.0),
+)
+_STRUCTURAL_BAND = 0.0
+# Regulated / asset-backed balance sheets carry high leverage by design (yfinance
+# sector labels). They get band 0 instead of the red flag.
+STRUCTURAL_LEVERAGE_SECTORS: frozenset[str] = frozenset({"Utilities", "Real Estate"})
+RED_FLAG_RATIO_ABOVE_THRESHOLD = "net_debt_to_ebitda_above_4"
+RED_FLAG_NET_DEBT_NONPOSITIVE_EBITDA = "net_debt_with_nonpositive_ebitda"
+# A missing input -- leverage OR gross margin -- must never score better than
+# neutral (IBKR: a broker without EBITDA and gross margin P95 would otherwise score
+# 5 on margin alone; symmetrically, net cash alone must not score 5).
+_MISSING_INPUT_CAP = 3
 
-def _mean_axis_score(
-    pcts: dict[str, float], fields: tuple[str, ...], invert: tuple[str, ...] = ()
-) -> int | None:
-    vals = []
-    for f in fields:
-        if f in pcts:
-            p = pcts[f]
-            vals.append(100.0 - p if f in invert else p)
+
+@dataclass(frozen=True)
+class LeverageAssessment:
+    """Leverage half of resilience. Exactly one of three outcomes: a `band`, a
+    `red_flag`, or neither (missing -> `gaps` name what is missing)."""
+
+    text: str
+    band: float | None = None
+    red_flag: str | None = None
+    gaps: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def known(self) -> bool:
+        return self.band is not None or self.red_flag is not None
+
+
+def net_debt(record: "ScreenerRecord") -> float | None:
+    """total_debt - total_cash; a missing side counts as 0 only if the other is
+    present. Both missing -> None (unknown, not zero)."""
+    if record.total_debt is None and record.total_cash is None:
+        return None
+    return (record.total_debt or 0.0) - (record.total_cash or 0.0)
+
+
+def leverage_ratio(record: "ScreenerRecord") -> float | None:
+    """Net debt / EBITDA, defined only for EBITDA > 0 and known net debt."""
+    nd = net_debt(record)
+    if nd is None or record.ebitda is None or record.ebitda <= 0:
+        return None
+    return nd / record.ebitda
+
+
+def _band_for(ratio: float) -> float | None:
+    for upper, band in _LEVERAGE_BANDS:
+        if ratio <= upper:
+            return band
+    return None  # above the red-flag threshold
+
+
+def _missing_leverage(nd: float | None, ebitda: float | None) -> LeverageAssessment:
+    gaps = []
+    reasons = []
+    if ebitda is None:
+        gaps.append("ebitda")
+        reasons.append("no EBITDA")
+    if nd is None:
+        gaps.append("net_debt")
+        reasons.append("no debt/cash data")
+    return LeverageAssessment(
+        text=f"net debt/EBITDA n/a ({', '.join(reasons)})", gaps=tuple(gaps)
+    )
+
+
+def assess_leverage(record: "ScreenerRecord") -> LeverageAssessment:
+    nd = net_debt(record)
+    ebitda = record.ebitda
+    if nd is None or ebitda is None:
+        return _missing_leverage(nd, ebitda)
+    structural = record.gics_sector in STRUCTURAL_LEVERAGE_SECTORS
+    exempt = "(band 0, structural sector — no red flag)"
+    if ebitda <= 0:
+        if nd <= 0:
+            # Net cash without earnings power: leverage is undefined, not good.
+            return LeverageAssessment(
+                text="net cash with EBITDA <= 0, net debt/EBITDA n/a",
+                gaps=("ebitda_nonpositive",),
+            )
+        if structural:
+            return LeverageAssessment(
+                text=f"net debt with EBITDA <= 0 {exempt}", band=_STRUCTURAL_BAND
+            )
+        return LeverageAssessment(
+            text="net debt with EBITDA <= 0 — RED FLAG",
+            red_flag=RED_FLAG_NET_DEBT_NONPOSITIVE_EBITDA,
+        )
+    ratio = nd / ebitda
+    band = _band_for(ratio)
+    if band is None:
+        if structural:
+            return LeverageAssessment(
+                text=f"net debt/EBITDA {ratio:.1f}x {exempt}", band=_STRUCTURAL_BAND
+            )
+        return LeverageAssessment(
+            text=(
+                f"net debt/EBITDA {ratio:.1f}x — RED FLAG > "
+                f"{LEVERAGE_REDFLAG_THRESHOLD:.1f}x"
+            ),
+            red_flag=RED_FLAG_RATIO_ABOVE_THRESHOLD,
+        )
+    if nd <= 0:
+        text = f"net cash (net debt/EBITDA {ratio:.1f}x, band {band:.0f})"
+    else:
+        text = f"net debt/EBITDA {ratio:.1f}x (band {band:.0f})"
+    return LeverageAssessment(text=text, band=band)
+
+
+def _resilience_score(gm_p: float | None, lev: LeverageAssessment) -> int:
+    if lev.red_flag is not None:
+        return _RED_FLAG
+    if lev.band is not None:
+        if gm_p is None:
+            # Symmetric to the missing-leverage cap: one missing input never
+            # scores better than neutral.
+            return min(_MISSING_INPUT_CAP, percentile_to_score(lev.band))
+        return percentile_to_score((lev.band + gm_p) / 2)
+    if gm_p is None:
+        return _MISSING_INPUT_CAP
+    return min(_MISSING_INPUT_CAP, percentile_to_score(gm_p))
+
+
+def _mean_axis_score(pcts: dict[str, float], fields: tuple[str, ...]) -> int | None:
+    vals = [pcts[f] for f in fields if f in pcts]
     if not vals:
         return None
     return percentile_to_score(sum(vals) / len(vals))
@@ -44,22 +177,41 @@ def _pct_decimal(v: float | None) -> str:
 
 
 def _evidence(
-    record: "ScreenerRecord", pcts: dict[str, float], specs: list[tuple[str, str, str]]
+    record: "ScreenerRecord", pcts: dict[str, float], specs: list[tuple[str, str]]
 ) -> str:
-    """specs: list of (field, label, formatter) where formatter in {"decimal","de"}."""
+    """specs: list of (field, label) for decimal-ratio fields (0.45 -> 45.0%)."""
     parts = []
-    for field, label, kind in specs:
-        raw = getattr(record, field)
-        if field == "debt_to_equity" and raw is not None and raw < 0:
-            parts.append(f"{label} n/a (negative book equity)")
-            continue
+    for field_name, label in specs:
+        raw = getattr(record, field_name)
         if raw is None:
             parts.append(f"{label} n/a")
             continue
-        shown = f"{raw:.1f}%" if kind == "de" else _pct_decimal(raw)
-        p = pcts.get(field)
-        parts.append(f"{label} {shown}" + (f" (P{p:.0f})" if p is not None else ""))
+        p = pcts.get(field_name)
+        parts.append(
+            f"{label} {_pct_decimal(raw)}" + (f" (P{p:.0f})" if p is not None else "")
+        )
     return ", ".join(parts)
+
+
+def _score_resilience(
+    record: "ScreenerRecord",
+    pcts: dict[str, float],
+    data_gaps: list[str],
+) -> tuple[int, str, bool]:
+    """(score, evidence, partial). Sets record.resilience_red_flag."""
+    gm_p = pcts.get("gross_margin")
+    lev = assess_leverage(record)
+    record.resilience_red_flag = lev.red_flag
+    data_gaps.extend(lev.gaps)
+    if gm_p is None:
+        data_gaps.append("gross_margin")
+    evidence = _evidence(record, pcts, [("gross_margin", "gross margin")])
+    evidence += f", {lev.text}"
+    # Either input missing caps at neutral; a red flag stays 0 and needs no note.
+    if lev.red_flag is None and (gm_p is None or not lev.known):
+        evidence += f" — capped at {_MISSING_INPUT_CAP}"
+    partial = (gm_p is not None) != lev.known
+    return _resilience_score(gm_p, lev), evidence, partial
 
 
 def score_record(record: "ScreenerRecord") -> None:
@@ -72,13 +224,13 @@ def score_record(record: "ScreenerRecord") -> None:
     if "revenue_growth_yoy" in pcts:
         growth = percentile_to_score(pcts["revenue_growth_yoy"])
     else:
-        growth = 3  # no percentile available: neutral sentinel (same as profitability/resilience)
+        growth = _NEUTRAL_AXIS  # no percentile available: neutral sentinel
         data_gaps.append("revenue_growth_yoy")
     growth = min(growth, consistency_cap(record.growth_consistency))
     dims["growth"] = growth
     cons = record.growth_consistency
     evidence["growth"] = _evidence(
-        record, pcts, [("revenue_growth_yoy", "rev growth", "decimal")]
+        record, pcts, [("revenue_growth_yoy", "rev growth")]
     ) + (
         f", consistency {cons:.2f}" if cons is not None else ", consistency n/a (<4 GJ)"
     )
@@ -86,7 +238,7 @@ def score_record(record: "ScreenerRecord") -> None:
     # profitability — sector/global percentile; red-flag on absolute losses
     prof = _mean_axis_score(pcts, ("operating_margin", "return_on_equity"))
     if prof is None:
-        prof = 3
+        prof = _NEUTRAL_AXIS
         data_gaps.append("operating_margin/return_on_equity")
     if (record.operating_margin is not None and record.operating_margin < 0) or (
         record.return_on_equity is not None and record.return_on_equity < 0
@@ -96,35 +248,18 @@ def score_record(record: "ScreenerRecord") -> None:
     evidence["profitability"] = _evidence(
         record,
         pcts,
-        [
-            ("operating_margin", "op margin", "decimal"),
-            ("return_on_equity", "ROE", "decimal"),
-        ],
+        [("operating_margin", "op margin"), ("return_on_equity", "ROE")],
     )
 
-    # resilience — gross_margin + inverted d/e (d/e<0 already excluded upstream);
-    # red-flag on extreme positive leverage
-    resil = _mean_axis_score(
-        pcts, ("gross_margin", "debt_to_equity"), invert=("debt_to_equity",)
+    # resilience — gross-margin percentile + absolute net debt/EBITDA band
+    resil, evidence["resilience"], resil_partial = _score_resilience(
+        record, pcts, data_gaps
     )
-    if resil is None:
-        resil = 3
-        data_gaps.append("gross_margin/debt_to_equity")
-    if (
-        record.debt_to_equity is not None
-        and record.debt_to_equity > _DE_REDFLAG_THRESHOLD
-    ):
-        resil = _RED_FLAG
     dims["resilience"] = resil
-    evidence["resilience"] = _evidence(
-        record,
-        pcts,
-        [("gross_margin", "gross margin", "decimal"), ("debt_to_equity", "d/e", "de")],
-    )
 
     # sentinels (not merit; mirror dimensions.py)
-    dims["management"] = 3
-    dims["innovation"] = 3
+    dims["management"] = _NEUTRAL_AXIS
+    dims["innovation"] = _NEUTRAL_AXIS
     evidence["management"] = "insufficient data: governance screened upstream"
     evidence["innovation"] = "insufficient data: no R&D data"
 
@@ -144,7 +279,7 @@ def score_record(record: "ScreenerRecord") -> None:
     partial = []
     if sum(1 for f in ("operating_margin", "return_on_equity") if f in pcts) == 1:
         partial.append("profitability")
-    if sum(1 for f in ("gross_margin", "debt_to_equity") if f in pcts) == 1:
+    if resil_partial:
         partial.append("resilience")
     record.partial_evidence_axes = partial
 
@@ -196,5 +331,10 @@ def run_deterministic_scoring(records, revenue_cache, run_tracker, annual_series
     for record in records:
         score_record(record)
         run_tracker.record_ticker(0, 0)
-    logger.info("deterministic_scorer: scored %d records (LLM-free)", len(records))
+    n_flags = sum(1 for r in records if r.resilience_red_flag)
+    logger.info(
+        "deterministic_scorer: scored %d records (LLM-free), %d leverage red flags",
+        len(records),
+        n_flags,
+    )
     return records

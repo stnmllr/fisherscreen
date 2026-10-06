@@ -1,3 +1,5 @@
+import pytest
+
 from app.models.screener_record import ScreenerRecord
 from app.screener.deterministic_scorer import score_record
 
@@ -22,12 +24,18 @@ def test_negative_operating_margin_red_flags_to_zero():
     assert r.gemini_dimensions["profitability"] == 0
 
 
-def test_high_leverage_red_flags_resilience_to_zero():
-    # d/e in percent-points: 350 = 3.5x -> red flag
+def test_high_debt_to_equity_alone_no_longer_red_flags_resilience():
+    # d/e 350 % with modest net debt/EBITDA: buyback cosmetics, not distress
     r = _scored(
-        input_percentiles={"gross_margin": 80.0}, gross_margin=0.5, debt_to_equity=350.0
+        input_percentiles={"gross_margin": 80.0},
+        gross_margin=0.5,
+        debt_to_equity=350.0,
+        total_debt=1.0e9,
+        total_cash=0.5e9,
+        ebitda=1.0e9,
     )
-    assert r.gemini_dimensions["resilience"] == 0
+    assert r.gemini_dimensions["resilience"] > 0
+    assert r.resilience_red_flag is None
 
 
 def test_growth_capped_by_consistency():
@@ -101,17 +109,21 @@ class _FakeTracker:
         self.calls.append((tin, tout))
 
 
-def test_resilience_inversion_lower_leverage_scores_higher():
-    # identical gross_margin percentile; lower d/e percentile (less levered) -> higher resilience
+def test_lower_leverage_scores_higher_resilience():
+    # identical gross_margin percentile; net cash beats 3.5x net debt/EBITDA
     low_lev = _scored(
-        input_percentiles={"gross_margin": 50.0, "debt_to_equity": 20.0},
+        input_percentiles={"gross_margin": 50.0},
         gross_margin=0.4,
-        debt_to_equity=30.0,
+        total_debt=0.0,
+        total_cash=1.0e9,
+        ebitda=1.0e9,
     )
     high_lev = _scored(
-        input_percentiles={"gross_margin": 50.0, "debt_to_equity": 80.0},
+        input_percentiles={"gross_margin": 50.0},
         gross_margin=0.4,
-        debt_to_equity=120.0,
+        total_debt=3.5e9,
+        total_cash=0.0,
+        ebitda=1.0e9,
     )
     assert (
         low_lev.gemini_dimensions["resilience"]
@@ -131,16 +143,14 @@ def test_growth_data_gap_when_no_percentile():
 
 def test_partial_evidence_axes_flagged():
     # profitability has only operating_margin percentile (ROE absent) -> partial;
-    # resilience has both gross_margin + d/e -> not partial
+    # resilience has both gross_margin + a leverage band -> not partial
     r = _scored(
-        input_percentiles={
-            "operating_margin": 80.0,
-            "gross_margin": 60.0,
-            "debt_to_equity": 30.0,
-        },
+        input_percentiles={"operating_margin": 80.0, "gross_margin": 60.0},
         operating_margin=0.2,
         gross_margin=0.5,
-        debt_to_equity=40.0,
+        total_debt=1.0e9,
+        total_cash=0.0,
+        ebitda=1.0e9,
         growth_consistency=1.0,
     )
     assert r.partial_evidence_axes == ["profitability"]
@@ -152,12 +162,13 @@ def test_no_partial_when_both_inputs_present():
             "operating_margin": 80.0,
             "return_on_equity": 75.0,
             "gross_margin": 60.0,
-            "debt_to_equity": 30.0,
         },
         operating_margin=0.2,
         return_on_equity=0.2,
         gross_margin=0.5,
-        debt_to_equity=40.0,
+        total_debt=1.0e9,
+        total_cash=0.0,
+        ebitda=1.0e9,
         growth_consistency=1.0,
     )
     assert r.partial_evidence_axes == []
@@ -184,3 +195,218 @@ def test_run_deterministic_scoring_end_to_end():
     assert all(r.gemini_dimensions is not None for r in out)
     assert all(r.growth_consistency == 1.0 for r in out)
     assert tracker.calls == [(0, 0)] * 30  # LLM-free: zero tokens per ticker
+
+
+# --- resilience: net debt / EBITDA on fixed absolute bands -------------------
+#
+# Debt/equity measured buyback cosmetics: MA (tiny book equity) scored 0, TDG
+# (6x net debt/EBITDA, negative equity -> D/E excluded) scored 5. Leverage is now
+# net debt / EBITDA against fixed bands; red flag above 4.0x.
+
+_EBITDA = 1.0e9
+
+
+def _lev(ratio: float | None = None, gm_p: float | None = None, **kw):
+    """Record with net debt = ratio x EBITDA (no cash) and an optional gross-margin
+    percentile."""
+    fields = dict(kw)
+    if ratio is not None:
+        fields.setdefault("total_debt", ratio * _EBITDA)
+        fields.setdefault("total_cash", 0.0)
+        fields.setdefault("ebitda", _EBITDA)
+    pcts = {} if gm_p is None else {"gross_margin": gm_p}
+    if gm_p is not None:
+        fields.setdefault("gross_margin", 0.5)
+    return _scored(input_percentiles=pcts, growth_consistency=1.0, **fields)
+
+
+@pytest.mark.parametrize(
+    "ratio,band,score",
+    [
+        (0.0, 100, 5),
+        (0.01, 85, 5),
+        (1.0, 85, 5),
+        (1.01, 65, 4),
+        (2.0, 65, 4),
+        (2.01, 45, 4),
+        (3.0, 45, 4),
+        (3.01, 25, 3),
+        (4.0, 25, 3),
+    ],
+)
+def test_leverage_band_boundaries(ratio, band, score):
+    # gross margin P100 -> score = percentile_to_score((band + 100) / 2)
+    r = _lev(ratio, gm_p=100.0)
+    assert f"band {band})" in r.gemini_evidence["resilience"]
+    assert r.gemini_dimensions["resilience"] == score
+    assert r.resilience_red_flag is None
+
+
+def test_just_above_four_is_a_red_flag():
+    r = _lev(4.01, gm_p=95.0)
+    assert r.gemini_dimensions["resilience"] == 0
+    assert r.resilience_red_flag == "net_debt_to_ebitda_above_4"
+
+
+def test_band_is_averaged_with_gross_margin_percentile():
+    # (85 + 64) / 2 = 74.5 -> 4
+    r = _lev(0.3, gm_p=64.0, gross_margin=0.68)
+    assert r.gemini_dimensions["resilience"] == 4
+    assert r.partial_evidence_axes == []
+    assert r.gemini_evidence["resilience"] == (
+        "gross margin 68.0% (P64), net debt/EBITDA 0.3x (band 85)"
+    )
+
+
+def test_net_cash_gets_full_band():
+    r = _lev(
+        gm_p=58.0, gross_margin=0.67, total_debt=0.0, total_cash=1.2e9, ebitda=_EBITDA
+    )
+    # (100 + 58) / 2 = 79 -> 4
+    assert r.gemini_dimensions["resilience"] == 4
+    assert r.gemini_evidence["resilience"] == (
+        "gross margin 67.0% (P58), net cash (net debt/EBITDA -1.2x, band 100)"
+    )
+
+
+def test_red_flag_evidence_cites_the_ratio():
+    r = _lev(6.0, gm_p=91.0, gross_margin=0.60)
+    assert r.gemini_dimensions["resilience"] == 0
+    assert r.gemini_evidence["resilience"] == (
+        "gross margin 60.0% (P91), net debt/EBITDA 6.0x — RED FLAG > 4.0x"
+    )
+
+
+def test_net_debt_with_nonpositive_ebitda_is_a_red_flag():
+    r = _lev(gm_p=80.0, total_debt=2.0e9, total_cash=0.5e9, ebitda=-1.0e8)
+    assert r.gemini_dimensions["resilience"] == 0
+    assert r.resilience_red_flag == "net_debt_with_nonpositive_ebitda"
+    assert r.gemini_evidence["resilience"].endswith(
+        "net debt with EBITDA <= 0 — RED FLAG"
+    )
+
+
+def test_net_cash_with_nonpositive_ebitda_is_capped_neutral():
+    r = _lev(gm_p=95.0, total_debt=0.0, total_cash=1.0e9, ebitda=0.0)
+    assert r.gemini_dimensions["resilience"] == 3
+    assert r.resilience_red_flag is None
+    assert r.data_confidence == "low"
+    assert "capped at 3" in r.gemini_evidence["resilience"]
+
+
+def test_ibkr_case_missing_ebitda_caps_resilience_at_3_not_5():
+    """Broker: gross margin P95 would score 5 on its own; a missing leverage
+    input must never score better than neutral."""
+    r = _lev(gm_p=95.0, gross_margin=0.95, total_debt=1.0e10, total_cash=5.0e10)
+    assert r.gemini_dimensions["resilience"] == 3
+    assert r.resilience_red_flag is None
+    assert "ebitda" in r.gemini_data_gaps
+    assert r.data_confidence == "low"
+    assert r.gemini_evidence["resilience"] == (
+        "gross margin 95.0% (P95), net debt/EBITDA n/a (no EBITDA) — capped at 3"
+    )
+
+
+def test_missing_leverage_keeps_a_weak_gross_margin_score():
+    # cap only lowers: P20 gross margin alone -> 2, stays 2
+    r = _lev(gm_p=20.0, ebitda=None)
+    assert r.gemini_dimensions["resilience"] == 2
+
+
+def test_missing_debt_and_cash_is_a_net_debt_gap():
+    r = _lev(gm_p=50.0, ebitda=_EBITDA)
+    assert r.gemini_dimensions["resilience"] == 3
+    assert "net_debt" in r.gemini_data_gaps
+    assert r.data_confidence == "low"
+
+
+def test_one_of_debt_or_cash_is_enough_for_net_debt():
+    # only cash known -> net debt = -cash -> net cash band
+    r = _lev(total_cash=1.0e9, ebitda=_EBITDA)
+    assert "band 100" in r.gemini_evidence["resilience"]
+    r = _lev(total_debt=1.5e9, ebitda=_EBITDA)
+    assert "net debt/EBITDA 1.5x (band 65)" in r.gemini_evidence["resilience"]
+
+
+def test_no_resilience_inputs_at_all_scores_3():
+    r = _lev()
+    assert r.gemini_dimensions["resilience"] == 3
+    assert {"net_debt", "ebitda"} <= set(r.gemini_data_gaps)
+
+
+def test_missing_gross_margin_percentile_caps_band_at_3_and_is_partial():
+    r = _lev(0.5)
+    assert r.gemini_dimensions["resilience"] == 3  # band 85 alone would be 4
+    assert r.partial_evidence_axes == ["resilience"]
+    assert "gross_margin" in r.gemini_data_gaps
+    assert r.data_confidence == "low"
+    assert r.gemini_evidence["resilience"] == (
+        "gross margin n/a, net debt/EBITDA 0.5x (band 85) — capped at 3"
+    )
+
+
+def test_net_cash_with_missing_gross_margin_scores_3_not_5():
+    r = _lev(total_debt=0.0, total_cash=1.0e9, ebitda=_EBITDA)
+    assert r.gemini_dimensions["resilience"] == 3
+    assert "capped at 3" in r.gemini_evidence["resilience"]
+
+
+def test_missing_gross_margin_cap_never_raises_a_weak_band():
+    r = _lev(3.5)  # band 25 alone -> 2, stays 2
+    assert r.gemini_dimensions["resilience"] == 2
+
+
+def test_red_flag_with_missing_gross_margin_stays_zero_without_cap_note():
+    r = _lev(6.0)
+    assert r.gemini_dimensions["resilience"] == 0
+    assert "gross_margin" in r.gemini_data_gaps
+    assert "capped" not in r.gemini_evidence["resilience"]
+
+
+def test_gross_margin_without_leverage_is_partial():
+    r = _lev(gm_p=60.0, ebitda=None)
+    assert "resilience" in r.partial_evidence_axes
+
+
+@pytest.mark.parametrize("sector", ["Utilities", "Real Estate"])
+def test_structural_sectors_get_band_zero_instead_of_red_flag(sector):
+    # (0 + 80) / 2 = 40 -> 3
+    r = _lev(5.5, gm_p=80.0, gross_margin=0.4, gics_sector=sector)
+    assert r.resilience_red_flag is None
+    assert r.gemini_dimensions["resilience"] == 3
+    assert r.gemini_evidence["resilience"] == (
+        "gross margin 40.0% (P80), net debt/EBITDA 5.5x "
+        "(band 0, structural sector — no red flag)"
+    )
+
+
+@pytest.mark.parametrize("sector", ["Utilities", "Real Estate"])
+def test_structural_sectors_exempt_for_nonpositive_ebitda_too(sector):
+    r = _lev(
+        gm_p=80.0, total_debt=1.0e9, total_cash=0.0, ebitda=-1.0, gics_sector=sector
+    )
+    assert r.resilience_red_flag is None
+    assert r.gemini_dimensions["resilience"] == 3
+    assert "structural sector — no red flag" in r.gemini_evidence["resilience"]
+
+
+def test_ma_like_case_high_debt_to_equity_low_net_leverage_is_not_flagged():
+    # MA: D/E ~440 % (tiny book equity) but net debt/EBITDA ~0.6
+    r = _lev(0.6, gm_p=90.0, debt_to_equity=440.0, gics_sector="Financial Services")
+    assert r.resilience_red_flag is None
+    assert r.gemini_dimensions["resilience"] == 4  # (85 + 90) / 2 = 87.5 -> 4
+
+
+def test_tdg_like_case_negative_equity_high_net_leverage_is_flagged():
+    # TDG: negative book equity (D/E < 0) used to slip past; 6x net debt/EBITDA
+    r = _lev(6.0, gm_p=95.0, debt_to_equity=-300.0, gics_sector="Industrials")
+    assert r.resilience_red_flag == "net_debt_to_ebitda_above_4"
+    assert r.gemini_dimensions["resilience"] == 0
+
+
+def test_red_flag_is_cleared_on_rescore():
+    r = _lev(6.0, gm_p=95.0)
+    assert r.resilience_red_flag is not None
+    r.total_debt = 0.5 * _EBITDA
+    score_record(r)
+    assert r.resilience_red_flag is None

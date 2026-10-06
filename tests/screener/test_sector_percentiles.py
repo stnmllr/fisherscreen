@@ -32,16 +32,19 @@ def test_small_sector_falls_back_to_global():
     assert tech.score_basis["growth"] == "global"
 
 
-def test_negative_debt_to_equity_excluded():
-    recs = [_rec(f"I{i}", "Industrials", gm=0.30, de=50.0) for i in range(MIN_SECTOR_N)]
-    buyback = _rec("SBUX", "Industrials", gm=0.30, de=-150.0)
-    recs.append(buyback)
+def test_debt_to_equity_is_no_longer_a_percentile_input():
+    """Resilience leverage is net debt/EBITDA on absolute bands (scorer), not a
+    percentile: debt/equity measured buyback cosmetics (MA 0, TDG 5)."""
+    recs = [
+        _rec(f"I{i}", "Industrials", gm=0.30 + i * 0.01, de=50.0 + i)
+        for i in range(MIN_SECTOR_N)
+    ]
+    recs.append(_rec("SBUX", "Industrials", gm=0.30, de=-150.0))
     annotate_percentiles(recs)
-    assert (
-        "debt_to_equity" not in buyback.input_percentiles
-    )  # excluded from its own annotation
-    # and excluded from the distribution: a normal d/e still ranks against positives only
-    assert "debt_to_equity" in recs[0].input_percentiles
+    for r in recs:
+        assert "debt_to_equity" not in r.input_percentiles
+        assert "gross_margin" in r.input_percentiles
+    assert recs[0].score_basis["resilience"] == "sector_relative"
 
 
 def test_none_metric_not_annotated():

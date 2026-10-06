@@ -8,10 +8,11 @@
 
 ---
 
-## Letztes Update: 2026-10-02
+## Letztes Update: 2026-10-06
 
-> ⚠️ **Ehrlichkeits-Hinweis, sechsstufig.** Aktuell ist **nur** der Abschnitt
-> „Top of mind — 2026-10-02" direkt unterhalb. Die Blöcke „Top of mind — 2026-09-08",
+> ⚠️ **Ehrlichkeits-Hinweis, siebenstufig.** Aktuell ist **nur** der Abschnitt
+> „Top of mind — 2026-10-06" direkt unterhalb. Der Block „Top of mind — 2026-10-02"
+> gilt weiter, bis auf Schritt 4 (ROIC jetzt als eigener nächster PR eingeplant). Die Blöcke „Top of mind — 2026-09-08",
 > „2026-09-07" und „2026-09-06" darunter gelten weiter. Der Block „Top of mind — 2026-09-04"
 > darunter gilt bis auf die dort korrigierten Punkte weiter; der Viewer-Block beschreibt
 > den Stand vom **2026-08-20**; alles ab `## Status` stammt vom **2026-06-11**.
@@ -23,6 +24,67 @@
 >
 > Nichts unterhalb des ersten Abschnitts als aktuellen Stand lesen, ohne gegen `git log`
 > zu prüfen.
+
+## Top of mind — 2026-10-06
+
+**resilience misst Verschuldung jetzt als Nettoschulden/EBITDA statt Debt/Equity**
+(Branch `bugfix/resilience-net-debt`, PR offen, nicht gemergt). Auslöser: Referenzcheck
+2026-10 — nur 3 von 74 Referenz-Titeln sind Crosshits, 47 scheitern u. a. an resilience,
+MA und MTD standen bei 0. Ursache: Rückkäufe drücken das Buchkapital gegen null oder
+darunter, D/E maß Kapitalstruktur-Kosmetik. Schlimmer noch in die Gegenrichtung: bei
+**negativem** D/E fiel der Wert aus der Verteilung, die Achse lief nur auf der Bruttomarge —
+TDG (6,0× Nettoschulden/EBITDA) bekam resilience **5**.
+
+**Regel (im Code fest, nicht konfigurierbar):**
+- resilience = `percentile_to_score((P Bruttomarge + Band) / 2)`; das Band ist **absolut**,
+  kein Perzentil: Nettocash 100, ≤ 1× 85, ≤ 2× 65, ≤ 3× 45, ≤ 4× 25. Ein Sektor-Perzentil
+  hätte MSFT (0,3×) auf P47 gesetzt, weil viele Tech-Nachbarn Nettocash haben — „weniger
+  Cash als die Nachbarn" ist kein Widerstandsurteil.
+- Red-Flag (0): > 4,0× oder Nettoschuld bei EBITDA ≤ 0. Utilities + Real Estate ohne
+  Red-Flag, dort nur Band 0 (sonst 42 Versorger + 10 Immobilienwerte geflaggt).
+- Fehlt EBITDA, Nettoschuld oder die Bruttomarge: höchstens 3. Ein fehlender Wert führt nie
+  zu einem besseren Score (IBKR: Bruttomarge P95, kein EBITDA → 3 statt 5). Data-Gap,
+  `data_confidence = low`.
+- Neuer Report-Abschnitt „Am Verschuldungs-Red-Flag gescheitert" (analog Stetigkeits-Gate).
+
+**Lokal simuliert, $0** (`scripts/simulate_month_scoring.py` auf den Caches; Baseline
+reproduziert den echten Oktober-Lauf zeilengleich, dann `reference_check.py --dropouts`):
+
+| | vorher | nachher |
+|---|---|---|
+| Crosshits | 26 | **35** |
+| Referenz-Treffer | 3/74 | **8/74** (+MSFT, KLAC, ISRG, ASML.AS, ASM.AS) |
+| Preisnehmer-Anteil | 23,1 % | 22,9 % |
+| resilience-Red-Flags | 67 | 77 |
+
+Neu: ACLN.SW, ANET, ANTO.L, ASM.AS, ASML.AS, FTNT, ISRG, KLAC, MSFT, NTAP, ORNBV.HE, VAR.OL,
+VRT. Raus: FICO (4,2×) und TDG (6,0×) per Red-Flag, FTK.DE und XTB.WA (Finanztitel ohne
+EBITDA, gedeckelt). Stetigkeits-Gate-Abschnitt wächst 8 → 14. **`percentiles.py` bewusst
+nicht nachkalibriert** (Entscheidung Stephan) — die Bänder sind auf ~25 Crosshits geeicht,
+~35 werden hingenommen. Suite **1922 / 96,57 %**, credential-los 1881 grün.
+
+**Werkzeuge neu:** `scripts/diagnose_resilience_inputs.py` (Abdeckung + Varianten),
+`scripts/simulate_month_scoring.py` (Monat offline neu scoren, nur lesend; CIK-Map aus
+`cache/sec_ticker_cik_map.json`, einmalig per `--refresh-cik-map`), `reference_check.py`
+mit `--dropouts` / `--out`. **Achtung:** `reference_check.py` ohne `--out` überschreibt den
+Referenzcheck des Monats.
+
+**Credential-lose Suite unter cmd.exe:** `set VAR=` **löscht** die Variable, dann greift
+wieder `.env` — die CI-Bedingung ist so nicht nachgestellt. Leer, aber gesetzt geht nur aus
+einer Shell, die leere Werte kennt (lief diesmal über Git Bash).
+
+### Nächste Schritte (Reihenfolge)
+
+1. PR `bugfix/resilience-net-debt` reviewen/mergen (Stephan); Wirkung erst ab Lauf 2026-11-01.
+2. **ROIC statt ROE** in profitability — eigener PR. Vorab gemessen: ROIC aus `.info`
+   (EBIT ÷ (Schulden + Buchkapital − Cash)) deckt US 98 % / EU 97 % ab und beseitigt
+   31 profitability-Red-Flags, die nur aus negativem Eigenkapital kommen; Vorschau +8 Crosshits.
+3. Mehrjahreswachstum statt TTM-YoY — eigener PR.
+4. Preisnehmer-Ausschluss vor dem Scoring — eigener PR.
+5. **Vorgemerkt, eigenes Thema:** yfinance-Sektor „Technology" mischt Software und Hardware.
+   Das Bruttomargen-Perzentil benachteiligt dadurch AAPL (P36), AMAT (P38), LRCX (P39);
+   ähnlich MTD (P47) in Healthcare. Diese Titel bleiben auch mit der neuen Verschuldungs-
+   metrik bei resilience 3 — die Bruttomarge ist der Engpass, nicht die Schulden.
 
 ## Top of mind — 2026-10-02
 

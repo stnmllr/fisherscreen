@@ -1,0 +1,351 @@
+r"""Offline-Neubewertung eines fertigen Monatslaufs auf den gecachten Daten.
+
+Zweck: eine Scoring-Aenderung gegen einen echten Monat pruefen, BEVOR sie in
+einen Monatslauf geht -- wie viele Crosshits, welche rein/raus, wie viele
+Referenz-Titel (mit scripts/reference_check.py --dropouts/--out).
+
+NUR LESEN, $0:
+  data/universe.json, output/Universum/<Monat>-dropouts.csv   Kohorte
+  output/Universum/<Monat>-Crosshits.md                       Vergleichsliste
+  Firestore settings.ticker_collection                        yfinance-.info
+  Firestore settings.revenue_series_collection                Umsatzreihen
+  Firestore settings.edgar_annual_series_collection           Stetigkeit
+  <cik-map>                                                   Ticker -> CIK
+
+Kein Firestore-Schreiben, kein yfinance, kein EDGAR. Die Caches werden VORAB per
+Batch-`get_all` gelesen und dann ueber einen Nur-Lesen-Adapter gereicht, dessen
+`set`/`delete` hart scheitern. Ein Cache-Fehltreffer wird als leer/fehlend
+behandelt und gezaehlt -- nie nachgeladen.
+
+CIK: Der Monatslauf bezieht die CIK aus SEC `company_tickers.json` (eine
+statische Datei). Lokal gibt es keine vollstaendige Kopie; deshalb liest das
+Skript eine Ticker->CIK-Datei (`--cik-map`, Default
+cache/sec_ticker_cik_map.json). Fehlt sie, bricht es ab. `--refresh-cik-map`
+holt die Datei EINMAL (ein einziger GET auf sec.gov, $0) und schreibt sie fuer
+die Universum-Ticker -- das ist der einzige Netzzugriff und er ist opt-in.
+
+Crosshits: `is_crosshit` mit Schwelle 4.0 und min_dimensions 3 -- bewusst
+EXPLIZIT, nicht aus settings: das lokale .env traegt eine veraltete 2.
+
+Aufruf:
+    uv run python scripts\simulate_month_scoring.py --month 2026-10 --out-dir <dir>
+    uv run python scripts\simulate_month_scoring.py --month 2026-10 --out-dir <dir> --refresh-cik-map
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+from typing import Any
+
+from google.cloud import firestore
+
+from app.config import settings
+from app.models.screener_record import ScreenerRecord
+from app.output.crosshits_generator import _compute_steadiness_failures
+from app.screener.deterministic_scorer import run_deterministic_scoring
+from app.screener.dimensions import is_crosshit, steadiness_is_assessable
+from app.screener.funnel import _score_detail
+from app.screener.price_takers import is_price_taker, load_price_takers
+from app.services.cached_edgar_annual_series import CachedEdgarAnnualSeries
+
+sys.stdout.reconfigure(encoding="utf-8")
+
+ROOT = Path(__file__).resolve().parent.parent
+UNIVERSUM_DIR = ROOT / "output" / "Universum"
+DEFAULT_CIK_MAP = ROOT / "cache" / "sec_ticker_cik_map.json"
+PRE_SCORING_STAGES = ("resolution", "basis_gates", "edgar_gates")
+THRESHOLD = 4.0
+MIN_DIMENSIONS = 3  # production value; NOT settings (local .env carries a stale 2)
+CSV_FIELDS = [
+    "ticker",
+    "stage",
+    "reason_code",
+    "severity_bucket",
+    "is_large_cap",
+    "sector_wide",
+    "market_cap_eur",
+    "gics_sector",
+    "detail",
+]
+BATCH = 300
+
+
+class ReadOnlyStore:
+    """In-memory snapshot of prefetched Firestore docs. Writes are a bug here."""
+
+    def __init__(self, docs: dict[tuple[str, str], dict[str, Any]]) -> None:
+        self._docs = docs
+        self.misses: Counter = Counter()
+
+    def get(self, collection: str, document_id: str) -> dict[str, Any] | None:
+        doc = self._docs.get((collection, document_id))
+        if doc is None:
+            self.misses[collection] += 1
+        return doc
+
+    def set(self, collection: str, document_id: str, data: dict[str, Any]) -> None:
+        raise RuntimeError(f"read-only simulation: refused write {collection}/{document_id}")
+
+    def delete(self, collection: str, document_id: str) -> None:
+        raise RuntimeError(f"read-only simulation: refused delete {collection}/{document_id}")
+
+
+class ReadOnlyRevenueSeries:
+    """Read path of CachedRevenueSeries without the yfinance fallback.
+
+    A missing doc is an empty series (consistency n/a), counted, never fetched.
+    Freshness is ignored: a stale doc is what the run would have refetched, but the
+    400-day TTL makes that rare and the miss count shows it."""
+
+    def __init__(self, store: ReadOnlyStore, collection: str) -> None:
+        self._store = store
+        self._collection = collection
+        self.empty = 0
+
+    def get_revenue_series(self, ticker: str) -> list[float]:
+        doc = self._store.get(self._collection, ticker)
+        if not doc or "revenues" not in doc:
+            self.empty += 1
+            return []
+        return [float(x) for x in doc["revenues"]]
+
+
+class NoOpTracker:
+    def __init__(self) -> None:
+        self.steadiness_lookups: Counter = Counter()
+
+    def record_ticker(self, tokens_in: int, tokens_out: int) -> None:
+        return None
+
+    def record_steadiness_lookup(self, status: str) -> None:
+        self.steadiness_lookups[status] += 1
+
+
+def read_dropouts(month: str) -> list[dict[str, str]]:
+    path = UNIVERSUM_DIR / f"{month}-dropouts.csv"
+    with path.open(encoding="utf-8", newline="") as fh:
+        return list(csv.DictReader(fh))
+
+
+def real_crosshits(month: str) -> list[str]:
+    text = (UNIVERSUM_DIR / f"{month}-Crosshits.md").read_text("utf-8")
+    text = text.split("## Am Stetigkeits-Gate")[0]
+    return sorted(
+        line.split("|")[2].split()[0]
+        for line in text.splitlines()
+        if line.startswith("| ") and line.split("|")[1].strip().isdigit()
+    )
+
+
+def prefetch(
+    db: firestore.Client, collection: str, ids: list[str]
+) -> dict[tuple[str, str], dict[str, Any]]:
+    docs: dict[tuple[str, str], dict[str, Any]] = {}
+    for i in range(0, len(ids), BATCH):
+        refs = [db.collection(collection).document(d) for d in ids[i : i + BATCH]]
+        for snap in db.get_all(refs):
+            if snap.exists:
+                docs[(collection, snap.id)] = snap.to_dict() or {}
+    return docs
+
+
+def refresh_cik_map(path: Path, universe: list[str]) -> None:
+    from app.services.edgar_client import EdgarClientImpl
+
+    edgar = EdgarClientImpl(settings.edgar_user_agent)  # map loads once, one GET
+    mapping = {t: edgar.get_cik(t) for t in universe}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({t: c for t, c in mapping.items() if c}, indent=0, sort_keys=True),
+        encoding="utf-8",
+    )
+    print(f"CIK-Map geschrieben: {path} ({sum(1 for c in mapping.values() if c)} CIKs)")
+
+
+def resilience_failures(scored: list[ScreenerRecord]) -> list[dict[str, Any]]:
+    """Would-be crosshits that fail only on the leverage red flag (attribute may be
+    absent on the pre-change code -> empty list)."""
+    out = []
+    for r in scored:
+        if not getattr(r, "resilience_red_flag", None):
+            continue
+        dims = r.gemini_dimensions or {}
+        if dims.get("growth", 0) < THRESHOLD or dims.get("profitability", 0) < THRESHOLD:
+            continue
+        if steadiness_is_assessable(r) and (r.steadiness or 0.0) < THRESHOLD:
+            continue
+        out.append(
+            {
+                "ticker": r.ticker,
+                "flag": r.resilience_red_flag,
+                "evidence": (r.gemini_evidence or {}).get("resilience"),
+            }
+        )
+    return sorted(out, key=lambda e: e["ticker"])
+
+
+def write_dropouts(
+    path: Path,
+    pre_rows: list[dict[str, str]],
+    below: list[ScreenerRecord],
+    real_rows: dict[str, dict[str, str]],
+) -> None:
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        for row in pre_rows:
+            writer.writerow({k: row[k] for k in CSV_FIELDS})
+        for r in below:
+            # market_cap_eur needs an FX rate (network); reuse the real run's row
+            # when it has one, else leave it blank. reference_check never reads it.
+            real = real_rows.get(r.ticker, {})
+            writer.writerow(
+                {
+                    "ticker": r.ticker,
+                    "stage": "crosshits",
+                    "reason_code": "SCORE_BELOW_THRESHOLD",
+                    "severity_bucket": "BENIGN",
+                    "is_large_cap": real.get("is_large_cap", "False"),
+                    "sector_wide": "False",
+                    "market_cap_eur": real.get("market_cap_eur", ""),
+                    "gics_sector": r.gics_sector,
+                    "detail": _score_detail(r),
+                }
+            )
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--month", required=True, help="YYYY-MM")
+    ap.add_argument("--out-dir", required=True, type=Path)
+    ap.add_argument("--cik-map", type=Path, default=DEFAULT_CIK_MAP)
+    ap.add_argument("--refresh-cik-map", action="store_true")
+    args = ap.parse_args()
+    month: str = args.month
+    out_dir: Path = args.out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    universe: list[str] = json.loads((ROOT / "data" / "universe.json").read_text("utf-8"))
+    if args.refresh_cik_map:
+        refresh_cik_map(args.cik_map, universe)
+    if not args.cik_map.exists():
+        sys.exit(f"CIK-Map fehlt: {args.cik_map} -- einmal mit --refresh-cik-map holen")
+    cik_map: dict[str, str] = json.loads(args.cik_map.read_text("utf-8"))
+
+    rows = read_dropouts(month)
+    pre_rows = [r for r in rows if r["stage"] in PRE_SCORING_STAGES]
+    dropped = {r["ticker"] for r in pre_rows}
+    real_cross_rows = {r["ticker"]: r for r in rows if r["stage"] == "crosshits"}
+    cohort = [t for t in universe if t not in dropped]
+
+    db = firestore.Client(project=settings.gcp_project_id)
+    docs = prefetch(db, settings.ticker_collection, cohort)
+    docs |= prefetch(db, settings.revenue_series_collection, cohort)
+    ciks = sorted({cik_map[t].zfill(10) for t in cohort if t in cik_map})
+    docs |= prefetch(db, settings.edgar_annual_series_collection, ciks)
+    store = ReadOnlyStore(docs)
+
+    records: list[ScreenerRecord] = []
+    missing_info: list[str] = []
+    for t in cohort:
+        info = store.get(settings.ticker_collection, t)
+        if not info:
+            missing_info.append(t)
+            continue
+        rec = ScreenerRecord.from_yfinance_info(t, info)
+        rec.cik = cik_map.get(t)  # mirrors runner._evaluate_edgar (company_tickers)
+        records.append(rec)
+
+    revenue = ReadOnlyRevenueSeries(store, settings.revenue_series_collection)
+    annual = CachedEdgarAnnualSeries(
+        client=None,  # type: ignore[arg-type]  # read path never touches the client
+        firestore=store,
+        collection=settings.edgar_annual_series_collection,
+    )
+    tracker = NoOpTracker()
+    scored = run_deterministic_scoring(
+        records, revenue_cache=revenue, run_tracker=tracker, annual_series=annual
+    )
+
+    cross = [r for r in scored if is_crosshit(r, THRESHOLD, MIN_DIMENSIONS)]
+    below = [r for r in scored if not is_crosshit(r, THRESHOLD, MIN_DIMENSIONS)]
+    write_dropouts(out_dir / f"{month}-dropouts.csv", pre_rows, below, real_cross_rows)
+
+    table = load_price_takers(ROOT / "data" / "price_takers.json")
+    takers = [r.ticker for r in cross if is_price_taker(r.ticker, r.gics_industry, table)]
+    sim_list = sorted(r.ticker for r in cross)
+    real_list = real_crosshits(month)
+    res_dist = Counter((r.gemini_dimensions or {}).get("resilience") for r in scored)
+    has_flag_field = "resilience_red_flag" in ScreenerRecord.model_fields
+    red_flags = (
+        sum(1 for r in scored if getattr(r, "resilience_red_flag", None))
+        if has_flag_field
+        else None
+    )
+    capped = [
+        r.ticker
+        for r in scored
+        if "capped at" in (r.gemini_evidence or {}).get("resilience", "")
+    ]
+    flags_by_sector = Counter(
+        r.gics_sector for r in scored if getattr(r, "resilience_red_flag", None)
+    )
+    steadiness_failed = [
+        e["record"].ticker
+        for e in _compute_steadiness_failures(scored, THRESHOLD, MIN_DIMENSIONS)
+    ]
+    summary = {
+        "month": month,
+        "cohort": len(cohort),
+        "scored": len(scored),
+        "missing_ticker_info": missing_info,
+        "cache_misses": dict(store.misses),
+        "revenue_series_empty": revenue.empty,
+        "steadiness_lookups": dict(tracker.steadiness_lookups),
+        "records_with_cik": sum(1 for r in records if r.cik),
+        "crosshit_count": len(cross),
+        "crosshits": sim_list,
+        "price_takers": sorted(takers),
+        "price_taker_share": round(len(takers) / len(cross), 4) if cross else None,
+        "resilience_distribution": {str(k): res_dist[k] for k in sorted(res_dist, key=str)},
+        "resilience_zero_count": res_dist.get(0, 0),
+        "resilience_red_flag_count": red_flags,
+        "resilience_red_flags_by_sector": dict(flags_by_sector.most_common()),
+        "resilience_capped_missing_leverage": len(capped),
+        "data_confidence_low": sum(1 for r in scored if r.data_confidence == "low"),
+        "leverage_red_flag_failures": resilience_failures(scored),
+        "steadiness_failed": sorted(steadiness_failed),
+        "real_crosshit_count": len(real_list),
+        "diff_vs_real": {
+            "added": sorted(set(sim_list) - set(real_list)),
+            "removed": sorted(set(real_list) - set(sim_list)),
+        },
+    }
+    out_json = out_dir / f"{month}-sim-summary.json"
+    out_json.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    print(f"Simulation {month}: Kohorte {len(cohort)}, bewertet {len(scored)}, "
+          f"ohne .info {len(missing_info)} {missing_info[:10]}")
+    print(f"Cache-Fehltreffer: {dict(store.misses)}; Umsatzreihe leer: {revenue.empty}; "
+          f"Stetigkeit: {dict(tracker.steadiness_lookups)}; mit CIK: {summary['records_with_cik']}")
+    print(f"Crosshits: {len(cross)} (echter Lauf: {len(real_list)})")
+    print(f"  {sim_list}")
+    print(f"  neu: {summary['diff_vs_real']['added']}  raus: {summary['diff_vs_real']['removed']}")
+    print(f"Preisnehmer: {len(takers)}/{len(cross)} = {summary['price_taker_share']} {sorted(takers)}")
+    print(f"resilience-Verteilung: {summary['resilience_distribution']}")
+    print(f"resilience=0: {summary['resilience_zero_count']}; Red-Flags (Feld): {red_flags} "
+          f"{summary['resilience_red_flags_by_sector']}")
+    print(f"Verschuldung fehlt (gedeckelt auf 3): {len(capped)}; "
+          f"data_confidence low: {summary['data_confidence_low']}")
+    print(f"Am Verschuldungs-Red-Flag gescheitert: {summary['leverage_red_flag_failures']}")
+    print(f"Am Stetigkeits-Gate gescheitert: {summary['steadiness_failed']}")
+    print(f"geschrieben: {out_json}")
+
+
+if __name__ == "__main__":
+    main()

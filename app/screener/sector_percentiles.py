@@ -3,8 +3,11 @@
 growth (revenue_growth_yoy) is ALWAYS cohort-global. profitability/resilience inputs
 are sector-relative iff the record's sector has >= MIN_SECTOR_N members, else they fall
 back to the global pool (score_basis records which). None values are excluded from
-distributions; debt_to_equity < 0 is excluded entirely (negative book equity is
-ambiguous, not distress — see spec §5)."""
+distributions.
+
+Resilience has a single percentile input, gross_margin. Its leverage half is net
+debt / EBITDA on FIXED ABSOLUTE bands in the scorer, not a percentile: debt/equity
+used to sit here and measured buyback cosmetics (tiny or negative book equity)."""
 
 from __future__ import annotations
 
@@ -21,24 +24,15 @@ _SECTOR_RELATIVE_INPUTS = (
     "operating_margin",
     "return_on_equity",
     "gross_margin",
-    "debt_to_equity",
 )
 _AXIS_INPUTS = {
     "profitability": ("operating_margin", "return_on_equity"),
-    "resilience": ("gross_margin", "debt_to_equity"),
+    "resilience": ("gross_margin",),
 }
 
 
-def _usable(field: str, value: float | None) -> bool:
-    if value is None:
-        return False
-    if field == "debt_to_equity" and value < 0:  # negative book equity -> excluded
-        return False
-    return True
-
-
 def _distribution(records: list["ScreenerRecord"], field: str) -> list[float]:
-    return [getattr(r, field) for r in records if _usable(field, getattr(r, field))]
+    return [getattr(r, field) for r in records if getattr(r, field) is not None]
 
 
 def annotate_percentiles(records: list["ScreenerRecord"]) -> None:
@@ -60,7 +54,7 @@ def annotate_percentiles(records: list["ScreenerRecord"]) -> None:
         basis: dict[str, str] = {"growth": "global"}
 
         gv = getattr(r, _GLOBAL_INPUT)
-        if _usable(_GLOBAL_INPUT, gv) and global_dist[_GLOBAL_INPUT]:
+        if gv is not None and global_dist[_GLOBAL_INPUT]:
             pcts[_GLOBAL_INPUT] = percentile_rank(gv, global_dist[_GLOBAL_INPUT])
 
         sector = r.gics_sector
@@ -71,7 +65,7 @@ def annotate_percentiles(records: list["ScreenerRecord"]) -> None:
             basis[axis] = "sector_relative" if use_sector else "global_fallback"
             for f in fields:
                 v = getattr(r, f)
-                if not _usable(f, v):
+                if v is None:
                     continue
                 dist = sector_dist[(sector, f)] if use_sector else global_dist[f]
                 if dist:

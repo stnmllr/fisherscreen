@@ -4,6 +4,10 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from app.screener.deterministic_scorer import (
+    LEVERAGE_REDFLAG_THRESHOLD,
+    leverage_ratio,
+)
 from app.screener.dimensions import (
     is_crosshit,
     qualifying_dimensions,
@@ -81,6 +85,9 @@ def generate(
     steadiness_failed = _compute_steadiness_failures(
         scored, score_threshold, min_dimensions
     )
+    leverage_failed = _compute_leverage_failures(
+        scored, score_threshold, min_dimensions
+    )
 
     body = _build_body(
         crosshits,
@@ -90,6 +97,7 @@ def generate(
         header,
         table,
         steadiness_failed=steadiness_failed,
+        leverage_failed=leverage_failed,
     )
     out_path.write_text(body, encoding="utf-8")
 
@@ -156,6 +164,43 @@ def _compute_steadiness_failures(
     return _ranked(result)
 
 
+def _compute_leverage_failures(
+    scored: list[ScreenerRecord],
+    score_threshold: float,
+    min_dimensions: int,
+) -> list[dict]:
+    """Titles that are not crosshits ONLY because of the resilience leverage red
+    flag: growth and profitability clear the threshold, steadiness clears it or
+    was not measured. Membership rules are untouched -- this is visibility."""
+    result = []
+    for record in scored:
+        if not record.resilience_red_flag:
+            continue
+        if is_crosshit(record, score_threshold, min_dimensions):
+            continue
+        dims = record.gemini_dimensions or {}
+        if (
+            dims.get("growth", 0) < score_threshold
+            or dims.get("profitability", 0) < score_threshold
+        ):
+            continue
+        if (
+            steadiness_is_assessable(record)
+            and (record.steadiness or 0.0) < score_threshold
+        ):
+            continue
+        result.append(_entry(record, qualifying_dimensions(record, score_threshold)))
+    return _ranked(result)
+
+
+def _leverage_cell(record: ScreenerRecord) -> str:
+    """The figure behind the red flag: the ratio, or why there is none."""
+    ratio = leverage_ratio(record)
+    if ratio is not None:
+        return f"{ratio:.1f}x"
+    return "Nettoschuld, EBITDA ≤ 0"
+
+
 def _build_body(
     crosshits: list[dict],
     run_month: str,
@@ -165,6 +210,7 @@ def _build_body(
     price_takers: PriceTakerTable | None = None,
     *,
     steadiness_failed: list[dict] | None = None,
+    leverage_failed: list[dict] | None = None,
 ) -> str:
     table = price_takers if price_takers is not None else load_price_takers()
     lines = [f"# Universum {run_month} — Crosshits", ""]
@@ -211,23 +257,47 @@ def _build_body(
             "",
         ]
         lines += _table(steadiness_failed, table)
+    if leverage_failed:
+        lines += [
+            "",
+            "## Am Verschuldungs-Red-Flag gescheitert",
+            "",
+            f"> Diese Titel erreichen bei growth und profitability die Schwelle und "
+            f"scheitern nicht an der Stetigkeit, ihre Verschuldung loest aber das "
+            f"Red-Flag aus: Nettoverschuldung/EBITDA ueber "
+            f"{LEVERAGE_REDFLAG_THRESHOLD:.1f}x oder Nettoschuld bei EBITDA ≤ 0 "
+            f"(resilience = 0). Sie sind **keine** Crosshits und zaehlen im Funnel "
+            f"nicht mit; sie stehen hier, damit die Entscheidung sichtbar bleibt. "
+            f"Versorger und Immobilien sind vom Red-Flag ausgenommen.",
+            "",
+        ]
+        lines += _table(leverage_failed, table, leverage=True)
     return "\n".join(lines) + "\n"
 
 
-def _table(entries: list[dict], table: PriceTakerTable) -> list[str]:
-    lines = [
+def _table(
+    entries: list[dict], table: PriceTakerTable, *, leverage: bool = False
+) -> list[str]:
+    header = (
         "| # | Ticker | Name | Sektor | Crosshits | Dimensionen | Ø Score "
-        "| Stetigkeit | Preisnehmer |",
-        "|---|---|---|---|---|---|---|---|---|",
-    ]
+        "| Stetigkeit | Preisnehmer |"
+    )
+    rule = "|---|---|---|---|---|---|---|---|---|"
+    if leverage:
+        header += " Nettoverschuldung/EBITDA |"
+        rule += "---|"
+    lines = [header, rule]
     for i, entry in enumerate(entries, 1):
         r = entry["record"]
         dims_str = ", ".join(entry["qualifying_dims"])
         # Label only — it never enters the score or the ranking above.
         taker = "ja" if is_price_taker(r.ticker, r.gics_industry, table) else "nein"
-        lines.append(
+        row = (
             f"| {i} | {r.ticker} {_flags(r)} | {r.name or ''} | {r.gics_sector or ''} "
             f"| {len(entry['qualifying_dims'])} | {dims_str} | {entry['avg_score']} "
             f"| {_steadiness_cell(r)} | {taker} |"
         )
+        if leverage:
+            row += f" {_leverage_cell(r)} |"
+        lines.append(row)
     return lines

@@ -32,7 +32,13 @@ class ScreenerRecord(BaseModel):
     revenue_growth_yoy: float | None = None  # info['revenueGrowth'] — decimal YoY
     operating_margin: float | None = None  # info['operatingMargins']
     return_on_equity: float | None = None  # info['returnOnEquity']
-    debt_to_equity: float | None = None  # info['debtToEquity']
+    # info['debtToEquity'] — kept for Tool B / viewer; Tool A scoring no longer reads
+    # it (buyback cosmetics: tiny or negative book equity distorts the ratio).
+    debt_to_equity: float | None = None
+    # Leverage inputs for Tool-A resilience (net debt / EBITDA), absolute currency units.
+    total_debt: float | None = None  # info['totalDebt']
+    total_cash: float | None = None  # info['totalCash']
+    ebitda: float | None = None  # info['ebitda'] — may be <= 0
 
     # FX-normalized market cap — computed in run_basis_filter, not from yfinance directly
     market_cap_eur: float | None = None
@@ -78,6 +84,9 @@ class ScreenerRecord(BaseModel):
     partial_evidence_axes: list[str] | None = (
         None  # merit axes scored on only 1 of 2 inputs
     )
+    # Why resilience was forced to 0 by the leverage red flag, else None:
+    # "net_debt_to_ebitda_above_4" | "net_debt_with_nonpositive_ebitda".
+    resilience_red_flag: str | None = None
     # Vierte Achse. Der SCORE allein sagt nicht, ob sie bewertbar war: ein
     # gemessener 3,0-Titel und ein neutral gestellter tragen dieselbe Zahl.
     # Bewertbar ist ausschliesslich, wo `steadiness_reason is None` (Spec 8.1).
@@ -151,4 +160,7 @@ class ScreenerRecord(BaseModel):
             operating_margin=info.get("operatingMargins"),
             return_on_equity=info.get("returnOnEquity"),
             debt_to_equity=info.get("debtToEquity"),
+            total_debt=info.get("totalDebt"),
+            total_cash=info.get("totalCash"),
+            ebitda=info.get("ebitda"),
         )
