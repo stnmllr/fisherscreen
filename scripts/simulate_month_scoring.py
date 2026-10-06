@@ -43,6 +43,13 @@ fehlender ROIC (auch investiertes Kapital <= 0) deckelt die Achse auf 3 --
 ausser bei `roic-de-icfree`: dort laeuft sie bei Kapital <= 0 nur auf der op. Marge;
 `roic-de-icfree-fin` deckelt Kapital <= 0 nur in Financial Services (Kundengeld).
 
+`--growth cagr|blend` (Default `yoy` = Produktivcode bitgleich), Analyse 2026-10-06:
+ersetzt das Quartals-YoY-Perzentil der growth-Achse durch das globale Perzentil der
+Umsatz-CAGR aus der gecachten Jahresreihe (`cagr`, ohne CAGR <4 GJ steht YoY ein)
+bzw. mittelt beide (`blend`). Der Stetigkeits-Deckel bleibt. `--growth-missing cap3`
+deckelt bei fehlender CAGR auf 3 statt der heutigen 4. Nach dem Scorer nachgerechnet
+(apply_growth_variant), nicht im Scorer.
+
 Aufruf:
     uv run python scripts\simulate_month_scoring.py --month 2026-10 --out-dir <dir>
     uv run python scripts\simulate_month_scoring.py --month 2026-10 --out-dir <dir> --refresh-cik-map
@@ -62,12 +69,16 @@ from typing import Any
 from google.cloud import firestore
 
 from app.config import settings
+from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
 from app.output.crosshits_generator import _compute_steadiness_failures
 from app.screener.deterministic_scorer import run_deterministic_scoring
 from app.screener.dimensions import is_crosshit, steadiness_is_assessable
 from app.screener.funnel import _score_detail
+from app.screener.growth_consistency import consistency_cap
+from app.screener.percentiles import percentile_rank, percentile_to_score
 from app.screener.price_takers import is_price_taker, load_price_takers
+from app.screener.revenue_trajectory import classify_revenue_trajectory
 from app.services.cached_edgar_annual_series import CachedEdgarAnnualSeries
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -118,6 +129,10 @@ class ReadOnlyStore:
         if doc is None:
             self.misses[collection] += 1
         return doc
+
+    def peek(self, collection: str, document_id: str) -> dict[str, Any] | None:
+        """Like get, without touching the miss counter (second reads)."""
+        return self._docs.get((collection, document_id))
 
     def set(self, collection: str, document_id: str, data: dict[str, Any]) -> None:
         raise RuntimeError(f"read-only simulation: refused write {collection}/{document_id}")
@@ -372,6 +387,8 @@ def build_and_score(
     cohort: list[str],
     cik_map: dict[str, str],
     profitability: str = "roe",
+    growth: str = "yoy",
+    growth_missing: str = "fallback",
 ) -> tuple[list[ScreenerRecord], list[str], ReadOnlyRevenueSeries, NoOpTracker]:
     """Records from the cached .info, scored like the monthly run (+ ROIC variant).
     Call once per variant: scoring mutates the records."""
@@ -413,7 +430,70 @@ def build_and_score(
             UNCAPPED_REASONS.get(profitability, frozenset()),
             CAPPED_SECTORS.get(profitability, frozenset()),
         )
+    if growth != "yoy":
+        apply_growth_variant(scored, store, growth, growth_missing)
     return scored, missing_info, revenue, tracker
+
+
+def revenue_cagrs(
+    store: ReadOnlyStore, tickers: list[str], method: str = "endpoint"
+) -> dict[str, float | None]:
+    """Endpoint CAGR of the cached fiscal-year revenue series, None below 4 GJ
+    (same definedness rule as the consistency cap). Reads past the miss counter.
+    method=median: median of the annual growth rates instead -- one definitional
+    break (ADYEN.AS gross->net revenue: endpoint CAGR -33 %, median +19 %) cannot
+    drag it."""
+    out: dict[str, float | None] = {}
+    for t in tickers:
+        doc = store.peek(settings.revenue_series_collection, t)
+        series = [float(x) for x in doc["revenues"]] if doc and "revenues" in doc else []
+        cagr, _, definedness = classify_revenue_trajectory(series)
+        if definedness is not DefinednessOutcome.DEFINED:
+            out[t] = None
+        elif method == "median":
+            yoy = sorted(series[i] / series[i - 1] - 1 for i in range(1, len(series)))
+            mid = len(yoy) // 2
+            out[t] = yoy[mid] if len(yoy) % 2 else (yoy[mid - 1] + yoy[mid]) / 2
+        else:
+            out[t] = cagr
+    return out
+
+
+def apply_growth_variant(
+    scored: list[ScreenerRecord], store: ReadOnlyStore, growth: str, missing: str
+) -> None:
+    """Re-score the growth axis after the production scorer ran.
+
+    cagr:  global percentile of the multi-year revenue CAGR replaces the quarterly
+           YoY percentile; without a CAGR (<4 GJ) the YoY percentile stands in.
+    blend: mean of the CAGR and YoY percentiles (whichever exist).
+    The consistency cap stays. missing=cap3: a missing CAGR caps growth at 3
+    (otherwise the existing <4-GJ consistency cap of 4 applies)."""
+    method = "median" if growth.endswith("-median") else "endpoint"
+    growth = growth.removesuffix("-median")
+    cagrs = revenue_cagrs(store, [r.ticker for r in scored], method)
+    dist = [c for c in cagrs.values() if c is not None]
+    for r in scored:
+        pcts = r.input_percentiles or {}
+        p_yoy = pcts.get("revenue_growth_yoy")
+        cagr = cagrs[r.ticker]
+        p_cagr = percentile_rank(cagr, dist) if cagr is not None else None
+        if growth == "cagr":
+            parts = [p_cagr] if p_cagr is not None else [p for p in (p_yoy,) if p is not None]
+        else:
+            parts = [p for p in (p_cagr, p_yoy) if p is not None]
+        score = percentile_to_score(sum(parts) / len(parts)) if parts else 3
+        score = min(score, consistency_cap(r.growth_consistency))
+        if cagr is None and missing == "cap3":
+            score = min(score, 3)
+        dims = r.gemini_dimensions or {}
+        dims["growth"] = score
+        ev = r.gemini_evidence or {}
+        cagr_txt = "n/a (<4 GJ)" if cagr is None else f"{cagr:.1%} (P{p_cagr:.0f})"
+        ev["growth"] = f"{ev.get('growth', '')}, rev CAGR {cagr_txt}"
+        merit = {k: dims[k] for k in ("growth", "profitability", "resilience") if k in dims}
+        if merit:
+            r.gemini_weakest_dimension = min(merit, key=lambda k: merit[k])
 
 
 def main() -> None:
@@ -423,6 +503,8 @@ def main() -> None:
     ap.add_argument("--cik-map", type=Path, default=DEFAULT_CIK_MAP)
     ap.add_argument("--refresh-cik-map", action="store_true")
     ap.add_argument("--profitability", choices=tuple(["roe", *EQUITY_SOURCE]), default="roe")
+    ap.add_argument("--growth", choices=("yoy", "cagr", "blend", "cagr-median", "blend-median"), default="yoy")
+    ap.add_argument("--growth-missing", choices=("fallback", "cap3"), default="fallback")
     args = ap.parse_args()
     month: str = args.month
     out_dir: Path = args.out_dir
@@ -432,7 +514,7 @@ def main() -> None:
         month, args.cik_map, args.refresh_cik_map
     )
     scored, missing_info, revenue, tracker = build_and_score(
-        store, cohort, cik_map, args.profitability
+        store, cohort, cik_map, args.profitability, args.growth, args.growth_missing
     )
     records = scored
 
@@ -467,6 +549,14 @@ def main() -> None:
     summary = {
         "month": month,
         "profitability_variant": args.profitability,
+        "growth_variant": f"{args.growth}/{args.growth_missing}",
+        "growth_distribution": {
+            str(k): v
+            for k, v in sorted(
+                Counter((r.gemini_dimensions or {}).get("growth") for r in scored).items(),
+                key=lambda kv: str(kv[0]),
+            )
+        },
         "profitability_distribution": {
             str(k): prof_dist[k] for k in sorted(prof_dist, key=str)
         },
@@ -507,6 +597,7 @@ def main() -> None:
     print(f"  neu: {summary['diff_vs_real']['added']}  raus: {summary['diff_vs_real']['removed']}")
     print(f"Preisnehmer: {len(takers)}/{len(cross)} = {summary['price_taker_share']} {sorted(takers)}")
     print(f"profitability ({args.profitability}): {summary['profitability_distribution']}")
+    print(f"growth ({summary['growth_variant']}): {summary['growth_distribution']}")
     print(f"resilience-Verteilung: {summary['resilience_distribution']}")
     print(f"resilience=0: {summary['resilience_zero_count']}; Red-Flags (Feld): {red_flags} "
           f"{summary['resilience_red_flags_by_sector']}")
