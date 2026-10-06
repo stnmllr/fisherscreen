@@ -42,10 +42,10 @@ def test_high_debt_to_equity_alone_no_longer_red_flags_resilience():
 
 
 def test_growth_capped_by_consistency():
-    # P92 growth -> anchor 5, but ratio 0.25 -> cap 3
+    # P92 median growth -> anchor 5, but ratio 0.25 -> cap 3
     r = _scored(
-        input_percentiles={"revenue_growth_yoy": 92.0},
-        revenue_growth_yoy=0.6,
+        input_percentiles={"revenue_growth_median": 92.0},
+        revenue_growth_median=0.3,
         growth_consistency=0.25,
     )
     assert r.gemini_dimensions["growth"] == 3
@@ -53,8 +53,8 @@ def test_growth_capped_by_consistency():
 
 def test_unassessable_consistency_caps_growth_at_4_and_flags_low():
     r = _scored(
-        input_percentiles={"revenue_growth_yoy": 99.0},
-        revenue_growth_yoy=0.6,
+        input_percentiles={"revenue_growth_median": 99.0},
+        revenue_growth_median=0.3,
         growth_consistency=None,
     )
     assert r.gemini_dimensions["growth"] == 4
@@ -144,6 +144,7 @@ def test_growth_data_gap_when_no_percentile():
         growth_consistency=1.0,
     )
     assert r.gemini_dimensions["growth"] == 3
+    assert "revenue_growth_median" in r.gemini_data_gaps
     assert "revenue_growth_yoy" in r.gemini_data_gaps
 
 
@@ -593,3 +594,121 @@ def test_evidence_cites_op_margin_and_roic():
     assert (
         r.gemini_evidence["profitability"] == "op margin 18.0% (P82), ROIC 22.0% (P79)"
     )
+
+
+# --- growth: median annual revenue growth, quarterly YoY only as fallback ----
+#
+# A single quarter used to decide growth: MA/V sat at 3 on one soft quarter,
+# VAR.OL (+103 %) and AKER.OL (+361 %) reached 5 on one quarterly spike. The
+# median annual growth of the fiscal-year series drives the axis now.
+
+
+def _growth(
+    median_p: float | None = None,
+    yoy_p: float | None = None,
+    median: float | None = None,
+    yoy: float | None = None,
+    consistency: float | None = 1.0,
+):
+    pcts = {}
+    if median_p is not None:
+        pcts["revenue_growth_median"] = median_p
+    if yoy_p is not None:
+        pcts["revenue_growth_yoy"] = yoy_p
+    return _scored(
+        input_percentiles=pcts,
+        revenue_growth_median=median,
+        revenue_growth_yoy=yoy,
+        growth_consistency=consistency,
+    )
+
+
+def test_median_percentile_drives_growth_not_the_quarter():
+    # MA-like: strong multi-year median, one soft quarter -> scored on the median
+    r = _growth(median_p=92.0, yoy_p=20.0, median=0.12, yoy=0.01)
+    assert r.gemini_dimensions["growth"] == 5
+    assert "revenue_growth_median" not in r.gemini_data_gaps
+
+
+def test_quarterly_spike_does_not_lift_a_modest_median():
+    # VAR.OL-like: +103 % quarter, modest median -> the median decides
+    r = _growth(median_p=45.0, yoy_p=99.0, median=0.05, yoy=1.03)
+    assert r.gemini_dimensions["growth"] == 3
+
+
+def test_missing_median_falls_back_to_yoy_capped_at_3():
+    r = _growth(yoy_p=99.0, yoy=3.61, consistency=None)
+    assert r.gemini_dimensions["growth"] == 3
+    assert "revenue_growth_median" in r.gemini_data_gaps
+    assert "revenue_growth_yoy" not in r.gemini_data_gaps
+    assert r.data_confidence == "low"
+
+
+def test_missing_median_cap_never_raises_a_low_yoy():
+    r = _growth(yoy_p=10.0, yoy=-0.2, consistency=None)
+    assert r.gemini_dimensions["growth"] == 1
+
+
+def test_both_growth_inputs_missing_scores_neutral_3():
+    r = _growth(consistency=None)
+    assert r.gemini_dimensions["growth"] == 3
+    assert "revenue_growth_median" in r.gemini_data_gaps
+    assert "revenue_growth_yoy" in r.gemini_data_gaps
+
+
+def test_consistency_cap_still_applies_to_the_median():
+    # P95 median -> 5, ratio 0.5 -> cap 4
+    r = _growth(median_p=95.0, median=0.25, consistency=0.5)
+    assert r.gemini_dimensions["growth"] == 4
+
+
+def test_growth_evidence_with_median():
+    r = _growth(median_p=92.0, yoy_p=20.0, median=0.123, yoy=0.012, consistency=1.0)
+    assert r.gemini_evidence["growth"] == (
+        "rev growth median 12.3% (P92), consistency 1.00, latest quarter YoY 1.2%"
+    )
+
+
+def test_growth_evidence_with_median_and_missing_quarter():
+    r = _growth(median_p=60.0, median=0.05, consistency=0.67)
+    assert r.gemini_evidence["growth"] == (
+        "rev growth median 5.0% (P60), consistency 0.67, latest quarter YoY n/a"
+    )
+
+
+def test_growth_evidence_without_median_notes_the_cap_when_it_lowered():
+    r = _growth(yoy_p=99.0, yoy=1.03, consistency=None)
+    assert r.gemini_evidence["growth"] == (
+        "rev growth median n/a (<4 GJ), latest quarter YoY 103.0% (P99)"
+        " — capped at 3"
+    )
+
+
+def test_growth_evidence_without_median_no_cap_note_when_not_lowered():
+    r = _growth(yoy_p=50.0, yoy=0.04, consistency=None)
+    assert r.gemini_evidence["growth"] == (
+        "rev growth median n/a (<4 GJ), latest quarter YoY 4.0% (P50)"
+    )
+
+
+def test_growth_evidence_without_any_growth_input():
+    r = _growth(consistency=None)
+    assert r.gemini_evidence["growth"] == (
+        "rev growth median n/a (<4 GJ), latest quarter YoY n/a"
+    )
+
+
+def test_run_deterministic_scoring_sets_median_from_series():
+    from app.screener.deterministic_scorer import run_deterministic_scoring
+
+    long_ = ScreenerRecord(ticker="LONG", revenue_growth_yoy=0.5)
+    short = ScreenerRecord(ticker="SHORT", revenue_growth_yoy=0.5)
+    cache = _FakeRevenueCache(
+        {"LONG": [8.94, 1.86, 2.23, 2.65], "SHORT": [1.0, 2.0, 3.0]}
+    )
+    run_deterministic_scoring([long_, short], cache, _FakeTracker())
+    assert long_.revenue_growth_median == pytest.approx(2.65 / 2.23 - 1)
+    assert "revenue_growth_median" in long_.input_percentiles
+    assert short.revenue_growth_median is None
+    assert "revenue_growth_median" not in short.input_percentiles
+    assert short.gemini_dimensions["growth"] <= 3

@@ -123,7 +123,8 @@ def test_build_revenue_series_cache_wires_components():
     ):
         mock_settings.gcp_project_id = "test-project"
         mock_settings.revenue_series_collection = "dev_revenue_series"
-        mock_settings.revenue_series_ttl_days = 400
+        mock_settings.revenue_series_ttl_days = 120
+        mock_settings.revenue_series_ttl_jitter_days = 30
 
         result = compose_module.build_revenue_series_cache()
 
@@ -133,7 +134,8 @@ def test_build_revenue_series_cache_wires_components():
             yfinance=mock_yf_cls.return_value,
             firestore=mock_fs_cls.return_value,
             collection="dev_revenue_series",
-            ttl_days=400,
+            ttl_days=120,
+            ttl_jitter_days=30,
         )
         assert result == mock_cached_cls.return_value
 
