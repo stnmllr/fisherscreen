@@ -28,7 +28,8 @@
 ## Top of mind — 2026-10-06
 
 **resilience misst Verschuldung jetzt als Nettoschulden/EBITDA statt Debt/Equity**
-(Branch `bugfix/resilience-net-debt`, PR offen, nicht gemergt). Auslöser: Referenzcheck
+(**gemergt 2026-10-06**, PR #71, `main` `9d8c357`; Deploy-Workflow grün, Cloud-Run-Revision
+nicht separat geprüft; **wirkt erst ab dem Lauf 2026-11-01**). Auslöser: Referenzcheck
 2026-10 — nur 3 von 74 Referenz-Titeln sind Crosshits, 47 scheitern u. a. an resilience,
 MA und MTD standen bei 0. Ursache: Rückkäufe drücken das Buchkapital gegen null oder
 darunter, D/E maß Kapitalstruktur-Kosmetik. Schlimmer noch in die Gegenrichtung: bei
@@ -75,7 +76,9 @@ einer Shell, die leere Werte kennt (lief diesmal über Git Bash).
 
 ### Nächste Schritte (Reihenfolge)
 
-1. PR `bugfix/resilience-net-debt` reviewen/mergen (Stephan); Wirkung erst ab Lauf 2026-11-01.
+1. ~~PR `bugfix/resilience-net-debt` reviewen/mergen~~ — gemergt 2026-10-06 (#71, `9d8c357`).
+   **Nach dem Lauf 2026-11-01:** `reference_check.py` laufen lassen und gegen die Simulation
+   halten (erwartet ~35 Crosshits, 8/74 Referenz-Treffer bei gleicher Datenlage).
 2. **ROIC statt ROE** in profitability — eigener PR. Vorab gemessen: ROIC aus `.info`
    (EBIT ÷ (Schulden + Buchkapital − Cash)) deckt US 98 % / EU 97 % ab und beseitigt
    31 profitability-Red-Flags, die nur aus negativem Eigenkapital kommen; Vorschau +8 Crosshits.
