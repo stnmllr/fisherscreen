@@ -8,7 +8,14 @@ absolute figure AND its percentile (or band).
 Resilience = gross-margin percentile averaged with a FIXED ABSOLUTE leverage band on
 net debt / EBITDA. Debt/equity was dropped: buybacks shrink book equity to near zero
 or below, so D/E measured cosmetics (MA scored 0, TDG at 6x net debt/EBITDA scored 5).
-Net debt / EBITDA does not depend on book equity."""
+Net debt / EBITDA does not depend on book equity.
+
+Profitability = operating-margin percentile averaged with the ROIC percentile
+(app.screener.roic). ROE was dropped for the same reason as D/E: buybacks shrink
+book equity to ~0 or below. 31 profitability red flags came from negative equity
+alone, and FTNT's ROE of 117 % was cosmetic. A missing ROIC caps the axis at
+neutral -- except invested capital <= 0 outside Financial Services, which means a
+near-zero capital need (FTNT, BKNG); there the axis runs on operating margin alone."""
 
 from __future__ import annotations
 
@@ -18,6 +25,13 @@ from typing import TYPE_CHECKING
 
 from app.screener.growth_consistency import consistency_cap
 from app.screener.percentiles import percentile_to_score
+from app.screener.roic import (
+    INVESTED_CAPITAL_NONPOSITIVE,
+    NO_DEBT_CASH,
+    NO_EBIT,
+    NO_EQUITY,
+    annotate_roic,
+)
 
 if TYPE_CHECKING:
     from app.models.screener_record import ScreenerRecord
@@ -54,6 +68,21 @@ RED_FLAG_NET_DEBT_NONPOSITIVE_EBITDA = "net_debt_with_nonpositive_ebitda"
 # neutral (IBKR: a broker without EBITDA and gross margin P95 would otherwise score
 # 5 on margin alone; symmetrically, net cash alone must not score 5).
 _MISSING_INPUT_CAP = 3
+
+# --- profitability: operating margin + ROIC -----------------------------------
+_PROFITABILITY_INPUTS = ("operating_margin", "return_on_invested_capital")
+ROIC_GAP = "roic"
+# Invested capital <= 0 with EBIT > 0 normally means a near-zero capital need
+# (FTNT, BKNG): the axis runs on operating margin alone. In these sectors it is
+# client money on the balance sheet (IBKR, XTB.WA), so the missing-input cap
+# applies. Fixed, not configurable, like the structural leverage sectors.
+ROIC_IC_NONPOSITIVE_CAPPED_SECTORS: frozenset[str] = frozenset({"Financial Services"})
+_ROIC_MISSING_TEXT = {
+    NO_EBIT: "no EBIT",
+    NO_EQUITY: "no equity",
+    NO_DEBT_CASH: "no debt/cash data",
+    INVESTED_CAPITAL_NONPOSITIVE: "invested capital <= 0",
+}
 
 
 @dataclass(frozen=True)
@@ -193,6 +222,49 @@ def _evidence(
     return ", ".join(parts)
 
 
+def _roic_cap_applies(record: "ScreenerRecord") -> bool:
+    """A missing ROIC caps profitability at neutral, except invested capital <= 0
+    outside the client-money sectors (see ROIC_IC_NONPOSITIVE_CAPPED_SECTORS)."""
+    if record.roic_missing_reason != INVESTED_CAPITAL_NONPOSITIVE:
+        return True
+    return record.gics_sector in ROIC_IC_NONPOSITIVE_CAPPED_SECTORS
+
+
+def _roic_text(record: "ScreenerRecord", pcts: dict[str, float]) -> str:
+    if record.return_on_invested_capital is not None:
+        return _evidence(record, pcts, [("return_on_invested_capital", "ROIC")])
+    reason = _ROIC_MISSING_TEXT.get(record.roic_missing_reason or "")
+    return f"ROIC n/a ({reason})" if reason else "ROIC n/a"
+
+
+def _score_profitability(
+    record: "ScreenerRecord",
+    pcts: dict[str, float],
+    data_gaps: list[str],
+) -> tuple[int, str, bool]:
+    """(score, evidence, partial). Red flag on an absolute loss: operating margin
+    or ROIC below 0. A missing ROIC is a data gap and, unless exempt, caps the
+    axis at neutral -- the cap only lowers, never raises."""
+    score = _mean_axis_score(pcts, _PROFITABILITY_INPUTS)
+    if score is None:
+        score = _NEUTRAL_AXIS
+        data_gaps.append("operating_margin/return_on_invested_capital")
+    roic = record.return_on_invested_capital
+    if (record.operating_margin is not None and record.operating_margin < 0) or (
+        roic is not None and roic < 0
+    ):
+        score = _RED_FLAG
+    evidence = _evidence(record, pcts, [("operating_margin", "op margin")])
+    evidence += f", {_roic_text(record, pcts)}"
+    if roic is None:
+        data_gaps.append(ROIC_GAP)
+        if _roic_cap_applies(record) and score > _MISSING_INPUT_CAP:
+            score = _MISSING_INPUT_CAP
+            evidence += f" — capped at {_MISSING_INPUT_CAP}"
+    partial = sum(1 for f in _PROFITABILITY_INPUTS if f in pcts) == 1
+    return score, evidence, partial
+
+
 def _score_resilience(
     record: "ScreenerRecord",
     pcts: dict[str, float],
@@ -235,21 +307,11 @@ def score_record(record: "ScreenerRecord") -> None:
         f", consistency {cons:.2f}" if cons is not None else ", consistency n/a (<4 GJ)"
     )
 
-    # profitability — sector/global percentile; red-flag on absolute losses
-    prof = _mean_axis_score(pcts, ("operating_margin", "return_on_equity"))
-    if prof is None:
-        prof = _NEUTRAL_AXIS
-        data_gaps.append("operating_margin/return_on_equity")
-    if (record.operating_margin is not None and record.operating_margin < 0) or (
-        record.return_on_equity is not None and record.return_on_equity < 0
-    ):
-        prof = _RED_FLAG
-    dims["profitability"] = prof
-    evidence["profitability"] = _evidence(
-        record,
-        pcts,
-        [("operating_margin", "op margin"), ("return_on_equity", "ROE")],
+    # profitability — op margin + ROIC percentiles; red-flag on absolute losses
+    prof, evidence["profitability"], prof_partial = _score_profitability(
+        record, pcts, data_gaps
     )
+    dims["profitability"] = prof
 
     # resilience — gross-margin percentile + absolute net debt/EBITDA band
     resil, evidence["resilience"], resil_partial = _score_resilience(
@@ -277,7 +339,7 @@ def score_record(record: "ScreenerRecord") -> None:
     )
 
     partial = []
-    if sum(1 for f in ("operating_margin", "return_on_equity") if f in pcts) == 1:
+    if prof_partial:
         partial.append("profitability")
     if resil_partial:
         partial.append("resilience")
@@ -313,8 +375,9 @@ def annotate_steadiness(records, annual_series, run_tracker=None) -> None:
 
 def run_deterministic_scoring(records, revenue_cache, run_tracker, annual_series=None):
     """Tool-A scoring entry point (replaces run_gemini_scoring). For each record:
-    fetch its multi-year revenue series (cached), compute growth_consistency, then
-    annotate percentiles across the whole cohort, then score each deterministically.
+    fetch its multi-year revenue series (cached), compute growth_consistency and
+    ROIC, then annotate percentiles across the whole cohort (they rank the ROIC),
+    then score each deterministically.
     Records zero tokens per ticker (LLM-free) so cost tracking stays accurate.
 
     `annual_series` ist optional: fehlt es, bleibt die Stetigkeits-Achse
@@ -325,6 +388,7 @@ def run_deterministic_scoring(records, revenue_cache, run_tracker, annual_series
     for record in records:
         revenues = revenue_cache.get_revenue_series(record.ticker)
         record.growth_consistency = consistency_ratio(revenues)
+    annotate_roic(records)
     annotate_percentiles(records)
     if annual_series is not None:
         annotate_steadiness(records, annual_series, run_tracker)

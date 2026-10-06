@@ -5,6 +5,10 @@ are sector-relative iff the record's sector has >= MIN_SECTOR_N members, else th
 back to the global pool (score_basis records which). None values are excluded from
 distributions.
 
+Profitability ranks operating_margin and return_on_invested_capital. ROIC is not a
+yfinance field: app.screener.roic computes it before this module runs. It replaced
+return_on_equity, which measured buyback cosmetics (book equity ~0 or negative).
+
 Resilience has a single percentile input, gross_margin. Its leverage half is net
 debt / EBITDA on FIXED ABSOLUTE bands in the scorer, not a percentile: debt/equity
 used to sit here and measured buyback cosmetics (tiny or negative book equity)."""
@@ -22,11 +26,11 @@ MIN_SECTOR_N = 30
 _GLOBAL_INPUT = "revenue_growth_yoy"
 _SECTOR_RELATIVE_INPUTS = (
     "operating_margin",
-    "return_on_equity",
+    "return_on_invested_capital",
     "gross_margin",
 )
 _AXIS_INPUTS = {
-    "profitability": ("operating_margin", "return_on_equity"),
+    "profitability": ("operating_margin", "return_on_invested_capital"),
     "resilience": ("gross_margin",),
 }
 

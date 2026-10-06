@@ -12,9 +12,12 @@ def _scored(**kw):
 
 def test_top_decile_profitability_scores_5():
     r = _scored(
-        input_percentiles={"operating_margin": 92.0, "return_on_equity": 88.0},
+        input_percentiles={
+            "operating_margin": 92.0,
+            "return_on_invested_capital": 88.0,
+        },
         operating_margin=0.4,
-        return_on_equity=0.3,
+        return_on_invested_capital=0.3,
     )
     assert r.gemini_dimensions["profitability"] == 5
 
@@ -61,7 +64,7 @@ def test_unassessable_consistency_caps_growth_at_4_and_flags_low():
 def test_missing_axis_inputs_score_3_and_listed_as_gap():
     r = _scored(input_percentiles={}, growth_consistency=1.0)
     assert r.gemini_dimensions["profitability"] == 3
-    assert "operating_margin/return_on_equity" in r.gemini_data_gaps
+    assert "operating_margin/return_on_invested_capital" in r.gemini_data_gaps
 
 
 def test_sentinels_and_weakest_dimension():
@@ -84,9 +87,12 @@ def test_sentinels_and_weakest_dimension():
 
 def test_evidence_cites_absolute_and_percentile():
     r = _scored(
-        input_percentiles={"operating_margin": 82.0, "return_on_equity": 79.0},
+        input_percentiles={
+            "operating_margin": 82.0,
+            "return_on_invested_capital": 79.0,
+        },
         operating_margin=0.18,
-        return_on_equity=0.22,
+        return_on_invested_capital=0.22,
         growth_consistency=1.0,
     )
     assert "18.0%" in r.gemini_evidence["profitability"]
@@ -142,7 +148,7 @@ def test_growth_data_gap_when_no_percentile():
 
 
 def test_partial_evidence_axes_flagged():
-    # profitability has only operating_margin percentile (ROE absent) -> partial;
+    # profitability has only operating_margin percentile (ROIC absent) -> partial;
     # resilience has both gross_margin + a leverage band -> not partial
     r = _scored(
         input_percentiles={"operating_margin": 80.0, "gross_margin": 60.0},
@@ -160,11 +166,11 @@ def test_no_partial_when_both_inputs_present():
     r = _scored(
         input_percentiles={
             "operating_margin": 80.0,
-            "return_on_equity": 75.0,
+            "return_on_invested_capital": 75.0,
             "gross_margin": 60.0,
         },
         operating_margin=0.2,
-        return_on_equity=0.2,
+        return_on_invested_capital=0.2,
         gross_margin=0.5,
         total_debt=1.0e9,
         total_cash=0.0,
@@ -182,19 +188,40 @@ def test_run_deterministic_scoring_end_to_end():
             ticker=f"I{i}",
             gics_sector="Industrials",
             operating_margin=0.1 + i * 0.001,
-            return_on_equity=0.1,
+            total_revenue=1000.0,
             gross_margin=0.3,
             debt_to_equity=40.0,
+            total_debt=100.0 + i,
+            total_cash=50.0,
             revenue_growth_yoy=0.05 + i * 0.001,
         )
         for i in range(30)
     ]
+    # a stale value must be recomputed, never trusted
+    recs[0].return_on_invested_capital = 99.0
     cache = _FakeRevenueCache({r.ticker: [100.0, 110.0, 120.0, 130.0] for r in recs})
     tracker = _FakeTracker()
     out = run_deterministic_scoring(recs, cache, tracker)
     assert all(r.gemini_dimensions is not None for r in out)
     assert all(r.growth_consistency == 1.0 for r in out)
     assert tracker.calls == [(0, 0)] * 30  # LLM-free: zero tokens per ticker
+    # ROIC is computed before the percentiles, so it is ranked
+    assert out[0].return_on_invested_capital == pytest.approx(100.0 / 300.0)
+    assert out[0].roic_missing_reason is None
+    assert all("return_on_invested_capital" in r.input_percentiles for r in out)
+
+
+def test_run_deterministic_scoring_records_missing_roic_reason():
+    from app.screener.deterministic_scorer import run_deterministic_scoring
+
+    rec = ScreenerRecord(ticker="NOREV", operating_margin=0.2, total_debt=10.0)
+    run_deterministic_scoring(
+        [rec], _FakeRevenueCache({"NOREV": [1.0, 2.0, 3.0, 4.0]}), _FakeTracker()
+    )
+    assert rec.return_on_invested_capital is None
+    assert rec.roic_missing_reason == "no_ebit"
+    assert "return_on_invested_capital" not in rec.input_percentiles
+    assert "roic" in rec.gemini_data_gaps
 
 
 # --- resilience: net debt / EBITDA on fixed absolute bands -------------------
@@ -410,3 +437,159 @@ def test_red_flag_is_cleared_on_rescore():
     r.total_debt = 0.5 * _EBITDA
     score_record(r)
     assert r.resilience_red_flag is None
+
+
+# --- profitability: operating margin + ROIC ------------------------------------
+#
+# ROE measured buyback cosmetics: book equity shrinks to ~0 or below (FTNT ROE
+# 117 %, 31 red flags from negative equity alone). ROIC replaces it.
+
+
+def _prof(
+    op_p: float | None = 95.0,
+    roic_p: float | None = 95.0,
+    *,
+    roic: float | None = 0.3,
+    reason: str | None = None,
+    sector: str | None = "Technology",
+    op: float = 0.3,
+):
+    pcts = {}
+    if op_p is not None:
+        pcts["operating_margin"] = op_p
+    if roic_p is not None:
+        pcts["return_on_invested_capital"] = roic_p
+    return _scored(
+        input_percentiles=pcts,
+        operating_margin=op,
+        return_on_invested_capital=roic,
+        roic_missing_reason=reason,
+        gics_sector=sector,
+        growth_consistency=1.0,
+    )
+
+
+def test_roe_no_longer_participates_in_profitability():
+    r = _scored(
+        input_percentiles={"operating_margin": 95.0, "return_on_equity": 5.0},
+        operating_margin=0.3,
+        return_on_equity=-2.0,  # negative book equity: cosmetic, not a loss
+        return_on_invested_capital=0.4,
+        growth_consistency=1.0,
+    )
+    # ROIC has no percentile here -> op margin alone; ROE is ignored entirely
+    assert r.gemini_dimensions["profitability"] == 5
+    assert "ROE" not in r.gemini_evidence["profitability"]
+
+
+def test_profitability_averages_op_margin_and_roic_percentiles():
+    # mean(P95, P45) = 70 -> 4
+    r = _prof(95.0, 45.0)
+    assert r.gemini_dimensions["profitability"] == 4
+    assert "roic" not in r.gemini_data_gaps
+    assert "profitability" not in r.partial_evidence_axes
+
+
+def test_negative_roic_red_flags_to_zero():
+    r = _prof(95.0, 2.0, roic=-0.05)
+    assert r.gemini_dimensions["profitability"] == 0
+
+
+def test_negative_equity_with_positive_ebit_is_scored_not_flagged():
+    from app.screener.roic import annotate_roic
+
+    rec = ScreenerRecord(
+        ticker="NEGEQ",
+        operating_margin=0.1,
+        total_revenue=100.0,
+        total_debt=20.0,
+        debt_to_equity=-200.0,  # equity -10
+        total_cash=5.0,  # IC 5
+        growth_consistency=1.0,
+    )
+    annotate_roic([rec])
+    rec.input_percentiles = {
+        "operating_margin": 90.0,
+        "return_on_invested_capital": 90.0,
+    }
+    score_record(rec)
+    assert rec.return_on_invested_capital == pytest.approx(2.0)
+    assert rec.gemini_dimensions["profitability"] == 5
+    assert "ROIC 200.0% (P90)" in rec.gemini_evidence["profitability"]
+
+
+def test_ic_nonpositive_outside_financials_runs_on_op_margin_alone():
+    # FTNT/BKNG: EBIT > 0 with invested capital <= 0 = near-zero capital need
+    r = _prof(95.0, None, roic=None, reason="invested_capital_nonpositive")
+    assert r.gemini_dimensions["profitability"] == 5
+    ev = r.gemini_evidence["profitability"]
+    assert "ROIC n/a (invested capital <= 0)" in ev
+    assert "capped" not in ev
+    # still a data gap, mirroring the simulation
+    assert "roic" in r.gemini_data_gaps
+    assert r.data_confidence == "low"
+    assert r.partial_evidence_axes == ["profitability"]
+
+
+def test_ic_nonpositive_in_financial_services_is_capped():
+    # IBKR, XTB.WA: invested capital <= 0 is client money, not capital-light
+    r = _prof(
+        95.0,
+        None,
+        roic=None,
+        reason="invested_capital_nonpositive",
+        sector="Financial Services",
+    )
+    assert r.gemini_dimensions["profitability"] == 3
+    assert r.gemini_evidence["profitability"].endswith(" — capped at 3")
+
+
+def test_financial_services_sector_set_is_fixed():
+    from app.screener.deterministic_scorer import ROIC_IC_NONPOSITIVE_CAPPED_SECTORS
+
+    assert ROIC_IC_NONPOSITIVE_CAPPED_SECTORS == frozenset({"Financial Services"})
+
+
+@pytest.mark.parametrize(
+    "reason,text",
+    [
+        ("no_ebit", "ROIC n/a (no EBIT)"),
+        ("no_equity", "ROIC n/a (no equity)"),
+        ("no_debt_cash", "ROIC n/a (no debt/cash data)"),
+        (None, "ROIC n/a"),
+    ],
+)
+def test_other_missing_reasons_cap_at_3(reason, text):
+    r = _prof(95.0, None, roic=None, reason=reason)
+    assert r.gemini_dimensions["profitability"] == 3
+    ev = r.gemini_evidence["profitability"]
+    assert ev == f"op margin 30.0% (P95), {text} — capped at 3"
+    assert "roic" in r.gemini_data_gaps
+    assert r.data_confidence == "low"
+
+
+def test_missing_roic_cap_never_raises_a_lower_score():
+    # op margin P20 -> 2; the cap only lowers
+    r = _prof(20.0, None, roic=None, reason="no_equity")
+    assert r.gemini_dimensions["profitability"] == 2
+    assert "capped" not in r.gemini_evidence["profitability"]
+
+
+def test_missing_roic_cap_does_not_lift_a_red_flag():
+    r = _prof(95.0, None, roic=None, reason="no_equity", op=-0.1)
+    assert r.gemini_dimensions["profitability"] == 0
+    assert "capped" not in r.gemini_evidence["profitability"]
+
+
+def test_missing_roic_is_gap_even_without_percentiles():
+    r = _prof(None, None, roic=None, reason="no_ebit")
+    assert r.gemini_dimensions["profitability"] == 3
+    assert "operating_margin/return_on_invested_capital" in r.gemini_data_gaps
+    assert "roic" in r.gemini_data_gaps
+
+
+def test_evidence_cites_op_margin_and_roic():
+    r = _prof(82.0, 79.0, roic=0.22, op=0.18)
+    assert (
+        r.gemini_evidence["profitability"] == "op margin 18.0% (P82), ROIC 22.0% (P79)"
+    )

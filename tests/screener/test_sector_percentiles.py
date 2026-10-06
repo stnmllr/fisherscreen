@@ -2,11 +2,12 @@ from app.models.screener_record import ScreenerRecord
 from app.screener.sector_percentiles import annotate_percentiles, MIN_SECTOR_N
 
 
-def _rec(ticker, sector, op=None, roe=None, gm=None, de=None, rg=None):
+def _rec(ticker, sector, op=None, roic=None, gm=None, de=None, rg=None, roe=None):
     return ScreenerRecord(
         ticker=ticker,
         gics_sector=sector,
         operating_margin=op,
+        return_on_invested_capital=roic,
         return_on_equity=roe,
         gross_margin=gm,
         debt_to_equity=de,
@@ -64,3 +65,40 @@ def test_growth_is_global_across_sectors():
         hi.input_percentiles["revenue_growth_yoy"]
         > lo.input_percentiles["revenue_growth_yoy"]
     )
+
+
+def test_profitability_ranks_roic_not_roe():
+    """ROE measured buyback cosmetics (book equity ~0 or negative); the
+    profitability axis ranks ROIC sector-relatively instead."""
+    recs = [
+        _rec(f"I{i}", "Industrials", op=0.10, roic=0.05 + i * 0.01, roe=0.2)
+        for i in range(MIN_SECTOR_N)
+    ]
+    annotate_percentiles(recs)
+    for r in recs:
+        assert "return_on_equity" not in r.input_percentiles
+        assert "return_on_invested_capital" in r.input_percentiles
+    assert (
+        recs[-1].input_percentiles["return_on_invested_capital"]
+        > recs[0].input_percentiles["return_on_invested_capital"]
+    )
+
+
+def test_roic_is_sector_relative():
+    ind = [
+        _rec(f"I{i}", "Industrials", roic=0.05 + i * 0.001) for i in range(MIN_SECTOR_N)
+    ]
+    tech = [
+        _rec(f"T{i}", "Technology", roic=0.50 + i * 0.001) for i in range(MIN_SECTOR_N)
+    ]
+    annotate_percentiles(ind + tech)
+    # top of each sector ranks top, although Industrials' best < Technology's worst
+    assert ind[-1].input_percentiles["return_on_invested_capital"] > 90
+    assert tech[0].input_percentiles["return_on_invested_capital"] < 10
+
+
+def test_missing_roic_not_annotated():
+    recs = [_rec(f"I{i}", "Industrials", roic=0.1) for i in range(MIN_SECTOR_N)]
+    recs.append(_rec("NA", "Industrials", roic=None))
+    annotate_percentiles(recs)
+    assert "return_on_invested_capital" not in recs[-1].input_percentiles
