@@ -1,5 +1,9 @@
 r"""Diagnose: ROIC statt ROE in der profitability-Achse -- Schritt 1, nur Analyse.
 
+HISTORISCH: lief am 2026-10-06 auf Commit 5e63b53, vor dem ROIC-Scorer. Auf
+spaeterem Code bricht es ab (die Varianten in simulate_month_scoring sind
+gesperrt); zum Nachvollziehen 5e63b53 auschecken.
+
 Bewertet den Monat zweimal auf denselben Caches (ROE = Produktivcode, ROIC =
 Variante aus simulate_month_scoring) und beantwortet drei offene Fragen:
 

@@ -27,6 +27,12 @@ die Universum-Ticker -- das ist der einzige Netzzugriff und er ist opt-in.
 Crosshits: `is_crosshit` mit Schwelle 4.0 und min_dimensions 3 -- bewusst
 EXPLIZIT, nicht aus settings: das lokale .env traegt eine veraltete 2.
 
+HISTORISCH (Analyse 2026-10-06, Commit 5e63b53): Seit ROIC im Scorer steckt
+(app/screener/roic.py), bildet der Default den Produktivcode ab -- trotz des
+Namens `roe` also schon ROIC. Die `roic*`-Varianten schrieben in das ROE-Feld,
+das der Scorer nicht mehr liest; sie sind deshalb gesperrt. Zum Nachvollziehen
+der Analyse Commit 5e63b53 auschecken. Ihre damalige Beschreibung:
+
 `--profitability roic|roic-de|roic-de-icfree[-fin]` (Default `roe` = Produktivcode bitgleich): ersetzt den
 ROE-Eingang der profitability-Achse durch ROIC = EBIT / (Schulden + Eigenkapital
 - Cash), EBIT = operatingMargins * totalRevenue, Eigenkapital = bookValue *
@@ -369,6 +375,11 @@ def build_and_score(
 ) -> tuple[list[ScreenerRecord], list[str], ReadOnlyRevenueSeries, NoOpTracker]:
     """Records from the cached .info, scored like the monthly run (+ ROIC variant).
     Call once per variant: scoring mutates the records."""
+    if profitability != "roe":
+        sys.exit(
+            "ROIC-Varianten sind seit dem ROIC-Scorer gesperrt (der Default rechnet "
+            "schon ROIC); Analysestand: git checkout 5e63b53"
+        )
     records: list[ScreenerRecord] = []
     infos: dict[str, dict[str, Any]] = {}
     missing_info: list[str] = []
