@@ -106,6 +106,25 @@ def test_from_yfinance_info_populates_financial_ratios():
     assert record.debt_to_equity == 45.0
 
 
+def test_from_yfinance_info_maps_leverage_inputs():
+    info = {"totalDebt": 5.0e9, "totalCash": 2.0e9, "ebitda": 3.0e9}
+    record = ScreenerRecord.from_yfinance_info("TEST", info)
+    assert record.total_debt == 5.0e9
+    assert record.total_cash == 2.0e9
+    assert record.ebitda == 3.0e9
+
+
+def test_leverage_inputs_default_to_none_when_missing():
+    record = ScreenerRecord.from_yfinance_info("TEST", {})
+    assert record.total_debt is None
+    assert record.total_cash is None
+    assert record.ebitda is None
+
+
+def test_resilience_red_flag_defaults_to_none():
+    assert ScreenerRecord(ticker="X").resilience_red_flag is None
+
+
 def test_financial_ratios_default_to_none_when_missing():
     record = ScreenerRecord.from_yfinance_info("TEST", {})
     assert record.gross_margin is None
