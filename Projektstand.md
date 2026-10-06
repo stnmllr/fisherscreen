@@ -28,9 +28,9 @@
 
 ## Top of mind — 2026-10-06 (ROIC)
 
-**profitability misst Kapitalrendite jetzt als ROIC statt ROE** (Branch
-`feature/profitability-roic`, **PR offen, nicht gemergt**; wirkt erst ab dem ersten Lauf
-nach Merge + Deploy). Auslöser: Rückkäufe drücken das Buchkapital gegen null oder darunter,
+**profitability misst Kapitalrendite jetzt als ROIC statt ROE** (**gemergt 2026-10-06**,
+PR #73, `main` `3a33670`; Deploy-Workflow grün, Cloud-Run-Revision nicht separat geprüft;
+**wirkt erst ab dem Lauf 2026-11-01**). Auslöser: Rückkäufe drücken das Buchkapital gegen null oder darunter,
 ROE maß Kosmetik — 31 profitability-Red-Flags kamen allein aus negativem Eigenkapital,
 FTNTs ROE von 117 % trug seine 5.
 
@@ -75,8 +75,10 @@ am yfinance-Sektor-Etikett.
 
 ### Nächste Schritte (Reihenfolge)
 
-1. PR `feature/profitability-roic` reviewen/mergen. Nach dem nächsten Monatslauf:
-   `reference_check.py` gegen die Simulation halten (~41 Crosshits, 8/74 bei gleicher Datenlage).
+1. ~~PR `feature/profitability-roic` reviewen/mergen~~ — gemergt 2026-10-06 (#73, `3a33670`).
+   **Nach dem Lauf 2026-11-01:** `reference_check.py` gegen die Simulation halten
+   (~41 Crosshits, 8/74 bei gleicher Datenlage). Die Oktober-Erwartung des resilience-Blocks
+   unten (~35) ist damit überholt — beide Änderungen wirken im selben Lauf.
 2. Mehrjahreswachstum statt TTM-YoY — eigener PR (growth ist jetzt der häufigste
    Engpass: 49 der Referenztitel scheitern an growth; MA, V, MTD u. a.).
 3. Preisnehmer-Ausschluss vor dem Scoring — eigener PR.
