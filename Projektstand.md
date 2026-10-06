@@ -10,8 +10,9 @@
 
 ## Letztes Update: 2026-10-06
 
-> ⚠️ **Ehrlichkeits-Hinweis, siebenstufig.** Aktuell ist **nur** der Abschnitt
-> „Top of mind — 2026-10-06" direkt unterhalb. Der Block „Top of mind — 2026-10-02"
+> ⚠️ **Ehrlichkeits-Hinweis, achtstufig.** Aktuell sind die Abschnitte
+> „Top of mind — 2026-10-06 (ROIC)" und „Top of mind — 2026-10-06" direkt unterhalb;
+> im zweiten ist Schritt 2 (ROIC) durch den ersten erledigt. Der Block „Top of mind — 2026-10-02"
 > gilt weiter, bis auf Schritt 4 (ROIC jetzt als eigener nächster PR eingeplant). Die Blöcke „Top of mind — 2026-09-08",
 > „2026-09-07" und „2026-09-06" darunter gelten weiter. Der Block „Top of mind — 2026-09-04"
 > darunter gilt bis auf die dort korrigierten Punkte weiter; der Viewer-Block beschreibt
@@ -24,6 +25,62 @@
 >
 > Nichts unterhalb des ersten Abschnitts als aktuellen Stand lesen, ohne gegen `git log`
 > zu prüfen.
+
+## Top of mind — 2026-10-06 (ROIC)
+
+**profitability misst Kapitalrendite jetzt als ROIC statt ROE** (Branch
+`feature/profitability-roic`, **PR offen, nicht gemergt**; wirkt erst ab dem ersten Lauf
+nach Merge + Deploy). Auslöser: Rückkäufe drücken das Buchkapital gegen null oder darunter,
+ROE maß Kosmetik — 31 profitability-Red-Flags kamen allein aus negativem Eigenkapital,
+FTNTs ROE von 117 % trug seine 5.
+
+**Regel (im Code fest, `app/screener/roic.py` + `deterministic_scorer._score_profitability`):**
+- profitability = `percentile_to_score(mean(P op. Marge, P ROIC))`, sektor-relativ wie bisher.
+  ROIC = EBIT ÷ (Schulden + Eigenkapital − Cash), EBIT = `operatingMargins × totalRevenue`.
+- **Eigenkapital aus `totalDebt / debtToEquity`**, nicht `bookValue × sharesOutstanding`.
+  Gemessen: `bookValue` steht in der **Kurs**währung, Schulden/Cash in der Bilanzwährung
+  (EQNR.OL NOK vs. USD → ROIC 9,9 % statt 79 %; ebenso AKRBP, GMAB, NSIS, MOWI …), und
+  `sharesOutstanding` zählt nur eine Aktiengattung (GOOG 95 % statt 29 %). GBp-Titel sind
+  sauber (74/74). `bookValue × Aktien` nur als Ersatz ohne Schulden **und** bei gleicher
+  Kurs-/Bilanzwährung.
+- ROIC < 0 → Red-Flag 0 (wie operative Marge < 0). ROE spielt in Tool A keine Rolle mehr
+  (Feld bleibt für Tool B).
+- Fehlt ROIC → höchstens 3, Data-Gap `roic`. **Ausnahme:** investiertes Kapital ≤ 0 außerhalb
+  Financial Services → keine Deckelung, die Achse läuft nur auf der op. Marge (Kapitalbedarf
+  nahe null: FTNT, BKNG, VRSN, ADYEN, WISE). In Financial Services ist Kapital ≤ 0 Kundengeld
+  (IBKR, XTB.WA, BPT.L) → gedeckelt. Banken (JPM, GS) erreichen das Scoring gar nicht
+  (`FRAMEWORK_METRIK_NA` im Basis-Gate).
+
+**Lokal simuliert, $0** (Oktober-Caches; Basis auf `main` reproduziert 35 / 8 von 74):
+
+| Variante | Crosshits | Referenz | prof = 0 | Preisnehmer |
+|---|---|---|---|---|
+| `main` (ROE) | 35 | 8/74 | 50 | 22,9 % |
+| ROIC, Kapital ≤ 0 gedeckelt | 38 | 7/74 (ADYEN raus) | 19 | 18,4 % |
+| ROIC, Kapital ≤ 0 frei | 42 | 8/74 (+ BPT.L als Artefakt) | 19 | 16,7 % |
+| **ROIC, frei außer Financials (gebaut)** | **41** | **8/74** | **19** | **17,1 %** |
+
+Neu: ALK-B.CO, CR, EQT.ST, IPN.PA, KOG.OL, VEEV, WTS. Raus: RGLD (Royalty, niedriger ROIC).
+AAPL und KLAC fallen bei profitability 5 → 4, MCD/CAT/HD verlieren ihre ROE-Kosmetik,
+Versorger sinken (NEE 4 → 3). Produktivcode auf denselben Caches gegen die Simulation
+abgeglichen: dropouts.csv zeilengleich. Suite 1972 / 96,60 %, credential-los 1931 grün.
+
+**Werkzeuge:** `scripts/diagnose_roic.py` (Abdeckung, Währungs-Gegenprobe, Kapital ≤ 0).
+Die `roic*`-Varianten in `simulate_month_scoring.py` sind **historisch und gesperrt** — der
+Default rechnet jetzt selbst ROIC; Analysestand = Commit `5e63b53`.
+
+**Unschärfe, bewusst hingenommen:** ADYEN und WISE führen auch Kundengeld, laufen aber als
+„Technology" ungedeckelt (ihre 5 stützt sich allein auf die op. Marge). Die Ausnahme hängt
+am yfinance-Sektor-Etikett.
+
+### Nächste Schritte (Reihenfolge)
+
+1. PR `feature/profitability-roic` reviewen/mergen. Nach dem nächsten Monatslauf:
+   `reference_check.py` gegen die Simulation halten (~41 Crosshits, 8/74 bei gleicher Datenlage).
+2. Mehrjahreswachstum statt TTM-YoY — eigener PR (growth ist jetzt der häufigste
+   Engpass: 49 der Referenztitel scheitern an growth; MA, V, MTD u. a.).
+3. Preisnehmer-Ausschluss vor dem Scoring — eigener PR.
+4. Vorgemerkt: yfinance „Technology" mischt Software/Hardware (siehe Block unten, Punkt 5).
 
 ## Top of mind — 2026-10-06
 
