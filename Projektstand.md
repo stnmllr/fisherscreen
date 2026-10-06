@@ -10,9 +10,11 @@
 
 ## Letztes Update: 2026-10-06
 
-> ⚠️ **Ehrlichkeits-Hinweis, achtstufig.** Aktuell sind die Abschnitte
-> „Top of mind — 2026-10-06 (ROIC)" und „Top of mind — 2026-10-06" direkt unterhalb;
-> im zweiten ist Schritt 2 (ROIC) durch den ersten erledigt. Der Block „Top of mind — 2026-10-02"
+> ⚠️ **Ehrlichkeits-Hinweis, neunstufig.** Aktuell sind die Abschnitte
+> „Top of mind — 2026-10-06 (growth)", „… (ROIC)" und „Top of mind — 2026-10-06" direkt
+> unterhalb; die Erwartungswerte für den Lauf 2026-11-01 stehen im growth-Abschnitt (er
+> ersetzt die ~41 aus dem ROIC-Abschnitt), dessen Schritt 1 ersetzt Schritt 2 im ROIC-
+> Abschnitt. Im dritten ist Schritt 2 (ROIC) erledigt. Der Block „Top of mind — 2026-10-02"
 > gilt weiter, bis auf Schritt 4 (ROIC jetzt als eigener nächster PR eingeplant). Die Blöcke „Top of mind — 2026-09-08",
 > „2026-09-07" und „2026-09-06" darunter gelten weiter. Der Block „Top of mind — 2026-09-04"
 > darunter gilt bis auf die dort korrigierten Punkte weiter; der Viewer-Block beschreibt
@@ -25,6 +27,61 @@
 >
 > Nichts unterhalb des ersten Abschnitts als aktuellen Stand lesen, ohne gegen `git log`
 > zu prüfen.
+
+## Top of mind — 2026-10-06 (growth)
+
+**growth misst jetzt das Median-Jahreswachstum des Umsatzes statt eines Quartals**
+(Branch `feature/growth-multiyear`, **PR offen, nicht gemergt**; wirkt ab dem ersten Lauf
+nach Merge + Deploy). Auslöser: yfinance `revenueGrowth` ist **ein Quartal** gegen das
+Vorjahresquartal. Ein weiches Quartal setzte MA und V auf growth 3, Quartalsspitzen setzten
+VAR.OL (+103 %) und AKER.OL (+361 %) auf 5. 49 der 74 Referenztitel scheiterten an growth.
+
+**Regel (`growth_consistency.median_annual_growth`, `deterministic_scorer._score_growth`):**
+- growth = `percentile_to_score(P Median der Jahres-Umsatzraten)`, kohorten-global, aus der
+  Jahresreihe in `dev_revenue_series` (≥ 4 GJ). Der Stetigkeits-Deckel bleibt.
+- **Median, nicht End-zu-End-CAGR:** ein einziger Definitionsbruch zieht die CAGR —
+  ADYEN.AS (Brutto → Netto, 8,94 → 1,86 → 2,23 → 2,65 Mrd.): CAGR −33 %, Median +19 %.
+  Auch KOG.OL hat einen Bruch (vermutlich Abspaltung).
+- Keine Mehrjahreszahl (< 4 GJ, 11 Titel) → Quartals-Perzentil, **gedeckelt auf 3**.
+- Das Basis-Gate (Umsatz-Floor) liest weiter das Quartal — eigene Frage, unverändert.
+- **Cache-TTL der Umsatzreihen 400 → 120 Tage, ± 30 Tage Jitter aus dem Ticker-Hash.**
+  Sonst wäre das neueste Geschäftsjahr bis ~17 Monate alt. Der Jitter steckt im Hash, nicht
+  in einem gespeicherten Feld, damit auch der Juni-Bestand (alle `_cached_at` 2026-06-22)
+  gestreut abläuft.
+
+**Lokal simuliert, $0** (Oktober-Caches, Basis `main` mit ROIC = 41 / 8 von 74):
+
+| Variante | Crosshits | Referenz | Preisnehmer |
+|---|---|---|---|
+| `main`: Quartals-YoY | 41 | 8/74 | 17,1 % |
+| End-zu-End-CAGR | 48 | 12/74 | 12,5 % |
+| CAGR + Quartal gemittelt | 39 | 10/74 | 15,4 % |
+| Median + Quartal gemittelt | 44 | 11/74 | 13,6 % |
+| **Median, ohne Mehrjahreszahl Deckel 3 (gebaut)** | **50** | **14/74** | **8,0 %** |
+
+Referenz neu: MA, V, EW, CPRT, ADBE, RMS.PA, NOVO-B.CO; raus: ASM.AS (Median 9,3 % = P70).
+Raus fallen Quartalsspitzen (VAR.OL, AKER.OL, NTAP, ANTO.L) sowie SNDK und KRYS (< 4 GJ,
+Deckel 3). AAPL 4 → 2 (Median 2,0 %), MCO 4 → 3. Restschwäche: ZEAL.CO wird über eine
+einmalige Lizenzzahlung (0,06 → 9,2 Mrd. DKK) growth 5 und Crosshit; Gold-/Silberminen (HL,
+EDV.L) bleiben hoch — das löst erst der Preisnehmer-Ausschluss. **50 Crosshits bei auf ~25
+geeichten Bändern — von Stephan akzeptiert.** Produktivcode gegen die Simulation abgeglichen:
+jede Achse bei jedem Titel gleich. Suite 2001 / 96,69 %, credential-los 1960 grün.
+
+**Werkzeuge:** `scripts/diagnose_growth.py`; die `--growth`-Varianten in
+`simulate_month_scoring.py` sind historisch und gesperrt (Analysestand Commit `8831c13`).
+
+### Nächste Schritte (Reihenfolge)
+
+1. PR `feature/growth-multiyear` reviewen/mergen.
+2. **Vor dem Lauf 2026-11-01, nach dem Merge:** `uv run python -m scripts.backfill_revenue_series`
+   lokal laufen lassen (schreibt nach Firestore, $0). Mit dem neuen TTL wären am 01.11. rund
+   **70 %** der Reihen abgelaufen (132 Tage alt) und würden im Lauf live nachgeladen — gegen
+   die harte 1800-s-Deadline. Das Skript lädt nur die abgelaufenen nach. Am besten 2–3 Tage
+   vor dem Lauf.
+3. Nach dem Lauf 2026-11-01: `reference_check.py` gegen die Simulation halten (~50 Crosshits,
+   14/74 bei gleicher Datenlage — resilience, ROIC und growth wirken im selben Lauf).
+4. Preisnehmer-Ausschluss vor dem Scoring — eigener PR.
+5. Vorgemerkt: yfinance „Technology" mischt Software/Hardware.
 
 ## Top of mind — 2026-10-06 (ROIC)
 

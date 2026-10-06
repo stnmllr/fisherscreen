@@ -43,7 +43,10 @@ fehlender ROIC (auch investiertes Kapital <= 0) deckelt die Achse auf 3 --
 ausser bei `roic-de-icfree`: dort laeuft sie bei Kapital <= 0 nur auf der op. Marge;
 `roic-de-icfree-fin` deckelt Kapital <= 0 nur in Financial Services (Kundengeld).
 
-`--growth cagr|blend` (Default `yoy` = Produktivcode bitgleich), Analyse 2026-10-06:
+HISTORISCH (Commit 8831c13): seit dem Median-Scorer rechnet der Default `yoy` --
+trotz des Namens -- schon das Median-Jahreswachstum; die Varianten sind gesperrt.
+Damalige Beschreibung:
+`--growth cagr|blend[-median]` (Default `yoy` = Produktivcode bitgleich), Analyse 2026-10-06:
 ersetzt das Quartals-YoY-Perzentil der growth-Achse durch das globale Perzentil der
 Umsatz-CAGR aus der gecachten Jahresreihe (`cagr`, ohne CAGR <4 GJ steht YoY ein)
 bzw. mittelt beide (`blend`). Der Stetigkeits-Deckel bleibt. `--growth-missing cap3`
@@ -396,6 +399,11 @@ def build_and_score(
         sys.exit(
             "ROIC-Varianten sind seit dem ROIC-Scorer gesperrt (der Default rechnet "
             "schon ROIC); Analysestand: git checkout 5e63b53"
+        )
+    if growth != "yoy":
+        sys.exit(
+            "growth-Varianten sind seit dem Median-Scorer gesperrt (der Default rechnet "
+            "schon das Median-Jahreswachstum); Analysestand: git checkout 8831c13"
         )
     records: list[ScreenerRecord] = []
     infos: dict[str, dict[str, Any]] = {}

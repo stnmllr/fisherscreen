@@ -1,6 +1,9 @@
 r"""Diagnose: Mehrjahres-Umsatz-CAGR statt Quartals-YoY in der growth-Achse --
 Schritt 1, nur Analyse.
 
+HISTORISCH: lief 2026-10-06 auf Commit 8831c13, vor dem Median-Scorer; auf
+spaeterem Code bricht es ab (Varianten gesperrt) -- 8831c13 auschecken.
+
 Bewertet den Monat mit dem Produktivcode (yoy) und den Varianten aus
 simulate_month_scoring (`--growth cagr|blend`, `--growth-missing fallback|cap3`)
 auf denselben Caches und beantwortet:
