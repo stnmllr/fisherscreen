@@ -1,9 +1,10 @@
 {
   "_meta": {
-    "purpose": "Kennzeichnung, kein Ausschluss. Ein Preisnehmer verkauft zu einem Preis, den er nicht setzt; in einem Rohstoffboom faerbt das alle drei Tool-A-Achsen gleichzeitig gruen, ohne dass sich am Unternehmen etwas geaendert haette. Die Spalte macht das im Crosshits-Report sichtbar. Der Score bleibt unveraendert.",
+    "purpose": "Ausschluss aus den Crosshits (seit 2026-10). Ein Preisnehmer verkauft zu einem Preis, den er nicht setzt; in einem Rohstoffboom faerbt das alle drei Tool-A-Achsen gleichzeitig gruen, ohne dass sich am Unternehmen etwas geaendert haette. Ein Preisnehmer zaehlt deshalb nicht als Crosshit. Scores und Perzentile bleiben unveraendert -- der Titel bleibt in der Scoring-Kohorte, sonst schrumpfte Energy unter MIN_SECTOR_N und rund 90 andere Scores verschoeben sich. Der Abschnitt 'Am Preisnehmer-Ausschluss gescheitert' im Crosshits-Report haelt das Urteil sichtbar.",
     "note": "Die Liste ist bewusst grob. Sie soll die offensichtlichen Faelle fangen, nicht eine Branchentaxonomie nachbauen. Schluessel ist das yfinance-Feld `industry` (nicht `sector`) -- Yahoo liefert nur zwei Ebenen, die Bezeichnungen sind Yahoos eigene, nicht GICS.",
     "created": "2026-09-07",
     "ticker_overrides": "yfinance kennt keine Sub-Industrie 'Semiconductor Memory'. MU laeuft als 'Semiconductors' -- die Industrie kann nicht in die Liste, weil NVDA und viele andere sie teilen. SNDK laeuft als 'Computer Hardware'. Beide brauchen deshalb einen Ticker-Override.",
+    "midstream": "2026-10-07: 'Oil & Gas Midstream' aus `industries` entfernt. Pipelines und Speicher verdienen feste Durchleitungsgebuehren, keinen Rohstoffpreis (KMI, WMB, TRGP, DTM, AM, VPK.AS). Zwei Titel hingen nur an diesem Label und sind echte Preisnehmer: FRO.OL (Rohoeltanker) und VNOM (Mineral- und Foerderzinsrechte) -- beide jetzt als Ticker-Override gefuehrt.",
     "tpl": "TPL ist NICHT als Override gefuehrt: yfinance meldet 'Oil & Gas E&P', die Industrie-Regel greift bereits. Ein zusaetzlicher Override waere Redundanz, die aussieht, als taete sie Arbeit. Der Regressionstest pinnt das Ergebnis (TPL = ja) unabhaengig davon, ueber welchen der beiden Wege es zustande kommt."
   },
   "industries": [
@@ -16,13 +17,14 @@
     "Aluminum",
     "Oil & Gas E&P",
     "Oil & Gas Integrated",
-    "Oil & Gas Midstream",
     "Coal",
     "Agricultural Inputs",
     "Marine Shipping"
   ],
   "tickers": [
     "MU",
-    "SNDK"
+    "SNDK",
+    "FRO.OL",
+    "VNOM"
   ]
 }

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from app.screener.deterministic_scorer import (
@@ -9,11 +10,13 @@ from app.screener.deterministic_scorer import (
     leverage_ratio,
 )
 from app.screener.dimensions import (
+    clears_crosshit_bar,
     is_crosshit,
+    is_excluded_price_taker,
     qualifying_dimensions,
     steadiness_is_assessable,
 )
-from app.screener.price_takers import PriceTakerTable, is_price_taker, load_price_takers
+from app.screener.price_takers import PriceTakerTable, load_price_takers
 
 if TYPE_CHECKING:
     from app.models.run_record import RunRecord
@@ -75,17 +78,15 @@ def generate(
     run_month = run_record.run_id[:7]  # "YYYY-MM"
     out_path = output_dir / f"{run_month}-Crosshits.md"
 
-    # Loaded here, not at import: the loader is fail-loud on an absent table, and
-    # an import-time raise would take down anything that merely imports this
-    # module. Injectable so tests can pin the table instead of the committed one.
-    table = price_takers if price_takers is not None else load_price_takers()
-
     scored = [r for r in records if r.gemini_dimensions is not None]
     crosshits = _compute_crosshits(scored, score_threshold, min_dimensions, cap)
     steadiness_failed = _compute_steadiness_failures(
         scored, score_threshold, min_dimensions
     )
     leverage_failed = _compute_leverage_failures(
+        scored, score_threshold, min_dimensions
+    )
+    price_taker_failed = _compute_price_taker_exclusions(
         scored, score_threshold, min_dimensions
     )
 
@@ -95,9 +96,10 @@ def generate(
         score_threshold,
         min_dimensions,
         header,
-        table,
+        price_takers,
         steadiness_failed=steadiness_failed,
         leverage_failed=leverage_failed,
+        price_taker_failed=price_taker_failed,
     )
     out_path.write_text(body, encoding="utf-8")
 
@@ -153,11 +155,13 @@ def _compute_steadiness_failures(
 ) -> list[dict]:
     """Titles that clear the three yfinance axes but fail on a MEASURED steadiness
     below the threshold. Not crosshits; shown separately so the decision stays
-    visible instead of the titles silently disappearing."""
+    visible instead of the titles silently disappearing. Read against the merit
+    bar, not `is_crosshit`: a price taker that clears everything belongs in the
+    price-taker section, not here."""
     result = []
     for record in scored:
         qualifying = qualifying_dimensions(record, score_threshold)
-        if len(qualifying) >= min_dimensions and not is_crosshit(
+        if len(qualifying) >= min_dimensions and not clears_crosshit_bar(
             record, score_threshold, min_dimensions
         ):
             result.append(_entry(record, qualifying))
@@ -171,12 +175,14 @@ def _compute_leverage_failures(
 ) -> list[dict]:
     """Titles that are not crosshits ONLY because of the resilience leverage red
     flag: growth and profitability clear the threshold, steadiness clears it or
-    was not measured. Membership rules are untouched -- this is visibility."""
+    was not measured. Membership rules are untouched -- this is visibility. A
+    title that clears the merit bar regardless (possible below three dimensions)
+    is not kept out by the red flag; if it is a price taker, it is listed there."""
     result = []
     for record in scored:
         if not record.resilience_red_flag:
             continue
-        if is_crosshit(record, score_threshold, min_dimensions):
+        if clears_crosshit_bar(record, score_threshold, min_dimensions):
             continue
         dims = record.gemini_dimensions or {}
         if (
@@ -191,6 +197,29 @@ def _compute_leverage_failures(
             continue
         result.append(_entry(record, qualifying_dimensions(record, score_threshold)))
     return _ranked(result)
+
+
+def _compute_price_taker_exclusions(
+    scored: list[ScreenerRecord],
+    score_threshold: float,
+    min_dimensions: int,
+) -> list[dict]:
+    """Titles that would be crosshits if they were not price takers: every
+    merit and steadiness condition met, barred only by the rule in `is_crosshit`.
+    A price taker that also misses an axis fails on merit and is not listed."""
+    result = [
+        _entry(record, qualifying_dimensions(record, score_threshold))
+        for record in scored
+        if is_excluded_price_taker(record, score_threshold, min_dimensions)
+    ]
+    return _ranked(result)
+
+
+def _price_taker_cell(record: ScreenerRecord, table: PriceTakerTable) -> str:
+    """Which arm caught the title. The ticker arm wins, as in is_price_taker."""
+    if record.ticker in table.tickers:
+        return "Override"
+    return record.gics_industry or ""
 
 
 def _leverage_cell(record: ScreenerRecord) -> str:
@@ -211,8 +240,8 @@ def _build_body(
     *,
     steadiness_failed: list[dict] | None = None,
     leverage_failed: list[dict] | None = None,
+    price_taker_failed: list[dict] | None = None,
 ) -> str:
-    table = price_takers if price_takers is not None else load_price_takers()
     lines = [f"# Universum {run_month} — Crosshits", ""]
     if header:
         lines += [header.rstrip("\n"), ""]
@@ -226,7 +255,7 @@ def _build_body(
             "> in mindestens zwei Dimensionen, oder das Universum war nach Filtern zu klein.",
         ]
     else:
-        lines += _table(crosshits, table)
+        lines += _table(crosshits)
         assessed = sum(1 for e in crosshits if steadiness_is_assessable(e["record"]))
         lines += [
             "",
@@ -237,13 +266,14 @@ def _build_body(
             f"`∅` kein SEC-Registrant, `↧` Reihe kuerzer als sieben Jahre, "
             f"`⊘` kein Konzept getroffen. Bei sieben bis neun Jahren ist der "
             f"Hoechstwert 4.",
+        ]
+    if price_taker_failed:
+        lines += [
             "",
-            "> **Preisnehmer** = das Unternehmen verkauft zu einem Preis, den es nicht "
-            "setzt (Rohstoffe, Speicherchips). In einem Preiszyklus faerben sich alle "
-            "drei Achsen gleichzeitig gruen, ohne dass sich am Geschaeft etwas geaendert "
-            "haette. Die Spalte ist eine Kennzeichnung, kein Ausschluss: der Score ist "
-            "unveraendert, die Liste vollstaendig. Grundlage ist `data/price_takers.json` "
-            "(yfinance-`industry`, bewusst grob).",
+            f"> **Preisnehmer** zaehlen nicht als Crosshits. "
+            f"**{len(price_taker_failed)}** Titel haetten die Schwelle sonst "
+            f"erreicht; sie stehen im Abschnitt *Am Preisnehmer-Ausschluss "
+            f"gescheitert*.",
         ]
     if steadiness_failed:
         lines += [
@@ -256,7 +286,7 @@ def _build_body(
             f"damit die Entscheidung sichtbar bleibt.",
             "",
         ]
-        lines += _table(steadiness_failed, table)
+        lines += _table(steadiness_failed)
     if leverage_failed:
         lines += [
             "",
@@ -271,33 +301,61 @@ def _build_body(
             f"Versorger und Immobilien sind vom Red-Flag ausgenommen.",
             "",
         ]
-        lines += _table(leverage_failed, table, leverage=True)
+        lines += _table(
+            leverage_failed, extra=("Nettoverschuldung/EBITDA", _leverage_cell)
+        )
+    if price_taker_failed:
+        # Membership comes from `record.price_taker` (set by the scorer); the table
+        # is read only to name the arm that caught a title. Loaded here, not at
+        # import: the loader is fail-loud, and an import-time raise would take
+        # down anything that merely imports this module. Injectable for tests.
+        table = price_takers if price_takers is not None else load_price_takers()
+        lines += [
+            "",
+            "## Am Preisnehmer-Ausschluss gescheitert",
+            "",
+            "> Diese Titel erfuellen alle Bedingungen eines Crosshits (Achsen und, "
+            "wo gemessen, Stetigkeit), verkaufen aber zu einem Preis, den sie nicht "
+            "setzen (Rohstoffe, Speicherchips). In einem Preiszyklus faerben sich "
+            "alle drei Achsen gleichzeitig gruen, ohne dass sich am Geschaeft etwas "
+            "geaendert haette. Sie sind **keine** Crosshits und zaehlen im Funnel "
+            "nicht mit; Scores und Perzentile sind unveraendert. Sie stehen hier, "
+            "damit das Urteil sichtbar bleibt. Grundlage ist `data/price_takers.json` "
+            "(yfinance-`industry`, bewusst grob; `Override` = per Ticker benannt).",
+            "",
+        ]
+        lines += _table(
+            price_taker_failed,
+            extra=("Grund", lambda r: _price_taker_cell(r, table)),
+        )
     return "\n".join(lines) + "\n"
 
 
 def _table(
-    entries: list[dict], table: PriceTakerTable, *, leverage: bool = False
+    entries: list[dict],
+    *,
+    extra: tuple[str, Callable[[ScreenerRecord], str]] | None = None,
 ) -> list[str]:
+    """One table layout for the list and every failure section. `extra` appends
+    a section-specific column: (header, cell function)."""
     header = (
         "| # | Ticker | Name | Sektor | Crosshits | Dimensionen | Ø Score "
-        "| Stetigkeit | Preisnehmer |"
+        "| Stetigkeit |"
     )
-    rule = "|---|---|---|---|---|---|---|---|---|"
-    if leverage:
-        header += " Nettoverschuldung/EBITDA |"
+    rule = "|---|---|---|---|---|---|---|---|"
+    if extra is not None:
+        header += f" {extra[0]} |"
         rule += "---|"
     lines = [header, rule]
     for i, entry in enumerate(entries, 1):
         r = entry["record"]
         dims_str = ", ".join(entry["qualifying_dims"])
-        # Label only — it never enters the score or the ranking above.
-        taker = "ja" if is_price_taker(r.ticker, r.gics_industry, table) else "nein"
         row = (
             f"| {i} | {r.ticker} {_flags(r)} | {r.name or ''} | {r.gics_sector or ''} "
             f"| {len(entry['qualifying_dims'])} | {dims_str} | {entry['avg_score']} "
-            f"| {_steadiness_cell(r)} | {taker} |"
+            f"| {_steadiness_cell(r)} |"
         )
-        if leverage:
-            row += f" {_leverage_cell(r)} |"
+        if extra is not None:
+            row += f" {extra[1](r)} |"
         lines.append(row)
     return lines

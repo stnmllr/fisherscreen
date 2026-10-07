@@ -33,6 +33,11 @@ from typing import TYPE_CHECKING
 
 from app.screener.growth_consistency import consistency_cap
 from app.screener.percentiles import percentile_to_score
+from app.screener.price_takers import (
+    PriceTakerTable,
+    is_price_taker,
+    load_price_takers,
+)
 from app.screener.roic import (
     INVESTED_CAPITAL_NONPOSITIVE,
     NO_DEBT_CASH,
@@ -421,22 +426,35 @@ def annotate_steadiness(records, annual_series, run_tracker=None) -> None:
         record.steadiness_reason = result.reason
 
 
-def run_deterministic_scoring(records, revenue_cache, run_tracker, annual_series=None):
+def run_deterministic_scoring(
+    records,
+    revenue_cache,
+    run_tracker,
+    annual_series=None,
+    price_takers: PriceTakerTable | None = None,
+):
     """Tool-A scoring entry point (replaces run_gemini_scoring). For each record:
     fetch its multi-year revenue series (cached), compute growth_consistency, the
     median annual revenue growth and ROIC, then annotate percentiles across the
     whole cohort (they rank the ROIC and the median), then score each
-    deterministically.
+    deterministically, then flag price takers.
     Records zero tokens per ticker (LLM-free) so cost tracking stays accurate.
 
     `annual_series` ist optional: fehlt es, bleibt die Stetigkeits-Achse
-    unbesetzt und das Gate verhaelt sich exakt wie vor ihrer Einfuehrung."""
+    unbesetzt und das Gate verhaelt sich exakt wie vor ihrer Einfuehrung.
+
+    `price_takers` defaults to the committed `data/price_takers.json`, loaded
+    once per run and before any work (fail loud on an absent table). Price
+    takers stay in the cohort: removing them before the percentiles would
+    shrink Energy below MIN_SECTOR_N and shift ~90 other scores. The flag only
+    bars them from the crosshits (`is_crosshit`)."""
     from app.screener.growth_consistency import (
         consistency_ratio,
         median_annual_growth,
     )
     from app.screener.sector_percentiles import annotate_percentiles
 
+    table = price_takers if price_takers is not None else load_price_takers()
     for record in records:
         revenues = revenue_cache.get_revenue_series(record.ticker)
         record.growth_consistency = consistency_ratio(revenues)
@@ -447,11 +465,15 @@ def run_deterministic_scoring(records, revenue_cache, run_tracker, annual_series
         annotate_steadiness(records, annual_series, run_tracker)
     for record in records:
         score_record(record)
+        record.price_taker = is_price_taker(record.ticker, record.gics_industry, table)
         run_tracker.record_ticker(0, 0)
     n_flags = sum(1 for r in records if r.resilience_red_flag)
+    n_takers = sum(1 for r in records if r.price_taker)
     logger.info(
-        "deterministic_scorer: scored %d records (LLM-free), %d leverage red flags",
+        "deterministic_scorer: scored %d records (LLM-free), %d leverage red flags, "
+        "%d price takers",
         len(records),
         n_flags,
+        n_takers,
     )
     return records

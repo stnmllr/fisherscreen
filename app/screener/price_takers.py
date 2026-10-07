@@ -1,4 +1,4 @@
-"""Price-taker marking for the Tool-A crosshits report.
+"""Price-taker classification for Tool A.
 
 A price taker sells at a price it does not set. In a commodity upcycle that
 turns all three Tool-A axes green at once -- growth, profitability and
@@ -6,16 +6,19 @@ resilience all improve without anything changing about the business -- and the
 title surfaces as a crosshit it has no Fisher claim to. Seven of the 24
 crosshits in September 2026 were of that kind.
 
-This module labels those titles. It does not filter them and it does not touch
-a score: the judgement stays with the reader, the report just stops hiding the
-question. Key is the yfinance `industry` field (the finer of the two levels
-yfinance offers), plus a short ticker override list for the cases where the
-industry label is too coarse to separate a price taker from its neighbours.
+Since 2026-10 a price taker does not count as a crosshit. The scorer flags each
+record (`ScreenerRecord.price_taker`) after scoring and `is_crosshit` applies
+the exclusion. No score and no percentile changes: price takers stay in the
+scoring cohort. The crosshits report lists the excluded titles in a section of
+their own, so the judgement stays visible instead of the titles disappearing.
+Key is the yfinance `industry` field (the finer of the two levels yfinance
+offers), plus a short ticker override list for the cases where the industry
+label is too coarse to separate a price taker from its neighbours.
 
 Unlike `industry_group_map`, an absent file here is FAIL LOUD. There, a missing
-rollup leaves an arm dormant -- a visible no-op. Here it would print "nein"
-beside every title in a monthly report, which is not a missing label but a
-false one.
+rollup leaves an arm dormant -- a visible no-op. Here it would silently let
+every commodity title through as a crosshit, which is not a missing rule but a
+false verdict.
 """
 
 from __future__ import annotations
@@ -48,8 +51,9 @@ def load_price_takers(path: Path | None = None) -> PriceTakerTable:
     p = path or _DEFAULT_PATH
     if not p.exists():
         raise FilterConfigError(
-            f"price_takers table missing at {p} -- refusing to mark every title "
-            "as 'nein', which would be a false label rather than a missing one"
+            f"price_takers table missing at {p} -- refusing to let every "
+            "commodity title through as a crosshit, which would be a false "
+            "verdict rather than a missing rule"
         )
     try:
         data = json.loads(p.read_text(encoding="utf-8"))
