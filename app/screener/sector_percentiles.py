@@ -1,9 +1,11 @@
 """percentile_prep: annotate the pre-scoring cohort with within-run percentile ranks.
 
-growth (revenue_growth_yoy) is ALWAYS cohort-global. profitability/resilience inputs
-are sector-relative iff the record's sector has >= MIN_SECTOR_N members, else they fall
-back to the global pool (score_basis records which). None values are excluded from
-distributions.
+Growth inputs are ALWAYS cohort-global: revenue_growth_median (median annual growth
+from the fiscal-year series, the axis input) and revenue_growth_yoy (yfinance's
+latest quarter vs year-ago quarter, kept as the fallback when the series is shorter
+than 4 fiscal years). profitability/resilience inputs are sector-relative iff the
+record's sector has >= MIN_SECTOR_N members, else they fall back to the global pool
+(score_basis records which). None values are excluded from distributions.
 
 Profitability ranks operating_margin and return_on_invested_capital. ROIC is not a
 yfinance field: app.screener.roic computes it before this module runs. It replaced
@@ -23,7 +25,7 @@ if TYPE_CHECKING:
     from app.models.screener_record import ScreenerRecord
 
 MIN_SECTOR_N = 30
-_GLOBAL_INPUT = "revenue_growth_yoy"
+_GLOBAL_INPUTS = ("revenue_growth_median", "revenue_growth_yoy")
 _SECTOR_RELATIVE_INPUTS = (
     "operating_margin",
     "return_on_invested_capital",
@@ -42,7 +44,8 @@ def _distribution(records: list["ScreenerRecord"], field: str) -> list[float]:
 def annotate_percentiles(records: list["ScreenerRecord"]) -> None:
     """Set `input_percentiles` and `score_basis` on each record in place."""
     global_dist = {
-        f: _distribution(records, f) for f in (_GLOBAL_INPUT, *_SECTOR_RELATIVE_INPUTS)
+        f: _distribution(records, f)
+        for f in (*_GLOBAL_INPUTS, *_SECTOR_RELATIVE_INPUTS)
     }
 
     sector_members: dict[str | None, list["ScreenerRecord"]] = {}
@@ -57,9 +60,10 @@ def annotate_percentiles(records: list["ScreenerRecord"]) -> None:
         pcts: dict[str, float] = {}
         basis: dict[str, str] = {"growth": "global"}
 
-        gv = getattr(r, _GLOBAL_INPUT)
-        if gv is not None and global_dist[_GLOBAL_INPUT]:
-            pcts[_GLOBAL_INPUT] = percentile_rank(gv, global_dist[_GLOBAL_INPUT])
+        for f in _GLOBAL_INPUTS:
+            v = getattr(r, f)
+            if v is not None and global_dist[f]:
+                pcts[f] = percentile_rank(v, global_dist[f])
 
         sector = r.gics_sector
         use_sector = (

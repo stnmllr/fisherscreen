@@ -182,6 +182,8 @@ def test_gemini_score_cache_ttl_days_default_is_2():
 def test_revenue_series_cache_defaults():
     s = FisherScreenSettings(_env_file=None)
     assert s.revenue_series_collection == "dev_revenue_series"
-    assert (
-        s.revenue_series_ttl_days == 400
-    )  # annual data -> long TTL (unlike Gemini 2d)
+    # the series drives growth: a new fiscal year within months, not ~17
+    assert s.revenue_series_ttl_days == 120
+    # spreads the one-day backfill's expiries; must stay below the TTL
+    assert s.revenue_series_ttl_jitter_days == 30
+    assert s.revenue_series_ttl_jitter_days < s.revenue_series_ttl_days

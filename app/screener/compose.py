@@ -76,6 +76,7 @@ def build_revenue_series_cache() -> CachedRevenueSeries:
         firestore=firestore,
         collection=settings.revenue_series_collection,
         ttl_days=settings.revenue_series_ttl_days,
+        ttl_jitter_days=settings.revenue_series_ttl_jitter_days,
     )
 
 

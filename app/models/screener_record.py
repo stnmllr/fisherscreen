@@ -97,6 +97,9 @@ class ScreenerRecord(BaseModel):
     growth_consistency: float | None = (
         None  # positive_years_ratio; None = UNASSESSABLE (<4 GJ)
     )
+    # Growth-axis input, computed from the fiscal-year revenue series (not from
+    # info): median annual growth rate; None = UNASSESSABLE (<4 GJ).
+    revenue_growth_median: float | None = None
     score_basis: dict[str, str] | None = (
         None  # per axis: "global" | "sector_relative" | "global_fallback"
     )

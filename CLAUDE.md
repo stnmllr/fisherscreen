@@ -227,7 +227,7 @@ Collections, zwei davon existierten nur hier und in keiner Codezeile.
 | `dev_edgar_cache` | `edgar_collection` | Restatement- + Going-Concern-Signale | cik | 7 d | ja — `scripts/purge_edgar_cache_all.py` |
 | `dev_gemini_scores` | `gemini_score_collection` | Scores je Ticker. **Tool A scort seit 2026-06 deterministisch** — die Collection wird vom Live-Pfad nicht mehr geschrieben | ticker | 2 d | ja — `scripts/purge_gemini_scores_all.py` |
 | `dev_screener_runs` | `screener_runs_collection` | Cost-Tracking pro Run | run_id (ISO-Timestamp) | — | nein (Historie) |
-| `dev_revenue_series` | `revenue_series_collection` | Mehrjahres-Umsatzreihen (yfinance, ~4 GJ) | ticker | 400 d | nein — kein Purge-Skript |
+| `dev_revenue_series` | `revenue_series_collection` | Mehrjahres-Umsatzreihen (yfinance, ~4 GJ) — trägt seit 2026-10 die growth-Achse (Median-Jahreswachstum) | ticker | 120 d ± 30 d Jitter (aus dem Ticker-Hash, kein Schema-Feld) | nein — Vorwärmen per `scripts/backfill_revenue_series.py` |
 | `dev_deepdive_peers` | `deepdive_peers_collection` | Peer-Gruppen für Tool B | ticker | — | nein |
 | `dev_edgar_annual_series` | `edgar_annual_series_collection` | EDGAR-Jahresreihen für die Stetigkeits-Dimension. Nur der Extrakt, nie companyfacts roh. **Cache gebaut und vorgewärmt (890 Dok., 2026-09-08), noch nicht im Monatslauf verdrahtet** (Spec-Schritte 4–5 offen) | **cik** | 400 d ± 60 d Jitter; Negativ 60 d ohne Jitter | nein — Backfill statt Purge; Schema-Version invalidiert |
 

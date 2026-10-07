@@ -32,9 +32,12 @@ class FisherScreenSettings(BaseSettings):
         2  # < monthly cadence so each monthly run re-scores fresh
     )
     revenue_series_collection: str = "dev_revenue_series"
-    revenue_series_ttl_days: int = (
-        400  # annual revenue changes yearly; long TTL is correct here
-    )
+    # The series drives the growth axis: a new fiscal year must arrive within a
+    # few months, not ~17. Jitter (derived from the ticker) because the backfill
+    # wrote every entry on one day; a flat TTL would expire them all in one run
+    # against the hard 1800s deadline. 120 - 30 = 90 days minimum.
+    revenue_series_ttl_days: int = 120
+    revenue_series_ttl_jitter_days: int = 30
     # EDGAR annual series for the steadiness dimension. Keyed by CIK, holds the
     # extract only — never the multi-MB companyfacts document.
     edgar_annual_series_collection: str = "dev_edgar_annual_series"

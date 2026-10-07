@@ -5,6 +5,14 @@ growth-consistency cap + absolute red-flag overlays to the ScreenerRecord.gemini
 fields (schema name kept for output stability). Evidence is code-templated, citing the
 absolute figure AND its percentile (or band).
 
+Growth = percentile of the MEDIAN ANNUAL revenue growth over the fiscal-year
+series (>= 4 GJ), under the consistency cap. It replaced yfinance revenueGrowth,
+which is a single quarter vs the year-ago quarter: one soft quarter put MA and V at
+3, one-quarter spikes put VAR.OL (+103 %) and AKER.OL (+361 %) at 5. Without a
+median (<4 GJ) the quarterly percentile stands in, capped at neutral -- the cap only
+lowers. The basis gate's revenue-growth floor (filters/runner) still reads the
+quarterly figure; that is a different question (viability, not merit).
+
 Resilience = gross-margin percentile averaged with a FIXED ABSOLUTE leverage band on
 net debt / EBITDA. Debt/equity was dropped: buybacks shrink book equity to near zero
 or below, so D/E measured cosmetics (MA scored 0, TDG at 6x net debt/EBITDA scored 5).
@@ -68,6 +76,12 @@ RED_FLAG_NET_DEBT_NONPOSITIVE_EBITDA = "net_debt_with_nonpositive_ebitda"
 # neutral (IBKR: a broker without EBITDA and gross margin P95 would otherwise score
 # 5 on margin alone; symmetrically, net cash alone must not score 5).
 _MISSING_INPUT_CAP = 3
+
+# --- growth: median annual revenue growth -------------------------------------
+# Both cohort-global percentiles (sector_percentiles). The quarterly YoY only
+# stands in when the fiscal-year series is too short for a median (<4 GJ).
+MEDIAN_GROWTH_INPUT = "revenue_growth_median"
+QUARTER_GROWTH_INPUT = "revenue_growth_yoy"
 
 # --- profitability: operating margin + ROIC -----------------------------------
 _PROFITABILITY_INPUTS = ("operating_margin", "return_on_invested_capital")
@@ -286,26 +300,60 @@ def _score_resilience(
     return _resilience_score(gm_p, lev), evidence, partial
 
 
+def _quarter_text(record: "ScreenerRecord", pcts: dict[str, float]) -> str:
+    return _evidence(record, pcts, [(QUARTER_GROWTH_INPUT, "latest quarter YoY")])
+
+
+def _score_growth(
+    record: "ScreenerRecord",
+    pcts: dict[str, float],
+    data_gaps: list[str],
+) -> tuple[int, str]:
+    """(score, evidence). Median annual growth percentile; without it, the
+    quarterly YoY percentile (else neutral) capped at neutral -- the cap only
+    lowers. The consistency cap applies on top either way."""
+    cons = record.growth_consistency
+    if MEDIAN_GROWTH_INPUT in pcts:
+        score = percentile_to_score(pcts[MEDIAN_GROWTH_INPUT])
+        evidence = (
+            _evidence(record, pcts, [(MEDIAN_GROWTH_INPUT, "rev growth median")])
+            + (
+                f", consistency {cons:.2f}"
+                if cons is not None
+                else ", consistency n/a (<4 GJ)"
+            )
+            + f", latest quarter YoY {_pct_decimal(record.revenue_growth_yoy)}"
+        )
+        return min(score, consistency_cap(cons)), evidence
+
+    data_gaps.append(MEDIAN_GROWTH_INPUT)
+    if QUARTER_GROWTH_INPUT in pcts:
+        base = percentile_to_score(pcts[QUARTER_GROWTH_INPUT])
+    else:
+        base = _NEUTRAL_AXIS
+        data_gaps.append(QUARTER_GROWTH_INPUT)
+    median_text = (
+        "rev growth median n/a (<4 GJ)"
+        if record.revenue_growth_median is None
+        else f"rev growth median {_pct_decimal(record.revenue_growth_median)}"
+    )
+    evidence = f"{median_text}, {_quarter_text(record, pcts)}"
+    if cons is not None:
+        evidence += f", consistency {cons:.2f}"
+    if base > _MISSING_INPUT_CAP:
+        evidence += f" — capped at {_MISSING_INPUT_CAP}"
+    score = min(base, _MISSING_INPUT_CAP, consistency_cap(cons))
+    return score, evidence
+
+
 def score_record(record: "ScreenerRecord") -> None:
     pcts = record.input_percentiles or {}
     dims: dict[str, int] = {}
     evidence: dict[str, str] = {}
     data_gaps: list[str] = []
 
-    # growth — global percentile, then absolute consistency cap
-    if "revenue_growth_yoy" in pcts:
-        growth = percentile_to_score(pcts["revenue_growth_yoy"])
-    else:
-        growth = _NEUTRAL_AXIS  # no percentile available: neutral sentinel
-        data_gaps.append("revenue_growth_yoy")
-    growth = min(growth, consistency_cap(record.growth_consistency))
-    dims["growth"] = growth
-    cons = record.growth_consistency
-    evidence["growth"] = _evidence(
-        record, pcts, [("revenue_growth_yoy", "rev growth")]
-    ) + (
-        f", consistency {cons:.2f}" if cons is not None else ", consistency n/a (<4 GJ)"
-    )
+    # growth — global median-growth percentile (YoY fallback), consistency cap
+    dims["growth"], evidence["growth"] = _score_growth(record, pcts, data_gaps)
 
     # profitability — op margin + ROIC percentiles; red-flag on absolute losses
     prof, evidence["profitability"], prof_partial = _score_profitability(
@@ -375,19 +423,24 @@ def annotate_steadiness(records, annual_series, run_tracker=None) -> None:
 
 def run_deterministic_scoring(records, revenue_cache, run_tracker, annual_series=None):
     """Tool-A scoring entry point (replaces run_gemini_scoring). For each record:
-    fetch its multi-year revenue series (cached), compute growth_consistency and
-    ROIC, then annotate percentiles across the whole cohort (they rank the ROIC),
-    then score each deterministically.
+    fetch its multi-year revenue series (cached), compute growth_consistency, the
+    median annual revenue growth and ROIC, then annotate percentiles across the
+    whole cohort (they rank the ROIC and the median), then score each
+    deterministically.
     Records zero tokens per ticker (LLM-free) so cost tracking stays accurate.
 
     `annual_series` ist optional: fehlt es, bleibt die Stetigkeits-Achse
     unbesetzt und das Gate verhaelt sich exakt wie vor ihrer Einfuehrung."""
-    from app.screener.growth_consistency import consistency_ratio
+    from app.screener.growth_consistency import (
+        consistency_ratio,
+        median_annual_growth,
+    )
     from app.screener.sector_percentiles import annotate_percentiles
 
     for record in records:
         revenues = revenue_cache.get_revenue_series(record.ticker)
         record.growth_consistency = consistency_ratio(revenues)
+        record.revenue_growth_median = median_annual_growth(revenues)
     annotate_roic(records)
     annotate_percentiles(records)
     if annual_series is not None:
