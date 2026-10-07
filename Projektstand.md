@@ -31,8 +31,8 @@
 ## Top of mind — 2026-10-06 (growth)
 
 **growth misst jetzt das Median-Jahreswachstum des Umsatzes statt eines Quartals**
-(Branch `feature/growth-multiyear`, **PR offen, nicht gemergt**; wirkt ab dem ersten Lauf
-nach Merge + Deploy). Auslöser: yfinance `revenueGrowth` ist **ein Quartal** gegen das
+(**gemergt 2026-10-07**, PR #75, `main` `5c5b9ba`; Deploy-Workflow grün, Cloud-Run-Revision
+nicht separat geprüft; **wirkt ab dem Lauf 2026-11-01**). Auslöser: yfinance `revenueGrowth` ist **ein Quartal** gegen das
 Vorjahresquartal. Ein weiches Quartal setzte MA und V auf growth 3, Quartalsspitzen setzten
 VAR.OL (+103 %) und AKER.OL (+361 %) auf 5. 49 der 74 Referenztitel scheiterten an growth.
 
@@ -72,7 +72,7 @@ jede Achse bei jedem Titel gleich. Suite 2001 / 96,69 %, credential-los 1960 gr�
 
 ### Nächste Schritte (Reihenfolge)
 
-1. PR `feature/growth-multiyear` reviewen/mergen.
+1. ~~PR `feature/growth-multiyear` reviewen/mergen~~ — gemergt 2026-10-07 (#75, `5c5b9ba`).
 2. **Vor dem Lauf 2026-11-01, nach dem Merge:** `uv run python -m scripts.backfill_revenue_series`
    lokal laufen lassen (schreibt nach Firestore, $0). Mit dem neuen TTL wären am 01.11. rund
    **70 %** der Reihen abgelaufen (132 Tage alt) und würden im Lauf live nachgeladen — gegen
