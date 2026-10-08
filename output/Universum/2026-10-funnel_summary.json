@@ -17,29 +17,29 @@
     {
       "stage": "basis_gates",
       "entered": 1501,
-      "dropped": 498,
-      "remaining": 1003,
+      "dropped": 499,
+      "remaining": 1002,
       "ran": true
     },
     {
       "stage": "edgar_gates",
-      "entered": 1003,
+      "entered": 1002,
       "dropped": 8,
-      "remaining": 995,
+      "remaining": 994,
       "ran": true
     },
     {
       "stage": "scoring",
-      "entered": 995,
+      "entered": 994,
       "dropped": 0,
-      "remaining": 995,
+      "remaining": 994,
       "ran": true
     },
     {
       "stage": "crosshits",
-      "entered": 995,
-      "dropped": 969,
-      "remaining": 26,
+      "entered": 994,
+      "dropped": 948,
+      "remaining": 46,
       "ran": true
     }
   ],
