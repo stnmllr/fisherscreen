@@ -9,6 +9,7 @@ class FirestoreClient(Protocol):
     def get(self, collection: str, document_id: str) -> dict[str, Any] | None: ...
     def set(self, collection: str, document_id: str, data: dict[str, Any]) -> None: ...
     def delete(self, collection: str, document_id: str) -> None: ...
+    def get_latest(self, collection: str, order_by: str) -> dict[str, Any] | None: ...
 
 
 class FirestoreClientImpl:
@@ -43,3 +44,17 @@ class FirestoreClientImpl:
             self._db.collection(collection).document(document_id).delete()
         except Exception as exc:
             raise DataSourceError(f"Firestore delete failed: {exc}") from exc
+
+    def get_latest(self, collection: str, order_by: str) -> dict[str, Any] | None:
+        """Newest document by `order_by` (descending), or None for an empty collection."""
+        try:
+            query = (
+                self._db.collection(collection)
+                .order_by(order_by, direction=firestore.Query.DESCENDING)
+                .limit(1)
+            )
+            for doc in query.stream():
+                return doc.to_dict()
+            return None
+        except Exception as exc:
+            raise DataSourceError(f"Firestore get_latest failed: {exc}") from exc

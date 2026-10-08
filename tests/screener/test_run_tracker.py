@@ -102,3 +102,61 @@ def test_run_id_is_iso_timestamp_string():
     tracker, _ = _tracker()
     record = tracker.finish()
     datetime.fromisoformat(record.run_id)  # raises ValueError if not valid ISO format
+
+
+def test_start_writes_running_doc_under_run_id():
+    tracker, mock_fs = _tracker(collection="dev_screener_runs")
+    tracker.start()
+    mock_fs.set.assert_called_once()
+    collection_arg, run_id_arg, payload_arg = mock_fs.set.call_args[0]
+    assert collection_arg == "dev_screener_runs"
+    assert payload_arg["status"] == "running"
+    assert payload_arg["run_id"] == run_id_arg
+    assert payload_arg["completed_at"] is None
+
+
+def test_finish_overwrites_start_doc_with_same_id():
+    tracker, mock_fs = _tracker()
+    tracker.start()
+    record = tracker.finish()
+    start_call, finish_call = mock_fs.set.call_args_list
+    assert start_call[0][1] == finish_call[0][1] == record.run_id
+    assert finish_call[0][2]["status"] == "success"
+
+
+def test_start_twice_raises():
+    tracker, _ = _tracker()
+    tracker.start()
+    with pytest.raises(RuntimeError, match="start"):
+        tracker.start()
+
+
+def test_start_after_finish_raises():
+    tracker, _ = _tracker()
+    tracker.finish()
+    with pytest.raises(RuntimeError, match="start"):
+        tracker.start()
+
+
+def test_start_propagates_firestore_failure():
+    from app.errors import DataSourceError
+
+    tracker, mock_fs = _tracker()
+    mock_fs.set.side_effect = DataSourceError("Firestore set failed: down")
+    with pytest.raises(DataSourceError):
+        tracker.start()
+
+
+def test_latest_prior_run_reads_newest_doc_by_run_id():
+    tracker, mock_fs = _tracker(collection="dev_screener_runs")
+    mock_fs.get_latest.return_value = {"run_id": "2026-10-01", "status": "partial"}
+    assert tracker.latest_prior_run() == {"run_id": "2026-10-01", "status": "partial"}
+    mock_fs.get_latest.assert_called_once_with("dev_screener_runs", order_by="run_id")
+
+
+def test_latest_prior_run_after_start_raises():
+    # After start() the newest doc is this run's own marker, not the prior run.
+    tracker, _ = _tracker()
+    tracker.start()
+    with pytest.raises(RuntimeError, match="before start"):
+        tracker.latest_prior_run()

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any
 
-from app.models.run_record import RunRecord
+from app.models.run_record import FinalRunStatus, RunRecord
 
 if TYPE_CHECKING:
     from app.services.firestore_client import FirestoreClient
@@ -23,10 +23,38 @@ class RunTracker:
         self._tickers_skipped = 0
         self._tokens_in = 0
         self._tokens_out = 0
+        self._started = False
         self._finished = False
         self._truncated = False
         self._steadiness_stale = 0
         self._steadiness_missing = 0
+
+    def latest_prior_run(self) -> dict[str, Any] | None:
+        """Newest run doc in the collection, read BEFORE start().
+
+        After start() the newest doc is this run's own marker, hence the guard.
+        Firestore failures propagate (DataSourceError) — the caller decides
+        whether a failed read blocks the run."""
+        if self._started:
+            raise RuntimeError("latest_prior_run() must be called before start()")
+        return self._firestore.get_latest(self._collection, order_by="run_id")
+
+    def start(self) -> None:
+        """Persist a status="running" marker under this run's id.
+
+        finish() overwrites the same doc. A doc left at "running" therefore
+        proves the run died before finish() — the next run surfaces it."""
+        if self._started or self._finished:
+            raise RuntimeError("RunTracker.start() called after start() or finish()")
+        self._started = True
+        marker = RunRecord(
+            run_id=self._run_id, status="running", started_at=self._started_at
+        )
+        # Firestore failure propagates intentionally — fail loud, same as finish()
+        self._firestore.set(
+            self._collection, self._run_id, marker.model_dump(mode="json")
+        )
+        logger.info("run=%s status=running (start marker written)", self._run_id)
 
     def record_ticker(self, tokens_in: int, tokens_out: int) -> None:
         self._tickers_processed += 1
@@ -49,9 +77,7 @@ class RunTracker:
         """Signal that the run stopped early (e.g. token cap hit) — derives status=partial."""
         self._truncated = True
 
-    def finish(
-        self, status: Literal["success", "partial", "aborted"] | None = None
-    ) -> RunRecord:
+    def finish(self, status: FinalRunStatus | None = None) -> RunRecord:
         if self._finished:
             raise RuntimeError("RunTracker.finish() called more than once")
         self._finished = True

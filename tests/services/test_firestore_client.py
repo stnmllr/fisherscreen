@@ -111,3 +111,50 @@ def test_delete_raises_data_source_error_on_failure(mock_firestore_module):
 
     with pytest.raises(DataSourceError, match="Firestore delete failed"):
         client.delete("dev_ticker_cache", "AAPL")
+
+
+@patch("app.services.firestore_client.firestore")
+def test_get_latest_returns_newest_document_by_field(mock_firestore_module):
+    mock_db = MagicMock()
+    mock_firestore_module.Client.return_value = mock_db
+    newest = MagicMock()
+    newest.to_dict.return_value = {"run_id": "2026-10-01", "status": "success"}
+    query = mock_db.collection.return_value.order_by.return_value.limit.return_value
+    query.stream.return_value = iter([newest])
+
+    client = FirestoreClientImpl(project_id="test-project")
+    result = client.get_latest("dev_screener_runs", order_by="run_id")
+
+    assert result == {"run_id": "2026-10-01", "status": "success"}
+    mock_db.collection.assert_called_with("dev_screener_runs")
+    mock_db.collection.return_value.order_by.assert_called_once_with(
+        "run_id", direction=mock_firestore_module.Query.DESCENDING
+    )
+    mock_db.collection.return_value.order_by.return_value.limit.assert_called_once_with(
+        1
+    )
+
+
+@patch("app.services.firestore_client.firestore")
+def test_get_latest_returns_none_for_empty_collection(mock_firestore_module):
+    mock_db = MagicMock()
+    mock_firestore_module.Client.return_value = mock_db
+    query = mock_db.collection.return_value.order_by.return_value.limit.return_value
+    query.stream.return_value = iter([])
+
+    client = FirestoreClientImpl(project_id="test-project")
+
+    assert client.get_latest("dev_screener_runs", order_by="run_id") is None
+
+
+@patch("app.services.firestore_client.firestore")
+def test_get_latest_raises_data_source_error_on_failure(mock_firestore_module):
+    mock_db = MagicMock()
+    mock_firestore_module.Client.return_value = mock_db
+    query = mock_db.collection.return_value.order_by.return_value.limit.return_value
+    query.stream.side_effect = Exception("query error")
+
+    client = FirestoreClientImpl(project_id="test-project")
+
+    with pytest.raises(DataSourceError, match="Firestore get_latest failed"):
+        client.get_latest("dev_screener_runs", order_by="run_id")
