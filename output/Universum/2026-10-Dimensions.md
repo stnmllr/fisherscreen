@@ -6,13 +6,61 @@ crosshits:
   - growth
   - profitability
   - resilience
-  ticker: FRES.L
+  ticker: GTT.PA
+- avg_score: 5.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: WISE.L
 - avg_score: 4.67
   dimensions:
   - growth
   - profitability
   - resilience
-  ticker: FICO
+  ticker: ACLN.SW
+- avg_score: 4.67
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: ANET
+- avg_score: 4.67
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: EVO.ST
+- avg_score: 4.67
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: GAW.L
+- avg_score: 4.67
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: MA
+- avg_score: 4.67
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: MNST
+- avg_score: 4.67
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: MYCR.ST
+- avg_score: 4.67
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: NOVO-B.CO
 - avg_score: 4.67
   dimensions:
   - growth
@@ -24,37 +72,37 @@ crosshits:
   - growth
   - profitability
   - resilience
-  ticker: PAF.L
-- avg_score: 4.67
-  dimensions:
-  - growth
-  - profitability
-  - resilience
   ticker: RDDT
 - avg_score: 4.67
   dimensions:
   - growth
   - profitability
   - resilience
-  ticker: RGLD
+  ticker: RMS.PA
 - avg_score: 4.67
   dimensions:
   - growth
   - profitability
   - resilience
-  ticker: TDG
+  ticker: VEEV
 - avg_score: 4.67
   dimensions:
   - growth
   - profitability
   - resilience
-  ticker: XTB.WA
+  ticker: ZEAL.CO
 - avg_score: 4.33
   dimensions:
   - growth
   - profitability
   - resilience
-  ticker: AKER.OL
+  ticker: ADBE
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: ADYEN.AS
 - avg_score: 4.33
   dimensions:
   - growth
@@ -66,55 +114,97 @@ crosshits:
   - growth
   - profitability
   - resilience
+  ticker: CPRT
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: DECK
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: DOCS
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: EW
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: FTNT
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: ISRG
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: KOG.OL
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: MEDP
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: QLYS
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: V
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: VRT
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: AENA.MC
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: ALK-B.CO
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: ASML.AS
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
   ticker: BEAN.SW
-- avg_score: 4.33
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: CDR.WA
-- avg_score: 4.33
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: EDV.L
-- avg_score: 4.33
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: HOC.L
-- avg_score: 4.33
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: KRYS
-- avg_score: 4.33
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: MYCR.ST
-- avg_score: 4.33
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: SNDK
 - avg_score: 4.0
   dimensions:
   - growth
   - profitability
   - resilience
-  ticker: ADYEN.AS
-- avg_score: 4.0
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: FTK.DE
+  ticker: EQT.ST
 - avg_score: 4.0
   dimensions:
   - growth
@@ -138,13 +228,43 @@ crosshits:
   - growth
   - profitability
   - resilience
-  ticker: MEDP
+  ticker: GRMN
 - avg_score: 4.0
   dimensions:
   - growth
   - profitability
   - resilience
-  ticker: MNST
+  ticker: KLAC
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: MSFT
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: NOVN.SW
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: ORNBV.HE
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: RACE.MI
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: RMD
 - avg_score: 4.0
   dimensions:
   - growth
@@ -156,61 +276,61 @@ crosshits:
   - growth
   - profitability
   - resilience
-  ticker: WISE.L
+  ticker: VZN.SW
 dimensions:
   growth:
-    qualifying_count: 242
+    qualifying_count: 295
     tickers:
     - AAON
+    - ACLN.SW
+    - ACS.MC
     - AJG
     - ANET
+    - APPF
+    - ARES
     - ARGX.BR
     - AVGO
-    - BE
     - BFT.WA
     - BPT.L
     - BRO
     - BROS
+    - BSX
     - CAVA
     - CDE
+    - CELH
     - CORT
+    - CRWD
+    - CVLT
     - DASH
     - DDOG
-    - DKS
-    - DY
+    - DECK
+    - DT
+    - DUOL
+    - EDV.L
     - ELF
+    - ENSG
+    - EVD.DE
+    - FDJU.PA
     - FIX
     - FOUR
     - FRES.L
-    - GATX
+    - FSLR
+    - FTI
+    - FTK.DE
+    - GE
+    - GMAB.CO
+    - GMED
+    - GTT.PA
+    - GWRE
     - HALO
     - HIMS
     - HL
-    - HLNE
     - HOOD
-    - HPE
-    - IDR.MC
+    - HQY
+    - HUBS
+    - IBKR
     - IESC
-    - INCY
-    - ITT
-    - J
-    - KDP
-    - KTOS
-    - LLY
-    - NBIX
-    - NVDA
-    - NVT
-    - P
-    - PAF.L
-    - PANW
-    - PLTR
-    - PR
-    - PWR
-    - RDDT
-    - RGLD
-    - RHM.DE
-    - SMTC
-    - SNPS
+    - ISRG
   innovation:
     qualifying_count: 0
     tickers: []
@@ -218,115 +338,115 @@ dimensions:
     qualifying_count: 0
     tickers: []
   profitability:
-    qualifying_count: 249
+    qualifying_count: 250
     tickers:
-    - AAPL
     - ABBV
     - ACLN.SW
+    - ADYEN.AS
     - AKER.OL
-    - AMGN
+    - AKRBP.OL
+    - ANET
     - APP
     - AUTO.L
-    - AVGO
+    - BESI.AS
     - BKNG
-    - BMY
-    - CAT
     - CF
-    - CHH
     - CL
-    - CSG.AS
+    - CPRT
+    - CR
     - EDV.L
-    - EXEL
-    - FICO
-    - FRES.L
-    - FRO.OL
-    - FTNT
-    - GAW.L
-    - GEBN.SW
-    - GTT.PA
-    - HALO
-    - HAS
-    - HLT
-    - HOC.L
-    - HRB
-    - HWM
-    - IDXX
-    - INCY
-    - ITW
-    - KLAC
-    - KO
-    - LII
-    - LLY
-    - MA
-    - MAR
-    - MCD
-    - MO
-    - MU
-    - NEM
-    - NOVO-B.CO
-    - NVDA
-    - ORNBV.HE
-    - PAF.L
-    - PGHN.SW
-    - PLNT
-    - PM
-  resilience:
-    qualifying_count: 201
-    tickers:
-    - ABNB
-    - ABVX.PA
-    - BEAN.SW
-    - BEI.DE
-    - BKNG
-    - CART
-    - CDR.WA
-    - CME
-    - CORT
-    - CSGP
-    - DLB
-    - DOCS
-    - EDPR.LS
+    - ELI.BR
     - EVO.ST
     - EXEL
     - FICO
     - FRES.L
+    - FRO.OL
+    - GAW.L
+    - GGG
+    - GTT.PA
+    - HALO
+    - HLT
+    - HOC.L
+    - HRB
+    - HSY
+    - IDCC
+    - IDXX
+    - IHG.L
+    - INCY
+    - ITW
+    - KO
+    - KRYS
+    - LLY
+    - LOPE
+    - MA
+    - MAR
+    - MNST
+    - MO
+    - MU
+    - MYCR.ST
+    - NEM
+    - NOVO-B.CO
+    - NVDA
+    - ODFL
+    - PAF.L
+    - PLTR
+  resilience:
+    qualifying_count: 274
+    tickers:
+    - ABNB
+    - ADBE
+    - ADSK
+    - AKRBP.OL
+    - ANDR.VI
+    - APP
+    - BEI.DE
+    - BILL
+    - BKNG
+    - CART
+    - CDE
+    - CDNS
+    - CDR.WA
+    - CFR.SW
+    - CME
+    - CORT
+    - CRWD
+    - CSGP
+    - CVLT
+    - DDOG
+    - DLB
+    - DOCS
+    - DOCU
+    - DSY.PA
+    - DT
+    - EDV.L
+    - EVO.ST
+    - EW
+    - EXEL
+    - EXPE
+    - FFIV
+    - FRES.L
+    - FTNT
     - GAW.L
     - GGG
     - GTT.PA
     - HL
-    - HLT
-    - KCR.HE
+    - HUBS
+    - IDCC
+    - IPN.PA
+    - KNEBV.HE
+    - KOG.OL
     - KRYS
-    - LUND-B.ST
-    - MAR
-    - MO
+    - MA
+    - META
+    - MNST
+    - MONC.MI
+    - MU
     - MYCR.ST
     - NEM
-    - OKTA
-    - PATH
-    - PLTR
-    - PM
-    - PUIG.MC
-    - RAA.DE
-    - RDDT
-    - RED.MC
-    - RGLD
-    - RMBS
-    - RMS.PA
-    - RMV.L
-    - ROCK-B.CO
-    - ROR.L
-    - SCA-B.ST
-    - TDG
-    - TPL
-    - UHR.SW
-    - UTHR
-    - VNOM
-    - VRSK
-generated_at: '2026-10-05T15:22:26.236901+00:00'
-run_id: '2026-10-05T15:07:03.096272+00:00'
+generated_at: '2026-10-08T15:32:03.929818+00:00'
+run_id: '2026-10-08T14:58:24.695943+00:00'
 score_threshold: 4.0
-universum_size: 995
+universum_size: 994
 ---
 
 # Universum 2026-10 — Dimensions
@@ -335,115 +455,115 @@ universum_size: 995
 
 ---
 
-## Growth (n=242)
+## Growth (n=295)
 
 | # | Ticker | Name | Sektor | Score |
 |---|---|---|---|---|
 | 1 | AAON  | AAON, Inc. | Industrials | 5 |
-| 2 | AJG  | Arthur J. Gallagher & Co. | Financial Services | 5 |
-| 3 | ANET ~ | Arista Networks, Inc. | Technology | 5 |
-| 4 | ARGX.BR  | ARGENX SE | Healthcare | 5 |
-| 5 | AVGO  | Broadcom Inc. | Technology | 5 |
-| 6 | BE  | Bloom Energy Corporation | Industrials | 5 |
-| 7 | BFT.WA  | BENEFIT | Consumer Cyclical | 5 |
-| 8 | BPT.L  | BRIDGEPOINT GROUP PLC ORD GBP0. | Financial Services | 5 |
-| 9 | BRO  | Brown & Brown, Inc. | Financial Services | 5 |
-| 10 | BROS  | Dutch Bros Inc. | Consumer Cyclical | 5 |
-| 11 | CAVA  | CAVA Group, Inc. | Consumer Cyclical | 5 |
-| 12 | CDE  | Coeur Mining, Inc. | Basic Materials | 5 |
-| 13 | CORT  | Corcept Therapeutics Incorporat | Healthcare | 5 |
-| 14 | DASH  | DoorDash, Inc. | Consumer Cyclical | 5 |
-| 15 | DDOG  | Datadog, Inc. | Technology | 5 |
-| 16 | DKS  | Dick's Sporting Goods Inc | Consumer Cyclical | 5 |
-| 17 | DY  | Dycom Industries, Inc. | Industrials | 5 |
-| 18 | ELF  | e.l.f. Beauty, Inc. | Consumer Defensive | 5 |
-| 19 | FIX  | Comfort Systems USA, Inc. | Industrials | 5 |
-| 20 | FOUR  | Shift4 Payments, Inc. | Technology | 5 |
-| 21 | FRES.L  | FRESNILLO PLC ORD USD0.50 | Basic Materials | 5 |
-| 22 | GATX  | GATX Corporation | Industrials | 5 |
-| 23 | HALO  | Halozyme Therapeutics, Inc. | Healthcare | 5 |
-| 24 | HIMS  | Hims & Hers Health, Inc. | Healthcare | 5 |
-| 25 | HL  | Hecla Mining Company | Basic Materials | 5 |
-| 26 | HLNE  | Hamilton Lane Incorporated | Financial Services | 5 |
-| 27 | HOOD  | Robinhood Markets, Inc. | Financial Services | 5 |
-| 28 | HPE  | Hewlett Packard Enterprise Comp | Technology | 5 |
-| 29 | IDR.MC  | INDRA SISTEMAS S.A., SERIE A | Technology | 5 |
-| 30 | IESC  | IES Holdings, Inc. | Industrials | 5 |
-| 31 | INCY  | Incyte Corporation | Healthcare | 5 |
-| 32 | ITT  | ITT Inc. | Industrials | 5 |
-| 33 | J  | Jacobs Solutions Inc. | Industrials | 5 |
-| 34 | KDP  | Keurig Dr Pepper Inc. | Consumer Defensive | 5 |
-| 35 | KTOS  | Kratos Defense & Security Solut | Industrials | 5 |
-| 36 | LLY  | Eli Lilly and Company | Healthcare | 5 |
-| 37 | NBIX  | Neurocrine Biosciences, Inc. | Healthcare | 5 |
-| 38 | NVDA  | NVIDIA Corporation | Technology | 5 |
-| 39 | NVT  | nVent Electric plc | Industrials | 5 |
-| 40 | P  | Everpure, Inc. | Technology | 5 |
-| 41 | PAF.L  | PAN AFRICAN RESOURCES PLC ORD 1 | Basic Materials | 5 |
-| 42 | PANW  | Palo Alto Networks, Inc. | Technology | 5 |
-| 43 | PLTR  | Palantir Technologies Inc. | Technology | 5 |
-| 44 | PR  | Permian Resources Corporation | Energy | 5 |
-| 45 | PWR  | Quanta Services, Inc. | Industrials | 5 |
-| 46 | RDDT  | Reddit, Inc. | Communication Services | 5 |
-| 47 | RGLD  | Royal Gold, Inc. | Basic Materials | 5 |
-| 48 | RHM.DE  | RHEINMETALL AG                I | Industrials | 5 |
-| 49 | SMTC  | Semtech Corporation | Technology | 5 |
-| 50 | SNPS  | Synopsys, Inc. | Technology | 5 |
+| 2 | ACLN.SW  | ACCELLERON N | Industrials | 5 |
+| 3 | ACS.MC  | ACS,ACTIVIDADES DE CONSTRUCCION | Industrials | 5 |
+| 4 | AJG  | Arthur J. Gallagher & Co. | Financial Services | 5 |
+| 5 | ANET  | Arista Networks, Inc. | Technology | 5 |
+| 6 | APPF  | AppFolio, Inc. | Technology | 5 |
+| 7 | ARES  | Ares Management Corporation | Financial Services | 5 |
+| 8 | ARGX.BR  | ARGENX SE | Healthcare | 5 |
+| 9 | AVGO  | Broadcom Inc. | Technology | 5 |
+| 10 | BFT.WA  | BENEFIT | Consumer Cyclical | 5 |
+| 11 | BPT.L ⚠~ | BRIDGEPOINT GROUP PLC ORD GBP0. | Financial Services | 5 |
+| 12 | BRO  | Brown & Brown, Inc. | Financial Services | 5 |
+| 13 | BROS  | Dutch Bros Inc. | Consumer Cyclical | 5 |
+| 14 | BSX  | Boston Scientific Corporation | Healthcare | 5 |
+| 15 | CAVA  | CAVA Group, Inc. | Consumer Cyclical | 5 |
+| 16 | CDE  | Coeur Mining, Inc. | Basic Materials | 5 |
+| 17 | CELH  | Celsius Holdings, Inc. | Consumer Defensive | 5 |
+| 18 | CORT  | Corcept Therapeutics Incorporat | Healthcare | 5 |
+| 19 | CRWD  | CrowdStrike Holdings, Inc. | Technology | 5 |
+| 20 | CVLT  | Commvault Systems, Inc. | Technology | 5 |
+| 21 | DASH  | DoorDash, Inc. | Consumer Cyclical | 5 |
+| 22 | DDOG  | Datadog, Inc. | Technology | 5 |
+| 23 | DECK  | Deckers Outdoor Corporation | Consumer Cyclical | 5 |
+| 24 | DT  | Dynatrace, Inc. | Technology | 5 |
+| 25 | DUOL  | Duolingo, Inc. | Technology | 5 |
+| 26 | EDV.L  | ENDEAVOUR MINING PLC ORD USD0.0 | Basic Materials | 5 |
+| 27 | ELF  | e.l.f. Beauty, Inc. | Consumer Defensive | 5 |
+| 28 | ENSG  | The Ensign Group, Inc. | Healthcare | 5 |
+| 29 | EVD.DE ⚠~ | CTS Eventim AG & Co. KGaA     I | Communication Services | 5 |
+| 30 | FDJU.PA  | FDJ UNITED | Consumer Cyclical | 5 |
+| 31 | FIX  | Comfort Systems USA, Inc. | Industrials | 5 |
+| 32 | FOUR  | Shift4 Payments, Inc. | Technology | 5 |
+| 33 | FRES.L  | FRESNILLO PLC ORD USD0.50 | Basic Materials | 5 |
+| 34 | FSLR  | First Solar, Inc. | Technology | 5 |
+| 35 | FTI  | TechnipFMC plc | Energy | 5 |
+| 36 | FTK.DE ⚠~ | flatexDEGIRO SE               N | Financial Services | 5 |
+| 37 | GE  | GE Aerospace | Industrials | 5 |
+| 38 | GMAB.CO  | Genmab A/S | Healthcare | 5 |
+| 39 | GMED  | Globus Medical, Inc. | Healthcare | 5 |
+| 40 | GTT.PA  | GAZTRANSPORT & TECHNIGAZ | Energy | 5 |
+| 41 | GWRE  | Guidewire Software, Inc. | Technology | 5 |
+| 42 | HALO  | Halozyme Therapeutics, Inc. | Healthcare | 5 |
+| 43 | HIMS  | Hims & Hers Health, Inc. | Healthcare | 5 |
+| 44 | HL  | Hecla Mining Company | Basic Materials | 5 |
+| 45 | HOOD ⚠~ | Robinhood Markets, Inc. | Financial Services | 5 |
+| 46 | HQY  | HealthEquity, Inc. | Healthcare | 5 |
+| 47 | HUBS  | HubSpot, Inc. | Technology | 5 |
+| 48 | IBKR ⚠~ | Interactive Brokers Group, Inc. | Financial Services | 5 |
+| 49 | IESC  | IES Holdings, Inc. | Industrials | 5 |
+| 50 | ISRG  | Intuitive Surgical, Inc. | Healthcare | 5 |
 
-## Profitability (n=249)
+## Profitability (n=250)
 
 | # | Ticker | Name | Sektor | Score |
 |---|---|---|---|---|
-| 1 | AAPL  | Apple Inc. | Technology | 5 |
-| 2 | ABBV ~ | AbbVie Inc. | Healthcare | 5 |
-| 3 | ACLN.SW  | ACCELLERON N | Industrials | 5 |
+| 1 | ABBV  | AbbVie Inc. | Healthcare | 5 |
+| 2 | ACLN.SW  | ACCELLERON N | Industrials | 5 |
+| 3 | ADYEN.AS ⚠~ | ADYEN | Technology | 5 |
 | 4 | AKER.OL  | AKER | Industrials | 5 |
-| 5 | AMGN  | Amgen Inc. | Healthcare | 5 |
-| 6 | APP  | Applovin Corporation | Communication Services | 5 |
-| 7 | AUTO.L  | AUTOTRADER GROUP PLC ORD 1P | Communication Services | 5 |
-| 8 | AVGO  | Broadcom Inc. | Technology | 5 |
-| 9 | BKNG ~ | Booking Holdings Inc. Common St | Consumer Cyclical | 5 |
-| 10 | BMY  | Bristol-Myers Squibb Company | Healthcare | 5 |
-| 11 | CAT  | Caterpillar, Inc. | Industrials | 5 |
-| 12 | CF  | CF Industries Holdings, Inc. | Basic Materials | 5 |
-| 13 | CHH  | Choice Hotels International, In | Consumer Cyclical | 5 |
-| 14 | CL  | Colgate-Palmolive Company | Consumer Defensive | 5 |
-| 15 | CSG.AS  | CSG N.V. | Industrials | 5 |
-| 16 | EDV.L  | ENDEAVOUR MINING PLC ORD USD0.0 | Basic Materials | 5 |
-| 17 | EXEL  | Exelixis, Inc. | Healthcare | 5 |
-| 18 | FICO ~ | Fair Isaac Corporation | Technology | 5 |
-| 19 | FRES.L  | FRESNILLO PLC ORD USD0.50 | Basic Materials | 5 |
-| 20 | FRO.OL  | FRONTLINE PLC | Energy | 5 |
-| 21 | FTNT  | Fortinet, Inc. | Technology | 5 |
+| 5 | AKRBP.OL  | AKER BP | Energy | 5 |
+| 6 | ANET  | Arista Networks, Inc. | Technology | 5 |
+| 7 | APP  | Applovin Corporation | Communication Services | 5 |
+| 8 | AUTO.L  | AUTOTRADER GROUP PLC ORD 1P | Communication Services | 5 |
+| 9 | BESI.AS  | BE Semiconductor Industries N.V | Technology | 5 |
+| 10 | BKNG ⚠~ | Booking Holdings Inc. Common St | Consumer Cyclical | 5 |
+| 11 | CF  | CF Industries Holdings, Inc. | Basic Materials | 5 |
+| 12 | CL  | Colgate-Palmolive Company | Consumer Defensive | 5 |
+| 13 | CPRT  | Copart, Inc. | Industrials | 5 |
+| 14 | CR  | Crane Company | Industrials | 5 |
+| 15 | EDV.L  | ENDEAVOUR MINING PLC ORD USD0.0 | Basic Materials | 5 |
+| 16 | ELI.BR  | ELIA GROUP | Utilities | 5 |
+| 17 | EVO.ST  | Evolution AB | Consumer Cyclical | 5 |
+| 18 | EXEL  | Exelixis, Inc. | Healthcare | 5 |
+| 19 | FICO  | Fair Isaac Corporation | Technology | 5 |
+| 20 | FRES.L  | FRESNILLO PLC ORD USD0.50 | Basic Materials | 5 |
+| 21 | FRO.OL  | FRONTLINE PLC | Energy | 5 |
 | 22 | GAW.L  | GAMES WORKSHOP GROUP PLC ORD 5P | Consumer Cyclical | 5 |
-| 23 | GEBN.SW  | GEBERIT N | Industrials | 5 |
+| 23 | GGG  | Graco Inc. | Industrials | 5 |
 | 24 | GTT.PA  | GAZTRANSPORT & TECHNIGAZ | Energy | 5 |
 | 25 | HALO  | Halozyme Therapeutics, Inc. | Healthcare | 5 |
-| 26 | HAS  | Hasbro, Inc. | Consumer Cyclical | 5 |
-| 27 | HLT ~ | Hilton Worldwide Holdings Inc. | Consumer Cyclical | 5 |
-| 28 | HOC.L  | HOCHSCHILD MINING PLC ORD 1P | Basic Materials | 5 |
-| 29 | HRB  | H&R Block, Inc. | Consumer Cyclical | 5 |
-| 30 | HWM  | Howmet Aerospace Inc. | Industrials | 5 |
+| 26 | HLT  | Hilton Worldwide Holdings Inc. | Consumer Cyclical | 5 |
+| 27 | HOC.L  | HOCHSCHILD MINING PLC ORD 1P | Basic Materials | 5 |
+| 28 | HRB  | H&R Block, Inc. | Consumer Cyclical | 5 |
+| 29 | HSY  | The Hershey Company | Consumer Defensive | 5 |
+| 30 | IDCC  | InterDigital, Inc. | Technology | 5 |
 | 31 | IDXX  | IDEXX Laboratories, Inc. | Healthcare | 5 |
-| 32 | INCY  | Incyte Corporation | Healthcare | 5 |
-| 33 | ITW  | Illinois Tool Works Inc. | Industrials | 5 |
-| 34 | KLAC  | KLA Corporation | Technology | 5 |
+| 32 | IHG.L  | INTERCONTINENTAL HOTELS GROUP P | Consumer Cyclical | 5 |
+| 33 | INCY  | Incyte Corporation | Healthcare | 5 |
+| 34 | ITW  | Illinois Tool Works Inc. | Industrials | 5 |
 | 35 | KO  | Coca-Cola Company (The) | Consumer Defensive | 5 |
-| 36 | LII  | Lennox International, Inc. | Industrials | 5 |
+| 36 | KRYS ⚠ | Krystal Biotech, Inc. | Healthcare | 5 |
 | 37 | LLY  | Eli Lilly and Company | Healthcare | 5 |
-| 38 | MA  | Mastercard Incorporated | Financial Services | 5 |
-| 39 | MAR ~ | Marriott International | Consumer Cyclical | 5 |
-| 40 | MCD ~ | McDonald's Corporation | Consumer Cyclical | 5 |
-| 41 | MO ~ | Altria Group, Inc. | Consumer Defensive | 5 |
-| 42 | MU  | Micron Technology, Inc. | Technology | 5 |
-| 43 | NEM  | Newmont Corporation | Basic Materials | 5 |
-| 44 | NOVO-B.CO  | Novo Nordisk B A/S | Healthcare | 5 |
-| 45 | NVDA  | NVIDIA Corporation | Technology | 5 |
-| 46 | ORNBV.HE  | Orion Corporation B | Healthcare | 5 |
-| 47 | PAF.L  | PAN AFRICAN RESOURCES PLC ORD 1 | Basic Materials | 5 |
-| 48 | PGHN.SW  | PARTNERS GROUP N | Financial Services | 5 |
-| 49 | PLNT ~ | Planet Fitness, Inc. | Consumer Cyclical | 5 |
-| 50 | PM ~ | Philip Morris International Inc | Consumer Defensive | 5 |
+| 38 | LOPE  | Grand Canyon Education, Inc. | Consumer Defensive | 5 |
+| 39 | MA  | Mastercard Incorporated | Financial Services | 5 |
+| 40 | MAR  | Marriott International | Consumer Cyclical | 5 |
+| 41 | MNST  | Monster Beverage Corporation | Consumer Defensive | 5 |
+| 42 | MO  | Altria Group, Inc. | Consumer Defensive | 5 |
+| 43 | MU  | Micron Technology, Inc. | Technology | 5 |
+| 44 | MYCR.ST  | Mycronic AB | Industrials | 5 |
+| 45 | NEM  | Newmont Corporation | Basic Materials | 5 |
+| 46 | NOVO-B.CO  | Novo Nordisk B A/S | Healthcare | 5 |
+| 47 | NVDA  | NVIDIA Corporation | Technology | 5 |
+| 48 | ODFL  | Old Dominion Freight Line, Inc. | Industrials | 5 |
+| 49 | PAF.L  | PAN AFRICAN RESOURCES PLC ORD 1 | Basic Materials | 5 |
+| 50 | PLTR  | Palantir Technologies Inc. | Technology | 5 |
 
 ## Management
 
@@ -453,57 +573,57 @@ universum_size: 995
 
 *n/a — keine R&D-Daten; verschoben auf Deep Dive (kein Merit-Score).*
 
-## Resilience (n=201)
+## Resilience (n=274)
 
 | # | Ticker | Name | Sektor | Score |
 |---|---|---|---|---|
-| 1 | ABNB  | Airbnb, Inc. | Consumer Cyclical | 5 |
-| 2 | ABVX.PA ⚠ | ABIVAX | Healthcare | 5 |
-| 3 | BEAN.SW  | BELIMO N | Industrials | 5 |
-| 4 | BEI.DE  | BEIERSDORF AG                 I | Consumer Defensive | 5 |
-| 5 | BKNG ~ | Booking Holdings Inc. Common St | Consumer Cyclical | 5 |
-| 6 | CART  | Maplebear Inc. | Consumer Cyclical | 5 |
-| 7 | CDR.WA  | CDPROJEKT | Communication Services | 5 |
-| 8 | CME  | CME Group Inc. | Financial Services | 5 |
-| 9 | CORT  | Corcept Therapeutics Incorporat | Healthcare | 5 |
-| 10 | CSGP ⌖ | CoStar Group, Inc. | Real Estate | 5 |
-| 11 | DLB  | Dolby Laboratories | Industrials | 5 |
-| 12 | DOCS  | Doximity, Inc. | Healthcare | 5 |
-| 13 | EDPR.LS ⚠ | EDP RENEWABLES, SA | Utilities | 5 |
-| 14 | EVO.ST  | Evolution AB | Consumer Cyclical | 5 |
-| 15 | EXEL  | Exelixis, Inc. | Healthcare | 5 |
-| 16 | FICO ~ | Fair Isaac Corporation | Technology | 5 |
-| 17 | FRES.L  | FRESNILLO PLC ORD USD0.50 | Basic Materials | 5 |
-| 18 | GAW.L  | GAMES WORKSHOP GROUP PLC ORD 5P | Consumer Cyclical | 5 |
-| 19 | GGG  | Graco Inc. | Industrials | 5 |
-| 20 | GTT.PA  | GAZTRANSPORT & TECHNIGAZ | Energy | 5 |
-| 21 | HL  | Hecla Mining Company | Basic Materials | 5 |
-| 22 | HLT ~ | Hilton Worldwide Holdings Inc. | Consumer Cyclical | 5 |
-| 23 | KCR.HE  | Konecranes Plc | Industrials | 5 |
-| 24 | KRYS ⚠ | Krystal Biotech, Inc. | Healthcare | 5 |
-| 25 | LUND-B.ST  | Lundbergföretagen AB, L E ser. | Industrials | 5 |
-| 26 | MAR ~ | Marriott International | Consumer Cyclical | 5 |
-| 27 | MO ~ | Altria Group, Inc. | Consumer Defensive | 5 |
-| 28 | MYCR.ST  | Mycronic AB | Industrials | 5 |
-| 29 | NEM  | Newmont Corporation | Basic Materials | 5 |
-| 30 | OKTA  | Okta, Inc. | Technology | 5 |
-| 31 | PATH  | UiPath, Inc. | Technology | 5 |
-| 32 | PLTR  | Palantir Technologies Inc. | Technology | 5 |
-| 33 | PM ~ | Philip Morris International Inc | Consumer Defensive | 5 |
-| 34 | PUIG.MC  | PUIG BRANDS, S.A. CLASE B | Consumer Defensive | 5 |
-| 35 | RAA.DE  | RATIONAL AG                   I | Industrials | 5 |
-| 36 | RDDT  | Reddit, Inc. | Communication Services | 5 |
-| 37 | RED.MC  | REDEIA CORPORACION, S.A. | Utilities | 5 |
-| 38 | RGLD  | Royal Gold, Inc. | Basic Materials | 5 |
-| 39 | RMBS  | Rambus, Inc. | Technology | 5 |
-| 40 | RMS.PA  | HERMES INTL | Consumer Cyclical | 5 |
-| 41 | RMV.L  | RIGHTMOVE PLC ORD 0.1P | Communication Services | 5 |
-| 42 | ROCK-B.CO ~ | Rockwool A/S ser. B | Industrials | 5 |
-| 43 | ROR.L  | ROTORK PLC ORD 0.5P | Industrials | 5 |
-| 44 | SCA-B.ST  | Svenska Cellulosa AB SCA ser. B | Basic Materials | 5 |
-| 45 | TDG ~ | Transdigm Group Incorporated | Industrials | 5 |
-| 46 | TPL  | Texas Pacific Land Corporation | Energy | 5 |
-| 47 | UHR.SW  | SWATCH GROUP I | Consumer Cyclical | 5 |
-| 48 | UTHR ~ | United Therapeutics Corporation | Healthcare | 5 |
-| 49 | VNOM  | Viper Energy, Inc. | Energy | 5 |
-| 50 | VRSK ~ | Verisk Analytics, Inc. | Industrials | 5 |
+| 1 | ABNB ⚠~ | Airbnb, Inc. | Consumer Cyclical | 5 |
+| 2 | ADBE  | Adobe Inc. | Technology | 5 |
+| 3 | ADSK  | Autodesk, Inc. | Technology | 5 |
+| 4 | AKRBP.OL  | AKER BP | Energy | 5 |
+| 5 | ANDR.VI  | Andritz AG | Industrials | 5 |
+| 6 | APP  | Applovin Corporation | Communication Services | 5 |
+| 7 | BEI.DE  | BEIERSDORF AG                 I | Consumer Defensive | 5 |
+| 8 | BILL  | BILL Holdings, Inc. | Technology | 5 |
+| 9 | BKNG ⚠~ | Booking Holdings Inc. Common St | Consumer Cyclical | 5 |
+| 10 | CART  | Maplebear Inc. | Consumer Cyclical | 5 |
+| 11 | CDE  | Coeur Mining, Inc. | Basic Materials | 5 |
+| 12 | CDNS  | Cadence Design Systems, Inc. | Technology | 5 |
+| 13 | CDR.WA  | CDPROJEKT | Communication Services | 5 |
+| 14 | CFR.SW  | RICHEMONT N | Consumer Cyclical | 5 |
+| 15 | CME  | CME Group Inc. | Financial Services | 5 |
+| 16 | CORT  | Corcept Therapeutics Incorporat | Healthcare | 5 |
+| 17 | CRWD  | CrowdStrike Holdings, Inc. | Technology | 5 |
+| 18 | CSGP ⌖ | CoStar Group, Inc. | Real Estate | 5 |
+| 19 | CVLT  | Commvault Systems, Inc. | Technology | 5 |
+| 20 | DDOG  | Datadog, Inc. | Technology | 5 |
+| 21 | DLB  | Dolby Laboratories | Industrials | 5 |
+| 22 | DOCS  | Doximity, Inc. | Healthcare | 5 |
+| 23 | DOCU  | DocuSign, Inc. | Technology | 5 |
+| 24 | DSY.PA  | DASSAULT SYSTEMES | Technology | 5 |
+| 25 | DT  | Dynatrace, Inc. | Technology | 5 |
+| 26 | EDV.L  | ENDEAVOUR MINING PLC ORD USD0.0 | Basic Materials | 5 |
+| 27 | EVO.ST  | Evolution AB | Consumer Cyclical | 5 |
+| 28 | EW  | Edwards Lifesciences Corporatio | Healthcare | 5 |
+| 29 | EXEL  | Exelixis, Inc. | Healthcare | 5 |
+| 30 | EXPE  | Expedia Group, Inc. | Consumer Cyclical | 5 |
+| 31 | FFIV  | F5, Inc. | Technology | 5 |
+| 32 | FRES.L  | FRESNILLO PLC ORD USD0.50 | Basic Materials | 5 |
+| 33 | FTNT ⚠~ | Fortinet, Inc. | Technology | 5 |
+| 34 | GAW.L  | GAMES WORKSHOP GROUP PLC ORD 5P | Consumer Cyclical | 5 |
+| 35 | GGG  | Graco Inc. | Industrials | 5 |
+| 36 | GTT.PA  | GAZTRANSPORT & TECHNIGAZ | Energy | 5 |
+| 37 | HL  | Hecla Mining Company | Basic Materials | 5 |
+| 38 | HUBS  | HubSpot, Inc. | Technology | 5 |
+| 39 | IDCC  | InterDigital, Inc. | Technology | 5 |
+| 40 | IPN.PA  | IPSEN | Healthcare | 5 |
+| 41 | KNEBV.HE  | KONE Corporation | Industrials | 5 |
+| 42 | KOG.OL  | KONGSBERG GRUPPEN | Industrials | 5 |
+| 43 | KRYS ⚠ | Krystal Biotech, Inc. | Healthcare | 5 |
+| 44 | MA  | Mastercard Incorporated | Financial Services | 5 |
+| 45 | META  | Meta Platforms, Inc. | Communication Services | 5 |
+| 46 | MNST  | Monster Beverage Corporation | Consumer Defensive | 5 |
+| 47 | MONC.MI  | MONCLER | Consumer Cyclical | 5 |
+| 48 | MU  | Micron Technology, Inc. | Technology | 5 |
+| 49 | MYCR.ST  | Mycronic AB | Industrials | 5 |
+| 50 | NEM  | Newmont Corporation | Basic Materials | 5 |
