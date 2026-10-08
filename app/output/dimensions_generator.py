@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import frontmatter
 
 from app.output.crosshits_generator import _flags
+from app.output.report_header import prepend_prior_run_warning
 from app.screener.dimensions import DIMENSIONS, is_crosshit, qualifying_dimensions
 
 if TYPE_CHECKING:
@@ -36,6 +37,7 @@ def generate(
     score_threshold: float = 4.0,
     min_dimensions: int = 2,
     cap: int = 50,
+    prior_run_warning: str | None = None,
 ) -> Path:
     universum_dir = output_dir / "Universum"
     universum_dir.mkdir(parents=True, exist_ok=True)
@@ -59,6 +61,7 @@ def generate(
         "crosshits": crosshits,
     }
     body = _build_markdown_body(dim_data, scored, run_month, score_threshold, cap)
+    body = prepend_prior_run_warning(body, prior_run_warning)
 
     post = frontmatter.Post(body)
     post.metadata.update(metadata)

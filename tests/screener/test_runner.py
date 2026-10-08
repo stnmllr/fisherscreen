@@ -1264,3 +1264,25 @@ def test_revenue_prepass_no_fetch_when_gross_margin_fails():
     result = run_basis_filter(["LOWGM"], mock)
     mock.get_annual_statements.assert_not_called()
     assert result.resolved[0].filter_failed_reason == "gross_margin"
+
+
+def test_run_screener_renders_prior_run_warning_in_three_markdowns(tmp_path):
+    from app.screener.runner import run_screener
+
+    yfinance, edgar, revenue_cache, tracker = _full_mock_suite()
+    warning = "> ⚠️ **Vorlauf unvollständig:** Lauf X endete mit `aborted`."
+
+    _, _, paths = run_screener(
+        tickers=["AAPL"],
+        yfinance=yfinance,
+        edgar=edgar,
+        revenue_cache=revenue_cache,
+        run_tracker=tracker,
+        output_dir=tmp_path,
+        prior_run_warning=warning,
+    )
+
+    markdowns = [p for p in paths if p.suffix == ".md"]
+    assert len(markdowns) == 3
+    for path in markdowns:
+        assert warning in path.read_text(encoding="utf-8")

@@ -61,3 +61,10 @@ def test_viewer_catchable_as_base():
 
     with pytest.raises(FisherScreenError):
         raise ViewerError("dossier directory not found")
+
+
+def test_output_error_catchable_as_base():
+    from app.errors import OutputError
+
+    with pytest.raises(FisherScreenError):
+        raise OutputError("output file missing")

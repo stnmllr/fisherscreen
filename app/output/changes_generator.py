@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import frontmatter
 
+from app.output.report_header import prepend_prior_run_warning
 from app.screener.dimensions import DIMENSIONS
 
 if TYPE_CHECKING:
@@ -23,6 +24,7 @@ def generate(
     *,
     score_threshold: float = 4.0,
     cap: int = 50,
+    prior_run_warning: str | None = None,
 ) -> Path:
     universum_dir = output_dir / "Universum"
     universum_dir.mkdir(parents=True, exist_ok=True)
@@ -33,6 +35,7 @@ def generate(
     current_dim_tickers = _compute_current_dim_tickers(records, score_threshold, cap)
     prior_result = _load_prior_frontmatter(universum_dir, run_month)
     body = _build_body(run_month, current_dim_tickers, prior_result)
+    body = prepend_prior_run_warning(body, prior_run_warning)
     out_path.write_text(body, encoding="utf-8")
 
     logger.info("changes: wrote %s", out_path.name)

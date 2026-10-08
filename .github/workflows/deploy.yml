@@ -6,6 +6,15 @@ on:
     paths-ignore:
       - 'output/**'
 
+# Shared between the service and the monthly job: both run the same image with the
+# same identity, secrets and env vars. Defined once so the two deploys cannot drift.
+env:
+  REGION: europe-west3
+  IMAGE: europe-west3-docker.pkg.dev/fisherscreen-prod/fisherscreen/app:${{ github.sha }}
+  RUNTIME_SA: fisherscreen-runtime@fisherscreen-prod.iam.gserviceaccount.com
+  RUNTIME_SECRETS: FISHERSCREEN_GEMINI_API_KEY=fisherscreen-gemini-api-key:latest,FISHERSCREEN_GITHUB_TOKEN=fisherscreen-github-token:latest
+  RUNTIME_ENV_VARS: FISHERSCREEN_GCP_PROJECT_ID=fisherscreen-prod,FISHERSCREEN_GITHUB_REPO=stnmllr/fisherscreen,FISHERSCREEN_EDGAR_USER_AGENT=FisherScreen/1.0 stn.mueller@gmail.com
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -26,16 +35,42 @@ jobs:
 
       - name: Build and push image
         run: |
-          gcloud builds submit --tag europe-west3-docker.pkg.dev/fisherscreen-prod/fisherscreen/app:${{ github.sha }}
+          gcloud builds submit --tag "$IMAGE"
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy fisherscreen-service \
-            --image europe-west3-docker.pkg.dev/fisherscreen-prod/fisherscreen/app:${{ github.sha }} \
-            --region europe-west3 \
+            --image "$IMAGE" \
+            --region "$REGION" \
             --platform managed \
             --no-allow-unauthenticated \
-            --set-secrets "FISHERSCREEN_GEMINI_API_KEY=fisherscreen-gemini-api-key:latest,FISHERSCREEN_GITHUB_TOKEN=fisherscreen-github-token:latest" \
-            --service-account=fisherscreen-runtime@fisherscreen-prod.iam.gserviceaccount.com \
-            --set-env-vars "FISHERSCREEN_GCP_PROJECT_ID=fisherscreen-prod,FISHERSCREEN_GITHUB_REPO=stnmllr/fisherscreen,FISHERSCREEN_EDGAR_USER_AGENT=FisherScreen/1.0 stn.mueller@gmail.com" \
+            --set-secrets "$RUNTIME_SECRETS" \
+            --service-account="$RUNTIME_SA" \
+            --set-env-vars "$RUNTIME_ENV_VARS" \
             --timeout=3600
+
+      # Monthly Tool-A run as a Cloud Run Job (Cloud Scheduler -> jobs:run), decoupled
+      # from the 1800 s Scheduler-HTTP and 3600 s request deadlines.
+      # Spec: docs/superpowers/specs/2026-10-08-monthly-run-deadline-design.md
+      # `jobs deploy` creates the job if missing, else updates it — so the first deploy
+      # after the merge does not depend on a manual `jobs create`.
+      #
+      # Entrypoint is the venv interpreter, NOT `uv run`: pyproject sets
+      # default-groups = ["dev"] and the image is built with `uv sync --no-dev`, so
+      # `uv run` would re-sync at container start and pull the dev group (pytest, black)
+      # from PyPI on every execution. The venv python has exactly the frozen prod deps.
+      # The whole invocation lives in --command so an execution can append flags via
+      # `gcloud run jobs execute ... --args=--dry-run` without repeating the module.
+      # Resources: defaults (1 vCPU / 512 Mi), mirroring the service.
+      - name: Deploy monthly job
+        run: |
+          gcloud run jobs deploy fisherscreen-monthly-job \
+            --image "$IMAGE" \
+            --region "$REGION" \
+            --set-secrets "$RUNTIME_SECRETS" \
+            --service-account="$RUNTIME_SA" \
+            --set-env-vars "$RUNTIME_ENV_VARS" \
+            --command="/app/.venv/bin/python,-m,app.monthly_job" \
+            --tasks=1 \
+            --max-retries=0 \
+            --task-timeout=7200

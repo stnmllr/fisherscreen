@@ -269,3 +269,25 @@ def test_frontmatter_qualifying_count_is_pre_cap(tmp_path):
     path = generate(records, _run_record(), tmp_path, score_threshold=4.0, cap=50)
     post = frontmatter.load(str(path))
     assert post.metadata["dimensions"]["growth"]["qualifying_count"] == 60
+
+
+_PRIOR_RUN_WARNING = "> ⚠️ **Vorlauf unvollständig:** Lauf X endete mit `running`."
+
+
+def test_prior_run_warning_is_first_body_line(tmp_path):
+    path = generate(
+        [_record("AAPL", growth=5, profitability=4)],
+        _run_record(),
+        tmp_path,
+        prior_run_warning=_PRIOR_RUN_WARNING,
+    )
+    post = frontmatter.load(str(path))
+    assert post.content.startswith(_PRIOR_RUN_WARNING + "\n\n# Universum")
+    assert post.metadata["run_id"] == "2026-05-13T08:00:00+00:00"
+
+
+def test_no_prior_run_warning_by_default(tmp_path):
+    path = generate([_record("AAPL", growth=5)], _run_record(), tmp_path)
+    post = frontmatter.load(str(path))
+    assert post.content.startswith("# Universum")
+    assert "Vorlauf" not in post.content

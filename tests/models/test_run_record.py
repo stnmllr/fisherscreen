@@ -48,3 +48,15 @@ def test_model_dump_serializes_datetimes_as_strings():
     assert data["run_id"] == "test"
     assert data["status"] == "partial"
     assert isinstance(data["started_at"], str)
+
+
+def test_status_accepts_running_marker():
+    record = RunRecord(run_id="test", status="running")
+    assert record.status == "running"
+
+
+def test_status_rejects_unknown_value():
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        RunRecord(run_id="test", status="exploded")

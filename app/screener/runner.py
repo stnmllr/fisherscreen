@@ -521,6 +521,7 @@ def run_screener(
     score_threshold: float | None = None,
     crosshits_min_dimensions: int | None = None,
     crosshits_cap: int | None = None,
+    prior_run_warning: str | None = None,
 ) -> tuple[list[ScreenerRecord], "RunRecord", list[Path]]:
     from app.config import settings
     from app.output.changes_generator import generate as generate_changes
@@ -571,6 +572,7 @@ def run_screener(
             score_threshold=threshold,
             min_dimensions=min_dims,
             cap=cap,
+            prior_run_warning=prior_run_warning,
         ),
         generate_crosshits(
             scored,
@@ -580,9 +582,15 @@ def run_screener(
             min_dimensions=min_dims,
             cap=cap,
             header=header,
+            prior_run_warning=prior_run_warning,
         ),
         generate_changes(
-            scored, run_record, output_dir, score_threshold=threshold, cap=cap
+            scored,
+            run_record,
+            output_dir,
+            score_threshold=threshold,
+            cap=cap,
+            prior_run_warning=prior_run_warning,
         ),
         *funnel_paths,
     ]

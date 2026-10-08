@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
 COST_PER_1M_INPUT_USD = 0.10
 COST_PER_1M_OUTPUT_USD = 0.40
+
+# "running" is the start marker RunTracker.start() writes; finish() overwrites
+# it with a final status. A doc still "running" later means the run crashed or
+# was killed before finish().
+FinalRunStatus = Literal["success", "partial", "aborted"]
+RunStatus = Literal["running", "success", "partial", "aborted"]
 
 
 class RunRecord(BaseModel):
@@ -15,7 +22,7 @@ class RunRecord(BaseModel):
     tokens_in_total: int = 0
     tokens_out_total: int = 0
     estimated_cost_usd: float = 0.0
-    status: str = "success"  # "success" | "partial" | "aborted"
+    status: RunStatus = "success"
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: datetime | None = None
     # Betriebszahlen der Stetigkeits-Achse. Der Scoring-Pfad laedt NIE nach
@@ -24,6 +31,9 @@ class RunRecord(BaseModel):
     # ist -- siehe docs/infra/annual-series-backfill.md.
     steadiness_stale: int = 0
     steadiness_missing: int = 0
+    # Set only by RunTracker.mark_failed_after_finish(): the run finished
+    # scoring but failed while rendering or pushing its outputs.
+    failure_reason: str | None = None
 
     def compute_cost(self) -> float:
         return (self.tokens_in_total / 1_000_000 * COST_PER_1M_INPUT_USD) + (

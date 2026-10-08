@@ -757,3 +757,25 @@ def test_a_flagged_title_that_is_a_crosshit_is_not_listed_as_failed(tmp_path):
         "utf-8"
     )
     assert _LEVERAGE_HEADING not in text
+
+
+_PRIOR_RUN_WARNING = "> ⚠️ **Vorlauf unvollständig:** Lauf X endete mit `running`."
+
+
+def test_prior_run_warning_is_first_line(tmp_path):
+    path = generate(
+        [_record("AAPL", growth=5, profitability=4)],
+        _run_record(),
+        tmp_path,
+        header="## Lauf-Übersicht",
+        prior_run_warning=_PRIOR_RUN_WARNING,
+    )
+    content = path.read_text(encoding="utf-8")
+    assert content.startswith(_PRIOR_RUN_WARNING + "\n\n# Universum")
+
+
+def test_no_prior_run_warning_by_default(tmp_path):
+    path = generate([_record("AAPL", growth=5)], _run_record(), tmp_path)
+    content = path.read_text(encoding="utf-8")
+    assert content.startswith("# Universum")
+    assert "Vorlauf" not in content
