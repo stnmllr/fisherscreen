@@ -72,6 +72,12 @@ crosshits:
   - growth
   - profitability
   - resilience
+  ticker: RAA.DE
+- avg_score: 4.67
+  dimensions:
+  - growth
+  - profitability
+  - resilience
   ticker: RDDT
 - avg_score: 4.67
   dimensions:
@@ -79,6 +85,12 @@ crosshits:
   - profitability
   - resilience
   ticker: RMS.PA
+- avg_score: 4.67
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: RMV.L
 - avg_score: 4.67
   dimensions:
   - growth
@@ -114,7 +126,19 @@ crosshits:
   - growth
   - profitability
   - resilience
+  ticker: AUTO.L
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
   ticker: CPRT
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: CR
 - avg_score: 4.33
   dimensions:
   - growth
@@ -144,6 +168,12 @@ crosshits:
   - growth
   - profitability
   - resilience
+  ticker: IPN.PA
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
   ticker: ISRG
 - avg_score: 4.33
   dimensions:
@@ -151,6 +181,12 @@ crosshits:
   - profitability
   - resilience
   ticker: KOG.OL
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: LOPE
 - avg_score: 4.33
   dimensions:
   - growth
@@ -174,7 +210,19 @@ crosshits:
   - growth
   - profitability
   - resilience
+  ticker: VRSK
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
   ticker: VRT
+- avg_score: 4.33
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: WTS
 - avg_score: 4.0
   dimensions:
   - growth
@@ -192,6 +240,12 @@ crosshits:
   - growth
   - profitability
   - resilience
+  ticker: ASM.AS
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
   ticker: ASML.AS
 - avg_score: 4.0
   dimensions:
@@ -204,7 +258,25 @@ crosshits:
   - growth
   - profitability
   - resilience
+  ticker: BELA.AT
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: CTAS
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
   ticker: EQT.ST
+- avg_score: 4.0
+  dimensions:
+  - growth
+  - profitability
+  - resilience
+  ticker: FAST
 - avg_score: 4.0
   dimensions:
   - growth
@@ -229,57 +301,9 @@ crosshits:
   - profitability
   - resilience
   ticker: GRMN
-- avg_score: 4.0
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: KLAC
-- avg_score: 4.0
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: MSFT
-- avg_score: 4.0
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: NOVN.SW
-- avg_score: 4.0
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: ORNBV.HE
-- avg_score: 4.0
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: RACE.MI
-- avg_score: 4.0
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: RMD
-- avg_score: 4.0
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: UCB.BR
-- avg_score: 4.0
-  dimensions:
-  - growth
-  - profitability
-  - resilience
-  ticker: VZN.SW
 dimensions:
   growth:
-    qualifying_count: 295
+    qualifying_count: 448
     tickers:
     - AAON
     - ACLN.SW
@@ -443,8 +467,8 @@ dimensions:
     - MU
     - MYCR.ST
     - NEM
-generated_at: '2026-10-08T15:32:03.929818+00:00'
-run_id: '2026-10-08T14:58:24.695943+00:00'
+generated_at: '2026-10-08T19:29:25.698359+00:00'
+run_id: '2026-10-08T19:20:01.032210+00:00'
 score_threshold: 4.0
 universum_size: 994
 ---
@@ -455,7 +479,7 @@ universum_size: 994
 
 ---
 
-## Growth (n=295)
+## Growth (n=448)
 
 | # | Ticker | Name | Sektor | Score |
 |---|---|---|---|---|
