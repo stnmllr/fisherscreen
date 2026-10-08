@@ -59,25 +59,22 @@ def test_full_run_returns_run_record_dump() -> None:
     assert run.call_args.kwargs["tickers"] == ["AAPL", "MSFT"]
 
 
-def test_full_run_pushes_each_existing_output_and_skips_missing(
-    tmp_path: Path,
-) -> None:
-    existing = tmp_path / "2026-11-Dimensions.md"
-    existing.write_text("# dims", encoding="utf-8")
-    missing = tmp_path / "2026-11-Crosshits.md"
+def test_full_run_pushes_each_output_file(tmp_path: Path) -> None:
+    dims = tmp_path / "2026-11-Dimensions.md"
+    dims.write_text("# dims", encoding="utf-8")
+    cross = tmp_path / "2026-11-Crosshits.md"
+    cross.write_text("# cross", encoding="utf-8")
     github = MagicMock()
 
     with (
         _patched_builders(github=github),
-        patch.object(
-            monthly, "run_screener", return_value=_run_result([existing, missing])
-        ),
+        patch.object(monthly, "run_screener", return_value=_run_result([dims, cross])),
     ):
         run_monthly_pipeline()
 
-    github.push_file.assert_called_once()
-    path_arg, content_arg, message_arg = github.push_file.call_args[0]
-    assert path_arg == existing.as_posix()
+    assert github.push_file.call_count == 2
+    path_arg, content_arg, message_arg = github.push_file.call_args_list[0][0]
+    assert path_arg == dims.as_posix()
     assert content_arg == "# dims"
     assert message_arg == "chore: monthly screener output 2026-11 [skip ci]"
 
@@ -164,3 +161,118 @@ def test_prior_status_read_failure_does_not_abort_run() -> None:
         "> ⚠️ **Vorlauf nicht geprüft:**"
     )
     tracker.start.assert_called_once()
+
+
+def _finishing_tracker() -> MagicMock:
+    tracker = MagicMock()
+    tracker.latest_prior_run.return_value = None
+    tracker.finished = True
+    return tracker
+
+
+def test_push_failure_marks_run_aborted_and_propagates(tmp_path: Path) -> None:
+    import pytest
+
+    from app.errors import DataSourceError
+
+    output = tmp_path / "2026-11-Dimensions.md"
+    output.write_text("# dims", encoding="utf-8")
+    github = MagicMock()
+    github.push_file.side_effect = DataSourceError("GitHub push failed: 409")
+    tracker = _finishing_tracker()
+
+    with (
+        _patched_builders(github=github, tracker=tracker),
+        patch.object(monthly, "run_screener", return_value=_run_result([output])),
+        pytest.raises(DataSourceError, match="409"),
+    ):
+        run_monthly_pipeline()
+
+    tracker.mark_failed_after_finish.assert_called_once()
+    reason = tracker.mark_failed_after_finish.call_args[0][0]
+    assert "DataSourceError" in reason and "409" in reason
+
+
+def test_missing_output_marks_run_aborted_and_raises(tmp_path: Path) -> None:
+    import pytest
+
+    from app.errors import OutputError
+
+    present = tmp_path / "2026-11-Dimensions.md"
+    present.write_text("# dims", encoding="utf-8")
+    missing = tmp_path / "2026-11-Crosshits.md"
+    github = MagicMock()
+    tracker = _finishing_tracker()
+
+    with (
+        _patched_builders(github=github, tracker=tracker),
+        patch.object(
+            monthly, "run_screener", return_value=_run_result([present, missing])
+        ),
+        pytest.raises(OutputError, match="Crosshits"),
+    ):
+        run_monthly_pipeline()
+
+    tracker.mark_failed_after_finish.assert_called_once()
+    assert "OutputError" in tracker.mark_failed_after_finish.call_args[0][0]
+    github.push_file.assert_not_called()  # checked before any push
+
+
+def test_failure_before_finish_leaves_running_marker(tmp_path: Path) -> None:
+    import pytest
+
+    tracker = _finishing_tracker()
+    tracker.finished = False
+
+    with (
+        _patched_builders(tracker=tracker),
+        patch.object(monthly, "run_screener", side_effect=ValueError("scoring")),
+        pytest.raises(ValueError),
+    ):
+        run_monthly_pipeline()
+
+    tracker.mark_failed_after_finish.assert_not_called()
+
+
+def test_persist_failure_logs_both_causes_and_reraises_original(
+    tmp_path: Path, caplog
+) -> None:
+    import logging
+
+    import pytest
+
+    from app.errors import DataSourceError
+
+    output = tmp_path / "2026-11-Dimensions.md"
+    output.write_text("# dims", encoding="utf-8")
+    github = MagicMock()
+    github.push_file.side_effect = DataSourceError("GitHub push failed: 409")
+    tracker = _finishing_tracker()
+    tracker.mark_failed_after_finish.side_effect = DataSourceError(
+        "Firestore set failed: down"
+    )
+
+    with (
+        caplog.at_level(logging.ERROR),
+        _patched_builders(github=github, tracker=tracker),
+        patch.object(monthly, "run_screener", return_value=_run_result([output])),
+        pytest.raises(DataSourceError, match="409"),
+    ):
+        run_monthly_pipeline()
+
+    messages = " ".join(r.getMessage() for r in caplog.records)
+    assert "409" in messages and "Firestore set failed: down" in messages
+
+
+def test_happy_path_does_not_mark_failed(tmp_path: Path) -> None:
+    output = tmp_path / "2026-11-Dimensions.md"
+    output.write_text("# dims", encoding="utf-8")
+    tracker = _finishing_tracker()
+    with (
+        _patched_builders(tracker=tracker),
+        patch.object(monthly, "run_screener", return_value=_run_result([output])),
+    ):
+        result = run_monthly_pipeline()
+
+    assert result["status"] == "success"
+    tracker.mark_failed_after_finish.assert_not_called()

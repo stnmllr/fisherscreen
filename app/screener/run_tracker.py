@@ -24,6 +24,7 @@ class RunTracker:
         self._tokens_in = 0
         self._tokens_out = 0
         self._started = False
+        self._record: RunRecord | None = None
         self._finished = False
         self._truncated = False
         self._steadiness_stale = 0
@@ -55,6 +56,26 @@ class RunTracker:
             self._collection, self._run_id, marker.model_dump(mode="json")
         )
         logger.info("run=%s status=running (start marker written)", self._run_id)
+
+    @property
+    def finished(self) -> bool:
+        return self._finished
+
+    def mark_failed_after_finish(self, reason: str) -> RunRecord:
+        """Overwrite this run's doc with status="aborted" and `failure_reason`.
+
+        For failures after finish() already wrote "success" (rendering, push),
+        so the next run still sees the failure. Firestore errors propagate."""
+        if self._record is None:
+            raise RuntimeError("mark_failed_after_finish() requires finish() first")
+        aborted = self._record.model_copy(
+            update={"status": "aborted", "failure_reason": reason}
+        )
+        self._firestore.set(
+            self._collection, self._run_id, aborted.model_dump(mode="json")
+        )
+        logger.error("run=%s status=aborted after finish: %s", self._run_id, reason)
+        return aborted
 
     def record_ticker(self, tokens_in: int, tokens_out: int) -> None:
         self._tickers_processed += 1
@@ -97,6 +118,7 @@ class RunTracker:
             steadiness_missing=self._steadiness_missing,
         )
         record.estimated_cost_usd = record.compute_cost()
+        self._record = record
         # Firestore failure propagates intentionally — fail loud (CLAUDE.md convention)
         self._firestore.set(
             self._collection, self._run_id, record.model_dump(mode="json")

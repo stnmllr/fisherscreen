@@ -29,3 +29,9 @@ class ViewerError(FisherScreenError):
     """Raised on viewer/static-site failures: unreadable input directory,
     unrenderable dossier set. Never raised for a single malformed dossier —
     those are skipped with a warning so one bad file cannot abort a build."""
+
+
+class OutputError(FisherScreenError):
+    """Raised when the monthly run cannot deliver its outputs, e.g. a rendered
+    file is missing before the GitHub push. Fails the run instead of silently
+    publishing an incomplete set."""

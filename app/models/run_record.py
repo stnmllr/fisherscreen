@@ -31,6 +31,9 @@ class RunRecord(BaseModel):
     # ist -- siehe docs/infra/annual-series-backfill.md.
     steadiness_stale: int = 0
     steadiness_missing: int = 0
+    # Set only by RunTracker.mark_failed_after_finish(): the run finished
+    # scoring but failed while rendering or pushing its outputs.
+    failure_reason: str | None = None
 
     def compute_cost(self) -> float:
         return (self.tokens_in_total / 1_000_000 * COST_PER_1M_INPUT_USD) + (

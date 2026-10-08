@@ -160,3 +160,38 @@ def test_latest_prior_run_after_start_raises():
     tracker.start()
     with pytest.raises(RuntimeError, match="before start"):
         tracker.latest_prior_run()
+
+
+def test_finished_property_reflects_finish():
+    tracker, _ = _tracker()
+    assert tracker.finished is False
+    tracker.finish()
+    assert tracker.finished is True
+
+
+def test_mark_failed_after_finish_overwrites_doc_as_aborted():
+    tracker, mock_fs = _tracker(collection="dev_screener_runs")
+    tracker.record_ticker(tokens_in=10, tokens_out=2)
+    record = tracker.finish()
+    aborted = tracker.mark_failed_after_finish("DataSourceError: push failed")
+
+    assert mock_fs.set.call_count == 2
+    collection_arg, run_id_arg, payload_arg = mock_fs.set.call_args[0]
+    assert collection_arg == "dev_screener_runs"
+    assert run_id_arg == record.run_id
+    assert payload_arg["status"] == "aborted"
+    assert payload_arg["failure_reason"] == "DataSourceError: push failed"
+    assert payload_arg["tickers_processed"] == 1
+    assert aborted.status == "aborted"
+
+
+def test_mark_failed_before_finish_raises():
+    tracker, _ = _tracker()
+    with pytest.raises(RuntimeError, match="finish"):
+        tracker.mark_failed_after_finish("boom")
+
+
+def test_finish_record_has_no_failure_reason():
+    tracker, mock_fs = _tracker()
+    tracker.finish()
+    assert mock_fs.set.call_args[0][2]["failure_reason"] is None

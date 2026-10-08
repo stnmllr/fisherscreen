@@ -10,9 +10,10 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from app.config import settings
+from app.errors import DataSourceError, OutputError
 from app.screener.compose import (
     build_edgar_annual_series,
     build_edgar_pipeline,
@@ -24,7 +25,14 @@ from app.screener.compose import (
 from app.screener.prior_run import check_prior_run
 from app.screener.runner import run_filter_preview, run_screener
 
+if TYPE_CHECKING:
+    from app.screener.run_tracker import RunTracker
+    from app.services.github_client import GitHubClient
+
 logger = logging.getLogger(__name__)
+
+# Firestore doc field, not a log: keep it short enough to read at a glance.
+_MAX_FAILURE_REASON_CHARS = 500
 
 # Repo root / data / universe.json. In the container WORKDIR is /app and the
 # Dockerfile copies app/ and data/ side by side, so this resolves to
@@ -35,6 +43,36 @@ _UNIVERSE_PATH = Path(__file__).resolve().parents[2] / "data" / "universe.json"
 def _load_universe() -> list[str]:
     with _UNIVERSE_PATH.open(encoding="utf-8") as f:
         return json.load(f)
+
+
+def _push_outputs(github: GitHubClient, paths: list[Path], run_id: str) -> None:
+    """Push every output file; a missing file fails the run before any push."""
+    missing = [p for p in paths if not p.exists()]
+    if missing:
+        raise OutputError(
+            "monthly run: output files missing, nothing pushed: "
+            + ", ".join(p.as_posix() for p in missing)
+        )
+    for path in paths:
+        github.push_file(
+            path.as_posix(),
+            path.read_text(encoding="utf-8"),
+            f"chore: monthly screener output {run_id[:7]} [skip ci]",
+        )
+
+
+def _persist_aborted(tracker: RunTracker, exc: Exception) -> None:
+    """Re-mark the finished run as aborted; never masks the original error."""
+    reason = f"{type(exc).__name__}: {exc}"[:_MAX_FAILURE_REASON_CHARS]
+    logger.error("monthly run failed after finish: %s", reason)
+    try:
+        tracker.mark_failed_after_finish(reason)
+    except DataSourceError as persist_exc:
+        logger.error(
+            "monthly run: could not persist status=aborted (%s); original failure: %s",
+            persist_exc,
+            reason,
+        )
 
 
 def run_monthly_pipeline(dry_run: bool = False) -> dict[str, Any]:
@@ -71,26 +109,25 @@ def run_monthly_pipeline(dry_run: bool = False) -> dict[str, Any]:
     prior_run_warning = check_prior_run(tracker)
     tracker.start()
 
-    records, run_record, paths = run_screener(
-        tickers=tickers,
-        yfinance=yfinance,
-        edgar=edgar,
-        revenue_cache=revenue_cache,
-        annual_series=annual_series,
-        run_tracker=tracker,
-        output_dir=output_dir,
-        prior_run_warning=prior_run_warning,
-    )
-
-    for path in paths:
-        if not path.exists():
-            logger.warning("monthly run: output file missing, skipping push: %s", path)
-            continue
-        github.push_file(
-            path.as_posix(),
-            path.read_text(encoding="utf-8"),
-            f"chore: monthly screener output {run_record.run_id[:7]} [skip ci]",
+    try:
+        _, run_record, paths = run_screener(
+            tickers=tickers,
+            yfinance=yfinance,
+            edgar=edgar,
+            revenue_cache=revenue_cache,
+            annual_series=annual_series,
+            run_tracker=tracker,
+            output_dir=output_dir,
+            prior_run_warning=prior_run_warning,
         )
+        _push_outputs(github, paths, run_record.run_id)
+    except Exception as exc:
+        # Not swallowed: re-raised below. Before finish() the doc is still
+        # "running", which already marks the failure; after finish() it says
+        # "success" and has to be corrected, or the next run would not warn.
+        if tracker.finished:
+            _persist_aborted(tracker, exc)
+        raise
 
     logger.info(
         "monthly run complete: run_id=%s paths=%d", run_record.run_id, len(paths)
