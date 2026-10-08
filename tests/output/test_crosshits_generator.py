@@ -230,7 +230,11 @@ def test_flags_partial_evidence_marker():
     assert "~" in _flags(r)
 
 
-# --- price-taker column ----------------------------------------------------
+# --- price-taker exclusion -------------------------------------------------
+#
+# Since 2026-10 a price taker is no crosshit (the rule lives in `is_crosshit`,
+# the flag is set by the scorer). The report keeps the judgement visible in a
+# section of its own; the former "Preisnehmer" column would only ever read "nein".
 #
 # The September 2026 crosshits, with the yfinance `industry` each carried when
 # the list was measured (2026-09-07). Captured rather than fetched so the test
@@ -265,8 +269,8 @@ SEPTEMBER_INDUSTRIES = {
 }
 
 # Named by hand from the September list. The tests below assert these are all
-# marked; they deliberately do NOT assert how many there are, so the config can
-# grow without a test needing to be touched.
+# excluded; they deliberately do NOT assert how many there are, so the config
+# can grow without a test needing to be touched.
 SEPTEMBER_PRICE_TAKERS = (
     "EDV.L",
     "HL",
@@ -280,10 +284,17 @@ SEPTEMBER_PRICE_TAKERS = (
 
 
 def _september_records():
-    return [
-        _industry_record(ticker, industry)
-        for ticker, industry in SEPTEMBER_INDUSTRIES.items()
-    ]
+    """The September crosshits, flagged against the committed table the way the
+    scorer flags them in production."""
+    from app.screener.price_takers import is_price_taker, load_price_takers
+
+    table = load_price_takers()
+    records = []
+    for ticker, industry in SEPTEMBER_INDUSTRIES.items():
+        record = _industry_record(ticker, industry)
+        record.price_taker = is_price_taker(ticker, industry, table)
+        records.append(record)
+    return records
 
 
 def _industry_record(ticker: str, industry: str) -> ScreenerRecord:
@@ -302,9 +313,143 @@ def _industry_record(ticker: str, industry: str) -> ScreenerRecord:
     )
 
 
-def _marks(text: str) -> dict[str, str]:
-    """ticker -> the value in the Preisnehmer column."""
-    return _marks_col(text, "Preisnehmer")
+_TAKER_HEADING = "## Am Preisnehmer-Ausschluss gescheitert"
+
+
+def _taker_section(text: str) -> str:
+    return text.split(_TAKER_HEADING)[1] if _TAKER_HEADING in text else ""
+
+
+def _crosshit_table(text: str) -> set[str]:
+    """Tickers of the crosshit table only -- everything before the first
+    failure section."""
+    head = text.split("\n## ")[0]
+    if "| Ticker |" not in head:
+        return set()
+    return set(_marks_col(head, "Stetigkeit"))
+
+
+def test_the_crosshit_table_has_no_price_taker_column(tmp_path):
+    """A price taker is no crosshit any more -- the column would always read
+    'nein'."""
+    path = generate(_september_records(), _run_record(), tmp_path, min_dimensions=3)
+    head = path.read_text(encoding="utf-8").split(_TAKER_HEADING)[0]
+    assert "Preisnehmer |" not in head
+
+
+def test_the_september_price_takers_are_all_excluded(tmp_path):
+    """The acceptance case. A subset assertion, not an equality: naming a ninth
+    price taker later must not turn this red."""
+    path = generate(_september_records(), _run_record(), tmp_path, min_dimensions=3)
+    text = path.read_text(encoding="utf-8")
+    assert set(SEPTEMBER_PRICE_TAKERS).isdisjoint(_crosshit_table(text))
+    section = _marks_col(_taker_section(text), "Stetigkeit")
+    assert set(SEPTEMBER_PRICE_TAKERS) <= set(section)
+
+
+def test_the_section_lists_exactly_the_flagged_would_be_crosshits(tmp_path):
+    """Derived from the committed table, not restated: extend
+    data/price_takers.json and this test follows without an edit."""
+    records = _september_records()
+    path = generate(records, _run_record(), tmp_path, min_dimensions=3)
+    text = path.read_text(encoding="utf-8")
+    takers = {r.ticker for r in records if r.price_taker}
+    assert set(_marks_col(_taker_section(text), "Stetigkeit")) == takers
+    assert _crosshit_table(text) == set(SEPTEMBER_INDUSTRIES) - takers
+
+
+def test_the_shared_semiconductor_industry_is_not_dragged_in(tmp_path):
+    """MU is caught by ticker override; NVDA and TER share or neighbour its
+    yfinance industry and must stay crosshits -- otherwise the override was
+    written as an industry rule by mistake."""
+    path = generate(_september_records(), _run_record(), tmp_path, min_dimensions=3)
+    text = path.read_text(encoding="utf-8")
+    assert "| MU " in _taker_section(text)
+    for ticker in ("NVDA", "TER", "FICO", "MEDP", "FAST"):
+        assert ticker in _crosshit_table(text), ticker
+
+
+def test_a_price_taker_failing_an_axis_is_not_in_the_section(tmp_path):
+    """The section holds titles that would be crosshits but for the exclusion.
+    A price taker that also misses an axis fails on merit, not on the rule."""
+    weak = _industry_record("NEM", "Gold")
+    weak.gemini_dimensions["resilience"] = 3
+    weak.price_taker = True
+    hit = _industry_record("RGLD", "Gold")
+    hit.price_taker = True
+    text = generate([weak, hit], _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+    assert set(_marks_col(_taker_section(text), "Stetigkeit")) == {"RGLD"}
+
+
+def test_a_price_taker_failing_on_steadiness_stays_in_the_steadiness_section(
+    tmp_path,
+):
+    record = _steady_record("NEM", 1.33, industry="Gold")
+    record.price_taker = True
+    text = generate([record], _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+    assert _TAKER_HEADING not in text
+    assert "| NEM " in text.split(_FAILED_HEADING)[1]
+
+
+def test_the_section_names_the_industry_or_the_override(tmp_path):
+    from app.screener.price_takers import PriceTakerTable
+
+    gold = _industry_record("NEM", "Gold")
+    gold.price_taker = True
+    mu = _industry_record("MU", "Semiconductors")
+    mu.price_taker = True
+    table = PriceTakerTable(industries=frozenset({"Gold"}), tickers=frozenset({"MU"}))
+    text = generate(
+        [gold, mu], _run_record(), tmp_path, min_dimensions=3, price_takers=table
+    ).read_text("utf-8")
+    cells = _marks_col(_taker_section(text), "Grund")
+    assert cells == {"NEM": "Gold", "MU": "Override"}
+    assert "**keine** Crosshits" in _taker_section(text)
+
+
+def test_no_price_taker_section_when_nobody_is_excluded(tmp_path):
+    path = generate(
+        [_steady_record("FAST", 5.0)], _run_record(), tmp_path, min_dimensions=3
+    )
+    assert _TAKER_HEADING not in path.read_text(encoding="utf-8")
+
+
+def test_price_taker_section_follows_the_leverage_section(tmp_path):
+    taker = _industry_record("RGLD", "Gold")
+    taker.price_taker = True
+    records = [
+        taker,
+        _levered_record("TDG"),
+        _steady_record("TER", 2.67),
+        _steady_record("FAST", 5.0),
+    ]
+    text = generate(records, _run_record(), tmp_path, min_dimensions=3).read_text(
+        "utf-8"
+    )
+    assert (
+        text.index(_FAILED_HEADING)
+        < text.index(_LEVERAGE_HEADING)
+        < text.index(_TAKER_HEADING)
+    )
+    assert "RGLD" not in text.split(_TAKER_HEADING)[0]
+
+
+def test_a_flagged_price_taker_that_clears_the_bar_is_not_in_the_leverage_section(
+    tmp_path,
+):
+    """min_dimensions=2: growth + profitability suffice, so the red flag is not
+    what keeps it out -- the price-taker rule is."""
+    record = _levered_record("XOM")
+    record.price_taker = True
+    text = generate([record], _run_record(), tmp_path, min_dimensions=2).read_text(
+        "utf-8"
+    )
+    assert _LEVERAGE_HEADING not in text
+    assert "| XOM " in _taker_section(text)
 
 
 def _marks_col(text: str, column: str) -> dict[str, str]:
@@ -321,72 +466,6 @@ def _marks_col(text: str, column: str) -> dict[str, str]:
             continue
         marks[cells[ticker_at].split()[0]] = cells[mark_at]
     return marks
-
-
-def test_the_table_has_a_price_taker_column(tmp_path):
-    path = generate(_september_records(), _run_record(), tmp_path, min_dimensions=3)
-    assert "| Preisnehmer |" in path.read_text(encoding="utf-8")
-
-
-def test_every_configured_price_taker_in_the_table_is_marked(tmp_path):
-    """The expectation is derived from the committed config, not restated here:
-    extend data/price_takers.json and this test follows without an edit."""
-    from app.screener.price_takers import is_price_taker, load_price_takers
-
-    table = load_price_takers()
-    path = generate(_september_records(), _run_record(), tmp_path, min_dimensions=3)
-    marks = _marks(path.read_text(encoding="utf-8"))
-
-    assert marks, "no rows rendered - the fixture stopped producing crosshits"
-    for ticker, industry in SEPTEMBER_INDUSTRIES.items():
-        expected = "ja" if is_price_taker(ticker, industry, table) else "nein"
-        assert marks[ticker] == expected, ticker
-
-
-def test_the_september_price_takers_are_all_caught(tmp_path):
-    """The acceptance case from the brief. A subset assertion, not an equality:
-    naming a ninth price taker later must not turn this red."""
-    path = generate(_september_records(), _run_record(), tmp_path, min_dimensions=3)
-    marks = _marks(path.read_text(encoding="utf-8"))
-
-    unmarked = [t for t in SEPTEMBER_PRICE_TAKERS if marks[t] != "ja"]
-    assert not unmarked, f"price takers left unmarked: {unmarked}"
-
-
-def test_the_shared_semiconductor_industry_is_not_dragged_in(tmp_path):
-    """MU is marked by ticker override, NVDA and TER share or neighbour its
-    yfinance industry and must stay unmarked -- otherwise the override was
-    written as an industry rule by mistake."""
-    path = generate(_september_records(), _run_record(), tmp_path, min_dimensions=3)
-    marks = _marks(path.read_text(encoding="utf-8"))
-
-    assert marks["MU"] == "ja"
-    for ticker in ("NVDA", "TER", "FICO", "MEDP", "FAST"):
-        assert marks[ticker] == "nein", ticker
-
-
-def test_marking_changes_no_score_and_drops_no_title(tmp_path):
-    """The column is a label. Same titles, same scores, with and without it."""
-    from app.screener.price_takers import PriceTakerTable
-
-    records = _september_records()
-    marked = generate(records, _run_record(), tmp_path / "a", min_dimensions=3)
-    unmarked = generate(
-        records,
-        _run_record(),
-        tmp_path / "b",
-        min_dimensions=3,
-        price_takers=PriceTakerTable(industries=frozenset(), tickers=frozenset()),
-    )
-
-    def rows(text):
-        return [
-            line.rsplit("|", 2)[0]  # drop the Preisnehmer cell and the trailing pipe
-            for line in text.splitlines()
-            if line.startswith("| ") and "Ticker" not in line
-        ]
-
-    assert rows(marked.read_text("utf-8")) == rows(unmarked.read_text("utf-8"))
 
 
 # --- steadiness column -----------------------------------------------------

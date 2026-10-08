@@ -8,13 +8,13 @@
 
 ---
 
-## Letztes Update: 2026-10-06
+## Letztes Update: 2026-10-07
 
-> ⚠️ **Ehrlichkeits-Hinweis, neunstufig.** Aktuell sind die Abschnitte
-> „Top of mind — 2026-10-06 (growth)", „… (ROIC)" und „Top of mind — 2026-10-06" direkt
-> unterhalb; die Erwartungswerte für den Lauf 2026-11-01 stehen im growth-Abschnitt (er
-> ersetzt die ~41 aus dem ROIC-Abschnitt), dessen Schritt 1 ersetzt Schritt 2 im ROIC-
-> Abschnitt. Im dritten ist Schritt 2 (ROIC) erledigt. Der Block „Top of mind — 2026-10-02"
+> ⚠️ **Ehrlichkeits-Hinweis, zehnstufig.** Aktuell sind die Abschnitte
+> „Top of mind — 2026-10-07 (Preisnehmer)", „2026-10-06 (growth)", „… (ROIC)" und
+> „Top of mind — 2026-10-06" direkt unterhalb. **Erwartungswerte und nächste Schritte stehen
+> im Preisnehmer-Abschnitt** (sie ersetzen die ~50 und die Liste im growth-Abschnitt, die
+> wiederum die ~41 aus dem ROIC-Abschnitt ersetzt hatten). Der Block „Top of mind — 2026-10-02"
 > gilt weiter, bis auf Schritt 4 (ROIC jetzt als eigener nächster PR eingeplant). Die Blöcke „Top of mind — 2026-09-08",
 > „2026-09-07" und „2026-09-06" darunter gelten weiter. Der Block „Top of mind — 2026-09-04"
 > darunter gilt bis auf die dort korrigierten Punkte weiter; der Viewer-Block beschreibt
@@ -27,6 +27,57 @@
 >
 > Nichts unterhalb des ersten Abschnitts als aktuellen Stand lesen, ohne gegen `git log`
 > zu prüfen.
+
+## Top of mind — 2026-10-07 (Preisnehmer)
+
+**Preisnehmer zählen nicht mehr als Crosshits** (Branch `feature/price-taker-exclusion`,
+**PR offen, nicht gemergt**). Bisher nur gekennzeichnet (Spalte im Crosshits-Report). Ihre
+Scores und alle Perzentile bleiben unverändert — sie bleiben in der Scoring-Kohorte.
+
+**Regel (einzige Stelle: `dimensions.is_crosshit`):** `ScreenerRecord.price_taker` wird in
+`run_deterministic_scoring` aus `data/price_takers.json` gesetzt (fail loud ohne Tabelle);
+ein Preisnehmer ist nie Crosshit. Neuer Report-Abschnitt „Am Preisnehmer-Ausschluss
+gescheitert" (Titel, die ohne die Regel Crosshit wären, mit Industrie oder „Override"),
+Funnel-Grund `PRICE_TAKER_EXCLUDED`, die Spalte „Preisnehmer" ist weg.
+
+**Warum nicht vor dem Scoring aus der Kohorte** (simuliert): Energy schrumpft 50 → 12, unter
+`MIN_SECTOR_N` → globaler Rückfall; rund 90 Scores anderer Titel verschieben sich; TGS.OL
+(seismische Dienste) rutscht als Crosshit nach.
+
+**Tabelle:** „Oil & Gas Midstream" raus — Pipelines/Speicher verdienen feste Gebühren (KMI,
+WMB, TRGP, DTM, AM, VPK.AS). FRO.OL (Tanker) und VNOM (Förderzinsrechte) hingen nur an diesem
+Label → jetzt Ticker-Override.
+
+**Lokal simuliert, $0** (Oktober-Caches **nach** dem Vorwärmen vom 2026-10-07):
+
+| | Crosshits | Referenz |
+|---|---|---|
+| ohne Ausschluss | 51 | 14/74 |
+| **mit Ausschluss (gebaut)** | **46** | **14/74** |
+
+Ausgeschlossen: EDV.L, PAF.L (Gold), FRES.L, HOC.L (Edelmetalle), SNDK. **SNDK ist neu**:
+das Vorwärmen lieferte eine vierte Jahresreihe → growth 4 statt Deckel 3 (daher 51 statt
+der 50 aus dem growth-Abschnitt). Keiner der fünf ist Referenztitel. Suite 2019 / 96,70 %,
+credential-los 1978 grün.
+
+**Vorwärmen 2026-10-07 gelaufen** (`scripts.backfill_revenue_series`, gibt nichts aus — Info-
+Logs werden verschluckt): 532 Reihen aufgefrischt. Für einen Lauf **heute** ist keine Reihe
+abgelaufen; **am 2026-11-01 wären wieder 622 von 1604 fällig** (die 889 Einträge vom
+2026-06-16 laufen gestaffelt ab).
+
+### Nächste Schritte (Reihenfolge)
+
+1. PR `feature/price-taker-exclusion` reviewen/mergen.
+2. **Monatslauf vorziehen** (Stephan, 2026-10-07 entschieden): nach Merge + Deploy den
+   Scheduler-Job manuell auslösen. Überschreibt die `2026-10-*`-Dateien auf `main` (alter Stand
+   bleibt in der Git-Historie). Danach `reference_check.py` gegen die Simulation (~46
+   Crosshits, 14/74) und Laufzeit in den Logs gegen die 1800-s-Deadline prüfen.
+3. **Um den 2026-10-29 erneut vorwärmen** — der reguläre Lauf am 2026-11-01 findet trotzdem
+   statt.
+4. CI startet bei neuen PRs nicht (#73–#76 nur nach Schließen/Wiederöffnen) — kleiner
+   Trigger-Fix in `ci.yml` für den `devops-engineer`.
+5. Vorgemerkt: yfinance „Technology" mischt Software/Hardware; ZEAL.CO (einmalige
+   Lizenzzahlung → growth 5); Nacheichung der Bänder erst auf echten Laufzahlen.
 
 ## Top of mind — 2026-10-06 (growth)
 

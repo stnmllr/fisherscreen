@@ -44,6 +44,9 @@ class ReasonCode(str, Enum):
     GATE_GOING_CONCERN = "GATE_GOING_CONCERN"
     GATE_ENFORCEMENT = "GATE_ENFORCEMENT"
     SCORE_BELOW_THRESHOLD = "SCORE_BELOW_THRESHOLD"
+    # Would be a crosshit on merit, barred because it is a price taker
+    # (data/price_takers.json). Same axis detail as SCORE_BELOW_THRESHOLD.
+    PRICE_TAKER_EXCLUDED = "PRICE_TAKER_EXCLUDED"
     SCORE_NOT_SCORED = "SCORE_NOT_SCORED"
 
 
@@ -266,7 +269,10 @@ def build_funnel(
     crosshits_min_dimensions: int,
     provenance: dict[str, Any] | None = None,
 ) -> tuple[FunnelSummary, list[Dropout]]:
-    from app.screener.dimensions import is_crosshit  # local import avoids cycle
+    from app.screener.dimensions import (  # local import avoids cycle
+        is_crosshit,
+        is_excluded_price_taker,
+    )
 
     n_universe = len(universe)
     dropouts: list[Dropout] = []
@@ -386,11 +392,16 @@ def build_funnel(
             if not is_crosshit(r, score_threshold, crosshits_min_dimensions)
         ]
         for r in below:
+            reason = (
+                ReasonCode.PRICE_TAKER_EXCLUDED
+                if is_excluded_price_taker(r, score_threshold, crosshits_min_dimensions)
+                else ReasonCode.SCORE_BELOW_THRESHOLD
+            )
             dropouts.append(
                 _make_dropout(
                     r,
                     Stage.CROSSHITS,
-                    ReasonCode.SCORE_BELOW_THRESHOLD,
+                    reason,
                     sector_wide_sectors,
                     detail=_score_detail(r),
                 )

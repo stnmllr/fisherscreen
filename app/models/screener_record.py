@@ -117,6 +117,10 @@ class ScreenerRecord(BaseModel):
     steadiness_reason: str | None = (
         None  # "no_sec_registrant" | "series_too_short" | "no_concept"
     )
+    # Sells at a price it does not set (data/price_takers.json). Set by
+    # run_deterministic_scoring AFTER scoring: it changes no score and no
+    # percentile, it only bars the title from the crosshits (is_crosshit).
+    price_taker: bool = False
 
     # Filter tracking
     filter_passed_basis: bool | None = None

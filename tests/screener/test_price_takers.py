@@ -1,7 +1,8 @@
-"""Tests for the price-taker marking (Tool A, September 2026).
+"""Tests for the price-taker classification (Tool A, September 2026).
 
-The marking is a label, never a filter: nothing here may change a score or drop
-a title. What it must do is be right about which titles it names.
+Since 2026-10 a price taker is excluded from the crosshits (scores unchanged;
+see tests/screener/test_dimensions.py). What this module must do is be right
+about which titles it names.
 """
 
 import json
@@ -77,7 +78,7 @@ def test_loader_reads_both_lists(tmp_path):
 def test_a_missing_file_fails_loud(tmp_path):
     """Deliberately NOT fail-safe, unlike the industry-group map. A missing
     rollup there leaves an arm dormant and visibly does nothing; a missing table
-    here would print 'nein' next to every title in a monthly report -- a silent
+    here would let every commodity title through as a crosshit -- a silent
     claim that nothing is a price taker."""
     with pytest.raises(FilterConfigError, match="price_takers"):
         load_price_takers(tmp_path / "absent.json")
@@ -113,3 +114,28 @@ def test_meta_block_is_ignored_not_rejected(tmp_path):
         tmp_path, {"_meta": {"note": "grob"}, "industries": ["Gold"], "tickers": []}
     )
     assert load_price_takers(path).industries == frozenset({"Gold"})
+
+
+# --- committed table, 2026-10-07 revision ------------------------------------
+
+
+def test_midstream_is_no_longer_a_price_taker_industry():
+    """Pipelines and storage earn fixed tolls (KMI, WMB, TRGP, DTM, AM, VPK.AS)."""
+    table = load_price_takers()
+    assert "Oil & Gas Midstream" not in table.industries
+    assert not is_price_taker("KMI", "Oil & Gas Midstream", table)
+
+
+def test_titles_caught_only_via_midstream_are_now_overrides():
+    """FRO.OL (crude tankers) and VNOM (mineral/royalty interests) were caught
+    only via the midstream label; dropping it must not release them."""
+    table = load_price_takers()
+    assert is_price_taker("FRO.OL", "Oil & Gas Midstream", table)
+    assert is_price_taker("VNOM", "Oil & Gas Midstream", table)
+
+
+def test_the_revision_keeps_the_existing_cases():
+    table = load_price_takers()
+    assert is_price_taker("TPL", "Oil & Gas E&P", table)
+    assert is_price_taker("MU", "Semiconductors", table)
+    assert is_price_taker("SNDK", "Computer Hardware", table)

@@ -76,11 +76,14 @@ from app.models.definedness import DefinednessOutcome
 from app.models.screener_record import ScreenerRecord
 from app.output.crosshits_generator import _compute_steadiness_failures
 from app.screener.deterministic_scorer import run_deterministic_scoring
-from app.screener.dimensions import is_crosshit, steadiness_is_assessable
+from app.screener.dimensions import (
+    is_crosshit,
+    is_excluded_price_taker,
+    steadiness_is_assessable,
+)
 from app.screener.funnel import _score_detail
 from app.screener.growth_consistency import consistency_cap
 from app.screener.percentiles import percentile_rank, percentile_to_score
-from app.screener.price_takers import is_price_taker, load_price_takers
 from app.screener.revenue_trajectory import classify_revenue_trajectory
 from app.services.cached_edgar_annual_series import CachedEdgarAnnualSeries
 
@@ -257,7 +260,11 @@ def write_dropouts(
                 {
                     "ticker": r.ticker,
                     "stage": "crosshits",
-                    "reason_code": "SCORE_BELOW_THRESHOLD",
+                    "reason_code": (
+                        "PRICE_TAKER_EXCLUDED"
+                        if is_excluded_price_taker(r, THRESHOLD, MIN_DIMENSIONS)
+                        else "SCORE_BELOW_THRESHOLD"
+                    ),
                     "severity_bucket": "BENIGN",
                     "is_large_cap": real.get("is_large_cap", "False"),
                     "sector_wide": "False",
@@ -530,8 +537,9 @@ def main() -> None:
     below = [r for r in scored if not is_crosshit(r, THRESHOLD, MIN_DIMENSIONS)]
     write_dropouts(out_dir / f"{month}-dropouts.csv", pre_rows, below, real_cross_rows)
 
-    table = load_price_takers(ROOT / "data" / "price_takers.json")
-    takers = [r.ticker for r in cross if is_price_taker(r.ticker, r.gics_industry, table)]
+    # Since the exclusion (2026-10) no crosshit is a price taker; count the titles
+    # the rule keeps off the list instead (share = of the would-be crosshits).
+    takers = [r.ticker for r in scored if is_excluded_price_taker(r, THRESHOLD, MIN_DIMENSIONS)]
     sim_list = sorted(r.ticker for r in cross)
     real_list = real_crosshits(month)
     res_dist = Counter((r.gemini_dimensions or {}).get("resilience") for r in scored)
@@ -578,7 +586,9 @@ def main() -> None:
         "crosshit_count": len(cross),
         "crosshits": sim_list,
         "price_takers": sorted(takers),
-        "price_taker_share": round(len(takers) / len(cross), 4) if cross else None,
+        "price_taker_share": (
+            round(len(takers) / (len(cross) + len(takers)), 4) if cross or takers else None
+        ),
         "resilience_distribution": {str(k): res_dist[k] for k in sorted(res_dist, key=str)},
         "resilience_zero_count": res_dist.get(0, 0),
         "resilience_red_flag_count": red_flags,
@@ -603,7 +613,8 @@ def main() -> None:
     print(f"Crosshits: {len(cross)} (echter Lauf: {len(real_list)})")
     print(f"  {sim_list}")
     print(f"  neu: {summary['diff_vs_real']['added']}  raus: {summary['diff_vs_real']['removed']}")
-    print(f"Preisnehmer: {len(takers)}/{len(cross)} = {summary['price_taker_share']} {sorted(takers)}")
+    print(f"Preisnehmer ausgeschlossen: {len(takers)} von {len(cross) + len(takers)} "
+          f"= {summary['price_taker_share']} {sorted(takers)}")
     print(f"profitability ({args.profitability}): {summary['profitability_distribution']}")
     print(f"growth ({summary['growth_variant']}): {summary['growth_distribution']}")
     print(f"resilience-Verteilung: {summary['resilience_distribution']}")

@@ -110,3 +110,46 @@ def test_assessability_is_read_from_the_reason_not_the_score():
     assert steadiness_is_assessable(_steady(3.0)) is True
     assert steadiness_is_assessable(_steady(3.0, reason="series_too_short")) is False
     assert steadiness_is_assessable(_rec()) is False
+
+
+# --- price-taker exclusion (2026-10) -----------------------------------------
+
+
+def test_a_price_taker_that_clears_every_axis_is_not_a_crosshit():
+    """In a commodity upcycle all three axes turn green without anything changing
+    in the business. The rule lives here and nowhere else."""
+    record = _steady(5.0, growth=5, profitability=5, resilience=5)
+    record.price_taker = True
+    assert is_crosshit(record, 4.0, 3) is False
+
+
+def test_a_non_price_taker_is_judged_exactly_as_before():
+    record = _steady(5.0, growth=5, profitability=5, resilience=5)
+    assert record.price_taker is False
+    assert is_crosshit(record, 4.0, 3) is True
+
+
+def test_clears_crosshit_bar_ignores_the_price_taker_flag():
+    """The merit verdict without the exclusion -- what the report section and
+    the funnel use to tell an excluded price taker from a plain score failure."""
+    from app.screener.dimensions import clears_crosshit_bar
+
+    hit = _steady(5.0, growth=5, profitability=5, resilience=5)
+    hit.price_taker = True
+    miss = _steady(2.0, growth=5, profitability=5, resilience=5)
+    miss.price_taker = True
+    assert clears_crosshit_bar(hit, 4.0, 3) is True
+    assert clears_crosshit_bar(miss, 4.0, 3) is False
+
+
+def test_is_excluded_price_taker_only_for_would_be_crosshits():
+    from app.screener.dimensions import is_excluded_price_taker
+
+    hit = _rec(growth=4, profitability=4, resilience=4)
+    hit.price_taker = True
+    weak = _rec(growth=4, profitability=4, resilience=3)
+    weak.price_taker = True
+    plain = _rec(growth=4, profitability=4, resilience=4)
+    assert is_excluded_price_taker(hit, 4.0, 3) is True
+    assert is_excluded_price_taker(weak, 4.0, 3) is False
+    assert is_excluded_price_taker(plain, 4.0, 3) is False

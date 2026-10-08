@@ -712,3 +712,70 @@ def test_run_deterministic_scoring_sets_median_from_series():
     assert short.revenue_growth_median is None
     assert "revenue_growth_median" not in short.input_percentiles
     assert short.gemini_dimensions["growth"] <= 3
+
+
+# --- price-taker annotation ----------------------------------------------------
+
+
+def test_run_deterministic_scoring_flags_price_takers_from_both_arms():
+    from app.screener.deterministic_scorer import run_deterministic_scoring
+    from app.screener.price_takers import PriceTakerTable
+
+    table = PriceTakerTable(industries=frozenset({"Gold"}), tickers=frozenset({"MU"}))
+    gold = ScreenerRecord(ticker="NEM", gics_industry="Gold", operating_margin=0.2)
+    mu = ScreenerRecord(
+        ticker="MU", gics_industry="Semiconductors", operating_margin=0.2
+    )
+    nvda = ScreenerRecord(
+        ticker="NVDA", gics_industry="Semiconductors", operating_margin=0.2
+    )
+    recs = [gold, mu, nvda]
+    cache = _FakeRevenueCache({r.ticker: [1.0, 2.0, 3.0, 4.0] for r in recs})
+    run_deterministic_scoring(recs, cache, _FakeTracker(), price_takers=table)
+    assert (gold.price_taker, mu.price_taker, nvda.price_taker) == (
+        True,
+        True,
+        False,
+    )
+
+
+def test_price_taker_flag_leaves_scores_untouched():
+    """Price takers stay in the scoring cohort: same scores with and without."""
+    from app.screener.deterministic_scorer import run_deterministic_scoring
+    from app.screener.price_takers import PriceTakerTable
+
+    def cohort():
+        return [
+            ScreenerRecord(
+                ticker=f"T{i}",
+                gics_sector="Basic Materials",
+                gics_industry="Gold" if i % 3 == 0 else "Chemicals",
+                operating_margin=0.05 + i * 0.01,
+                gross_margin=0.2 + i * 0.01,
+                total_revenue=1000.0,
+                total_debt=100.0,
+                total_cash=50.0,
+                ebitda=200.0,
+            )
+            for i in range(20)
+        ]
+
+    cache = _FakeRevenueCache({f"T{i}": [1.0, 2.0, 3.0, 4.0] for i in range(20)})
+    empty = PriceTakerTable(industries=frozenset(), tickers=frozenset())
+    gold = PriceTakerTable(industries=frozenset({"Gold"}), tickers=frozenset())
+    a = run_deterministic_scoring(cohort(), cache, _FakeTracker(), price_takers=empty)
+    b = run_deterministic_scoring(cohort(), cache, _FakeTracker(), price_takers=gold)
+    assert [r.gemini_dimensions for r in a] == [r.gemini_dimensions for r in b]
+    assert [r.input_percentiles for r in a] == [r.input_percentiles for r in b]
+    assert sum(r.price_taker for r in b) == 7
+
+
+def test_run_deterministic_scoring_loads_the_committed_table_by_default():
+    """The simulation calls without the parameter and must get the exclusion."""
+    from app.screener.deterministic_scorer import run_deterministic_scoring
+
+    rec = ScreenerRecord(ticker="NEM", gics_industry="Gold", operating_margin=0.2)
+    run_deterministic_scoring(
+        [rec], _FakeRevenueCache({"NEM": [1.0, 2.0, 3.0, 4.0]}), _FakeTracker()
+    )
+    assert rec.price_taker is True

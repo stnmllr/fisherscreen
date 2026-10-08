@@ -458,3 +458,48 @@ def test_an_unassessed_steadiness_shows_its_reason_never_the_sentinel():
 
     assert drop.detail.endswith("steadiness=n/a(no_sec_registrant)")
     assert "3.0" not in drop.detail
+
+
+# --- price-taker exclusion -----------------------------------------------------
+
+
+def _all_drops(records):
+    basis = BasisFilterResult(
+        passed=records, unresolved=[], resolved=records, degraded=[]
+    )
+    summary, dropouts = build_funnel(
+        universe=[r.ticker for r in records],
+        basis=basis,
+        scored=records,
+        score_threshold=4.0,
+        crosshits_min_dimensions=3,
+    )
+    return summary, {d.ticker: d for d in dropouts}
+
+
+def test_an_excluded_price_taker_has_its_own_reason_code_and_keeps_the_axes():
+    taker = _below("EDV.L", {"growth": 5, "profitability": 5, "resilience": 4}, 4.67)
+    taker.price_taker = True
+    summary, drops = _all_drops([taker])
+
+    drop = drops["EDV.L"]
+    assert drop.stage == Stage.CROSSHITS
+    assert drop.reason_code == ReasonCode.PRICE_TAKER_EXCLUDED
+    assert drop.detail == "growth=5 profitability=5 resilience=4 steadiness=4.67"
+    assert summary.stage(Stage.CROSSHITS).remaining == 0
+
+
+def test_a_price_taker_that_also_misses_an_axis_is_a_plain_score_failure():
+    taker = _below("NEM", {"growth": 5, "profitability": 5, "resilience": 4}, 1.33)
+    taker.price_taker = True
+    _, drops = _all_drops([taker])
+    assert drops["NEM"].reason_code == ReasonCode.SCORE_BELOW_THRESHOLD
+
+
+def test_price_taker_exclusion_is_benign():
+    assert (
+        _severity(
+            ReasonCode.PRICE_TAKER_EXCLUDED, market_cap_eur=1e12, sector_wide=True
+        )
+        == SeverityBucket.BENIGN
+    )

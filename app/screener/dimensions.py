@@ -40,9 +40,39 @@ def steadiness_is_assessable(record: ScreenerRecord) -> bool:
 def is_crosshit(
     record: ScreenerRecord, score_threshold: float, min_dimensions: int
 ) -> bool:
-    """True iff min_dimensions merit axes clear the threshold AND steadiness
-    clears it too, where steadiness was measured (cap-independent — the display
-    cap in crosshits_generator is presentation, not a funnel exit).
+    """True iff the title clears the merit bar (`clears_crosshit_bar`) AND is not
+    a price taker. This is the ONE place the crosshit rule lives: the crosshits
+    table, the dimensions frontmatter and the funnel all ask here.
+
+    Price takers (since 2026-10): in a commodity upcycle all three axes turn
+    green without anything changing in the business. Their scores and every
+    percentile stay as they are -- they remain in the scoring cohort -- they
+    just do not count as crosshits. The report lists them in a section of their
+    own so the judgement stays visible.
+    """
+    if record.price_taker:
+        return False
+    return clears_crosshit_bar(record, score_threshold, min_dimensions)
+
+
+def is_excluded_price_taker(
+    record: ScreenerRecord, score_threshold: float, min_dimensions: int
+) -> bool:
+    """A price taker that would be a crosshit if it were not one -- the titles
+    the price-taker rule, and nothing else, keeps off the list."""
+    return record.price_taker and clears_crosshit_bar(
+        record, score_threshold, min_dimensions
+    )
+
+
+def clears_crosshit_bar(
+    record: ScreenerRecord, score_threshold: float, min_dimensions: int
+) -> bool:
+    """The merit verdict, without the price-taker exclusion: min_dimensions merit
+    axes clear the threshold AND steadiness clears it too, where steadiness was
+    measured (cap-independent — the display cap in crosshits_generator is
+    presentation, not a funnel exit). Membership is `is_crosshit`; this is only
+    read to tell an excluded price taker from a title that fails on merit.
 
     Steadiness counts when it was measured and is skipped when it was not. A
     title with history therefore faces a stricter bar than before; a title
