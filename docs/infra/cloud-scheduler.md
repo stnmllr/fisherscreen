@@ -1,6 +1,16 @@
 # Cloud Scheduler Setup
 
-Cloud Scheduler calls POST /run/monthly on the first of each month at 05:00 Europe/Berlin (cron `0 5 1 * *`, see Step 2).
+> **Target changed (2026-10):** `fisherscreen-monthly` no longer calls the service's
+> `POST /run/monthly`. It starts the Cloud Run Job `fisherscreen-monthly-job` via
+> `POST https://run.googleapis.com/v2/projects/fisherscreen-prod/locations/europe-west3/jobs/fisherscreen-monthly-job:run`
+> with an **OAuth** token (not OIDC), and the scheduler SA holds `roles/run.invoker` on the
+> job. The job itself is created/updated by `.github/workflows/deploy.yml`. Cutover and
+> rollback: `docs/superpowers/specs/2026-10-08-monthly-run-job-cutover-runbook.md`.
+> Steps 1–4 below describe the **original HTTP setup**. They remain valid as the rollback
+> target and for manual runs via the route, which still exists. The job name, schedule and
+> budget-stop wiring (Step 3) are unchanged.
+
+Cloud Scheduler originally called POST /run/monthly on the first of each month at 05:00 Europe/Berlin (cron `0 5 1 * *`, see Step 2).
 
 ## Prerequisites
 
@@ -57,7 +67,9 @@ Trigger a manual run to verify the full pipeline works:
 gcloud scheduler jobs run fisherscreen-monthly --location europe-west3
 ```
 
-Then check Cloud Run logs:
+Then check the logs. Since the 2026-10 cutover, the run's logs are under
+`resource.type=cloud_run_job AND resource.labels.job_name=fisherscreen-monthly-job`
+(see the runbook). The filter below applies to the old HTTP target:
 
 ```cmd
 gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=fisherscreen-service" ^
