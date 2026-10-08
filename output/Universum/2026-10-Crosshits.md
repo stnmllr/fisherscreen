@@ -13,7 +13,7 @@
 | Basis-Gates | 1501 | 499 | 1002 |
 | EDGAR-Gates | 1002 | 8 | 994 |
 | Scoring | 994 | 0 | 994 |
-| Crosshits | 994 | 948 | 46 |
+| Crosshits | 994 | 931 | 63 |
 
 **Review-Flags: 33** (Aufschlüsselung in `2026-10-dropouts.csv`)
 
@@ -34,45 +34,49 @@
 | 9 | MYCR.ST  | Mycronic AB | Industrials | 3 | growth, profitability, resilience | 4.67 | n/a ∅ |
 | 10 | NOVO-B.CO  | Novo Nordisk B A/S | Healthcare | 3 | growth, profitability, resilience | 4.67 | n/a ∅ |
 | 11 | NVDA  | NVIDIA Corporation | Technology | 3 | growth, profitability, resilience | 4.67 | 4.0 |
-| 12 | RDDT  | Reddit, Inc. | Communication Services | 3 | growth, profitability, resilience | 4.67 | n/a ↧ |
-| 13 | RMS.PA  | HERMES INTL | Consumer Cyclical | 3 | growth, profitability, resilience | 4.67 | n/a ∅ |
-| 14 | VEEV  | Veeva Systems Inc. | Healthcare | 3 | growth, profitability, resilience | 4.67 | 4.67 |
-| 15 | ZEAL.CO  | Zealand Pharma A/S | Healthcare | 3 | growth, profitability, resilience | 4.67 | n/a ∅ |
-| 16 | ADBE  | Adobe Inc. | Technology | 3 | growth, profitability, resilience | 4.33 | 4.67 |
-| 17 | ADYEN.AS ⚠~ | ADYEN | Technology | 3 | growth, profitability, resilience | 4.33 | n/a ∅ |
-| 18 | ARGX.BR  | ARGENX SE | Healthcare | 3 | growth, profitability, resilience | 4.33 | n/a ∅ |
-| 19 | CPRT  | Copart, Inc. | Industrials | 3 | growth, profitability, resilience | 4.33 | 4.67 |
-| 20 | DECK  | Deckers Outdoor Corporation | Consumer Cyclical | 3 | growth, profitability, resilience | 4.33 | 4.67 |
-| 21 | DOCS  | Doximity, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.33 | 4 |
-| 22 | EW  | Edwards Lifesciences Corporatio | Healthcare | 3 | growth, profitability, resilience | 4.33 | 4.0 |
-| 23 | FTNT ⚠~ | Fortinet, Inc. | Technology | 3 | growth, profitability, resilience | 4.33 | 4.67 |
-| 24 | ISRG  | Intuitive Surgical, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.33 | 4.33 |
-| 25 | KOG.OL  | KONGSBERG GRUPPEN | Industrials | 3 | growth, profitability, resilience | 4.33 | n/a ∅ |
-| 26 | MEDP  | Medpace Holdings, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.33 | 4.67 |
-| 27 | QLYS  | Qualys, Inc. | Technology | 3 | growth, profitability, resilience | 4.33 | 4.67 |
-| 28 | V  | Visa Inc. | Financial Services | 3 | growth, profitability, resilience | 4.33 | 4.33 |
-| 29 | VRT  | Vertiv Holdings, LLC | Industrials | 3 | growth, profitability, resilience | 4.33 | n/a ↧ |
-| 30 | AENA.MC  | AENA, S.M.E., S.A. | Industrials | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
-| 31 | ALK-B.CO  | ALK-Abelló B A/S | Healthcare | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
-| 32 | ASML.AS  | ASML HOLDING | Technology | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
-| 33 | BEAN.SW  | BELIMO N | Industrials | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
-| 34 | EQT.ST  | EQT AB | Financial Services | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
-| 35 | G24.DE  | Scout24 SE                    N | Communication Services | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
-| 36 | GOOG  | Alphabet Inc. | Communication Services | 3 | growth, profitability, resilience | 4.0 | 4.67 |
-| 37 | GOOGL  | Alphabet Inc. | Communication Services | 3 | growth, profitability, resilience | 4.0 | 4.67 |
-| 38 | GRMN  | Garmin Ltd. | Technology | 3 | growth, profitability, resilience | 4.0 | 4.67 |
-| 39 | KLAC  | KLA Corporation | Technology | 3 | growth, profitability, resilience | 4.0 | 4.0 |
-| 40 | MSFT  | Microsoft Corporation | Technology | 3 | growth, profitability, resilience | 4.0 | 5 |
-| 41 | NOVN.SW  | NOVARTIS N | Healthcare | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
-| 42 | ORNBV.HE  | Orion Corporation B | Healthcare | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
-| 43 | RACE.MI  | FERRARI | Consumer Cyclical | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
-| 44 | RMD  | ResMed Inc. | Healthcare | 3 | growth, profitability, resilience | 4.0 | 5 |
-| 45 | UCB.BR  | UCB | Healthcare | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
-| 46 | VZN.SW  | VZ HOLDING N | Financial Services | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
+| 12 | RAA.DE  | RATIONAL AG                   I | Industrials | 3 | growth, profitability, resilience | 4.67 | n/a ∅ |
+| 13 | RDDT  | Reddit, Inc. | Communication Services | 3 | growth, profitability, resilience | 4.67 | n/a ↧ |
+| 14 | RMS.PA  | HERMES INTL | Consumer Cyclical | 3 | growth, profitability, resilience | 4.67 | n/a ∅ |
+| 15 | RMV.L  | RIGHTMOVE PLC ORD 0.1P | Communication Services | 3 | growth, profitability, resilience | 4.67 | n/a ∅ |
+| 16 | VEEV  | Veeva Systems Inc. | Healthcare | 3 | growth, profitability, resilience | 4.67 | 4.67 |
+| 17 | ZEAL.CO  | Zealand Pharma A/S | Healthcare | 3 | growth, profitability, resilience | 4.67 | n/a ∅ |
+| 18 | ADBE  | Adobe Inc. | Technology | 3 | growth, profitability, resilience | 4.33 | 4.67 |
+| 19 | ADYEN.AS ⚠~ | ADYEN | Technology | 3 | growth, profitability, resilience | 4.33 | n/a ∅ |
+| 20 | ARGX.BR  | ARGENX SE | Healthcare | 3 | growth, profitability, resilience | 4.33 | n/a ∅ |
+| 21 | AUTO.L  | AUTOTRADER GROUP PLC ORD 1P | Communication Services | 3 | growth, profitability, resilience | 4.33 | n/a ∅ |
+| 22 | CPRT  | Copart, Inc. | Industrials | 3 | growth, profitability, resilience | 4.33 | 4.67 |
+| 23 | CR  | Crane Company | Industrials | 3 | growth, profitability, resilience | 4.33 | n/a ↧ |
+| 24 | DECK  | Deckers Outdoor Corporation | Consumer Cyclical | 3 | growth, profitability, resilience | 4.33 | 4.67 |
+| 25 | DOCS  | Doximity, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.33 | 4 |
+| 26 | EW  | Edwards Lifesciences Corporatio | Healthcare | 3 | growth, profitability, resilience | 4.33 | 4.0 |
+| 27 | FTNT ⚠~ | Fortinet, Inc. | Technology | 3 | growth, profitability, resilience | 4.33 | 4.67 |
+| 28 | IPN.PA  | IPSEN | Healthcare | 3 | growth, profitability, resilience | 4.33 | n/a ∅ |
+| 29 | ISRG  | Intuitive Surgical, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.33 | 4.33 |
+| 30 | KOG.OL  | KONGSBERG GRUPPEN | Industrials | 3 | growth, profitability, resilience | 4.33 | n/a ∅ |
+| 31 | LOPE  | Grand Canyon Education, Inc. | Consumer Defensive | 3 | growth, profitability, resilience | 4.33 | 4.0 |
+| 32 | MEDP  | Medpace Holdings, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.33 | 4.67 |
+| 33 | QLYS  | Qualys, Inc. | Technology | 3 | growth, profitability, resilience | 4.33 | 4.67 |
+| 34 | V  | Visa Inc. | Financial Services | 3 | growth, profitability, resilience | 4.33 | 4.33 |
+| 35 | VRSK  | Verisk Analytics, Inc. | Industrials | 3 | growth, profitability, resilience | 4.33 | 4.0 |
+| 36 | VRT  | Vertiv Holdings, LLC | Industrials | 3 | growth, profitability, resilience | 4.33 | n/a ↧ |
+| 37 | WTS  | Watts Water Technologies, Inc. | Industrials | 3 | growth, profitability, resilience | 4.33 | 4.67 |
+| 38 | AENA.MC  | AENA, S.M.E., S.A. | Industrials | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
+| 39 | ALK-B.CO  | ALK-Abelló B A/S | Healthcare | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
+| 40 | ASM.AS  | ASM International N.V. | Technology | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
+| 41 | ASML.AS  | ASML HOLDING | Technology | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
+| 42 | BEAN.SW  | BELIMO N | Industrials | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
+| 43 | BELA.AT  | JUMBO S.A. | Consumer Cyclical | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
+| 44 | CTAS  | Cintas Corporation | Industrials | 3 | growth, profitability, resilience | 4.0 | 5 |
+| 45 | EQT.ST  | EQT AB | Financial Services | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
+| 46 | FAST  | Fastenal Company | Industrials | 3 | growth, profitability, resilience | 4.0 | 5 |
+| 47 | G24.DE  | Scout24 SE                    N | Communication Services | 3 | growth, profitability, resilience | 4.0 | n/a ∅ |
+| 48 | GOOG  | Alphabet Inc. | Communication Services | 3 | growth, profitability, resilience | 4.0 | 4.67 |
+| 49 | GOOGL  | Alphabet Inc. | Communication Services | 3 | growth, profitability, resilience | 4.0 | 4.67 |
+| 50 | GRMN  | Garmin Ltd. | Technology | 3 | growth, profitability, resilience | 4.0 | 4.67 |
 
-> **Stetigkeit** = vierte Achse ueber bis zu zehn Jahre EDGAR-Jahreszahlen (Rueckgangsjahre, Margeneinbruch vom Hoch, schlechteste Nettomarge). **21 von 46** Titeln dieser Liste sind bewertet; `n/a` heisst nicht bewertbar und wird weder belohnt noch bestraft: `∅` kein SEC-Registrant, `↧` Reihe kuerzer als sieben Jahre, `⊘` kein Konzept getroffen. Bei sieben bis neun Jahren ist der Hoechstwert 4.
+> **Stetigkeit** = vierte Achse ueber bis zu zehn Jahre EDGAR-Jahreszahlen (Rueckgangsjahre, Margeneinbruch vom Hoch, schlechteste Nettomarge). **23 von 50** Titeln dieser Liste sind bewertet; `n/a` heisst nicht bewertbar und wird weder belohnt noch bestraft: `∅` kein SEC-Registrant, `↧` Reihe kuerzer als sieben Jahre, `⊘` kein Konzept getroffen. Bei sieben bis neun Jahren ist der Hoechstwert 4.
 
-> **Preisnehmer** zaehlen nicht als Crosshits. **5** Titel haetten die Schwelle sonst erreicht; sie stehen im Abschnitt *Am Preisnehmer-Ausschluss gescheitert*.
+> **Preisnehmer** zaehlen nicht als Crosshits. **6** Titel haetten die Schwelle sonst erreicht; sie stehen im Abschnitt *Am Preisnehmer-Ausschluss gescheitert*.
 
 ## Am Stetigkeits-Gate gescheitert
 
@@ -98,10 +102,12 @@
 | 16 | ADSK  | Autodesk, Inc. | Technology | 3 | growth, profitability, resilience | 4.33 | 3.67 |
 | 17 | AVGO  | Broadcom Inc. | Technology | 3 | growth, profitability, resilience | 4.33 | 3.33 |
 | 18 | CELH  | Celsius Holdings, Inc. | Consumer Defensive | 3 | growth, profitability, resilience | 4.33 | 2.67 |
-| 19 | PR  | Permian Resources Corporation | Energy | 3 | growth, profitability, resilience | 4.33 | 2.0 |
-| 20 | ANF  | Abercrombie & Fitch Company | Consumer Cyclical | 3 | growth, profitability, resilience | 4.0 | 3.33 |
-| 21 | DXCM  | DexCom, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.0 | 3.33 |
-| 22 | MANH  | Manhattan Associates, Inc. | Technology | 3 | growth, profitability, resilience | 4.0 | 3.33 |
+| 19 | EXPE  | Expedia Group, Inc. | Consumer Cyclical | 3 | growth, profitability, resilience | 4.33 | 2.0 |
+| 20 | PR  | Permian Resources Corporation | Energy | 3 | growth, profitability, resilience | 4.33 | 2.0 |
+| 21 | ANF  | Abercrombie & Fitch Company | Consumer Cyclical | 3 | growth, profitability, resilience | 4.0 | 3.33 |
+| 22 | DXCM  | DexCom, Inc. | Healthcare | 3 | growth, profitability, resilience | 4.0 | 3.33 |
+| 23 | MANH  | Manhattan Associates, Inc. | Technology | 3 | growth, profitability, resilience | 4.0 | 3.33 |
+| 24 | RL  | Ralph Lauren Corporation | Consumer Cyclical | 3 | growth, profitability, resilience | 4.0 | 3.0 |
 
 ## Am Verschuldungs-Red-Flag gescheitert
 
@@ -124,3 +130,4 @@
 | 3 | PAF.L  | PAN AFRICAN RESOURCES PLC ORD 1 | Basic Materials | 3 | growth, profitability, resilience | 5.0 | n/a ∅ | Gold |
 | 4 | HOC.L  | HOCHSCHILD MINING PLC ORD 1P | Basic Materials | 3 | growth, profitability, resilience | 4.33 | n/a ∅ | Other Precious Metals & Mining |
 | 5 | SNDK  | Sandisk Corporation | Technology | 3 | growth, profitability, resilience | 4.33 | n/a ↧ | Override |
+| 6 | ANTO.L  | ANTOFAGASTA PLC ORD 5P | Basic Materials | 3 | growth, profitability, resilience | 4.0 | n/a ∅ | Copper |
