@@ -87,6 +87,11 @@ _MISSING_INPUT_CAP = 3
 # stands in when the fiscal-year series is too short for a median (<4 GJ).
 MEDIAN_GROWTH_INPUT = "revenue_growth_median"
 QUARTER_GROWTH_INPUT = "revenue_growth_yoy"
+# Steady-growth floor (median path only): a median >= 5 % without a single down
+# year scores at least 4. Absolute, fixed, not configurable -- a relative band
+# would swallow the judgment "grows steadily enough" (spec 2026-10-08).
+STEADY_GROWTH_MIN_MEDIAN = 0.05
+STEADY_GROWTH_FLOOR = 4
 
 # --- profitability: operating margin + ROIC -----------------------------------
 _PROFITABILITY_INPUTS = ("operating_margin", "return_on_invested_capital")
@@ -309,6 +314,17 @@ def _quarter_text(record: "ScreenerRecord", pcts: dict[str, float]) -> str:
     return _evidence(record, pcts, [(QUARTER_GROWTH_INPUT, "latest quarter YoY")])
 
 
+def _is_steady_grower(record: "ScreenerRecord") -> bool:
+    """Median annual growth >= STEADY_GROWTH_MIN_MEDIAN and no down year in the
+    window (consistency 1.0, whose cap is 5 -- the floor never fights the cap)."""
+    median = record.revenue_growth_median
+    return (
+        median is not None
+        and median >= STEADY_GROWTH_MIN_MEDIAN
+        and record.growth_consistency == 1.0
+    )
+
+
 def _score_growth(
     record: "ScreenerRecord",
     pcts: dict[str, float],
@@ -316,7 +332,8 @@ def _score_growth(
 ) -> tuple[int, str]:
     """(score, evidence). Median annual growth percentile; without it, the
     quarterly YoY percentile (else neutral) capped at neutral -- the cap only
-    lowers. The consistency cap applies on top either way."""
+    lowers. The consistency cap applies on top either way; on the median path a
+    steady grower is then floored at STEADY_GROWTH_FLOOR."""
     cons = record.growth_consistency
     if MEDIAN_GROWTH_INPUT in pcts:
         score = percentile_to_score(pcts[MEDIAN_GROWTH_INPUT])
@@ -329,7 +346,11 @@ def _score_growth(
             )
             + f", latest quarter YoY {_pct_decimal(record.revenue_growth_yoy)}"
         )
-        return min(score, consistency_cap(cons)), evidence
+        capped = min(score, consistency_cap(cons))
+        if _is_steady_grower(record) and capped < STEADY_GROWTH_FLOOR:
+            evidence += f" — steady-growth floor {STEADY_GROWTH_FLOOR}"
+            return STEADY_GROWTH_FLOOR, evidence
+        return capped, evidence
 
     data_gaps.append(MEDIAN_GROWTH_INPUT)
     if QUARTER_GROWTH_INPUT in pcts:

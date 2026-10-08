@@ -632,7 +632,8 @@ def test_median_percentile_drives_growth_not_the_quarter():
 
 def test_quarterly_spike_does_not_lift_a_modest_median():
     # VAR.OL-like: +103 % quarter, modest median -> the median decides
-    r = _growth(median_p=45.0, yoy_p=99.0, median=0.05, yoy=1.03)
+    # (median below the steady-growth floor threshold, so the floor stays out)
+    r = _growth(median_p=45.0, yoy_p=99.0, median=0.03, yoy=1.03)
     assert r.gemini_dimensions["growth"] == 3
 
 
@@ -696,6 +697,70 @@ def test_growth_evidence_without_any_growth_input():
     assert r.gemini_evidence["growth"] == (
         "rev growth median n/a (<4 GJ), latest quarter YoY n/a"
     )
+
+
+# --- growth: steady-growth floor -----------------------------------------------
+#
+# A title growing 7 % a year without a single down year sat at growth 3 because
+# P70 of the gated cohort was +9.4 %. Median >= 5 % with no down year in the
+# window floors the median path at 4; the quarterly fallback stays capped at 3.
+
+
+def test_steady_growth_floor_lifts_a_p60_steady_title_to_4():
+    r = _growth(median_p=60.0, median=0.07, yoy=0.06, consistency=1.0)
+    assert r.gemini_dimensions["growth"] == 4
+    assert r.gemini_evidence["growth"] == (
+        "rev growth median 7.0% (P60), consistency 1.00, latest quarter YoY 6.0%"
+        " — steady-growth floor 4"
+    )
+
+
+def test_steady_growth_floor_needs_full_consistency():
+    r = _growth(median_p=60.0, median=0.07, consistency=0.67)
+    assert r.gemini_dimensions["growth"] == 3
+    assert "steady-growth floor" not in r.gemini_evidence["growth"]
+
+
+def test_steady_growth_floor_needs_median_of_at_least_five_percent():
+    r = _growth(median_p=40.0, median=0.049, consistency=1.0)
+    assert r.gemini_dimensions["growth"] == 3
+    assert "steady-growth floor" not in r.gemini_evidence["growth"]
+
+
+def test_steady_growth_floor_applies_at_exactly_five_percent():
+    r = _growth(median_p=40.0, median=0.05, consistency=1.0)
+    assert r.gemini_dimensions["growth"] == 4
+    assert r.gemini_evidence["growth"].endswith(" — steady-growth floor 4")
+
+
+def test_steady_growth_floor_never_lowers_a_5():
+    r = _growth(median_p=95.0, median=0.20, consistency=1.0)
+    assert r.gemini_dimensions["growth"] == 5
+    assert "steady-growth floor" not in r.gemini_evidence["growth"]
+
+
+def test_steady_growth_floor_no_note_when_percentile_already_4():
+    r = _growth(median_p=75.0, median=0.10, consistency=1.0)
+    assert r.gemini_dimensions["growth"] == 4
+    assert "steady-growth floor" not in r.gemini_evidence["growth"]
+
+
+def test_steady_growth_floor_does_not_touch_the_quarter_fallback():
+    # Median without percentile (series too short) -> quarterly path, capped at 3
+    r = _growth(yoy_p=99.0, median=0.08, yoy=0.30, consistency=1.0)
+    assert r.gemini_dimensions["growth"] == 3
+    assert "steady-growth floor" not in r.gemini_evidence["growth"]
+    r = _growth(yoy_p=99.0, yoy=0.30, consistency=None)
+    assert r.gemini_dimensions["growth"] <= 3
+
+
+def test_steady_growth_constants_are_fixed():
+    from app.screener.deterministic_scorer import (
+        STEADY_GROWTH_FLOOR,
+        STEADY_GROWTH_MIN_MEDIAN,
+    )
+
+    assert (STEADY_GROWTH_MIN_MEDIAN, STEADY_GROWTH_FLOOR) == (0.05, 4)
 
 
 def test_run_deterministic_scoring_sets_median_from_series():
