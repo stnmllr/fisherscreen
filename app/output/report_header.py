@@ -54,3 +54,10 @@ def render_header(
         "",
     ]
     return "\n".join(lines)
+
+
+def prepend_prior_run_warning(body: str, warning: str | None) -> str:
+    """Put the prior-run warning block (if any) above the H1 of a monthly file."""
+    if not warning:
+        return body
+    return warning.rstrip("\n") + "\n\n" + body

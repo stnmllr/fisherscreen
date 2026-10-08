@@ -5,6 +5,7 @@ from pathlib import Path
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from app.output.report_header import prepend_prior_run_warning
 from app.screener.deterministic_scorer import (
     LEVERAGE_REDFLAG_THRESHOLD,
     leverage_ratio,
@@ -71,6 +72,7 @@ def generate(
     cap: int = 50,
     header: str | None = None,
     price_takers: PriceTakerTable | None = None,
+    prior_run_warning: str | None = None,
 ) -> Path:
     output_dir = output_dir / "Universum"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -101,6 +103,7 @@ def generate(
         leverage_failed=leverage_failed,
         price_taker_failed=price_taker_failed,
     )
+    body = prepend_prior_run_warning(body, prior_run_warning)
     out_path.write_text(body, encoding="utf-8")
 
     logger.info("crosshits: wrote %s (%d crosshits)", out_path.name, len(crosshits))

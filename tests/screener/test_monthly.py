@@ -106,3 +106,61 @@ def test_load_universe_reads_repo_data_file() -> None:
     assert isinstance(tickers, list)
     assert len(tickers) > 1000
     assert all(isinstance(t, str) for t in tickers)
+
+
+def test_full_run_reads_prior_status_before_writing_start_marker() -> None:
+    calls: list[str] = []
+
+    def fake_latest_prior_run() -> dict[str, str]:
+        calls.append("read")
+        return {"run_id": "2026-10-01T03:00:00+00:00", "status": "running"}
+
+    tracker = MagicMock()
+    tracker.latest_prior_run.side_effect = fake_latest_prior_run
+    tracker.start.side_effect = lambda: calls.append("start")
+
+    def fake_run_screener(**kwargs: object) -> tuple[list, RunRecord, list[Path]]:
+        calls.append("screen")
+        return _run_result([])
+
+    with (
+        _patched_builders(tracker=tracker),
+        patch.object(monthly, "run_screener", side_effect=fake_run_screener) as run,
+    ):
+        run_monthly_pipeline()
+
+    assert calls == ["read", "start", "screen"]
+    warning = run.call_args.kwargs["prior_run_warning"]
+    assert warning.startswith("> ⚠️ **Vorlauf unvollständig:**")
+    assert "2026-10-01T03:00:00+00:00" in warning
+
+
+def test_clean_prior_run_passes_no_warning() -> None:
+    tracker = MagicMock()
+    tracker.latest_prior_run.return_value = {"run_id": "x", "status": "success"}
+    with (
+        _patched_builders(tracker=tracker),
+        patch.object(monthly, "run_screener", return_value=_run_result([])) as run,
+    ):
+        run_monthly_pipeline()
+
+    assert run.call_args.kwargs["prior_run_warning"] is None
+    tracker.start.assert_called_once()
+
+
+def test_prior_status_read_failure_does_not_abort_run() -> None:
+    from app.errors import DataSourceError
+
+    tracker = MagicMock()
+    tracker.latest_prior_run.side_effect = DataSourceError("Firestore down")
+    with (
+        _patched_builders(tracker=tracker),
+        patch.object(monthly, "run_screener", return_value=_run_result([])) as run,
+    ):
+        result = run_monthly_pipeline()
+
+    assert result["status"] == "success"
+    assert run.call_args.kwargs["prior_run_warning"].startswith(
+        "> ⚠️ **Vorlauf nicht geprüft:**"
+    )
+    tracker.start.assert_called_once()

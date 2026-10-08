@@ -21,6 +21,7 @@ from app.screener.compose import (
     build_run_tracker,
     build_screener_pipeline,
 )
+from app.screener.prior_run import check_prior_run
 from app.screener.runner import run_filter_preview, run_screener
 
 logger = logging.getLogger(__name__)
@@ -40,8 +41,10 @@ def run_monthly_pipeline(dry_run: bool = False) -> dict[str, Any]:
     """Run the monthly screener end to end and return a JSON-ready summary.
 
     dry_run=True runs only the free filter stages and writes funnel artifacts:
-    no run tracker, no Firestore run doc, no GitHub push. The full run returns
-    the RunRecord dump (incl. ``status``) after pushing every output file.
+    no run tracker, no Firestore run doc, no GitHub push. The full run checks
+    the previous run doc (warning block in the outputs if it was incomplete),
+    writes its own status="running" marker, screens, and returns the RunRecord
+    dump (incl. ``status``) after pushing every output file.
     Exceptions propagate on purpose — callers decide how a failure surfaces
     (HTTP 500 for the route, non-zero exit code for the job).
     """
@@ -63,6 +66,11 @@ def run_monthly_pipeline(dry_run: bool = False) -> dict[str, Any]:
     github = build_github_client()
     output_dir = Path(settings.output_dir)
 
+    # Order matters: read the prior run BEFORE writing our own start marker,
+    # otherwise the newest doc would be this run's "running" marker.
+    prior_run_warning = check_prior_run(tracker)
+    tracker.start()
+
     records, run_record, paths = run_screener(
         tickers=tickers,
         yfinance=yfinance,
@@ -71,6 +79,7 @@ def run_monthly_pipeline(dry_run: bool = False) -> dict[str, Any]:
         annual_series=annual_series,
         run_tracker=tracker,
         output_dir=output_dir,
+        prior_run_warning=prior_run_warning,
     )
 
     for path in paths:
