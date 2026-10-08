@@ -155,3 +155,17 @@ nur mit Backfill: ~1900 s, Job rot, Lauf fertig. Rot in Kauf nehmen ist vertretb
 3. Den EDGAR-TTL bei 7 Tagen lassen? Ein längerer TTL würde ~600 s sparen, aber
    Going-Concern-/Restatement-Signale später erkennen. Das ist eine fachliche Entscheidung.
 4. Die Prepass-Optimierung (`income_stmt` only) als eigenes Ticket aufnehmen?
+
+## Entscheidungen (Stephan, 2026-10-08)
+
+1. **(d) Cloud Run Job wird jetzt umgesetzt** (Branch `feature/monthly-run-job`), Notlösung nur als Rückfall.
+2. **Kein E-Mail-Alarm.** Stattdessen Hinweis beim nächsten Lauf: Der Lauf schreibt zu Beginn einen
+   `dev_screener_runs`-Eintrag mit `status="running"` (heute schreibt `RunTracker` erst am Ende — ein
+   Absturz hinterlässt nichts). Findet der nächste Lauf als jüngsten Eintrag `running`, `aborted` oder
+   `partial`, setzt er einen sichtbaren Warnblock an den Kopf der drei Monatsdateien und loggt WARNING.
+   **Nicht blockieren:** Ein Block würde einen einmaligen Fehler zum Dauerausfall machen, bis jemand
+   manuell eingreift — der Hinweis erreicht Stephan im Obsidian-Lesekanal und der Lauf liefert trotzdem.
+3. **EDGAR-TTL bleibt bei 7 Tagen.** Mit (d) ist die Laufzeit kein Engpass mehr; ein längerer TTL
+   würde nur Zeit sparen, die niemand braucht, und Going-Concern-/Restatement-Signale um bis zu einen
+   Monat verzögern.
+4. **Prepass-Optimierung** als Ticket: `docs/superpowers/tickets/2026-10-08-prepass-income-stmt-only.md`.
