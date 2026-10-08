@@ -31,14 +31,14 @@ def test_health_endpoint_returns_ok() -> None:
 
 def test_monthly_run_endpoint_exists() -> None:
     with (
-        patch("app.main.build_screener_pipeline"),
-        patch("app.main.build_edgar_pipeline"),
-        patch("app.main.build_revenue_series_cache"),
-        patch("app.main.build_edgar_annual_series"),
-        patch("app.main.build_run_tracker"),
-        patch("app.main.build_github_client"),
-        patch("app.main.run_screener", return_value=_mock_run_result()),
-        patch("app.main._load_universe", return_value=["AAPL"]),
+        patch("app.screener.monthly.build_screener_pipeline"),
+        patch("app.screener.monthly.build_edgar_pipeline"),
+        patch("app.screener.monthly.build_revenue_series_cache"),
+        patch("app.screener.monthly.build_edgar_annual_series"),
+        patch("app.screener.monthly.build_run_tracker"),
+        patch("app.screener.monthly.build_github_client"),
+        patch("app.screener.monthly.run_screener", return_value=_mock_run_result()),
+        patch("app.screener.monthly._load_universe", return_value=["AAPL"]),
     ):
         resp = client.post("/run/monthly")
     assert resp.status_code == 200
@@ -46,14 +46,14 @@ def test_monthly_run_endpoint_exists() -> None:
 
 def test_monthly_run_returns_run_record_json() -> None:
     with (
-        patch("app.main.build_screener_pipeline"),
-        patch("app.main.build_edgar_pipeline"),
-        patch("app.main.build_revenue_series_cache"),
-        patch("app.main.build_edgar_annual_series"),
-        patch("app.main.build_run_tracker"),
-        patch("app.main.build_github_client"),
-        patch("app.main.run_screener", return_value=_mock_run_result()),
-        patch("app.main._load_universe", return_value=["AAPL"]),
+        patch("app.screener.monthly.build_screener_pipeline"),
+        patch("app.screener.monthly.build_edgar_pipeline"),
+        patch("app.screener.monthly.build_revenue_series_cache"),
+        patch("app.screener.monthly.build_edgar_annual_series"),
+        patch("app.screener.monthly.build_run_tracker"),
+        patch("app.screener.monthly.build_github_client"),
+        patch("app.screener.monthly.run_screener", return_value=_mock_run_result()),
+        patch("app.screener.monthly._load_universe", return_value=["AAPL"]),
     ):
         resp = client.post("/run/monthly")
     data = resp.json()
@@ -74,17 +74,17 @@ class _FakeReport:
 
 def test_dry_run_returns_report_and_skips_paid_pipeline() -> None:
     with (
-        patch("app.main.build_screener_pipeline") as mock_screener,
-        patch("app.main.build_edgar_pipeline") as mock_edgar,
-        patch("app.main.build_revenue_series_cache"),
-        patch("app.main.build_edgar_annual_series") as mock_revenue_cache,
-        patch("app.main.build_run_tracker") as mock_tracker,
-        patch("app.main.build_github_client") as mock_github,
-        patch("app.main.run_screener") as mock_run_screener,
+        patch("app.screener.monthly.build_screener_pipeline") as mock_screener,
+        patch("app.screener.monthly.build_edgar_pipeline") as mock_edgar,
+        patch("app.screener.monthly.build_revenue_series_cache"),
+        patch("app.screener.monthly.build_edgar_annual_series") as mock_revenue_cache,
+        patch("app.screener.monthly.build_run_tracker") as mock_tracker,
+        patch("app.screener.monthly.build_github_client") as mock_github,
+        patch("app.screener.monthly.run_screener") as mock_run_screener,
         patch(
-            "app.main.run_filter_preview", return_value=_FakeReport()
+            "app.screener.monthly.run_filter_preview", return_value=_FakeReport()
         ) as mock_preview,
-        patch("app.main._load_universe", return_value=["AAPL"]),
+        patch("app.screener.monthly._load_universe", return_value=["AAPL"]),
     ):
         resp = client.post("/run/monthly?dry_run=true")
 
@@ -132,16 +132,17 @@ def test_monthly_run_commit_message_includes_skip_ci(tmp_path: Path) -> None:
     mock_github = MagicMock()
 
     with (
-        patch("app.main.build_screener_pipeline"),
-        patch("app.main.build_edgar_pipeline"),
-        patch("app.main.build_revenue_series_cache"),
-        patch("app.main.build_edgar_annual_series"),
-        patch("app.main.build_run_tracker"),
-        patch("app.main.build_github_client", return_value=mock_github),
+        patch("app.screener.monthly.build_screener_pipeline"),
+        patch("app.screener.monthly.build_edgar_pipeline"),
+        patch("app.screener.monthly.build_revenue_series_cache"),
+        patch("app.screener.monthly.build_edgar_annual_series"),
+        patch("app.screener.monthly.build_run_tracker"),
+        patch("app.screener.monthly.build_github_client", return_value=mock_github),
         patch(
-            "app.main.run_screener", return_value=_mock_run_result(paths=[output_file])
+            "app.screener.monthly.run_screener",
+            return_value=_mock_run_result(paths=[output_file]),
         ),
-        patch("app.main._load_universe", return_value=["AAPL"]),
+        patch("app.screener.monthly._load_universe", return_value=["AAPL"]),
     ):
         resp = client.post("/run/monthly")
 
