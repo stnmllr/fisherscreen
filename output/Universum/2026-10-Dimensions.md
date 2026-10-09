@@ -467,8 +467,8 @@ dimensions:
     - MU
     - MYCR.ST
     - NEM
-generated_at: '2026-10-08T19:29:25.698359+00:00'
-run_id: '2026-10-08T19:20:01.032210+00:00'
+generated_at: '2026-10-09T07:49:55.172351+00:00'
+run_id: '2026-10-09T07:44:16.220571+00:00'
 score_threshold: 4.0
 universum_size: 994
 ---
