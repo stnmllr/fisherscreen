@@ -176,3 +176,31 @@ def test_build_peer_suggester_firestore_failure_raises_inside_call():
         suggest = compose.build_peer_suggester()
         with pytest.raises(DataSourceError):
             suggest(check, [])
+
+
+def test_build_dossier_publisher_none_when_repo_empty(monkeypatch):
+    monkeypatch.setattr(deepdive_compose.settings, "dossier_repo", "")
+    assert deepdive_compose.build_dossier_publisher() is None
+
+
+def test_build_dossier_publisher_builds_client_when_configured(monkeypatch):
+    from app.services.github_client import GitHubClientImpl
+
+    monkeypatch.setattr(deepdive_compose.settings, "dossier_repo", "o/dossiers")
+    monkeypatch.setattr(deepdive_compose.settings, "dossier_token", "tok")
+    monkeypatch.setattr(deepdive_compose.settings, "dossier_branch", "dev")
+    client = deepdive_compose.build_dossier_publisher()
+    assert isinstance(client, GitHubClientImpl)
+    assert client._repo == "o/dossiers"
+    assert client._branch == "dev"
+
+
+def test_build_dossier_publisher_raises_without_token(monkeypatch):
+    import pytest
+
+    from app.errors import DataSourceError
+
+    monkeypatch.setattr(deepdive_compose.settings, "dossier_repo", "o/dossiers")
+    monkeypatch.setattr(deepdive_compose.settings, "dossier_token", "")
+    with pytest.raises(DataSourceError):
+        deepdive_compose.build_dossier_publisher()

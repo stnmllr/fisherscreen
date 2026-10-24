@@ -68,6 +68,11 @@ class FisherScreenSettings(BaseSettings):
     deepdive_ui_runs_dir: str = "runs"
     deepdive_ui_viewer_url: str = ""  # empty = no viewer link
     deepdive_ui_preflight_ttl_minutes: int = 15
+    # Separate (private) repo that receives published Tool-B dossiers. Empty
+    # repo = publishing disabled. Own token so it can be scoped to that repo.
+    dossier_repo: str = ""
+    dossier_token: str = ""
+    dossier_branch: str = "main"
 
     model_config = {
         "env_prefix": "FISHERSCREEN_",

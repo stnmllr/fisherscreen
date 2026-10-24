@@ -18,6 +18,7 @@ from app.screener.compose import build_github_client
 from app.screener.monthly import _load_universe
 from app.services.edgar_client import EdgarClientImpl
 from app.services.firestore_client import FirestoreClientImpl
+from app.services.github_client import GitHubClientImpl
 from app.services.openfigi_client import OpenFIGIClientImpl
 from app.services.gemini_deepdive_client import GeminiDeepDiveClient
 from app.services.historical_data_service import HistoricalDataServiceImpl
@@ -199,4 +200,18 @@ def build_synthesizer(model_override: str | None = None) -> GeminiDeepDiveClient
     return GeminiDeepDiveClient(
         api_key=settings.gemini_api_key,
         model=model_override or settings.deepdive_gemini_model,
+    )
+
+
+def build_dossier_publisher() -> GitHubClientImpl | None:
+    """GitHub client for the dossier repo, or None when publishing is not configured.
+
+    Raises DataSourceError (from the client) when a repo is set but the token is empty.
+    """
+    if not settings.dossier_repo:
+        return None
+    return GitHubClientImpl(
+        token=settings.dossier_token,
+        repo=settings.dossier_repo,
+        branch=settings.dossier_branch,
     )

@@ -207,3 +207,19 @@ def test_reads_deepdive_ui_settings(monkeypatch):
     assert settings.deepdive_ui_root_path == "/deepdive"
     assert settings.deepdive_ui_port == 9000
     assert settings.deepdive_ui_viewer_url == "https://x.test/fisher"
+
+
+def test_dossier_settings_defaults():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.dossier_repo == ""
+    assert settings.dossier_token == ""
+    assert settings.dossier_branch == "main"
+
+
+def test_dossier_settings_env_override(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_DOSSIER_REPO", "o/d")
+    monkeypatch.setenv("FISHERSCREEN_DOSSIER_TOKEN", "t")
+    monkeypatch.setenv("FISHERSCREEN_DOSSIER_BRANCH", "dev")
+    settings = FisherScreenSettings(_env_file=None)
+    assert (settings.dossier_repo, settings.dossier_token) == ("o/d", "t")
+    assert settings.dossier_branch == "dev"
