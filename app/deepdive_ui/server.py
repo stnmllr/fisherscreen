@@ -45,8 +45,10 @@ PeersLookup = Callable[[str], dict[str, Any] | None]
 
 
 class PreflightBody(BaseModel):
+    # 0-3 peers: fewer than three is a hint (suggestions), not an error.
+    # Starting still needs exactly three (RunBody).
     ticker: str = Field(min_length=1, max_length=40)
-    peers: list[str] = Field(min_length=PEER_COUNT, max_length=PEER_COUNT)
+    peers: list[str] = Field(default_factory=list, max_length=PEER_COUNT)
 
 
 class RunBody(BaseModel):
@@ -192,7 +194,11 @@ def create_app(
     @app.post("/api/preflight")
     async def run_preflight(body: PreflightBody) -> dict[str, Any]:
         ticker = normalize_symbol(body.ticker)
-        peers = [normalize_symbol(p) for p in body.peers]
+        if not ticker:
+            raise HTTPException(status_code=422, detail="Ticker fehlt")
+        # Positional: an empty field stays "" in its slot, so the preflight's
+        # missing_peer_slots names the right field number.
+        peers = [normalize_symbol(raw) for raw in body.peers]
         try:
             result = await asyncio.to_thread(preflight, ticker, peers)
         except FisherScreenError as exc:

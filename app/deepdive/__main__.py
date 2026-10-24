@@ -14,9 +14,9 @@ from app.deepdive.compose import (
     build_quant_builder,
     build_synthesizer,
 )
-from app.deepdive.peer_preflight import _parse_triplet
+
 from app.deepdive.pipeline import run_deep_dive
-from app.deepdive.preflight import format_preflight
+from app.deepdive.preflight import format_preflight, parse_peer_arg
 from app.config import settings
 from app.errors import DataSourceError, DeepDiveError, GeminiError
 from app.viewer.__main__ import main as render_site
@@ -74,7 +74,7 @@ def build_parser() -> argparse.ArgumentParser:
     preflight.add_argument(
         "--peers",
         required=True,
-        help="Exactly 3 comma-separated peer tickers",
+        help="1-3 comma-separated peer tickers (fewer than 3 -> suggestions)",
     )
     return parser
 
@@ -84,7 +84,7 @@ def _run_preflight(args: argparse.Namespace) -> int:
     failed check), 2 if a data source cannot even be set up (e.g. no EDGAR
     user agent) — the same code the deepdive command uses for that case."""
     try:
-        peers = _parse_triplet(args.peers)
+        peers = parse_peer_arg(args.peers)
     except DeepDiveError as exc:
         print(f"FEHLER: {exc}")
         return 1

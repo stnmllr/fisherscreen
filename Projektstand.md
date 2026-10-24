@@ -49,8 +49,16 @@ Arbeitskopie `D:\entwicklung\fisherscreen`.
 - Live geprüft (nur Vorprüfung, kein Gemini): NOVOB.CO rot, NOVO-B.CO „20-F via ADR NVO",
   EDV.L „nur Quant", Peer = Ticker rot. **APLE ist kein Tippfehler-Beispiel** — es ist Apple
   Hospitality REIT; die Vorprüfung zeigt den Namen, das ist die eigentliche Absicherung.
-- **Offen:** Abnahme mit echtem Lauf (braucht `.env` + ADC auf dieser Maschine), Klick-Test der
-  Seite im Browser, Hetzner-Deploy nach Spec §7.
+- **Peer-Vorschlag** (Spec-Nachtrag): Weniger als drei Peers ist ein Hinweis, kein Fehler;
+  Vorschläge aus `dev_ticker_cache` (gleiche yfinance-`industry`, Universum, Nähe der Market
+  Cap nach EUR-Umrechnung, ggf. mit `sector` aufgefüllt). Gestartet wird weiter nur mit drei.
+  Live: SAF.PA + RR.L, AIR.PA → LMT, BA, HWM, GD, BA.L.
+- **Abnahme-Läufe 2026-10-24** (quant-only, kein Gemini): EDV.L über die UI, Exit 0, Dossier
+  geschrieben; Peers in Firestore stehen wieder auf HL, NEM, AEM (zwischenzeitlich versehentlich
+  überschrieben und zurückgesetzt). ADC auf dieser Maschine eingerichtet — `gcloud.cmd` endet
+  hier still, Aufruf über `platform\bundledpython\python.exe lib\gcloud.py`.
+- **Offen:** ein Lauf mit vollständigem Dossier (Gemini) über die UI, Klick-Test der Seite im
+  Browser, Hetzner-Deploy nach Spec §7.
 
 ## Top of mind — 2026-10-07 (Preisnehmer)
 

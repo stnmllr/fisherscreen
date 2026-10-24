@@ -11,9 +11,11 @@ from app.deepdive.filing_cache import CachedFilingFetcher
 from app.deepdive.historical_cache import CachedHistoricalData
 from app.deepdive.insider_cache import CachedInsiderFetcher
 from app.deepdive.peer_preflight import resolve_peers
-from app.deepdive.preflight import PreflightResult, run_preflight
+from app.deepdive.peer_suggest import PeerSuggestion, suggest_peers
+from app.deepdive.preflight import PreflightResult, SymbolCheck, run_preflight
 from app.deepdive.quant_join import build_quant_snapshot
 from app.screener.compose import build_github_client
+from app.screener.monthly import _load_universe
 from app.services.edgar_client import EdgarClientImpl
 from app.services.firestore_client import FirestoreClientImpl
 from app.services.openfigi_client import OpenFIGIClientImpl
@@ -31,6 +33,7 @@ __all__ = [
     "build_insider_fetcher",
     "build_quant_builder",
     "build_peer_resolver",
+    "build_peer_suggester",
     "build_preflight_runner",
     "build_synthesizer",
 ]
@@ -105,9 +108,31 @@ def build_preflight_runner() -> Callable[[str, list[str]], PreflightResult]:
             resolver=build_adr_resolver(edgar=edgar),
             yfinance=YFinanceClientImpl(),
             edgar_map_available=edgar.ticker_map_available,
+            suggest=build_peer_suggester(),
         )
 
     return _run
+
+
+def build_peer_suggester() -> Callable[[SymbolCheck, list[str]], list[PeerSuggestion]]:
+    """Return the peer-suggestion callable for the pre-flight check.
+
+    Firestore is constructed INSIDE the callable: it only runs when peer slots
+    are empty, and an ADC/Firestore failure then surfaces as DataSourceError
+    right there, where the pre-flight reports it as "nicht abrufbar" instead
+    of failing the whole check."""
+
+    def _suggest(ticker_check: SymbolCheck, exclude: list[str]) -> list[PeerSuggestion]:
+        return suggest_peers(
+            ticker_check,
+            exclude,
+            firestore=FirestoreClientImpl(project_id=settings.gcp_project_id),
+            collection=settings.ticker_collection,
+            universe=frozenset(_load_universe()),
+            fx_rate=YFinanceClientImpl().get_fx_rate,
+        )
+
+    return _suggest
 
 
 def build_filing_fetcher() -> CachedFilingFetcher:

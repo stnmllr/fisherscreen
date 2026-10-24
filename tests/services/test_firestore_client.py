@@ -158,3 +158,41 @@ def test_get_latest_raises_data_source_error_on_failure(mock_firestore_module):
 
     with pytest.raises(DataSourceError, match="Firestore get_latest failed"):
         client.get_latest("dev_screener_runs", order_by="run_id")
+
+
+@patch("app.services.firestore_client.firestore")
+def test_query_equal_returns_id_and_data_pairs(mock_firestore_module):
+    mock_db = MagicMock()
+    mock_firestore_module.Client.return_value = mock_db
+    doc_a = MagicMock(id="LLY")
+    doc_a.to_dict.return_value = {"industry": "Drug Manufacturers"}
+    doc_b = MagicMock(id="PFE")
+    doc_b.to_dict.return_value = None  # defensive: a doc without data
+    query = mock_db.collection.return_value.where.return_value.limit.return_value
+    query.stream.return_value = iter([doc_a, doc_b])
+
+    client = FirestoreClientImpl(project_id="test-project")
+    result = client.query_equal("dev_ticker_cache", "industry", "Drug", 200)
+
+    assert result == [("LLY", {"industry": "Drug Manufacturers"}), ("PFE", {})]
+    mock_db.collection.assert_called_with("dev_ticker_cache")
+    mock_firestore_module.FieldFilter.assert_called_once_with("industry", "==", "Drug")
+    mock_db.collection.return_value.where.assert_called_once_with(
+        filter=mock_firestore_module.FieldFilter.return_value
+    )
+    mock_db.collection.return_value.where.return_value.limit.assert_called_once_with(
+        200
+    )
+
+
+@patch("app.services.firestore_client.firestore")
+def test_query_equal_raises_data_source_error_on_failure(mock_firestore_module):
+    mock_db = MagicMock()
+    mock_firestore_module.Client.return_value = mock_db
+    query = mock_db.collection.return_value.where.return_value.limit.return_value
+    query.stream.side_effect = Exception("index missing")
+
+    client = FirestoreClientImpl(project_id="test-project")
+
+    with pytest.raises(DataSourceError, match="Firestore query_equal failed"):
+        client.query_equal("dev_ticker_cache", "industry", "Drug", 200)

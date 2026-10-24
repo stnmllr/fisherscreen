@@ -346,8 +346,8 @@ def test_preflight_bad_peer_string_exits_one_without_check(monkeypatch, capsys):
         raise AssertionError("runner must not be built")
 
     monkeypatch.setattr(cli, "build_preflight_runner", boom)
-    assert main(["preflight", "NOVO-B.CO", "--peers", "LLY,PFE"]) == 1
-    assert "genau 3" in capsys.readouterr().out
+    assert main(["preflight", "NOVO-B.CO", "--peers", "A,B,C,D"]) == 1
+    assert "1 bis 3" in capsys.readouterr().out
 
 
 def test_preflight_data_source_setup_failure_exits_two(monkeypatch, capsys):
@@ -363,3 +363,30 @@ def test_preflight_data_source_setup_failure_exits_two(monkeypatch, capsys):
     monkeypatch.setattr(cli, "build_preflight_runner", broken)
     assert main(["preflight", "NOVO-B.CO", "--peers", "LLY,PFE,MRK"]) == 2
     assert "EDGAR user agent not set" in capsys.readouterr().out
+
+
+def test_preflight_two_peers_prints_suggestions_and_exits_one(monkeypatch, capsys):
+    import dataclasses
+
+    import app.deepdive.__main__ as cli
+    from app.deepdive.peer_suggest import PeerSuggestion
+
+    calls = []
+    suggestion = PeerSuggestion("HO.PA", "Thales", 4e10, "industry", "A&D", None)
+
+    def runner(ticker, peers):
+        calls.append((ticker, peers))
+        base = _preflight_result(False)
+        return dataclasses.replace(
+            base,
+            peers=base.peers[:2],
+            missing_peer_slots=[3],
+            peer_suggestions=[suggestion],
+        )
+
+    monkeypatch.setattr(cli, "build_preflight_runner", lambda: runner)
+    assert main(["preflight", "SAF.PA", "--peers", "air.pa,RHM.DE"]) == 1
+    assert calls == [("SAF.PA", ["AIR.PA", "RHM.DE"])]
+    out = capsys.readouterr().out
+    assert "Peer 3  fehlt" in out
+    assert "HO.PA" in out

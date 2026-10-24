@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
+from app.deepdive.peer_suggest import PeerSuggestion
 from app.deepdive.preflight import PreflightResult, SymbolCheck
 from app.deepdive_ui.runs import RunManager
 from app.deepdive_ui.server import PreflightTokens, create_app
@@ -136,6 +137,34 @@ def test_index_renders_empty_history(manager: RunManager) -> None:
     assert "<script src" not in res.text  # nothing external to load
 
 
+def test_index_check_ui_names_rows_and_real_block_reason(manager: RunManager) -> None:
+    # The JS is not unit-tested; this pins the user-visible strings of the
+    # 2026-10-24 browser-test fix (empty peer showed as quant-only blocker).
+    text = _client(manager).get("/").text
+    assert "<th>Feld</th><th>Symbol</th>" in text
+    assert 'cell(tr, "Peer " + slot)' in text
+    # slot numbers come from the API only (missing_peer_slots), no client copy
+    assert "givenSlots(r, missing)" in text
+    # caps always carry their currency (check table and chips)
+    assert "formatCap(c.market_cap, c.currency)" in text
+    assert "formatCap(s.market_cap, s.currency)" in text
+    assert "peerSlots" not in text
+    assert '"(leer)"' in text
+    assert "Bitte einen Ticker eingeben" in text
+    assert "genau drei Peers eingeben" not in text  # fewer peers -> suggestions
+    # missing peer slots: neutral row + hint verdict, suggestion chips
+    assert "fehlt, Vorschlag unten" in text
+    assert "Vorschlag wählen oder eintragen" in text
+    assert '"Vorschläge (gleiche Branche: "' in text
+    assert "gleicher Sektor" in text
+    assert '" · Stand "' in text
+    assert 'id="suggest-note"' in text
+    assert "hint-row" in text
+    assert '" — Start gesperrt: " + block.text' in text
+    # quant-only sentence shows the human note first, not the reason code
+    assert "(note || r.no_sec_source_reason" in text
+
+
 def test_stored_peers_found(manager: RunManager) -> None:
     peers = FakePeers(
         {
@@ -186,11 +215,132 @@ def test_preflight_failing_check_gets_no_token(manager: RunManager) -> None:
     assert _preflight(_client(manager, preflight=fake))["preflight_token"] is None
 
 
-def test_preflight_requires_three_peers(manager: RunManager) -> None:
-    res = _client(manager).post(
-        "/api/preflight", json={"ticker": "NVO", "peers": ["A"]}
+@pytest.mark.parametrize(
+    ("sent", "passed"),
+    [
+        ([], []),
+        (["lly"], ["LLY"]),
+        (["LLY", "", " "], ["LLY", "", ""]),
+        (["", "pfe", "MRK"], ["", "PFE", "MRK"]),
+        (PEERS, PEERS),
+    ],
+)
+def test_preflight_accepts_zero_to_three_peers_keeps_empty_slots_in_position(
+    manager: RunManager, sent: list[str], passed: list[str]
+) -> None:
+    fake = FakePreflight()
+    res = _client(manager, preflight=fake).post(
+        "/api/preflight", json={"ticker": "NVO", "peers": sent}
     )
+    assert res.status_code == 200
+    assert fake.calls == [("NVO", passed)]
+
+
+def test_preflight_peers_optional_in_body(manager: RunManager) -> None:
+    fake = FakePreflight()
+    res = _client(manager, preflight=fake).post(
+        "/api/preflight", json={"ticker": "NVO"}
+    )
+    assert res.status_code == 200
+    assert fake.calls == [("NVO", [])]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"ticker": "NVO", "peers": ["A", "B", "C", "D"]},
+        {"ticker": "", "peers": PEERS},
+        {"ticker": "   ", "peers": PEERS},
+        {"peers": PEERS},
+    ],
+)
+def test_preflight_rejects_bad_body(manager: RunManager, body: dict) -> None:
+    fake = FakePreflight()
+    res = _client(manager, preflight=fake).post("/api/preflight", json=body)
     assert res.status_code == 422
+    assert fake.calls == []
+
+
+def test_preflight_passes_missing_slots_and_suggestions_through(
+    manager: RunManager,
+) -> None:
+    result = PreflightResult(
+        ticker=SymbolCheck(
+            symbol="SAF.PA",
+            ok=True,
+            name="SAFRAN",
+            currency="EUR",
+            market_cap=9.0e10,
+            message="gefunden",
+            industry="Aerospace & Defense",
+            sector="Industrials",
+        ),
+        peers=[_check("RR.L"), _check("AIR.PA")],
+        dossier_kind="quant_only",
+        dossier_note="kein SEC-Registrant",
+        no_sec_source_reason="not_sec_registrant",
+        can_start=False,
+        needs_quant_only_ack=True,
+        missing_peer_slots=[3],
+        peer_suggestions=[
+            PeerSuggestion(
+                symbol="MTX.DE",
+                name="MTU Aero Engines",
+                market_cap=1.23e10,
+                currency="EUR",
+                match="industry",
+                industry="Aerospace & Defense",
+                cached_at="2026-10-20T08:00:00+00:00",
+            ),
+            PeerSuggestion(
+                symbol="SIE.DE",
+                name="Siemens",
+                market_cap=1.5e11,
+                currency="EUR",
+                match="sector",
+                industry="Specialty Industrial Machinery",
+                cached_at=None,
+            ),
+        ],
+        suggestion_note=None,
+    )
+    data = _preflight(
+        _client(manager, preflight=FakePreflight(result)),
+        "SAF.PA",
+        ["RR.L", "AIR.PA", ""],
+    )
+    assert data["preflight_token"] is None  # fewer than three: no start
+    assert data["missing_peer_slots"] == [3]
+    assert data["ticker"]["industry"] == "Aerospace & Defense"
+    assert [p["symbol"] for p in data["peers"]] == ["RR.L", "AIR.PA"]
+    assert data["peer_suggestions"][0] == {
+        "symbol": "MTX.DE",
+        "name": "MTU Aero Engines",
+        "market_cap": 1.23e10,
+        "currency": "EUR",
+        "match": "industry",
+        "industry": "Aerospace & Defense",
+        "cached_at": "2026-10-20T08:00:00+00:00",
+    }
+    assert data["peer_suggestions"][1]["match"] == "sector"
+    assert data["suggestion_note"] is None
+
+
+def test_preflight_passes_suggestion_note_through(manager: RunManager) -> None:
+    result = PreflightResult(
+        ticker=_check("NVO"),
+        peers=[],
+        dossier_kind="full",
+        dossier_note="20-F via ADR NVO",
+        no_sec_source_reason=None,
+        can_start=False,
+        needs_quant_only_ack=False,
+        missing_peer_slots=[1, 2, 3],
+        suggestion_note="Vorschläge nicht abrufbar (Quelle nicht erreichbar)",
+    )
+    data = _preflight(_client(manager, preflight=FakePreflight(result)), "NVO", [])
+    assert data["peer_suggestions"] == []
+    assert data["suggestion_note"].startswith("Vorschläge nicht abrufbar")
 
 
 def test_preflight_unexpected_source_error_is_503(manager: RunManager) -> None:

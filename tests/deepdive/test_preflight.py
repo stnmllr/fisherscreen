@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from app.deepdive.adr_resolver import ResolvedTicker, no_sec_source
+from app.deepdive.peer_suggest import PeerSuggestion
 from app.deepdive.preflight import (
     SYMBOL_PATTERN,
     PreflightResult,
@@ -14,6 +15,7 @@ from app.deepdive.preflight import (
     format_preflight,
     is_valid_symbol,
     normalize_symbol,
+    parse_peer_arg,
     run_preflight,
 )
 from app.errors import DataSourceError, DeepDiveError, DegradedDataError
@@ -77,13 +79,22 @@ _QUANT = no_sec_source(
 )
 
 
-def _run(ticker="NOVO-B.CO", peers=None, *, resolver=None, yf=None, edgar=None):
+def _run(
+    ticker="NOVO-B.CO",
+    peers=None,
+    *,
+    resolver=None,
+    yf=None,
+    edgar=None,
+    suggest=None,
+):
     return run_preflight(
         ticker,
         ["LLY", "PFE", "MRK"] if peers is None else peers,
         resolver=resolver or FakeResolver(_FULL_ADR),
         yfinance=yf or FakeYF(),
         edgar_map_available=edgar or MapCheck(),
+        suggest=suggest,
     )
 
 
@@ -299,11 +310,13 @@ def test_peer_equal_to_ticker_flagged():
     assert r.can_start is False
 
 
-def test_empty_peer_flagged():
-    r = _run(peers=["LLY", "  ", "MRK"])
-    assert r.peers[1].symbol == ""
-    assert r.peers[1].ok is False
-    assert "leer" in r.peers[1].message
+def test_empty_peer_is_missing_slot_not_failing_row():
+    yf = FakeYF()
+    r = _run(peers=["LLY", "  ", "MRK"], yf=yf)
+    assert [p.symbol for p in r.peers] == ["LLY", "MRK"]
+    assert all(p.ok for p in r.peers)
+    assert r.missing_peer_slots == [2]
+    assert "" not in yf.calls
     assert r.can_start is False
 
 
@@ -315,13 +328,27 @@ def test_invalid_peer_symbol_flagged_without_call():
     assert "--SITE" not in yf.calls
 
 
-def test_too_few_peers_padded_with_missing_rows():
+def test_too_few_peers_listed_as_missing_slots():
     r = _run(peers=["LLY"])
-    assert len(r.peers) == 3
-    assert r.peers[0].ok is True
-    assert [p.symbol for p in r.peers[1:]] == ["", ""]
-    assert all("fehlt" in p.message for p in r.peers[1:])
+    assert [p.symbol for p in r.peers] == ["LLY"]
+    assert r.missing_peer_slots == [2, 3]
+    assert r.peer_suggestions == []
+    assert r.suggestion_note is None  # no suggest callable injected
     assert r.can_start is False
+
+
+def test_no_peers_at_all():
+    r = _run(peers=[])
+    assert r.peers == []
+    assert r.missing_peer_slots == [1, 2, 3]
+    assert r.can_start is False
+
+
+def test_empty_entry_beyond_third_is_ignored():
+    r = _run(peers=["LLY", "PFE", "MRK", " "])
+    assert len(r.peers) == 3
+    assert r.missing_peer_slots == []
+    assert r.can_start is True
 
 
 def test_too_many_peers_extras_flagged_without_call():
@@ -382,8 +409,150 @@ def test_format_preflight_none_and_unknown():
     assert "Quelle nicht erreichbar" in unknown_text
 
 
-def test_format_preflight_shows_missing_fields_and_peer_errors():
-    r = _run(peers=["LLY"], yf=FakeYF(info={**_INFO, "LLY": {"shortName": "L"}}))
+def test_format_preflight_shows_missing_slots_and_peer_errors():
+    r = _run(
+        peers=["LLY", "", "--x"],
+        yf=FakeYF(info={**_INFO, "LLY": {"shortName": "L"}}),
+    )
     text = format_preflight(r)
-    assert "(leer)" in text
+    assert "Peer 1  LLY" in text
+    assert "Peer 2  fehlt" in text
+    assert "Peer 3  --X" in text
     assert "FEHLER" in text
+    assert "L | - | -" in text  # missing currency / market cap
+
+
+def test_format_preflight_invalid_empty_ticker():
+    assert "Vorprüfung (leer)" in format_preflight(_run(" "))
+
+
+# --- peer suggestions ---------------------------------------------------------
+
+_SAF_INFO = {
+    **_INFO,
+    "SAF.PA": {
+        "shortName": "Safran",
+        "currency": "EUR",
+        "marketCap": 1e11,
+        "industry": "Aerospace & Defense",
+        "sector": "Industrials",
+    },
+    "AIR.PA": {"shortName": "Airbus", "industry": "Aerospace & Defense"},
+    "RHM.DE": {"shortName": "Rheinmetall", "industry": "Aerospace & Defense"},
+}
+_SAF_FULL = ResolvedTicker("SAF.PA", "SAFRY", "0000000001", "20-F")
+_SUGGESTION = PeerSuggestion(
+    "HO.PA", "Thales", 4e10, "industry", "Aerospace & Defense", "2026-10-20T08:00"
+)
+
+
+class FakeSuggest:
+    def __init__(self, result=None, exc=None) -> None:
+        self.result = [_SUGGESTION] if result is None else result
+        self.exc = exc
+        self.calls: list[tuple[SymbolCheck, list[str]]] = []
+
+    def __call__(self, ticker_check, exclude):
+        self.calls.append((ticker_check, exclude))
+        if self.exc is not None:
+            raise self.exc
+        return self.result
+
+
+def _run_saf(peers, suggest, info=None, ticker="SAF.PA"):
+    return _run(
+        ticker,
+        peers,
+        resolver=FakeResolver(_SAF_FULL),
+        yf=FakeYF(info=info or _SAF_INFO),
+        suggest=suggest,
+    )
+
+
+def test_ticker_check_carries_industry_and_sector():
+    r = _run_saf(["AIR.PA", "RHM.DE", "LLY"], None)
+    assert r.ticker.industry == "Aerospace & Defense"
+    assert r.ticker.sector == "Industrials"
+    assert r.peers[2].industry is None
+
+
+def test_suggestions_offered_for_missing_slots():
+    suggest = FakeSuggest()
+    r = _run_saf(["air.pa", "RHM.DE", ""], suggest)
+    assert r.missing_peer_slots == [3]
+    assert r.peer_suggestions == [_SUGGESTION]
+    assert r.suggestion_note is None
+    assert r.can_start is False
+    ((check, exclude),) = suggest.calls
+    assert check.symbol == "SAF.PA"
+    assert exclude == ["SAF.PA", "AIR.PA", "RHM.DE"]
+
+
+def test_no_suggest_call_when_all_slots_filled():
+    suggest = FakeSuggest()
+    r = _run_saf(["AIR.PA", "RHM.DE", "LLY"], suggest)
+    assert suggest.calls == []
+    assert r.peer_suggestions == []
+    assert r.suggestion_note is None
+    assert r.can_start is True
+
+
+def test_no_suggestions_when_ticker_not_ok():
+    suggest = FakeSuggest()
+    r = _run_saf(["AIR.PA"], suggest, ticker="NOPE.PA")
+    assert suggest.calls == []
+    assert r.peer_suggestions == []
+    assert r.suggestion_note is None
+
+
+def test_ticker_without_industry_gets_note():
+    suggest = FakeSuggest()
+    r = _run_saf(["LLY"], suggest, info=_INFO, ticker="NOVO-B.CO")
+    assert suggest.calls == []
+    assert r.suggestion_note == "keine Branche bekannt — kein Vorschlag"
+
+
+def test_suggest_source_failure_is_not_empty():
+    r = _run_saf(["AIR.PA"], FakeSuggest(exc=DataSourceError("Firestore down")))
+    assert r.peer_suggestions == []
+    assert r.suggestion_note == "Vorschläge nicht abrufbar (Quelle nicht erreichbar)"
+
+
+def test_suggest_empty_result_note():
+    r = _run_saf(["AIR.PA"], FakeSuggest(result=[]))
+    assert r.peer_suggestions == []
+    assert r.suggestion_note == "keine passenden Titel im Universum gefunden"
+
+
+def test_result_with_suggestions_is_json_serialisable():
+    r = _run_saf(["AIR.PA"], FakeSuggest())
+    payload = json.loads(json.dumps(dataclasses.asdict(r)))
+    assert payload["peer_suggestions"][0]["symbol"] == "HO.PA"
+    assert payload["missing_peer_slots"] == [2, 3]
+
+
+def test_format_preflight_lists_suggestions_and_note():
+    text = format_preflight(_run_saf(["AIR.PA"], FakeSuggest()))
+    assert "Peer 2  fehlt — Vorschlag unten" in text
+    assert "Peer-Vorschläge" in text
+    assert "HO.PA" in text and "Thales" in text and "Stand 2026-10-20" in text
+    assert "Branche: Aerospace & Defense" in text
+    sector = PeerSuggestion("GE", None, None, "sector", None, None)
+    text = format_preflight(_run_saf(["AIR.PA"], FakeSuggest(result=[sector])))
+    assert "Sektor: -" in text and "Stand unbekannt" in text
+    text = format_preflight(_run_saf(["AIR.PA"], FakeSuggest(result=[])))
+    assert "Peer-Vorschläge: keine passenden Titel" in text
+
+
+# --- CLI peer parsing ---------------------------------------------------------
+
+
+def test_parse_peer_arg_accepts_one_to_three():
+    assert parse_peer_arg(" lly, ,pfe ") == ["LLY", "PFE"]
+    assert parse_peer_arg("A,B,C") == ["A", "B", "C"]
+
+
+@pytest.mark.parametrize("raw", ["", " , ", "A,B,C,D"])
+def test_parse_peer_arg_rejects(raw):
+    with pytest.raises(DeepDiveError, match="1 bis 3"):
+        parse_peer_arg(raw)

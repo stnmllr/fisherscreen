@@ -407,3 +407,52 @@ Abgeglichen mit `app/deepdive/__main__.py`, `peer_preflight.py`, `adr_resolver.p
 10. **APLE ist kein Tippfehler-Beispiel** für die Abnahme: es ist Apple Hospitality REIT und
     besteht die Prüfung zu Recht. Die Absicherung dagegen ist der angezeigte Firmenname.
     Tippfehler-Beispiel bleibt `NOVOB.CO`.
+
+## Nachtrag 2026-10-24: Peer-Vorschlag bei weniger als drei Peers
+
+Entscheidung Stephan nach dem ersten Browser-Test (Ticker SAF.PA, nur zwei Peers eingegeben):
+
+- **Weniger als drei Peers ist kein Fehler der Vorprüfung, sondern ein Hinweis.** Die Prüfung
+  läuft mit den vorhandenen Peers durch; leere Plätze erscheinen als „Peer N fehlt — Vorschlag
+  unten", nicht als rote Fehlerzeile. **Gestartet wird weiterhin nur mit genau drei Peers** —
+  CLI (`_parse_triplet`), Dossier und `dev_deepdive_peers` bleiben unverändert.
+- **Vorschlag = gleiche Branche aus dem yfinance-Cache.** Quelle ist `dev_ticker_cache`
+  (Firestore, volles `.info` je Ticker). Kandidaten: Titel aus `data/universe.json` mit
+  derselben yfinance-`industry` wie der Ticker, ohne Ticker selbst und ohne schon eingetragene
+  Peers, sortiert nach Nähe der Market Cap (|log(mcap_k / mcap_t)|), höchstens 5. Reicht die
+  Branche nicht für 3 Kandidaten, wird mit gleichem `sector` aufgefüllt und so markiert.
+  Kein Gemini, keine neue Abhängigkeit, kein Schreiben.
+- Cache-Einträge werden **unabhängig vom 24-h-TTL** gelesen: Branche ändert sich praktisch
+  nie, die Market Cap dient nur der Reihenfolge. Der Vorschlag nennt den Stand (`_cached_at`).
+- **Ausfall ≠ leer:** Ist Firestore nicht erreichbar, meldet die Prüfung „Vorschläge nicht
+  abrufbar", nicht „keine Vorschläge". Ohne `industry` beim Ticker: „keine Branche bekannt —
+  kein Vorschlag".
+- Die Vorschläge werden nur **angeboten**: ein Klick trägt den Kandidaten in das erste leere
+  Peer-Feld ein, danach läuft die Prüfung automatisch neu. Jeder vorgeschlagene Peer durchläuft
+  dieselbe yfinance-Prüfung wie ein getippter.
+- CLI: `preflight` akzeptiert 1–3 Peers und druckt die Vorschläge; Exit 1, solange nicht drei
+  gültige Peers da sind. `deepdive` bleibt bei genau drei.
+
+Schnittstelle (Ergänzung zu Abschnitt 1):
+
+```python
+@dataclass(frozen=True)
+class PeerSuggestion:
+    symbol: str
+    name: str | None
+    market_cap: float | None
+    match: Literal["industry", "sector"]
+    industry: str | None
+    cached_at: str | None        # ISO, Stand des Cache-Eintrags
+
+SymbolCheck  += industry: str | None, sector: str | None
+PreflightResult += missing_peer_slots: list[int]          # 1-basiert, z. B. [3]
+                += peer_suggestions: list[PeerSuggestion]  # leer, wenn keine Plätze fehlen
+                += suggestion_note: str | None             # Hinweis/Ausfallmeldung, sonst None
+
+run_preflight(..., suggest: Callable[[SymbolCheck, list[str]], list[PeerSuggestion]] | None = None)
+# app/deepdive/peer_suggest.py
+def suggest_peers(ticker_check: SymbolCheck, exclude: list[str], *, firestore, collection: str,
+                  universe: frozenset[str], limit: int = 5) -> list[PeerSuggestion]
+FirestoreClientImpl.query_equal(collection, field, value, limit) -> list[tuple[str, dict]]
+```

@@ -83,13 +83,14 @@ def test_build_preflight_runner_builds_fresh_shared_deps_per_call():
     edgars = [MagicMock(name="edgar1"), MagicMock(name="edgar2")]
     seen: list[dict] = []
 
-    def fake_run(ticker, peers, *, resolver, yfinance, edgar_map_available):
+    def fake_run(ticker, peers, *, resolver, yfinance, edgar_map_available, suggest):
         seen.append(
             {
                 "args": (ticker, peers),
                 "resolver_edgar": resolver._edgar,
                 "map_check": edgar_map_available,
                 "yfinance": yfinance,
+                "suggest": suggest,
             }
         )
         return "result"
@@ -113,6 +114,7 @@ def test_build_preflight_runner_builds_fresh_shared_deps_per_call():
         assert call["map_check"] == edgar.ticker_map_available
     # ... and every check gets a fresh one
     assert seen[0]["resolver_edgar"] is not seen[1]["resolver_edgar"]
+    assert all(callable(call["suggest"]) for call in seen)
 
 
 def test_resolver_edgar_builder_passes_settings():
@@ -127,3 +129,50 @@ def test_resolver_edgar_builder_passes_settings():
     assert (
         kwargs["annual_form_max_age_days"] == compose.settings.annual_form_max_age_days
     )
+
+
+def test_build_peer_suggester_builds_firestore_lazily_inside_call():
+    from unittest.mock import patch
+
+    from app.deepdive import compose
+    from app.deepdive.preflight import SymbolCheck
+
+    check = SymbolCheck("SAF.PA", True, "Safran", "EUR", 1e11, "ok", "A&D", "Ind")
+    with (
+        patch("app.deepdive.compose.FirestoreClientImpl") as mock_fs_cls,
+        patch("app.deepdive.compose._load_universe", return_value=["SAF.PA", "AIR.PA"]),
+        patch("app.deepdive.compose.suggest_peers", return_value=["s"]) as mock_sp,
+        patch("app.deepdive.compose.YFinanceClientImpl") as mock_yf_cls,
+    ):
+        suggest = compose.build_peer_suggester()
+        mock_fs_cls.assert_not_called()  # nothing touches Firestore at build time
+        assert suggest(check, ["SAF.PA"]) == ["s"]
+
+    mock_fs_cls.assert_called_once_with(project_id=compose.settings.gcp_project_id)
+    mock_sp.assert_called_once_with(
+        check,
+        ["SAF.PA"],
+        firestore=mock_fs_cls.return_value,
+        collection=compose.settings.ticker_collection,
+        universe=frozenset({"SAF.PA", "AIR.PA"}),
+        fx_rate=mock_yf_cls.return_value.get_fx_rate,
+    )
+
+
+def test_build_peer_suggester_firestore_failure_raises_inside_call():
+    from unittest.mock import patch
+
+    import pytest
+
+    from app.deepdive import compose
+    from app.deepdive.preflight import SymbolCheck
+    from app.errors import DataSourceError
+
+    check = SymbolCheck("SAF.PA", True, "Safran", "EUR", 1e11, "ok", "A&D", "Ind")
+    with patch(
+        "app.deepdive.compose.FirestoreClientImpl",
+        side_effect=DataSourceError("ADC not configured"),
+    ):
+        suggest = compose.build_peer_suggester()
+        with pytest.raises(DataSourceError):
+            suggest(check, [])
