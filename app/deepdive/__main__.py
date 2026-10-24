@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import argparse
 import logging
+import socket
 import sys
 from pathlib import Path
 
 from app.deepdive.compose import (
+    build_dossier_publisher,
     build_adr_resolver,
     build_filing_fetcher,
     build_insider_fetcher,
@@ -16,6 +18,7 @@ from app.deepdive.compose import (
 )
 
 from app.deepdive.pipeline import run_deep_dive
+from app.deepdive.publish import publish_dossier
 from app.deepdive.preflight import format_preflight, parse_peer_arg
 from app.config import settings
 from app.errors import DataSourceError, DeepDiveError, GeminiError
@@ -65,6 +68,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--site",
         action="store_true",
         help="After the dossier is written, re-render the static viewer site",
+    )
+    deepdive.add_argument(
+        "--no-publish",
+        action="store_true",
+        help="Do not push the dossier to the dossier repo",
     )
     preflight = subparsers.add_parser(
         "preflight",
@@ -145,6 +153,38 @@ def _refresh_site(output_dir: Path, dossier_path: Path) -> None:
         _report_stale_site(dossier_path)
 
 
+def _publish(dossier_path: Path, *, no_publish: bool) -> None:
+    """Push the dossier to the dossier repo and print exactly one status line.
+
+    Never raises and never changes the exit code. By the time this runs, the
+    dossier is on disk and a paid Gemini run has already happened; a publish
+    problem must not make that run look failed. Hence the broad
+    `except (Exception, SystemExit)` — deliberate, and not a silent swallow:
+    the traceback is logged and the user gets a WARNING line. The builder is
+    called here, after the run, so a half-configured setup (repo set, token
+    empty) fails here instead of aborting before the paid run.
+    """
+    if no_publish:
+        print("Dossier not published (--no-publish)")
+        return
+    try:
+        github = build_dossier_publisher()
+        if github is None:
+            print("Dossier not published (no dossier repo configured)")
+            return
+        target = publish_dossier(
+            dossier_path,
+            github=github,
+            repo=settings.dossier_repo,
+            host=socket.gethostname(),
+        )
+    except (Exception, SystemExit) as exc:
+        logger.exception("dossier written to %s, but publishing failed", dossier_path)
+        print(f"WARNING: dossier NOT published: {exc or type(exc).__name__}")
+        return
+    print(f"Published to: {target}")
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "preflight":
@@ -180,10 +220,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: {exc}")
         return 3
     print(f"Dossier written to: {out}")
+    # Flush first: the result the user paid for must be on screen before a
+    # slow or chatty publisher/renderer gets a chance to bury it.
+    sys.stdout.flush()
+    _publish(out, no_publish=args.no_publish)
     if args.site:
-        # Flush first: the result the user paid for must be on screen before a
-        # slow or chatty renderer gets a chance to bury it.
-        sys.stdout.flush()
         _refresh_site(Path(settings.output_dir), out)
     return 0
 
