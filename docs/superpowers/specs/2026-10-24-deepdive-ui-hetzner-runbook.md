@@ -99,8 +99,10 @@ cd /opt/fisherscreen
 .venv/bin/python -m app.deepdive --help        # muss die Hilfe mit deepdive/preflight zeigen
 ```
 
-`uv` lädt dabei Python 3.12 nach `~stef/.local/share/uv/python/` — die `.venv` verweist
-dorthin. Deshalb läuft der Dienst als `stef` und nicht als eigener Systembenutzer.
+Auf `tools-prod-01` (Ubuntu 24.04) nimmt `uv` das System-Python `/usr/bin/python3.12`
+(3.12.3) — die `.venv` verweist dorthin, es wird nichts heruntergeladen. Fehlt ein passendes
+System-Python, lädt `uv` eines nach `~stef/.local/share/uv/python/`; auch deshalb läuft der
+Dienst als `stef` und nicht als eigener Systembenutzer.
 
 ---
 
@@ -287,3 +289,20 @@ Schlüssel des Service-Accounts zurückziehen (PC, cmd.exe):
 gcloud iam service-accounts keys list --iam-account fisherscreen-deepdive-ui@fisherscreen-prod.iam.gserviceaccount.com
 gcloud iam service-accounts keys delete <KEY_ID> --iam-account fisherscreen-deepdive-ui@fisherscreen-prod.iam.gserviceaccount.com
 ```
+
+---
+
+## Durchgeführt 2026-10-24
+
+Schritte 0–7 auf `tools-prod-01` ausgeführt. Abweichungen vom Text oben:
+
+- Das Snippet stand zunächst als eigener Block mit `import authgate`; das echte Caddyfile
+  sperrt aber einmal außen. Korrigiert, bevor es live ging (Schritt 5 beschreibt den Ist-Stand).
+- Vor dem Merge dieses Runbooks wurden `env.example` und die Unit per
+  `git show origin/chore/hetzner-deepdive-ui:infra/hetzner/<datei>` aus dem Branch geholt.
+- Die neue Caddy-Konfiguration wurde vorab als `/tmp/Caddyfile.deepdive` gebaut und mit
+  `caddy validate` geprüft, dann mit `sudo install` übernommen statt im Editor.
+- Abnahme: Gate von außen (alle `/deepdive`-Pfade inkl. POST → 302 auf `/oauth2/start?rd=…`),
+  Vorprüfung NOVO-B.CO auf dem Server „20-F via ADR NVO", Peers aus Firestore über den
+  Service-Account, Lauf **SU.PA** (Peers SIE.DE, ABBN.SW, ETN, quant-only) über die Seite:
+  Exit 0 nach 7 s, Dossier `output/Watchlist/SU.PA_2026-10-24.md`.
