@@ -90,7 +90,7 @@ README, die sagt, woher die Dateien kommen und dass sie generiert sind.
 
 ## 3. Lesen: Vault am PC
 
-- Klon `D:\entwicklung\fisherscreen-dossiers` (auf dem anderen Rechner entsprechend).
+- Klon `D:\entwicklung\fisherscreen-dossiers` (nur dieser PC).
 - Junction im Vault: `<Vault>\Wissen\Finanzen\FisherScreen\Watchlist` → `<Klon>\Watchlist`
   (`mklink /J`, wie bei `Universum`), Eintrag in `stef-vault/.gitignore`.
 - Aktualisieren: `git -C D:\entwicklung\fisherscreen-dossiers pull` — gehört in dieselbe
@@ -120,40 +120,41 @@ README, die sagt, woher die Dateien kommen und dass sie generiert sind.
   „erscheint im Viewer innerhalb von ~5 min" und nur, wenn der Lauf **veröffentlicht** wurde.
 - Der `scp`-Upload des Viewers vom PC entfällt. `--site` bleibt als lokale Vorschau.
 
-## 5. Umzug des Bestands
+## 5. Kein Umzug des Bestands
 
-- Neuer CLI-Unterbefehl `publish --in <Ordner>`: veröffentlicht alle `*.md` eines Ordners, die im
-  Daten-Repo **fehlen**. Gleicher Name, gleicher Inhalt → überspringen. Gleicher Name, **anderer
-  Inhalt** → nicht überschreiben, als Konflikt melden, am Ende Exit 1. Wiederholbar, ändert
-  nichts doppelt. `--dry-run` zeigt nur, was passieren würde.
-- Reihenfolge: (1) dieser PC, (2) der andere Rechner, (3) der Server. Konflikte entscheidet
-  Stephan von Hand (welche Fassung gilt).
-- Danach: die 9 im Code-Repo getrackten Dossiers (`output/Watchlist/*.md`, Mai 2026) per
-  `git rm --cached` aus dem Code-Repo nehmen — die Dateien bleiben lokal liegen; Quelle ist ab
-  dann das Daten-Repo.
-- Abnahme des Umzugs: Der neu gebaute Viewer zeigt mindestens die 11 Ticker von heute plus SU.PA.
+Entscheidung Stephan (2026-10-25): **Nur künftige Deep Dives** zählen. Es wird nichts
+nachträglich veröffentlicht, der andere Rechner (`D:\programme\fisherscreen`) bleibt außen vor.
+
+Folgen, bewusst in Kauf genommen:
+
+- **Der Viewer startet leer.** Sobald `/var/www/fisher` auf die Builds aus dem Daten-Repo
+  umgeschaltet ist, verschwinden die 11 heutigen Ticker (ARGX, ASML, ASML.AS, EDV.L, FICO, GOOGL,
+  KO, MEDP, MSCI, MSFT, NOVO-B.CO). Die bisherige Seite wird beim Umschalten nach
+  `/var/www/fisher-builds/legacy-2026-10-25` verschoben, nicht gelöscht — Rückweg in einem Befehl.
+- Die vorhandenen Dossier-Dateien bleiben unangetastet, wo sie liegen (beide PCs, Server, die 9
+  im Code-Repo getrackten vom Mai 2026). Sie erscheinen nur nicht im Viewer und nicht im Klon.
+- Bis zum ersten veröffentlichten Lauf zeigt der Viewer eine leere Übersicht. Geprüft
+  2026-10-25: `python -m app.viewer` mit leerem `--in` baut `index.html`, `site.css`, `sort.js`,
+  `ticker/` und loggt „overview rendered without any dossier" — das Refresh-Skript braucht dafür
+  keinen Sonderfall.
 
 ## 6. Bausteine im Code
 
 | Baustein | Inhalt |
 |---|---|
 | `app/config.py` | `dossier_repo: str = ""`, `dossier_token: str = ""`, `dossier_branch: str = "main"` |
-| `app/services/github_client.py` | neue Methode `get_file(path) -> str \| None` (Inhalt oder `None` bei 404; andere Fehler → `DataSourceError`), für den Abgleich im Umzug |
-| `app/deepdive/publish.py` (neu) | `publish_dossier(path, *, github, host) -> str` (Ziel-Pfad im Repo; wirft `DataSourceError`) und `publish_missing(paths, *, github, host, dry_run) -> PublishReport` (published / unchanged / conflicts) |
+| `app/deepdive/publish.py` (neu) | `publish_dossier(path, *, github, host) -> str` (Ziel-Pfad im Repo; wirft `DataSourceError`) |
 | `app/deepdive/compose.py` | `build_dossier_publisher() -> GitHubClientImpl \| None` (`None`, wenn nicht konfiguriert) |
-| `app/deepdive/__main__.py` | `deepdive`: `--no-publish`, Veröffentlichung nach dem Schreiben, Ausgabezeilen wie §2. Neuer Unterbefehl `publish --in … [--dry-run]` |
+| `app/deepdive/__main__.py` | `deepdive`: `--no-publish`, Veröffentlichung nach dem Schreiben, Ausgabezeilen wie §2 |
 | `app/deepdive_ui/` | `RunRecord.published: bool \| None` aus den Ausgabezeilen (§2); Anzeige „ok · veröffentlicht" (`True`) / „ok · **nicht veröffentlicht**" in Warnfarbe (`False`) / nur „ok" (`None`); Haken „Nicht veröffentlichen (`--no-publish`)"; Viewer-Link nur bei `published is True` |
 | `infra/hetzner/` | `fisherscreen-viewer-refresh.sh`, `fisherscreen-viewer.service`, `fisherscreen-viewer.timer`, `env.example` um `FISHERSCREEN_DOSSIER_REPO`/`_TOKEN` und den Viewer-Link |
-| Runbook | `docs/superpowers/specs/2026-10-25-dossier-publishing-runbook.md`: Repo + Token + Deploy-Key anlegen, Server einrichten, Umzug, PC-Junction |
+| Runbook | `docs/superpowers/specs/2026-10-25-dossier-publishing-runbook.md`: Repo + Token + Deploy-Key anlegen, Server einrichten (inkl. Legacy-Seite beiseite), PC-Klon + Junction |
 
 ## 7. Tests
 
 - `publish_dossier`: Erfolg (Pfad, Commit-Nachricht mit Host), `DataSourceError` wird durchgereicht.
-- `publish_missing`: fehlend → veröffentlicht; gleich → übersprungen; abweichend → Konflikt,
-  nichts überschrieben; `dry_run` schreibt nie.
-- `get_file`: 200 → Inhalt (base64 dekodiert), 404 → `None`, 5xx/Netz → `DataSourceError`.
 - CLI: Veröffentlichung an/aus (`--no-publish`, nicht konfiguriert), Fehlschlag → Exit 0 +
-  `WARNING`-Zeile + `logger.error`; `publish`-Unterbefehl inkl. Exit 1 bei Konflikt.
+  `WARNING`-Zeile + `logger.error`; genau eine der Zeilen aus §2 pro erfolgreichem Lauf.
 - UI: `published` aus den Zeilen geparst (ja / nein / keine Zeile → `None`), Anzeige und Link.
 - Fakes für GitHub, kein Netz. Coverage ≥ 90 %, `black --check .` sauber.
 - Das Refresh-Skript ist Shell (in `infra/`, nicht im Coverage-Maß): Abnahme auf dem Server —
@@ -168,8 +169,8 @@ README, die sagt, woher die Dateien kommen und dass sie generiert sind.
   später auf die Seite (kein 404).
 - Token absichtlich ungültig → Lauf „ok · nicht veröffentlicht", Dossier lokal vorhanden, Warnung
   im Log.
-- Umzug: Viewer zeigt alle bisherigen Ticker plus SU.PA; ein absichtlich veränderter Doppelname
-  wird als Konflikt gemeldet und nicht überschrieben.
+- Umschalten: Die Legacy-Seite liegt unter `/var/www/fisher-builds/legacy-2026-10-25`; der Viewer
+  zeigt danach genau die seit der Umstellung veröffentlichten Dossiers.
 
 ## Offene Punkte
 
