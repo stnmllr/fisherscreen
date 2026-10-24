@@ -12,7 +12,7 @@ Die Dateien für den Server liegen im Repo unter `infra/hetzner/`:
 |---|---|
 | `fisherscreen-deepdive.service` | `/etc/systemd/system/fisherscreen-deepdive.service` |
 | `env.example` | Vorlage für `/etc/fisherscreen/env` (Werte von Hand eintragen) |
-| `Caddyfile.deepdive.snippet` | Abschnitt in `/etc/caddy/Caddyfile`, Site-Block `macro.stnmllr.com` |
+| `Caddyfile.deepdive.snippet` | Abschnitt in `/etc/caddy/Caddyfile`, innerhalb des Gate-`handle` von `macro.stnmllr.com` |
 
 Feste Werte:
 
@@ -43,9 +43,14 @@ gibt es kein TTY, `ssh` kann die Passphrase nicht abfragen und meldet `Permissio
 ssh -t stef@macro.stnmllr.com "sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.pre-deepdive && sudo cat /etc/caddy/Caddyfile"
 ```
 
-Den ausgegebenen Inhalt aufheben. Er wird in Schritt 6 gebraucht und gehört danach in
-`AUTH.md` im macro-dashboard-Repo — dort fehlt bis heute die `/fisher/`-Route vom
-Viewer-Deploy (2026-08-20); `AUTH.md` beschreibt nur Dashboard und xrechnung.
+Den ausgegebenen Inhalt aufheben. Er gehört danach in `AUTH.md` im macro-dashboard-Repo,
+das deutlich hinter dem Server zurückliegt (Abgleich 2026-10-24): Dort fehlen die
+`/fisher/`-Route vom Viewer-Deploy (2026-08-20), die verschachtelte Gate-Struktur von
+`macro.stnmllr.com`, `allowed_emails` in `authgate` sowie die Varianten
+`authgate_xrechnung` und `authgate_rechpro` samt Site `rechpro.stnmllr.com`.
+
+Das Caddyfile ist für alle lesbar (`0644`); zum Ansehen reicht
+`ssh stef@macro.stnmllr.com "cat /etc/caddy/Caddyfile"`. Nur die Sicherung braucht `sudo`.
 
 Außerdem prüfen, was schon da ist:
 
@@ -163,12 +168,37 @@ Seite setzt `data-base="/deepdive"`, `/deepdive` leitet auf `/deepdive/` um).
 
 ## Schritt 5: Caddy (Server)
 
-In `/etc/caddy/Caddyfile`, Site-Block `macro.stnmllr.com`, den Abschnitt aus
-`infra/hetzner/Caddyfile.deepdive.snippet` einfügen — **nach** `import oauth2endpoints` und
-**vor** dem allgemeinen `handle { … }`. `handle`-Blöcke schließen sich gegenseitig aus und
-werden in der geschriebenen Reihenfolge geprüft; hinter dem Sammelblock würde die Route nie
-erreicht. Liegt die `/fisher/`-Route als eigener `handle`-Block vor dem Sammelblock, kommt
-`/deepdive` gleichrangig daneben.
+Ist-Stand (gelesen 2026-10-24): Im Site-Block `macro.stnmllr.com` läuft das Gate **einmal
+außen** — ein äußeres `handle { import authgate … }`, darin verschachtelt `handle /fisher/*`
+und der innere Sammelblock für das Dashboard. Der Abschnitt aus
+`infra/hetzner/Caddyfile.deepdive.snippet` kommt deshalb **in** diesen äußeren Block, direkt
+nach `handle /fisher/* { … }` und **vor** den inneren Sammelblock. Ziel:
+
+```caddy
+macro.stnmllr.com {
+    header X-Robots-Tag "noindex, nofollow"
+
+    import oauth2endpoints
+
+    handle {
+        import authgate
+
+        handle /fisher/* {
+            root * /var/www
+            file_server
+        }
+
+        handle /deepdive* {
+            reverse_proxy 127.0.0.1:8765
+        }
+
+        handle {
+            root * /var/www/macro-dashboard
+            ...
+        }
+    }
+}
+```
 
 ```bash
 sudo nano /etc/caddy/Caddyfile
@@ -176,10 +206,12 @@ sudo caddy validate --config /etc/caddy/Caddyfile
 sudo systemctl reload caddy
 ```
 
-Zwei Entscheidungen im Snippet, nicht „vereinfachen":
+Drei Entscheidungen im Snippet, nicht „vereinfachen":
 
+- **Kein eigenes `import authgate`**: Das äußere `handle` sperrt schon jeden Pfad dieser Site,
+  genau wie bei `/fisher/`.
 - `handle`, nicht `handle_path`: Der Präfix muss bei der App ankommen.
-- Der Matcher enthält auch `/deepdive` ohne Schrägstrich, sonst landet diese Adresse im
+- `/deepdive*` erfasst auch `/deepdive` ohne Schrägstrich, sonst landet diese Adresse im
   Sammelblock (Dateiserver, 404) statt bei der App, die auf `/deepdive/` umleitet.
 
 ---
@@ -221,8 +253,8 @@ baut nach `/opt/fisherscreen/output/site/`). Das ist Phase 2.
 
 ## Schritt 8: Doku nachziehen
 
-- macro-dashboard `AUTH.md`: Abschnitt 4 um die tatsächliche `macro.stnmllr.com`-Konfiguration
-  ergänzen — `/fisher/` (fehlt bisher) und `/deepdive` —, Inhalt aus Schritt 0 plus Snippet.
+- macro-dashboard `AUTH.md`: Abschnitt 4 auf das tatsächliche Caddyfile bringen (Lücken siehe
+  Schritt 0) — Inhalt nach Schritt 5 neu auslesen, dann steht `/deepdive` schon drin.
 - FisherScreen `Projektstand.md`: Server-Betrieb vermerken.
 
 ---
