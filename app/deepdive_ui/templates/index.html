@@ -22,6 +22,7 @@
   .table-wrap { overflow-x: auto; }
   .hint { color: var(--muted); font-size: .9rem; margin: 4px 0; }
   .ok, .st-ok { color: var(--ok); }
+  .st-warn { color: #b26a00; }
   .bad, .st-failed { color: var(--bad); }
   .msg { margin: 8px 0 0; }
   .msg:empty { display: none; }
@@ -53,6 +54,7 @@
   <div class="check">
     <label><input type="checkbox" id="no_cache"> Caches ignorieren (<code>--no-cache</code>)</label>
     <label><input type="checkbox" id="no_insider"> Insider-Stufe überspringen (<code>--no-insider</code>)</label>
+    <label><input type="checkbox" id="no_publish"> Nicht veröffentlichen (<code>--no-publish</code>)</label>
     <label><input type="checkbox" id="site"> Viewer danach neu bauen (<code>--site</code>)</label>
   </div>
 </section>
@@ -415,6 +417,7 @@
       no_cache: $("no_cache").checked,
       no_insider: $("no_insider").checked,
       site: $("site").checked,
+      no_publish: $("no_publish").checked,
       quant_only_ack: ack.checked,
       preflight_token: state.token || ""
     };

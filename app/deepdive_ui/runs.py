@@ -32,6 +32,10 @@ DEFAULT_BASE_COMMAND: tuple[str, ...] = (sys.executable, "-m", "app.deepdive")
 RESTART_NOTE = "Dienst wurde neu gestartet"
 
 _DOSSIER_LINE = re.compile(r"^Dossier written to: (?P<path>.+?)\s*$", re.MULTILINE)
+# Publish status lines of the CLI (Task 2); keyed on the prefix only, the
+# reason after "NOT published:" may be empty.
+_PUBLISHED_LINE = re.compile(r"^Published to: ", re.MULTILINE)
+_NOT_PUBLISHED_WARNING = re.compile(r"^WARNING: dossier NOT published:", re.MULTILINE)
 # Timestamp + ticker, optional collision suffix. No path separators possible,
 # so a run_id from a URL can never leave the runs directory.
 _RUN_ID = re.compile(
@@ -67,6 +71,7 @@ class RunRequest:
     no_cache: bool = False
     no_insider: bool = False
     site: bool = False
+    no_publish: bool = False
     quant_only_ack: bool = False
 
 
@@ -87,6 +92,9 @@ class RunRecord:
     note: str | None = None
     exit_text: str | None = None
     argv: list[str] = field(default_factory=list)
+    # True: pushed to the dossier repo; False: publish failed; None: unknown /
+    # not attempted (also old records without the field).
+    published: bool | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> RunRecord:
@@ -109,6 +117,8 @@ def build_cli_args(request: RunRequest) -> list[str]:
         args.append("--no-insider")
     if request.site:
         args.append("--site")
+    if request.no_publish:
+        args.append("--no-publish")
     return args
 
 
@@ -250,6 +260,7 @@ class RunManager:
         record.finished_at = self._clock().isoformat(timespec="seconds")
         record.status = "ok" if exit_code == 0 else "failed"
         record.dossier_path = self._parse_dossier(record.run_id)
+        record.published = self._parse_published(record.run_id)
         with self._lock:
             self._write(record)
             self._current = None
@@ -263,6 +274,14 @@ class RunManager:
     def _parse_dossier(self, run_id: str) -> str | None:
         matches = _DOSSIER_LINE.findall(self.tail(run_id, max_bytes=1_000_000))
         return matches[-1] if matches else None
+
+    def _parse_published(self, run_id: str) -> bool | None:
+        log = self.tail(run_id, max_bytes=1_000_000)
+        if _NOT_PUBLISHED_WARNING.search(log):
+            return False
+        if _PUBLISHED_LINE.search(log):
+            return True
+        return None
 
     def _new_run_id(self, started: datetime, ticker: str) -> str:
         base = f"{started.strftime('%Y-%m-%dT%H-%M-%S')}_{ticker}"

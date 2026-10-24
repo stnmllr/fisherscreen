@@ -10,9 +10,9 @@
     {% endif %}
   </p>
   {% if run.status != "running" %}
-  <p>Ergebnis: {{ run.exit_text }}{% if run.exit_code is not none %} (Exit {{ run.exit_code }}){% endif %}{% if run.note %} — {{ run.note }}{% endif %}</p>
+  <p>Ergebnis: {% if run.published_text %}<span class="{{ 'st-warn' if run.published is false else 'st-ok' }}">{{ run.exit_text }} · {{ run.published_text }}</span>{% else %}{{ run.exit_text }}{% endif %}{% if run.exit_code is not none %} (Exit {{ run.exit_code }}){% endif %}{% if run.note %} — {{ run.note }}{% endif %}</p>
   {% if run.dossier_path %}<p>Dossier: <code>{{ run.dossier_path }}</code></p>{% endif %}
-  {% if run.viewer_link %}<p><a href="{{ run.viewer_link }}" target="_blank" rel="noopener">Im Viewer öffnen</a></p>{% endif %}
+  {% if run.viewer_link %}<p><a href="{{ run.viewer_link }}" target="_blank" rel="noopener">Im Viewer öffnen</a> <span class="hint">erscheint im Viewer innerhalb von ~5 min</span></p>{% endif %}
   {% endif %}
   <pre class="log">{{ tail if tail else "(noch keine Ausgabe)" }}</pre>
 </div>

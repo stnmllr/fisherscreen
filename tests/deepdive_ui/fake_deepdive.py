@@ -19,6 +19,7 @@ def main() -> int:
     parser.add_argument("--exit", type=int, default=0)
     parser.add_argument("--wait-for", default=None)
     parser.add_argument("--no-dossier", action="store_true")
+    parser.add_argument("--status-line", default=None)
     own, rest = parser.parse_known_args()
     if own.wait_for:
         deadline = time.monotonic() + 30
@@ -31,6 +32,8 @@ def main() -> int:
     sys.stderr.write("stderr line\n")
     if not own.no_dossier:
         print("Dossier written to: output/Watchlist/FAKE_2026-10-24.md")
+    if own.status_line:
+        print(own.status_line)
     return own.exit
 
 
