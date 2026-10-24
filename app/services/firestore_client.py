@@ -10,6 +10,9 @@ class FirestoreClient(Protocol):
     def set(self, collection: str, document_id: str, data: dict[str, Any]) -> None: ...
     def delete(self, collection: str, document_id: str) -> None: ...
     def get_latest(self, collection: str, order_by: str) -> dict[str, Any] | None: ...
+    def query_equal(
+        self, collection: str, field: str, value: Any, limit: int
+    ) -> list[tuple[str, dict[str, Any]]]: ...
 
 
 class FirestoreClientImpl:
@@ -58,3 +61,18 @@ class FirestoreClientImpl:
             return None
         except Exception as exc:
             raise DataSourceError(f"Firestore get_latest failed: {exc}") from exc
+
+    def query_equal(
+        self, collection: str, field: str, value: Any, limit: int
+    ) -> list[tuple[str, dict[str, Any]]]:
+        """Documents whose `field` equals `value`, as (document_id, data) pairs,
+        at most `limit` of them. Unordered — the caller sorts."""
+        try:
+            query = (
+                self._db.collection(collection)
+                .where(filter=firestore.FieldFilter(field, "==", value))
+                .limit(limit)
+            )
+            return [(doc.id, doc.to_dict() or {}) for doc in query.stream()]
+        except Exception as exc:
+            raise DataSourceError(f"Firestore query_equal failed: {exc}") from exc

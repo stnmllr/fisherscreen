@@ -1,0 +1,18 @@
+<div id="run-view" data-run-id="{{ run.run_id }}" data-status="{{ run.status }}">
+  <p class="run-head">
+    <strong>{{ run.ticker }}</strong> · Peers {{ run.peers | join(", ") }}
+    {% if run.status == "running" %}
+    · <span class="st st-running">läuft seit {{ run.started_at }}</span>
+    {% elif run.status == "ok" %}
+    · <span class="st st-ok">✓ fertig</span> ({{ run.finished_at }})
+    {% else %}
+    · <span class="st st-failed">✗ fehlgeschlagen</span>{% if run.finished_at %} ({{ run.finished_at }}){% endif %}
+    {% endif %}
+  </p>
+  {% if run.status != "running" %}
+  <p>Ergebnis: {{ run.exit_text }}{% if run.exit_code is not none %} (Exit {{ run.exit_code }}){% endif %}{% if run.note %} — {{ run.note }}{% endif %}</p>
+  {% if run.dossier_path %}<p>Dossier: <code>{{ run.dossier_path }}</code></p>{% endif %}
+  {% if run.viewer_link %}<p><a href="{{ run.viewer_link }}" target="_blank" rel="noopener">Im Viewer öffnen</a></p>{% endif %}
+  {% endif %}
+  <pre class="log">{{ tail if tail else "(noch keine Ausgabe)" }}</pre>
+</div>

@@ -10,10 +10,13 @@ from app.deepdive.compose import (
     build_filing_fetcher,
     build_insider_fetcher,
     build_peer_resolver,
+    build_preflight_runner,
     build_quant_builder,
     build_synthesizer,
 )
+
 from app.deepdive.pipeline import run_deep_dive
+from app.deepdive.preflight import format_preflight, parse_peer_arg
 from app.config import settings
 from app.errors import DataSourceError, DeepDiveError, GeminiError
 from app.viewer.__main__ import main as render_site
@@ -63,7 +66,36 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="After the dossier is written, re-render the static viewer site",
     )
+    preflight = subparsers.add_parser(
+        "preflight",
+        help="Check ticker + peers and the expected dossier kind (no Gemini)",
+    )
+    preflight.add_argument("ticker", help="Ticker symbol, e.g. NOVO-B.CO")
+    preflight.add_argument(
+        "--peers",
+        required=True,
+        help="1-3 comma-separated peer tickers (fewer than 3 -> suggestions)",
+    )
     return parser
+
+
+def _run_preflight(args: argparse.Namespace) -> int:
+    """Exit 0 if the deep dive could start, 1 otherwise (bad peers string or a
+    failed check), 2 if a data source cannot even be set up (e.g. no EDGAR
+    user agent) — the same code the deepdive command uses for that case."""
+    try:
+        peers = parse_peer_arg(args.peers)
+    except DeepDiveError as exc:
+        print(f"FEHLER: {exc}")
+        return 1
+    try:
+        result = build_preflight_runner()(args.ticker, peers)
+    except DataSourceError as exc:
+        logger.error("preflight failed (data source): %s", exc)
+        print(f"FEHLER: {exc}")
+        return 2
+    print(format_preflight(result))
+    return 0 if result.can_start else 1
 
 
 def _report_stale_site(dossier_path: Path) -> None:
@@ -115,6 +147,8 @@ def _refresh_site(output_dir: Path, dossier_path: Path) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "preflight":
+        return _run_preflight(args)
     try:
         out = run_deep_dive(
             args.ticker,

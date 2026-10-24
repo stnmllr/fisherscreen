@@ -11,8 +11,11 @@ from app.deepdive.filing_cache import CachedFilingFetcher
 from app.deepdive.historical_cache import CachedHistoricalData
 from app.deepdive.insider_cache import CachedInsiderFetcher
 from app.deepdive.peer_preflight import resolve_peers
+from app.deepdive.peer_suggest import PeerSuggestion, suggest_peers
+from app.deepdive.preflight import PreflightResult, SymbolCheck, run_preflight
 from app.deepdive.quant_join import build_quant_snapshot
 from app.screener.compose import build_github_client
+from app.screener.monthly import _load_universe
 from app.services.edgar_client import EdgarClientImpl
 from app.services.firestore_client import FirestoreClientImpl
 from app.services.openfigi_client import OpenFIGIClientImpl
@@ -30,6 +33,8 @@ __all__ = [
     "build_insider_fetcher",
     "build_quant_builder",
     "build_peer_resolver",
+    "build_peer_suggester",
+    "build_preflight_runner",
     "build_synthesizer",
 ]
 
@@ -69,14 +74,65 @@ def build_eu_resolver() -> Callable[[str], Any]:
     return _resolve
 
 
-def build_adr_resolver() -> ADRResolver:
-    edgar = EdgarClientImpl(
+def _build_resolver_edgar() -> EdgarClientImpl:
+    return EdgarClientImpl(
         user_agent=settings.edgar_user_agent,
         annual_form_max_age_days=settings.annual_form_max_age_days,
     )
+
+
+def build_adr_resolver(edgar: EdgarClientImpl | None = None) -> ADRResolver:
+    """`edgar` lets a caller share the client with a later map check
+    (build_preflight_runner) — otherwise a fresh client is built."""
+    if edgar is None:
+        edgar = _build_resolver_edgar()
     return ADRResolver(
         table=load_adr_table(), edgar=edgar, eu_resolver=build_eu_resolver()
     )
+
+
+def build_preflight_runner() -> Callable[[str, list[str]], PreflightResult]:
+    """Return a callable running the deep-dive pre-flight check.
+
+    Every call builds FRESH dependencies: EdgarClientImpl remembers a failed
+    SEC ticker-map load for its lifetime, so a long-lived UI process holding
+    one instance would report every US ticker as unknown after a single SEC
+    hiccup. Resolver and map check share ONE EdgarClientImpl, so the check
+    asks about exactly the map the resolver used."""
+
+    def _run(ticker: str, peers: list[str]) -> PreflightResult:
+        edgar = _build_resolver_edgar()
+        return run_preflight(
+            ticker,
+            peers,
+            resolver=build_adr_resolver(edgar=edgar),
+            yfinance=YFinanceClientImpl(),
+            edgar_map_available=edgar.ticker_map_available,
+            suggest=build_peer_suggester(),
+        )
+
+    return _run
+
+
+def build_peer_suggester() -> Callable[[SymbolCheck, list[str]], list[PeerSuggestion]]:
+    """Return the peer-suggestion callable for the pre-flight check.
+
+    Firestore is constructed INSIDE the callable: it only runs when peer slots
+    are empty, and an ADC/Firestore failure then surfaces as DataSourceError
+    right there, where the pre-flight reports it as "nicht abrufbar" instead
+    of failing the whole check."""
+
+    def _suggest(ticker_check: SymbolCheck, exclude: list[str]) -> list[PeerSuggestion]:
+        return suggest_peers(
+            ticker_check,
+            exclude,
+            firestore=FirestoreClientImpl(project_id=settings.gcp_project_id),
+            collection=settings.ticker_collection,
+            universe=frozenset(_load_universe()),
+            fx_rate=YFinanceClientImpl().get_fx_rate,
+        )
+
+    return _suggest
 
 
 def build_filing_fetcher() -> CachedFilingFetcher:

@@ -187,3 +187,23 @@ def test_revenue_series_cache_defaults():
     # spreads the one-day backfill's expiries; must stay below the TTL
     assert s.revenue_series_ttl_jitter_days == 30
     assert s.revenue_series_ttl_jitter_days < s.revenue_series_ttl_days
+
+
+def test_deepdive_ui_defaults():
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.deepdive_ui_host == "127.0.0.1"  # never 0.0.0.0 by default
+    assert settings.deepdive_ui_port == 8765
+    assert settings.deepdive_ui_root_path == ""
+    assert settings.deepdive_ui_runs_dir == "runs"
+    assert settings.deepdive_ui_viewer_url == ""
+    assert settings.deepdive_ui_preflight_ttl_minutes == 15
+
+
+def test_reads_deepdive_ui_settings(monkeypatch):
+    monkeypatch.setenv("FISHERSCREEN_DEEPDIVE_UI_ROOT_PATH", "/deepdive")
+    monkeypatch.setenv("FISHERSCREEN_DEEPDIVE_UI_PORT", "9000")
+    monkeypatch.setenv("FISHERSCREEN_DEEPDIVE_UI_VIEWER_URL", "https://x.test/fisher")
+    settings = FisherScreenSettings(_env_file=None)
+    assert settings.deepdive_ui_root_path == "/deepdive"
+    assert settings.deepdive_ui_port == 9000
+    assert settings.deepdive_ui_viewer_url == "https://x.test/fisher"

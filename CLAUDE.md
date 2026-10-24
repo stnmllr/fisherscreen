@@ -424,6 +424,8 @@ aufrufen.
 | Integration-Tests | `uv run python -m pytest -m integration` | — |
 | Formatieren | `uv run python -m black .` | `uv run black ...` |
 | Tool B CLI | `uv run python -m app.deepdive deepdive <TICKER>` | `uv run fisherscreen ...` |
+| Tool B Vorprüfung | `uv run python -m app.deepdive preflight <TICKER> --peers A,B,C` | `uv run fisherscreen ...` |
+| Tool B Start-Oberfläche | `uv run python -m app.deepdive_ui` (→ `http://127.0.0.1:8765/`) | — |
 
 **Keine Heredocs, keine langen Inline-Skripte.** `python3 << 'EOF'` (Bash-Heredoc) läuft unter
 cmd.exe ohnehin nicht, und lange `-c "..."`-Blöcke sprengen zudem CCs Befehls-Parser (erzwingen
@@ -507,6 +509,12 @@ Diese Punkte sind bewusst noch offen — vor dem jeweiligen Phasen-Start klären
   führende Lesekanal; der Viewer ist ein zusätzlicher Ausgabekanal für unterwegs.
   Alles darüber hinaus (Deep Dive aus der App anstoßen, Vergleichs-/Verlaufsansichten)
   fällt weiterhin unter Feature-Creep und braucht eine eigene Entscheidung.
+  **Revidiert 2026-10-24:** Es gibt zusätzlich eine kleine Start-Oberfläche
+  (`app/deepdive_ui/`), die einen Deep Dive **vorprüft und anstößt** — als Unterprozess der
+  CLI, ein Lauf zur Zeit, lokal auf `127.0.0.1`, auf Hetzner hinter dem Google-Gate. Grenze:
+  sie rechnet nichts, zeigt keine Dossier-Inhalte (das bleibt der Viewer) und schreibt nicht
+  nach Firestore. Spec: `docs/superpowers/specs/2026-10-24-deepdive-ui-design.md`.
+  Vergleichs-/Verlaufsansichten über Dossiers hinweg bleiben Feature-Creep.
 - Kein Composite-Scoring in Tool A — fünf Dimensions-Listen nebeneinander (V3-Entscheidung)
 - Kein tägliches Monitoring, kein automatisches Watchlist-Monitoring
 - Kein Backtesting

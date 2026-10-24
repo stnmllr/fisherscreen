@@ -48,3 +48,7 @@ desktop.ini
 # Skript korrigiert, dieser Eintrag verhindert, dass ein `--report reports/...` die
 # Doppelablage still wieder anlegt. Root-anchored, wie alle Generated-Output-Muster.
 /reports/
+
+# Laufprotokolle der Deep-Dive-Oberflaeche (app/deepdive_ui/, JSON + Log je Lauf).
+# Root-anchored, wie alle Generated-Output-Muster.
+/runs/

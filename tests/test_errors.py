@@ -68,3 +68,9 @@ def test_output_error_catchable_as_base():
 
     with pytest.raises(FisherScreenError):
         raise OutputError("output file missing")
+
+
+def test_run_busy_subclass_base():
+    from app.errors import RunBusyError
+
+    assert issubclass(RunBusyError, FisherScreenError)

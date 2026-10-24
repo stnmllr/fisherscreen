@@ -122,6 +122,7 @@ class EdgarClientImpl:
             )
         self._headers = {"User-Agent": user_agent}
         self._ticker_map: dict[str, str] | None = None
+        self._ticker_map_load_failed = False
         self._annual_form_max_age_days = annual_form_max_age_days
         self._rate_limiter = (
             rate_limiter
@@ -160,6 +161,19 @@ class EdgarClientImpl:
         The ticker map is loaded lazily on first call and cached for the lifetime
         of this client instance to avoid repeated HTTP requests.
         """
+        return self._ensure_ticker_map().get(ticker.upper())
+
+    def ticker_map_available(self) -> bool:
+        """True if the SEC ticker map loaded; False if loading it failed.
+
+        get_cik() reports a failed load as "not found" (None), which a caller
+        cannot tell apart from an unknown ticker. This reads a separate failure
+        flag — not "is the map empty?" — and loads the map on demand. Share the
+        instance with whatever called get_cik(), or this checks another map."""
+        self._ensure_ticker_map()
+        return not self._ticker_map_load_failed
+
+    def _ensure_ticker_map(self) -> dict[str, str]:
         if self._ticker_map is None:
             try:
                 self._ticker_map = self._load_ticker_map()
@@ -168,7 +182,8 @@ class EdgarClientImpl:
                     "edgar: failed to load ticker map: %s — CIK lookup disabled", exc
                 )
                 self._ticker_map = {}  # empty dict prevents repeated retries
-        return self._ticker_map.get(ticker.upper())
+                self._ticker_map_load_failed = True
+        return self._ticker_map
 
     def get_company_facts(self, cik: str) -> dict[str, Any]:
         """Rohes companyfacts-Dokument: alle XBRL-Fakten eines Emittenten in

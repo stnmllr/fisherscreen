@@ -8,7 +8,10 @@
 
 ---
 
-## Letztes Update: 2026-10-07
+## Letztes Update: 2026-10-24
+
+> **2026-10-24:** Neuer Block „Top of mind — 2026-10-24 (Deep-Dive-Oberfläche)" ganz oben;
+> er ergänzt die übrigen, ersetzt nichts.
 
 > ⚠️ **Ehrlichkeits-Hinweis, zehnstufig.** Aktuell sind die Abschnitte
 > „Top of mind — 2026-10-07 (Preisnehmer)", „2026-10-06 (growth)", „… (ROIC)" und
@@ -27,6 +30,35 @@
 >
 > Nichts unterhalb des ersten Abschnitts als aktuellen Stand lesen, ohne gegen `git log`
 > zu prüfen.
+
+## Top of mind — 2026-10-24 (Deep-Dive-Oberfläche)
+
+**Tool B lässt sich vorprüfen und aus dem Browser starten** (Spec
+`docs/superpowers/specs/2026-10-24-deepdive-ui-design.md`, inkl. Anhang „Prüfung gegen den
+Code"). Umgesetzt auf Branch `feature/deepdive-ui` (Basis `main` @ `4cb713c`) in der
+Arbeitskopie `D:\entwicklung\fisherscreen`.
+
+- `app/deepdive/preflight.py` + `uv run python -m app.deepdive preflight <TICKER> --peers A,B,C`
+  (Exit 0/1): Ticker und Peers gegen yfinance, Resolver-Urteil full / quant_only / none /
+  unknown. SEC-Map-Ausfall → `unknown`, nicht `none` (`EdgarClientImpl.ticker_map_available()`).
+- `app/deepdive_ui/` (FastAPI + Jinja2, neue Abhängigkeit `jinja2`):
+  `uv run python -m app.deepdive_ui` → `http://127.0.0.1:8765/`. Startet die CLI als
+  Unterprozess, ein Lauf zur Zeit, Start nur mit gültigem Preflight-Token, Quant-only nur mit
+  Haken. Protokolle unter `runs/` (gitignored).
+- Tests: 2163 passed, Coverage 96,91 %, `black --check .` sauber.
+- Live geprüft (nur Vorprüfung, kein Gemini): NOVOB.CO rot, NOVO-B.CO „20-F via ADR NVO",
+  EDV.L „nur Quant", Peer = Ticker rot. **APLE ist kein Tippfehler-Beispiel** — es ist Apple
+  Hospitality REIT; die Vorprüfung zeigt den Namen, das ist die eigentliche Absicherung.
+- **Peer-Vorschlag** (Spec-Nachtrag): Weniger als drei Peers ist ein Hinweis, kein Fehler;
+  Vorschläge aus `dev_ticker_cache` (gleiche yfinance-`industry`, Universum, Nähe der Market
+  Cap nach EUR-Umrechnung, ggf. mit `sector` aufgefüllt). Gestartet wird weiter nur mit drei.
+  Live: SAF.PA + RR.L, AIR.PA → LMT, BA, HWM, GD, BA.L.
+- **Abnahme-Läufe 2026-10-24** (quant-only, kein Gemini): EDV.L über die UI, Exit 0, Dossier
+  geschrieben; Peers in Firestore stehen wieder auf HL, NEM, AEM (zwischenzeitlich versehentlich
+  überschrieben und zurückgesetzt). ADC auf dieser Maschine eingerichtet — `gcloud.cmd` endet
+  hier still, Aufruf über `platform\bundledpython\python.exe lib\gcloud.py`.
+- **Offen:** ein Lauf mit vollständigem Dossier (Gemini) über die UI, Klick-Test der Seite im
+  Browser, Hetzner-Deploy nach Spec §7.
 
 ## Top of mind — 2026-10-07 (Preisnehmer)
 
