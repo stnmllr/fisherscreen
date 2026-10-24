@@ -425,7 +425,7 @@ aufrufen.
 | Formatieren | `uv run python -m black .` | `uv run black ...` |
 | Tool B CLI | `uv run python -m app.deepdive deepdive <TICKER>` | `uv run fisherscreen ...` |
 | Tool B Vorprüfung | `uv run python -m app.deepdive preflight <TICKER> --peers A,B,C` | `uv run fisherscreen ...` |
-| Tool B Start-Oberfläche | `uv run python -m app.deepdive_ui` (→ `http://127.0.0.1:8765/`) | — |
+| Tool B Start-Oberfläche | `uv run python -m app.deepdive_ui` (→ `http://127.0.0.1:8765/`) oder `deepdive_ui.bat` (öffnet zusätzlich den Browser) | — |
 
 **Keine Heredocs, keine langen Inline-Skripte.** `python3 << 'EOF'` (Bash-Heredoc) läuft unter
 cmd.exe ohnehin nicht, und lange `-c "..."`-Blöcke sprengen zudem CCs Befehls-Parser (erzwingen
