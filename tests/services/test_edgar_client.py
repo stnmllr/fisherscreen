@@ -1375,3 +1375,60 @@ def test_get_company_facts_raises_on_non_200(mock_httpx):
 
     with pytest.raises(DataSourceError, match="404"):
         _make_client().get_company_facts("320193")
+
+
+# --- ticker_map_available ---
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_ticker_map_available_loads_lazily_and_shares_map(mock_httpx, mock_time):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."},
+    }
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.ticker_map_available() is True
+    assert client.get_cik("AAPL") == "320193"
+    assert client.ticker_map_available() is True
+    assert mock_httpx.get.call_count == 1
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_ticker_map_available_false_after_get_cik_load_failure(mock_httpx, mock_time):
+    mock_httpx.get.side_effect = Exception("connection refused")
+
+    client = _make_client()
+    assert client.get_cik("AAPL") is None
+    assert client.ticker_map_available() is False
+    # the failure is remembered for the instance — no retry storm
+    assert mock_httpx.get.call_count == 1
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_ticker_map_available_false_on_first_call_failure(mock_httpx, mock_time):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 503
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.ticker_map_available() is False
+    assert client.get_cik("AAPL") is None
+
+
+@patch("app.services.edgar_client.time")
+@patch("app.services.edgar_client.httpx")
+def test_ticker_map_available_true_for_loaded_but_empty_map(mock_httpx, mock_time):
+    # The flag, not "map empty?", decides: an empty but loaded map is available.
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {}
+    mock_httpx.get.return_value = mock_resp
+
+    client = _make_client()
+    assert client.ticker_map_available() is True

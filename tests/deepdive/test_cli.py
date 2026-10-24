@@ -283,3 +283,83 @@ def test_render_nonzero_exit_keeps_the_deep_dive_exit_code(site_cli, capsys):
     assert exit_code == 0
     assert str(dossier) in printed
     assert "NOT refreshed" in printed
+
+
+# --- preflight subcommand ----------------------------------------------------
+
+
+def _preflight_result(can_start: bool, kind: str = "full"):
+    from app.deepdive.preflight import PreflightResult, SymbolCheck
+
+    def ok(sym):
+        return SymbolCheck(sym, True, sym.title(), "USD", 1e9, f"gefunden: {sym}")
+
+    return PreflightResult(
+        ticker=ok("NOVO-B.CO"),
+        peers=[ok("LLY"), ok("PFE"), ok("MRK")],
+        dossier_kind=kind,
+        dossier_note="20-F via ADR NVO (CIK 0000353278)",
+        no_sec_source_reason=None,
+        can_start=can_start,
+        needs_quant_only_ack=False,
+    )
+
+
+def test_preflight_parser():
+    ns = build_parser().parse_args(["preflight", "NOVO-B.CO", "--peers", "LLY,PFE,MRK"])
+    assert ns.command == "preflight"
+    assert ns.ticker == "NOVO-B.CO"
+    assert ns.peers == "LLY,PFE,MRK"
+
+
+def test_preflight_requires_peers():
+    with pytest.raises(SystemExit) as exc:
+        main(["preflight", "NOVO-B.CO"])
+    assert exc.value.code == 2
+
+
+@pytest.mark.parametrize("can_start, code", [(True, 0), (False, 1)])
+def test_preflight_exit_code_follows_can_start(monkeypatch, capsys, can_start, code):
+    import app.deepdive.__main__ as cli
+
+    calls = []
+
+    def runner(ticker, peers):
+        calls.append((ticker, peers))
+        return _preflight_result(can_start)
+
+    monkeypatch.setattr(cli, "build_preflight_runner", lambda: runner)
+    # the deep-dive path must not be touched by the preflight command
+    monkeypatch.setattr(cli, "run_deep_dive", None)
+
+    assert main(["preflight", "NOVO-B.CO", "--peers", "LLY, PFE ,MRK"]) == code
+    assert calls == [("NOVO-B.CO", ["LLY", "PFE", "MRK"])]
+    out = capsys.readouterr().out
+    assert "Vorprüfung NOVO-B.CO" in out
+    assert f"Start möglich: {'ja' if can_start else 'nein'}" in out
+
+
+def test_preflight_bad_peer_string_exits_one_without_check(monkeypatch, capsys):
+    import app.deepdive.__main__ as cli
+
+    def boom():
+        raise AssertionError("runner must not be built")
+
+    monkeypatch.setattr(cli, "build_preflight_runner", boom)
+    assert main(["preflight", "NOVO-B.CO", "--peers", "LLY,PFE"]) == 1
+    assert "genau 3" in capsys.readouterr().out
+
+
+def test_preflight_data_source_setup_failure_exits_two(monkeypatch, capsys):
+    import app.deepdive.__main__ as cli
+    from app.errors import DataSourceError
+
+    def broken():
+        def _run(ticker, peers):
+            raise DataSourceError("EDGAR user agent not set")
+
+        return _run
+
+    monkeypatch.setattr(cli, "build_preflight_runner", broken)
+    assert main(["preflight", "NOVO-B.CO", "--peers", "LLY,PFE,MRK"]) == 2
+    assert "EDGAR user agent not set" in capsys.readouterr().out

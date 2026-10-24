@@ -11,6 +11,7 @@ from app.deepdive.filing_cache import CachedFilingFetcher
 from app.deepdive.historical_cache import CachedHistoricalData
 from app.deepdive.insider_cache import CachedInsiderFetcher
 from app.deepdive.peer_preflight import resolve_peers
+from app.deepdive.preflight import PreflightResult, run_preflight
 from app.deepdive.quant_join import build_quant_snapshot
 from app.screener.compose import build_github_client
 from app.services.edgar_client import EdgarClientImpl
@@ -30,6 +31,7 @@ __all__ = [
     "build_insider_fetcher",
     "build_quant_builder",
     "build_peer_resolver",
+    "build_preflight_runner",
     "build_synthesizer",
 ]
 
@@ -69,14 +71,43 @@ def build_eu_resolver() -> Callable[[str], Any]:
     return _resolve
 
 
-def build_adr_resolver() -> ADRResolver:
-    edgar = EdgarClientImpl(
+def _build_resolver_edgar() -> EdgarClientImpl:
+    return EdgarClientImpl(
         user_agent=settings.edgar_user_agent,
         annual_form_max_age_days=settings.annual_form_max_age_days,
     )
+
+
+def build_adr_resolver(edgar: EdgarClientImpl | None = None) -> ADRResolver:
+    """`edgar` lets a caller share the client with a later map check
+    (build_preflight_runner) — otherwise a fresh client is built."""
+    if edgar is None:
+        edgar = _build_resolver_edgar()
     return ADRResolver(
         table=load_adr_table(), edgar=edgar, eu_resolver=build_eu_resolver()
     )
+
+
+def build_preflight_runner() -> Callable[[str, list[str]], PreflightResult]:
+    """Return a callable running the deep-dive pre-flight check.
+
+    Every call builds FRESH dependencies: EdgarClientImpl remembers a failed
+    SEC ticker-map load for its lifetime, so a long-lived UI process holding
+    one instance would report every US ticker as unknown after a single SEC
+    hiccup. Resolver and map check share ONE EdgarClientImpl, so the check
+    asks about exactly the map the resolver used."""
+
+    def _run(ticker: str, peers: list[str]) -> PreflightResult:
+        edgar = _build_resolver_edgar()
+        return run_preflight(
+            ticker,
+            peers,
+            resolver=build_adr_resolver(edgar=edgar),
+            yfinance=YFinanceClientImpl(),
+            edgar_map_available=edgar.ticker_map_available,
+        )
+
+    return _run
 
 
 def build_filing_fetcher() -> CachedFilingFetcher:
