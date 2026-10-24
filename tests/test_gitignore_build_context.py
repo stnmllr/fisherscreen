@@ -14,7 +14,7 @@ repo-root directory so they can never swallow a source package named `output/`.
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_GENERATED_OUTPUT_DIRS = {"output", "output-test"}
+_GENERATED_OUTPUT_DIRS = {"output", "output-test", "runs"}
 
 
 def test_generated_output_ignores_are_root_anchored() -> None:
@@ -31,3 +31,13 @@ def test_generated_output_ignores_are_root_anchored() -> None:
         f"Unanchored pattern(s) also match app/output/ and break the Cloud Build "
         f"context (ModuleNotFoundError in prod): {unanchored}"
     )
+
+
+def test_runs_dir_ignored_root_anchored_in_git_and_build_context() -> None:
+    for name in (".gitignore", ".gcloudignore"):
+        lines = [
+            line.strip()
+            for line in (_REPO_ROOT / name).read_text(encoding="utf-8").splitlines()
+        ]
+        assert "/runs/" in lines, f"{name} must ignore the UI run logs (/runs/)"
+        assert "runs/" not in lines, f"{name}: unanchored runs/ would match app/*/runs/"

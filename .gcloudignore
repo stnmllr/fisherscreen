@@ -54,3 +54,6 @@ desktop.ini
 # Generated outputs — root-anchored, must never match app/output/
 /output/
 /output-test/
+
+# Deep-dive UI run logs (app/deepdive_ui/) — local only, root-anchored
+/runs/

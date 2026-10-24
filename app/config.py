@@ -60,6 +60,14 @@ class FisherScreenSettings(BaseSettings):
     # Newest 10-K/20-F older than this = the issuer stopped filing (measured, see
     # DEFAULT_ANNUAL_FORM_MAX_AGE_DAYS in app/services/edgar_client.py)
     annual_form_max_age_days: int = 540
+    # Deep-dive start UI (app/deepdive_ui/). Loopback by default: nothing local
+    # may be reachable from outside; on the server an auth gate sits in front.
+    deepdive_ui_host: str = "127.0.0.1"
+    deepdive_ui_port: int = 8765
+    deepdive_ui_root_path: str = ""  # e.g. /deepdive behind Caddy
+    deepdive_ui_runs_dir: str = "runs"
+    deepdive_ui_viewer_url: str = ""  # empty = no viewer link
+    deepdive_ui_preflight_ttl_minutes: int = 15
 
     model_config = {
         "env_prefix": "FISHERSCREEN_",

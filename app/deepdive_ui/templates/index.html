@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FisherScreen Deep Dive</title>
+<style>
+  :root { color-scheme: light dark; --line: #8884; --ok: #1a7f37; --bad: #c62828; --muted: #777; }
+  * { box-sizing: border-box; }
+  body { margin: 0 auto; max-width: 760px; padding: 16px; font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  h1 { font-size: 1.3rem; margin: 0 0 12px; }
+  h2 { font-size: 1.05rem; margin: 0 0 8px; }
+  section { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+  label { display: block; margin: 6px 0 2px; }
+  input[type=text] { width: 100%; padding: 6px 8px; font: inherit; }
+  .peers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .check label { display: flex; gap: 6px; align-items: baseline; margin: 4px 0; }
+  button { font: inherit; padding: 6px 14px; margin-top: 8px; cursor: pointer; }
+  button:disabled { cursor: not-allowed; opacity: .5; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .table-wrap { overflow-x: auto; }
+  .hint { color: var(--muted); font-size: .9rem; margin: 4px 0; }
+  .ok, .st-ok { color: var(--ok); }
+  .bad, .st-failed { color: var(--bad); }
+  .msg { margin: 8px 0 0; }
+  .msg:empty { display: none; }
+  pre.log { max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: .8rem; border: 1px solid var(--line); padding: 8px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body data-base="{{ base }}">
+<h1>FisherScreen Deep Dive</h1>
+
+<section id="input">
+  <h2>1. Eingabe</h2>
+  <label for="ticker">Ticker</label>
+  <input type="text" id="ticker" autocomplete="off" autocapitalize="characters" placeholder="z. B. NOVO-B.CO">
+  <p class="hint" id="peers-hint"></p>
+  <label>Peers</label>
+  <div class="peers">
+    <input type="text" id="peer1" class="peer" autocomplete="off" autocapitalize="characters" aria-label="Peer 1">
+    <input type="text" id="peer2" class="peer" autocomplete="off" autocapitalize="characters" aria-label="Peer 2">
+    <input type="text" id="peer3" class="peer" autocomplete="off" autocapitalize="characters" aria-label="Peer 3">
+  </div>
+  <label for="rationale">Begründung (optional, max. {{ rationale_max }} Zeichen)</label>
+  <input type="text" id="rationale" maxlength="{{ rationale_max }}" autocomplete="off">
+  <div class="check">
+    <label><input type="checkbox" id="no_cache"> Caches ignorieren (<code>--no-cache</code>)</label>
+    <label><input type="checkbox" id="no_insider"> Insider-Stufe überspringen (<code>--no-insider</code>)</label>
+    <label><input type="checkbox" id="site"> Viewer danach neu bauen (<code>--site</code>)</label>
+  </div>
+</section>
+
+<section id="preflight">
+  <h2>2. Vorprüfung</h2>
+  <button type="button" id="check-btn">Prüfen</button>
+  <p class="msg" id="check-msg"></p>
+  <div class="table-wrap" id="check-wrap" hidden>
+    <table>
+      <thead><tr><th>Symbol</th><th></th><th>Name</th><th>Währung</th><th>Market Cap</th><th>Meldung</th></tr></thead>
+      <tbody id="check-rows"></tbody>
+    </table>
+  </div>
+  <p class="msg" id="verdict"></p>
+  <div class="check" id="ack-box" hidden>
+    <label><input type="checkbox" id="ack"> Ich weiß, dass es kein SEC-Filing gibt — nur Quant-Dossier bauen</label>
+  </div>
+</section>
+
+<section id="run">
+  <h2>3. Lauf</h2>
+  <button type="button" id="start-btn" disabled>Deep Dive starten</button>
+  <p class="msg bad" id="start-msg"></p>
+  <div id="run-box">
+    {% if current %}{% with run=current %}{% include "_run.html" %}{% endwith %}{% endif %}
+  </div>
+  <h2 style="margin-top:16px">Verlauf</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Zeit</th><th>Ticker</th><th>Peers</th><th>Status</th><th>Dossier</th></tr></thead>
+      <tbody id="history-rows">
+      {% for r in history %}
+        <tr>
+          <td>{{ r.started_at[:16] | replace("T", " ") }}</td>
+          <td><a href="#" class="run-link" data-run-id="{{ r.run_id }}">{{ r.ticker }}</a></td>
+          <td>{{ r.peers | join(", ") }}</td>
+          <td class="st-{{ r.status }}">{{ r.status }}{% if r.note %} — {{ r.note }}{% elif r.status == "failed" and r.exit_text %} — {{ r.exit_text }}{% endif %}</td>
+          <td>{% if r.viewer_link %}<a href="{{ r.viewer_link }}" target="_blank" rel="noopener">{{ r.dossier_path or "Viewer" }}</a>{% else %}{{ r.dossier_path or "" }}{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="hint">Noch keine Läufe.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+(function () {
+  "use strict";
+  var BASE = document.body.dataset.base || "";
+  var $ = function (id) { return document.getElementById(id); };
+  var ticker = $("ticker"), rationale = $("rationale");
+  var peerInputs = [$("peer1"), $("peer2"), $("peer3")];
+  var checkBtn = $("check-btn"), startBtn = $("start-btn"), ack = $("ack");
+  var state = { token: null, needsAck: false, polling: false };
+
+  function norm(v) { return v.trim().toUpperCase(); }
+  function peers() { return peerInputs.map(function (i) { return norm(i.value); }); }
+
+  function detailText(body, status) {
+    var d = body && body.detail;
+    if (typeof d === "string") { return d; }
+    if (Array.isArray(d)) { return d.map(function (e) { return e.msg; }).join("; "); }
+    return "Fehler (HTTP " + status + ")";
+  }
+
+  function api(path, options) {
+    return fetch(BASE + path, options).then(function (res) {
+      return res.text().then(function (text) {
+        var data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
+        return { status: res.status, ok: res.ok, data: data };
+      });
+    });
+  }
+
+  function postJson(path, payload) {
+    return api(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  }
+
+  function updateStart() {
+    startBtn.disabled = !(state.token && (!state.needsAck || ack.checked)) || state.polling;
+  }
+
+  function resetCheck() {
+    state.token = null;
+    state.needsAck = false;
+    $("check-rows").textContent = "";
+    $("check-wrap").hidden = true;
+    $("check-msg").textContent = "";
+    $("verdict").textContent = "";
+    $("verdict").className = "msg";
+    $("ack-box").hidden = true;
+    ack.checked = false;
+    updateStart();
+  }
+
+  function cell(row, text, cls) {
+    var td = document.createElement("td");
+    td.textContent = text == null ? "" : String(text);
+    if (cls) { td.className = cls; }
+    row.appendChild(td);
+  }
+
+  function formatCap(v) {
+    if (v == null) { return ""; }
+    try {
+      return new Intl.NumberFormat("de-DE", { notation: "compact", maximumFractionDigits: 1 }).format(v);
+    } catch (e) { return String(v); }
+  }
+
+  function verdictText(r) {
+    var note = r.dossier_note || "";
+    if (r.dossier_kind === "full") { return "Vollständiges Dossier: " + note; }
+    if (r.dossier_kind === "quant_only") {
+      return "Nur Quant-Dossier: kein SEC-Jahresformular (" + (r.no_sec_source_reason || note) + ")";
+    }
+    if (r.dossier_kind === "none") { return "✗ Kein Dossier möglich: " + note; }
+    return "? Quelle nicht erreichbar: " + note;
+  }
+
+  function renderCheck(r) {
+    var rows = $("check-rows");
+    rows.textContent = "";
+    [r.ticker].concat(r.peers).forEach(function (c) {
+      var tr = document.createElement("tr");
+      cell(tr, c.symbol);
+      cell(tr, c.ok ? "✓" : "✗", c.ok ? "ok" : "bad");
+      cell(tr, c.name);
+      cell(tr, c.currency);
+      cell(tr, formatCap(c.market_cap));
+      cell(tr, c.message);
+      rows.appendChild(tr);
+    });
+    $("check-wrap").hidden = false;
+    var v = verdictText(r);
+    if (!r.can_start) { v += " — Start gesperrt."; }
+    $("verdict").textContent = v;
+    $("verdict").className = "msg " + (r.can_start ? "ok" : "bad");
+    state.token = r.preflight_token || null;
+    state.needsAck = !!r.needs_quant_only_ack;
+    $("ack-box").hidden = !(r.can_start && state.needsAck);
+    updateStart();
+  }
+
+  function prefillPeers() {
+    var t = norm(ticker.value);
+    var hint = $("peers-hint");
+    hint.textContent = "";
+    if (!t) { return; }
+    api("/api/peers/" + encodeURIComponent(t)).then(function (res) {
+      if (res.status === 503) { hint.textContent = "gespeicherte Peers nicht abrufbar"; return; }
+      if (!res.ok || !res.data || !res.data.peers || !res.data.peers.length) { return; }
+      var stored = res.data.peers;
+      peerInputs.forEach(function (input, i) { input.value = stored[i] || ""; });
+      if (!rationale.value && res.data.rationale) { rationale.value = res.data.rationale; }
+      var date = (res.data.last_updated || "").slice(0, 10);
+      hint.textContent = "zuletzt " + (date || "?") + ": " + stored.join(", ");
+      resetCheck();
+    }).catch(function () { hint.textContent = "gespeicherte Peers nicht abrufbar"; });
+  }
+
+  function refreshHistory() {
+    api("/api/runs").then(function (res) {
+      if (!res.ok || !Array.isArray(res.data)) { return; }
+      var rows = $("history-rows");
+      rows.textContent = "";
+      res.data.forEach(function (r) {
+        var tr = document.createElement("tr");
+        cell(tr, (r.started_at || "").slice(0, 16).replace("T", " "));
+        var td = document.createElement("td");
+        var a = document.createElement("a");
+        a.href = "#"; a.className = "run-link"; a.dataset.runId = r.run_id; a.textContent = r.ticker;
+        td.appendChild(a); tr.appendChild(td);
+        cell(tr, (r.peers || []).join(", "));
+        var extra = r.note ? " — " + r.note : (r.status === "failed" && r.exit_text ? " — " + r.exit_text : "");
+        cell(tr, r.status + extra, "st-" + r.status);
+        var dossier = document.createElement("td");
+        if (r.viewer_link) {
+          var link = document.createElement("a");
+          link.href = r.viewer_link; link.target = "_blank"; link.rel = "noopener";
+          link.textContent = r.dossier_path || "Viewer";
+          dossier.appendChild(link);
+        } else { dossier.textContent = r.dossier_path || ""; }
+        tr.appendChild(dossier);
+        rows.appendChild(tr);
+      });
+    });
+  }
+
+  function poll(runId) {
+    state.polling = true;
+    updateStart();
+    fetch(BASE + "/runs/" + encodeURIComponent(runId)).then(function (res) {
+      if (!res.ok) { throw new Error("HTTP " + res.status); }
+      return res.text();
+    }).then(function (html) {
+      $("run-box").innerHTML = html;  /* server-rendered, autoescaped */
+      var view = $("run-view");
+      if (view && view.dataset.status === "running") {
+        setTimeout(function () { poll(runId); }, 3000);
+      } else {
+        state.polling = false;
+        updateStart();
+        refreshHistory();
+      }
+    }).catch(function (e) {
+      $("start-msg").textContent = "Status nicht abrufbar (" + e.message + ") — neuer Versuch in 3 s";
+      setTimeout(function () { $("start-msg").textContent = ""; poll(runId); }, 3000);
+    });
+  }
+
+  ticker.addEventListener("input", resetCheck);
+  ticker.addEventListener("blur", prefillPeers);
+  peerInputs.forEach(function (i) { i.addEventListener("input", resetCheck); });
+  ack.addEventListener("change", updateStart);
+
+  checkBtn.addEventListener("click", function () {
+    resetCheck();
+    $("check-msg").textContent = "Prüfe …";
+    checkBtn.disabled = true;
+    postJson("/api/preflight", { ticker: norm(ticker.value), peers: peers() }).then(function (res) {
+      $("check-msg").textContent = "";
+      if (res.ok && res.data) { renderCheck(res.data); }
+      else { $("check-msg").textContent = detailText(res.data, res.status); }
+    }).catch(function (e) {
+      $("check-msg").textContent = "Vorprüfung fehlgeschlagen: " + e.message;
+    }).then(function () { checkBtn.disabled = false; });
+  });
+
+  startBtn.addEventListener("click", function () {
+    $("start-msg").textContent = "";
+    startBtn.disabled = true;
+    var payload = {
+      ticker: norm(ticker.value),
+      peers: peers(),
+      rationale: rationale.value.trim() || null,
+      no_cache: $("no_cache").checked,
+      no_insider: $("no_insider").checked,
+      site: $("site").checked,
+      quant_only_ack: ack.checked,
+      preflight_token: state.token || ""
+    };
+    postJson("/api/runs", payload).then(function (res) {
+      if (res.status === 201 && res.data) {
+        resetCheck();
+        refreshHistory();
+        poll(res.data.run_id);
+        return;
+      }
+      var text = detailText(res.data, res.status);
+      if (res.status === 409) { text = "Es läuft bereits ein Deep Dive — " + text; }
+      $("start-msg").textContent = text;
+      updateStart();
+    }).catch(function (e) {
+      $("start-msg").textContent = "Start fehlgeschlagen: " + e.message;
+      updateStart();
+    });
+  });
+
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest ? ev.target.closest("a.run-link") : null;
+    if (!a) { return; }
+    ev.preventDefault();
+    if (!state.polling) { poll(a.dataset.runId); }
+  });
+
+  var current = $("run-view");
+  if (current && current.dataset.status === "running") { poll(current.dataset.runId); }
+})();
+</script>
+</body>
+</html>
