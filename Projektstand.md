@@ -57,8 +57,15 @@ Arbeitskopie `D:\entwicklung\fisherscreen`.
   geschrieben; Peers in Firestore stehen wieder auf HL, NEM, AEM (zwischenzeitlich versehentlich
   überschrieben und zurückgesetzt). ADC auf dieser Maschine eingerichtet — `gcloud.cmd` endet
   hier still, Aufruf über `platform\bundledpython\python.exe lib\gcloud.py`.
-- **Offen:** ein Lauf mit vollständigem Dossier (Gemini) über die UI, Klick-Test der Seite im
-  Browser, Hetzner-Deploy nach Spec §7.
+- **Hetzner (Phase 1) live seit 2026-10-24:** `https://macro.stnmllr.com/deepdive/` hinter dem
+  Google-Gate, Dienst `fisherscreen-deepdive` auf `tools-prod-01`, Checkout `/opt/fisherscreen`,
+  Service-Account `fisherscreen-deepdive-ui` (`roles/datastore.user`). Runbook mit
+  Durchführungsprotokoll: `docs/superpowers/specs/2026-10-24-deepdive-ui-hetzner-runbook.md`.
+  Abnahme: SU.PA quant-only über die Seite, Exit 0. Kein Viewer-Link auf dem Server (würde
+  404en, Server-Dossiers erreichen `/fisher/` nicht).
+- **Offen:** ein Lauf mit vollständigem Dossier (Gemini) über die UI; Phase 2 (Server-Dossiers
+  in Vault/Viewer); macro-dashboard `AUTH.md` hinkt dem Server-Caddyfile hinterher (fehlt
+  `/fisher/`, `/deepdive`, Gate-Varianten, `rechpro.stnmllr.com`).
 
 ## Top of mind — 2026-10-07 (Preisnehmer)
 
