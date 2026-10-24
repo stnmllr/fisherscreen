@@ -1,0 +1,25 @@
+# systemd unit for the deep-dive start UI (app/deepdive_ui) on tools-prod-01.
+# Install: sudo cp infra/hetzner/fisherscreen-deepdive.service /etc/systemd/system/
+# Runbook: docs/superpowers/specs/2026-10-24-deepdive-ui-hetzner-runbook.md
+#
+# The venv interpreter is called directly instead of `uv run`: uv would re-sync
+# on every start and pull the dev group. No EPDR on the server, so python -m is
+# fine. The UI starts each deep dive with the same interpreter (sys.executable).
+
+[Unit]
+Description=FisherScreen deep-dive start UI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=stef
+Group=stef
+WorkingDirectory=/opt/fisherscreen
+EnvironmentFile=/etc/fisherscreen/env
+ExecStart=/opt/fisherscreen/.venv/bin/python -m app.deepdive_ui
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

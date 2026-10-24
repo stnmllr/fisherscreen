@@ -1,0 +1,17 @@
+# Goes INSIDE the outer `handle { import authgate ... }` of the macro.stnmllr.com
+# site block in /etc/caddy/Caddyfile — next to `handle /fisher/*`, BEFORE the
+# inner catch-all `handle { root * /var/www/macro-dashboard ... }`.
+#
+# No `import authgate` here: the outer handle already runs it for every path in
+# this site (that is how /fisher/ is gated too). Nested handle blocks are
+# mutually exclusive and checked in written order — placed after the inner
+# catch-all, this route would never be reached.
+#
+# `handle`, not `handle_path`: the prefix must reach the app, which resolves
+# /deepdive/... via root_path (FISHERSCREEN_DEEPDIVE_UI_ROOT_PATH=/deepdive).
+# `/deepdive*` also matches the bare /deepdive, which the app redirects to
+# /deepdive/ — otherwise that address would fall through to the file server (404).
+
+        handle /deepdive* {
+            reverse_proxy 127.0.0.1:8765
+        }
