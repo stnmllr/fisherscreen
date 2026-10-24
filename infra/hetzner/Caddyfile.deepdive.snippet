@@ -1,0 +1,15 @@
+# Goes into the macro.stnmllr.com site block of /etc/caddy/Caddyfile,
+# AFTER `import oauth2endpoints` and BEFORE the catch-all `handle { ... }`.
+# handle blocks are mutually exclusive and checked in written order — a route
+# placed after the catch-all would never be reached (see macro-dashboard AUTH.md).
+#
+# `handle`, not `handle_path`: the prefix must reach the app, which resolves
+# /deepdive/... via root_path (FISHERSCREEN_DEEPDIVE_UI_ROOT_PATH=/deepdive).
+# The matcher includes the bare /deepdive so the app can redirect it to /deepdive/.
+
+    @deepdive path /deepdive /deepdive/*
+    handle @deepdive {
+        import authgate
+
+        reverse_proxy 127.0.0.1:8765
+    }
