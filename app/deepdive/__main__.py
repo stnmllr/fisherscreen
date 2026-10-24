@@ -180,9 +180,15 @@ def _publish(dossier_path: Path, *, no_publish: bool) -> None:
         )
     except (Exception, SystemExit) as exc:
         logger.exception("dossier written to %s, but publishing failed", dossier_path)
-        print(f"WARNING: dossier NOT published: {exc or type(exc).__name__}")
+        print(f"WARNING: dossier NOT published: {_one_line_reason(exc)}")
         return
     print(f"Published to: {target}")
+
+
+def _one_line_reason(exc: BaseException) -> str:
+    """First non-empty line of the message, or the exception type name."""
+    lines = [ln.strip() for ln in str(exc).splitlines() if ln.strip()]
+    return lines[0] if lines else type(exc).__name__
 
 
 def main(argv: list[str] | None = None) -> int:

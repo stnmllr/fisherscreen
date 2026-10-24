@@ -489,6 +489,26 @@ def test_publish_status_in_view_and_partial(
     assert ("Im Viewer öffnen" in html) is link
 
 
+def test_history_row_marks_unpublished_run(tmp_path: Path) -> None:
+    manager = _manager_with(
+        tmp_path, "--status-line", "WARNING: dossier NOT published: boom"
+    )
+    client = _client(manager, viewer_url="https://example.test/fisher")
+    _start(client, _preflight(client)["preflight_token"])
+    manager.join(timeout=30)
+    index = client.get("/").text
+    assert '<span class="st-warn"> · nicht veröffentlicht</span>' in index
+    assert "r.published === false" in index
+
+
+def test_history_row_plain_ok_when_published(tmp_path: Path) -> None:
+    manager = _manager_with(tmp_path, "--status-line", "Published to: d/Watchlist/F.md")
+    client = _client(manager, viewer_url="https://example.test/fisher")
+    _start(client, _preflight(client)["preflight_token"])
+    manager.join(timeout=30)
+    assert '<span class="st-warn"> · nicht' not in client.get("/").text
+
+
 def test_no_viewer_link_without_viewer_url(manager: RunManager) -> None:
     client = _client(manager)
     token = _preflight(client)["preflight_token"]

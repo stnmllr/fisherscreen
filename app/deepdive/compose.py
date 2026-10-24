@@ -6,6 +6,7 @@ from typing import Any, Callable
 from app.config import settings
 from app.deepdive.adr_resolver import ADRResolver
 from app.deepdive.adr_table import load_adr_table
+from app.errors import DataSourceError
 from app.deepdive.eu_adr_resolution import resolve_eu_adr
 from app.deepdive.filing_cache import CachedFilingFetcher
 from app.deepdive.historical_cache import CachedHistoricalData
@@ -206,10 +207,15 @@ def build_synthesizer(model_override: str | None = None) -> GeminiDeepDiveClient
 def build_dossier_publisher() -> GitHubClientImpl | None:
     """GitHub client for the dossier repo, or None when publishing is not configured.
 
-    Raises DataSourceError (from the client) when a repo is set but the token is empty.
+    Raises DataSourceError when a repo is set but the dedicated dossier token is empty
+    (never falls back to the Tool A token FISHERSCREEN_GITHUB_TOKEN).
     """
     if not settings.dossier_repo:
         return None
+    if not settings.dossier_token:
+        raise DataSourceError(
+            "FISHERSCREEN_DOSSIER_TOKEN not set (FISHERSCREEN_DOSSIER_REPO is)"
+        )
     return GitHubClientImpl(
         token=settings.dossier_token,
         repo=settings.dossier_repo,

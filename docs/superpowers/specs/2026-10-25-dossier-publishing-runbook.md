@@ -23,7 +23,7 @@ Feste Werte:
 | Server | `tools-prod-01`, `macro.stnmllr.com`, Benutzer `stef` |
 | Code-Checkout | `/opt/fisherscreen` (venv `/opt/fisherscreen/.venv`) |
 | Daten-Klon (Server) | `/opt/fisherscreen-dossiers`, Read-only-Deploy-Key `~stef/.ssh/fisherscreen-dossiers-ro`, Host-Alias `github-dossiers` |
-| Builds | `/var/www/fisher-builds/<short-sha>/`, Zeiger `/var/www/fisher-builds/current`, Stempel `/var/www/fisher-builds/.built-sha` |
+| Builds | `/var/www/fisher-builds/<sha>-<epoch>/`, Zeiger `/var/www/fisher-builds/current`, Stempel `/var/www/fisher-builds/.built-sha` |
 | Web-Pfad | `/var/www/fisher` → Symlink auf `/var/www/fisher-builds/current` |
 | Alte Seite | `/var/www/fisher-builds/legacy-2026-10-25` (wird nie gelöscht) |
 | Klon (PC) | `D:\entwicklung\fisherscreen-dossiers` |
@@ -80,6 +80,8 @@ Host github-dossiers
     User git
     IdentityFile ~/.ssh/fisherscreen-dossiers-ro
     IdentitiesOnly yes
+    ConnectTimeout 15
+    ServerAliveInterval 15
 EOF
 chmod 600 ~/.ssh/config
 
@@ -89,9 +91,15 @@ ls /opt/fisherscreen-dossiers/Watchlist
 ```
 
 Erwartung: Clone ohne Passwortfrage (beim ersten Mal den GitHub-Host-Key bestätigen);
-`Watchlist` enthält mindestens `.gitkeep`. Schreibprobe, die scheitern muss:
-`git -C /opt/fisherscreen-dossiers push --dry-run` meldet nichts zu pushen; ein echter Push
-(`git commit --allow-empty -m x && git push`) wird abgelehnt — danach `git reset --hard HEAD~1`.
+`Watchlist` enthält mindestens `.gitkeep`. Schreibprobe:
+
+```bash
+git -C /opt/fisherscreen-dossiers push --dry-run
+```
+
+Erwartet wird eine **Ablehnung** („… marked as read only" bzw. permission denied). Genau diese
+Ablehnung beweist, dass der Schlüssel nur lesen darf. Läuft der Dry-Run ohne Fehler durch, hat
+der Deploy-Key Schreibrecht: in GitHub Deploy keys löschen und ohne „Allow write access" neu anlegen.
 
 ---
 
@@ -101,10 +109,10 @@ Erwartung: Clone ohne Passwortfrage (beim ersten Mal den GitHub-Host-Key bestät
 sudo nano /etc/fisherscreen/env
 ```
 
-Drei Zeilen (Vorlage: `infra/hetzner/env.example`):
+Zwei Zeilen (Vorlage: `infra/hetzner/env.example`). Die Viewer-URL kommt bewusst erst in
+Schritt 4 dazu, nach dem Umschalten — vorher würde die UI auf eine noch nicht umgestellte Seite verlinken:
 
 ```
-FISHERSCREEN_DEEPDIVE_UI_VIEWER_URL=https://macro.stnmllr.com/fisher
 FISHERSCREEN_DOSSIER_REPO=stnmllr/fisherscreen-dossiers
 FISHERSCREEN_DOSSIER_TOKEN=<Token aus Schritt 1>
 ```
@@ -176,7 +184,16 @@ ls -l /var/www/fisher
 
 Zwischen den beiden Befehlen liefert `/fisher/` für einen Augenblick 404 (Sekundenbruchteile,
 einmalig; beide Ziele existieren bereits). `https://macro.stnmllr.com/fisher/` zeigt jetzt die
-(leere) Übersicht, `legacy-2026-10-25` liegt daneben. Erst danach den Timer einschalten:
+(leere) Übersicht, `legacy-2026-10-25` liegt daneben. Jetzt den Viewer-Link in der UI
+einschalten — in `/etc/fisherscreen/env` ergänzen und den Dienst neu starten (nicht während
+eines laufenden Deep Dives):
+
+```bash
+echo 'FISHERSCREEN_DEEPDIVE_UI_VIEWER_URL=https://macro.stnmllr.com/fisher' | sudo tee -a /etc/fisherscreen/env
+sudo systemctl restart fisherscreen-deepdive
+```
+
+(Steht die Zeile schon in der Datei, stattdessen dort anpassen statt anhängen.) Erst danach den Timer einschalten:
 
 ```bash
 sudo systemctl enable --now fisherscreen-viewer.timer
@@ -212,15 +229,18 @@ Dossiers abholen: `git -C D:\entwicklung\fisherscreen-dossiers pull`.
 
 ## Schritt 6: Abnahme (Spec §8)
 
-1. **PC-Lauf:** `uv run python -m app.deepdive deepdive EDV.L --peers HL,NEM,AEM --quant-only --no-insider`
+1. **PC-Lauf:** vorher `preflight` → nur Quant prüfen (EDV.L ist von Natur aus quant-only).
+   `uv run python -m app.deepdive deepdive EDV.L --peers HL,NEM,AEM --no-insider`
    (kostenfrei) → Ausgabe `Published to: stnmllr/fisherscreen-dossiers/Watchlist/EDV.L_<Datum>.md`.
    `git -C D:\entwicklung\fisherscreen-dossiers pull` → Datei erscheint in Obsidian unter
    `FisherScreen\Deep Dives`; ≤ 5 min später im Viewer `https://macro.stnmllr.com/fisher/`.
-2. **Server-Lauf:** über `https://macro.stnmllr.com/deepdive/` (z. B. SU.PA, quant-only) →
+2. **Server-Lauf:** über `https://macro.stnmllr.com/deepdive/` (z. B. SU.PA; vorher `preflight` → nur Quant prüfen) →
    Anzeige „ok · veröffentlicht", Viewer-Link führt ≤ 5 min später auf die Seite (kein 404).
 3. **Ungültiger Token:** am PC `set FISHERSCREEN_DOSSIER_TOKEN=ungueltig` und denselben Lauf
-   wiederholen → `WARNING: dossier NOT published: …`, Exit 0, Dossier liegt unter
-   `output\Watchlist\`. (Auf dem Server analog über die Seite: „ok · nicht veröffentlicht".)
+   wiederholen (vorher `preflight` → nur Quant prüfen) → `WARNING: dossier NOT published: …`,
+   Exit 0, Dossier liegt unter `output\Watchlist\`. (Auf dem Server analog über die Seite:
+   „ok · nicht veröffentlicht".) **Danach** `set FISHERSCREEN_DOSSIER_TOKEN=` zurücksetzen bzw.
+   das Fenster schließen — sonst bleibt der ungültige Token in dieser Sitzung aktiv.
 4. **Legacy bleibt:** `ls /var/www/fisher-builds/legacy-2026-10-25` zeigt die alte Seite;
    der Viewer listet genau die seit der Umstellung veröffentlichten Dossiers.
 5. **Refresh-Skript:** unverändert → kein neuer Build (`ls /var/www/fisher-builds` gleich);
@@ -235,6 +255,7 @@ Skript oder Units geändert (nach Merge):
 
 ```bash
 cd /opt/fisherscreen && git pull --ff-only
+~/.local/bin/uv sync --frozen --no-default-groups
 sudo cp infra/hetzner/fisherscreen-viewer.service infra/hetzner/fisherscreen-viewer.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 ```
@@ -258,6 +279,34 @@ sudo ln -sfn /var/www/fisher-builds/legacy-2026-10-25 /var/www/fisher
 ```
 
 Der Symlink `/var/www/fisher` zeigt dann direkt auf die alte Seite; `current` wird nicht mehr
-beschrieben. Die Veröffentlichung selbst abschalten: `FISHERSCREEN_DOSSIER_TOKEN` leeren (oder
-am PC `--no-publish`) und den Dienst neu starten; den Viewer-Link in `env` wieder leeren.
+beschrieben. Die Veröffentlichung selbst abschalten: `FISHERSCREEN_DOSSIER_REPO` leeren (oder am PC
+`--no-publish`) und den Dienst neu starten; dann meldet jeder Lauf „no dossier repo configured".
+Den Viewer-Link in `env` wieder leeren. **Nicht** nur den Token leeren: ein leerer Token bei
+gesetztem Repo ist eine Fehlkonfiguration und warnt bei jedem Lauf.
 Token bei Bedarf auf GitHub widerrufen, Deploy-Key im Repo löschen.
+
+---
+
+## Veröffentlichung nachholen
+
+Ist ein Lauf mit `WARNING: dossier NOT published` zu Ende gegangen, liegt das Dossier nur lokal.
+Es wird nicht automatisch nachgereicht. Von Hand (cmd.exe am PC; der PC-Klon pusht mit den
+normalen GitHub-Zugangsdaten des Benutzers, braucht also Schreibrecht auf das Repo):
+
+PC-Dossier (`output\Watchlist\<TICKER>_<Datum>.md`):
+
+```
+copy output\Watchlist\<TICKER>_<Datum>.md D:\entwicklung\fisherscreen-dossiers\Watchlist
+git -C D:\entwicklung\fisherscreen-dossiers add Watchlist\<TICKER>_<Datum>.md
+git -C D:\entwicklung\fisherscreen-dossiers commit -m "Add <TICKER> dossier <Datum>"
+git -C D:\entwicklung\fisherscreen-dossiers push
+```
+
+Server-Dossier: erst auf den PC holen, dann dieselben Schritte (Pfad des Server-Dossiers laut
+Lauf-Ausgabe, normalerweise unter dem `output_dir` des Dienstes):
+
+```
+scp stef@macro.stnmllr.com:<Pfad-auf-dem-Server>/Watchlist/<TICKER>_<Datum>.md D:\entwicklung\fisherscreen-dossiers\Watchlist
+```
+
+Danach `add`/`commit`/`push` wie oben. Der Server-Viewer zieht die Datei binnen ca. 5 min.

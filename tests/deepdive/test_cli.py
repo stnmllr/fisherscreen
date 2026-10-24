@@ -486,18 +486,38 @@ def test_deepdive_publish_failure_keeps_exit_zero(publish_cli, capsys, caplog):
 def test_deepdive_publish_half_configured_runs_then_warns(
     publish_cli, monkeypatch, capsys
 ):
-    from app.errors import DataSourceError
+    from app.deepdive.compose import build_dossier_publisher
 
     cli, run, _, _, _ = publish_cli
-
-    def broken() -> None:
-        raise DataSourceError("token empty")
-
-    monkeypatch.setattr(cli, "build_dossier_publisher", broken)
+    # Real builder: repo set, token empty -> raises before any client/network call.
+    monkeypatch.setattr(cli, "build_dossier_publisher", build_dossier_publisher)
+    monkeypatch.setattr(cli.settings, "dossier_repo", "o/dossiers")
+    monkeypatch.setattr(cli.settings, "dossier_token", "")
     assert cli.main(["deepdive", "X"]) == 0
     run.assert_called_once()
     out = capsys.readouterr().out
-    assert "WARNING: dossier NOT published: " in out
+    warning = [ln for ln in out.splitlines() if "dossier NOT published" in ln]
+    assert len(warning) == 1 and "DOSSIER_TOKEN" in warning[0]
+    assert len(_status_lines(out)) == 1
+
+
+@pytest.mark.parametrize(
+    ("exc", "expected"),
+    [
+        (OSError(), "OSError"),
+        (RuntimeError("  \n "), "RuntimeError"),
+        (RuntimeError("first\nsecond"), "first"),
+        (RuntimeError("\nlead blank\nmore"), "lead blank"),
+    ],
+)
+def test_deepdive_publish_warning_is_one_line_with_reason(
+    publish_cli, capsys, exc, expected
+):
+    cli, _, _, publish, _ = publish_cli
+    publish.side_effect = exc
+    assert cli.main(["deepdive", "X"]) == 0
+    out = capsys.readouterr().out
+    assert f"WARNING: dossier NOT published: {expected}\n" in out
     assert len(_status_lines(out)) == 1
 
 

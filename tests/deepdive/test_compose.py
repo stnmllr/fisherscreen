@@ -202,5 +202,5 @@ def test_build_dossier_publisher_raises_without_token(monkeypatch):
 
     monkeypatch.setattr(deepdive_compose.settings, "dossier_repo", "o/dossiers")
     monkeypatch.setattr(deepdive_compose.settings, "dossier_token", "")
-    with pytest.raises(DataSourceError):
+    with pytest.raises(DataSourceError, match="FISHERSCREEN_DOSSIER_TOKEN"):
         deepdive_compose.build_dossier_publisher()

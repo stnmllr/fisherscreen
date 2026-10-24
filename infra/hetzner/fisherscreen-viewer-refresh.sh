@@ -46,8 +46,8 @@ live=$(readlink "$BUILDS/current")
 cd "$BUILDS"
 { ls -1dt -- */ 2>/dev/null || true; } | sed 's#/$##' \
     | { grep -Ev '^(legacy-.*|current|.*\.tmp)$' || true; } \
-    | { grep -vx -- "$live" || true; } \
+    | { grep -Fvx -- "$live" || true; } \
     | tail -n +$((KEEP + 1)) | while read -r old; do
-        rm -rf -- "$BUILDS/$old"
+        rm -rf -- "$BUILDS/$old" || echo "prune failed: $old" >&2
     done
 echo "viewer switched to $name"

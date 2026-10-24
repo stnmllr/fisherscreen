@@ -13,4 +13,5 @@ Wants=network-online.target
 Type=oneshot
 User=stef
 Group=stef
+TimeoutStartSec=4min
 ExecStart=/bin/bash /opt/fisherscreen/infra/hetzner/fisherscreen-viewer-refresh.sh
