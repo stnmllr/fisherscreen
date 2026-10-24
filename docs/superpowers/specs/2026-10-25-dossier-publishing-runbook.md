@@ -150,35 +150,40 @@ rm -r /var/www/fisher-builds/symtest
 Zeigt es 404 oder eine Fehlerseite: **abbrechen**. Dann Caddy-Block anpassen (z. B.
 `root * /var/www/fisher-builds` plus Rewrite) — das ist eine eigene Entscheidung.
 
-Umschalten — ab hier zeigt der Viewer nur noch neue Dossiers:
+Units installieren und **den ersten Build von Hand laufen lassen, bevor irgendetwas
+umgeschaltet wird**. Das Skript fasst `/var/www/fisher` nie an; die alte Seite bleibt
+währenddessen online:
+
+```bash
+sudo cp /opt/fisherscreen/infra/hetzner/fisherscreen-viewer.service         /opt/fisherscreen/infra/hetzner/fisherscreen-viewer.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start fisherscreen-viewer.service
+journalctl -u fisherscreen-viewer -n 20 --no-pager
+ls -l /var/www/fisher-builds
+test -e /var/www/fisher-builds/current/index.html && echo build-ok
+```
+
+Erwartung: Journal `viewer switched to <sha>-<epoch>`, `current` → dieser Build, `build-ok`.
+Fehlt `build-ok` oder schlägt der Dienst fehl: **hier abbrechen**, Journal lesen — `/fisher/`
+ist noch unverändert die alte Seite. Erst bei `build-ok` umschalten (ab hier zeigt der Viewer
+nur noch neue Dossiers):
 
 ```bash
 sudo mv /var/www/fisher /var/www/fisher-builds/legacy-2026-10-25
 sudo ln -s /var/www/fisher-builds/current /var/www/fisher
+ls -l /var/www/fisher
 ```
 
-Zwischen den beiden Befehlen liefert `/fisher/` kurz 404 — Sekunden, einmalig. Jetzt Units
-installieren und einmal von Hand laufen lassen:
-
-```bash
-sudo cp /opt/fisherscreen/infra/hetzner/fisherscreen-viewer.service \
-        /opt/fisherscreen/infra/hetzner/fisherscreen-viewer.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl start fisherscreen-viewer.service
-journalctl -u fisherscreen-viewer -n 20 --no-pager
-ls -l /var/www/fisher /var/www/fisher-builds
-```
-
-Erwartung: Journal `viewer switched to <sha>`; `/var/www/fisher` → `fisher-builds/current` →
-`<sha>`; `legacy-2026-10-25` daneben; `https://macro.stnmllr.com/fisher/` zeigt die (leere)
-Übersicht. Dann den Timer einschalten:
+Zwischen den beiden Befehlen liefert `/fisher/` für einen Augenblick 404 (Sekundenbruchteile,
+einmalig; beide Ziele existieren bereits). `https://macro.stnmllr.com/fisher/` zeigt jetzt die
+(leere) Übersicht, `legacy-2026-10-25` liegt daneben. Erst danach den Timer einschalten:
 
 ```bash
 sudo systemctl enable --now fisherscreen-viewer.timer
 systemctl list-timers fisherscreen-viewer --no-pager
 ```
 
-Ein zweiter Handlauf muss ohne Build enden (Journal bleibt still, Exit 0): unverändert → kein Build.
+Ein weiterer Handlauf muss ohne Build enden (Journal bleibt still, Exit 0): unverändert → kein Build.
 
 ---
 
@@ -234,7 +239,11 @@ sudo cp infra/hetzner/fisherscreen-viewer.service infra/hetzner/fisherscreen-vie
 sudo systemctl daemon-reload
 ```
 
-Das Skript wird bei jedem Lauf frisch aus dem Checkout gelesen. Token erneuern: neuen Token in
+Das Skript wird bei jedem Lauf frisch aus dem Checkout gelesen. Ein `git pull` im Code-Checkout
+(`/opt/fisherscreen`) löst binnen ≤ 5 min einen Neubau des Viewers aus (der Stempel
+`.built-sha` merkt sich Daten- und Code-Stand); sofort: `sudo systemctl start fisherscreen-viewer.service`.
+
+Token erneuern: neuen Token in
 `/etc/fisherscreen/env` und `.env` eintragen, `sudo systemctl restart fisherscreen-deepdive`.
 
 ---
