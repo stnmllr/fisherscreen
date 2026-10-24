@@ -247,9 +247,11 @@ endet „ok", Dossier unter `/opt/fisherscreen/output/Watchlist/EDV.L_<Datum>.md
 keine Kosten. Die Caches unter `/opt/fisherscreen/cache/` sind anfangs leer; der erste Lauf je
 Ticker dauert länger als am PC.
 
-Der Viewer-Link auf der Seite zeigt auf `https://macro.stnmllr.com/fisher/` — das ist der vom PC
-hochgeladene Stand. Dossiers vom Server erscheinen dort **nicht** (auch nicht mit `--site`, das
-baut nach `/opt/fisherscreen/output/site/`). Das ist Phase 2.
+Auf dem Server gibt es **keinen Viewer-Link** (`FISHERSCREEN_DEEPDIVE_UI_VIEWER_URL` bleibt
+leer). `https://macro.stnmllr.com/fisher/` ist der vom PC hochgeladene Stand; Dossiers vom
+Server erscheinen dort nicht (auch nicht mit `--site`, das baut nach
+`/opt/fisherscreen/output/site/`). Ein gesetzter Link führte am 2026-10-24 für SU.PA auf einen
+404. Erst Phase 2 (Server-Dossiers veröffentlichen) macht den Link sinnvoll.
 
 ---
 
