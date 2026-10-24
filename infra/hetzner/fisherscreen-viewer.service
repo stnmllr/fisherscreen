@@ -1,0 +1,16 @@
+# One-shot rebuild of the static dossier viewer (see fisherscreen-viewer.timer).
+# Install: sudo cp infra/hetzner/fisherscreen-viewer.{service,timer} /etc/systemd/system/
+# Runbook: docs/superpowers/specs/2026-10-25-dossier-publishing-runbook.md
+#
+# Called via /bin/bash: files committed from Windows may lack the exec bit.
+
+[Unit]
+Description=FisherScreen dossier viewer refresh
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=stef
+Group=stef
+ExecStart=/bin/bash /opt/fisherscreen/infra/hetzner/fisherscreen-viewer-refresh.sh

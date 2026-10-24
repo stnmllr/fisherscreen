@@ -63,6 +63,7 @@ Arbeitskopie `D:\entwicklung\fisherscreen`.
   Durchführungsprotokoll: `docs/superpowers/specs/2026-10-24-deepdive-ui-hetzner-runbook.md`.
   Abnahme: SU.PA quant-only über die Seite, Exit 0. Kein Viewer-Link auf dem Server (würde
   404en, Server-Dossiers erreichen `/fisher/` nicht).
+- **Phase 2 (Dossier-Veröffentlichung), Stand 2026-10-25: Code fertig, Einrichtung offen.** Dossiers werden nach dem Lauf ins private Repo `stnmllr/fisherscreen-dossiers` (`Watchlist/`) veröffentlicht; Vault-Junction `FisherScreen\Deep Dives` am PC, Viewer-Neubau auf dem Server per Timer (5 min). Spec `docs/superpowers/specs/2026-10-25-dossier-publishing-design.md`, Runbook `docs/superpowers/specs/2026-10-25-dossier-publishing-runbook.md`, Branch `feature/dossier-publishing`. Kein Umzug des Bestands; beim Umschalten wird die alte Seite nach `/var/www/fisher-builds/legacy-2026-10-25` verschoben.
 - **Offen:** ein Lauf mit vollständigem Dossier (Gemini) über die UI; Phase 2 (Server-Dossiers
   in Vault/Viewer); macro-dashboard `AUTH.md` hinkt dem Server-Caddyfile hinterher (fehlt
   `/fisher/`, `/deepdive`, Gate-Varianten, `rechpro.stnmllr.com`).

@@ -456,6 +456,8 @@ Markdown-Outputs folgen festen Mustern (Cloud Run schreibt, Obsidian liest):
 | Hold-Check | `output/Portfolio/YYYY-MM-HoldCheck.md` | `output/Portfolio/2026-06-HoldCheck.md` |
 | Deep-Dive-Dossier | `output/Watchlist/<TICKER>_YYYY-MM-DD.md` | `output/Watchlist/ASML.AS_2026-06-12.md` |
 
+**Deep-Dive-Dossiers werden veröffentlicht** (seit 2026-10-25): nach dem Lauf pusht die CLI das Dossier nach `stnmllr/fisherscreen-dossiers` (`Watchlist/<TICKER>_YYYY-MM-DD.md`); im Vault erscheinen sie unter `FisherScreen\Deep Dives` (Junction auf den Klon), `--no-publish` schaltet es ab. Siehe `docs/superpowers/specs/2026-10-25-dossier-publishing-design.md`.
+
 **Output-Container:** Alle generierten Markdowns liegen unter `output/`. Damit bleibt das
 Repo-Root sauber (`app/`, `tests/`, `docs/` sind Geschwister von `output/`), und für
 Phase 2 (Cloud Run) mappt `output/` 1:1 auf einen GCS-Bucket-Prefix.
