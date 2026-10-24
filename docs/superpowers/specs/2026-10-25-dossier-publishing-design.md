@@ -52,7 +52,7 @@ Lauf (PC oder Server) ──► output/Watchlist/<T>_<D>.md          (wie heute)
                                                                      Watchlist/<T>_<D>.md
                                    ┌─────────────────────────────────────┴──────────────┐
              PC: git pull im Klon D:\entwicklung\fisherscreen-dossiers      Server: Timer (5 min)
-                 Vault-Junction …\FisherScreen\Watchlist ──► Klon\Watchlist     git pull (Read-only-Deploy-Key)
+                 Vault-Junction …\FisherScreen\Deep Dives ──► Klon\Watchlist    git pull (Read-only-Deploy-Key)
                                                                                Viewer bauen ─► /var/www/fisher
 ```
 
@@ -91,10 +91,17 @@ README, die sagt, woher die Dateien kommen und dass sie generiert sind.
 ## 3. Lesen: Vault am PC
 
 - Klon `D:\entwicklung\fisherscreen-dossiers` (nur dieser PC).
-- Junction im Vault: `<Vault>\Wissen\Finanzen\FisherScreen\Watchlist` → `<Klon>\Watchlist`
-  (`mklink /J`, wie bei `Universum`), Eintrag in `stef-vault/.gitignore`.
-- Aktualisieren: `git -C D:\entwicklung\fisherscreen-dossiers pull` — gehört in dieselbe
-  Sichtungsroutine wie der `Universum`-Pull.
+- Vault auf diesem PC: `D:\Obsidian\stef_remote` (kein Git-Repo).
+- **Junction als neuer Ordner daneben:**
+  `D:\Obsidian\stef_remote\Wissen\Finanzen\FisherScreen\Deep Dives` →
+  `D:\entwicklung\fisherscreen-dossiers\Watchlist` (`mklink /J`).
+- **`FisherScreen\Watchlist` bleibt unangetastet.** Geprüft 2026-10-25: Das ist ein echter Ordner
+  (keine Junction) mit 27 Dateien, darunter eigene Notizen (`*_OnePager_Executive_Summary_*.md`)
+  neben von Hand abgelegten Dossiers. Eine Junction an dieser Stelle würde ihn verdecken.
+  Notizen dort können per Link auf `Deep Dives/…` verweisen.
+- `Deep Dives` gehört dem Repo: dort nichts von Hand ablegen oder ändern — der nächste
+  `git pull` würde mit lokalen Änderungen kollidieren.
+- Aktualisieren: `git -C D:\entwicklung\fisherscreen-dossiers pull`.
 - Die CLI schreibt weiterhin nach `output/Watchlist/` im Code-Checkout (Arbeitskopie,
   gitignored); der Klon ist die gemeinsame Fassung.
 
@@ -172,10 +179,7 @@ Folgen, bewusst in Kauf genommen:
 - Umschalten: Die Legacy-Seite liegt unter `/var/www/fisher-builds/legacy-2026-10-25`; der Viewer
   zeigt danach genau die seit der Umstellung veröffentlichten Dossiers.
 
-## Offene Punkte
+## Entschiedene Detailfragen (2026-10-25)
 
-- Pfad des Vaults auf **diesem** PC (die Junction-Angabe oben folgt dem anderen Rechner,
-  `D:\programme\stef-vault\…`) — beim Einrichten klären.
-- Sollen Gemini-Läufe am PC, die nicht veröffentlicht werden sollen (Experimente), Standard
-  `--no-publish` sein? Vorschlag: nein — veröffentlicht wird standardmäßig, Experimente bekommen
-  den Schalter.
+- Vault-Pfad und Ort der Junction: §3 (`FisherScreen\Deep Dives`, neuer Ordner).
+- Veröffentlicht wird **standardmäßig**, sobald konfiguriert; Experimente bekommen `--no-publish`.
