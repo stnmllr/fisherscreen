@@ -185,15 +185,18 @@ ls -l /var/www/fisher
 Zwischen den beiden Befehlen liefert `/fisher/` für einen Augenblick 404 (Sekundenbruchteile,
 einmalig; beide Ziele existieren bereits). `https://macro.stnmllr.com/fisher/` zeigt jetzt die
 (leere) Übersicht, `legacy-2026-10-25` liegt daneben. Jetzt den Viewer-Link in der UI
-einschalten — in `/etc/fisherscreen/env` ergänzen und den Dienst neu starten (nicht während
-eines laufenden Deep Dives):
+einschalten — die seit der UI-Einrichtung vorhandene leere Zeile in `/etc/fisherscreen/env`
+ersetzen (nicht anhängen, sonst steht der Schlüssel doppelt) und den Dienst neu starten (nicht
+während eines laufenden Deep Dives):
 
 ```bash
-echo 'FISHERSCREEN_DEEPDIVE_UI_VIEWER_URL=https://macro.stnmllr.com/fisher' | sudo tee -a /etc/fisherscreen/env
+sudo sed -i 's|^FISHERSCREEN_DEEPDIVE_UI_VIEWER_URL=.*|FISHERSCREEN_DEEPDIVE_UI_VIEWER_URL=https://macro.stnmllr.com/fisher|' /etc/fisherscreen/env
+sudo grep '^FISHERSCREEN_DEEPDIVE_UI_VIEWER_URL' /etc/fisherscreen/env
 sudo systemctl restart fisherscreen-deepdive
 ```
 
-(Steht die Zeile schon in der Datei, stattdessen dort anpassen statt anhängen.) Erst danach den Timer einschalten:
+`grep` muss genau eine Zeile mit der URL zeigen. Zeigt er nichts, fehlte die Zeile — dann mit
+`sudo nano /etc/fisherscreen/env` von Hand ergänzen. Erst danach den Timer einschalten:
 
 ```bash
 sudo systemctl enable --now fisherscreen-viewer.timer
