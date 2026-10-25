@@ -58,6 +58,7 @@ class RunBody(BaseModel):
     no_cache: bool = False
     no_insider: bool = False
     site: bool = False
+    no_publish: bool = False
     quant_only_ack: bool = False
     preflight_token: str = ""
 
@@ -116,7 +117,15 @@ def _record_view(record: RunRecord, viewer_url: str) -> dict[str, Any]:
     )
     data["viewer_link"] = (
         f"{viewer_url.rstrip('/')}/ticker/{record.ticker}.html"
-        if viewer_url and record.status == "ok"
+        if viewer_url and record.status == "ok" and record.published is True
+        else None
+    )
+    data["published_text"] = (
+        {
+            True: "veröffentlicht",
+            False: "nicht veröffentlicht",
+        }.get(record.published)
+        if record.published is not None
         else None
     )
     return data
@@ -238,6 +247,7 @@ def create_app(
             no_cache=body.no_cache,
             no_insider=body.no_insider,
             site=body.site,
+            no_publish=body.no_publish,
             quant_only_ack=body.quant_only_ack,
         )
         try:

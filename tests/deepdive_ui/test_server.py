@@ -395,7 +395,8 @@ def test_rationale_too_long_is_422(manager: RunManager) -> None:
     assert _start(client, token, rationale="x" * 201).status_code == 422
 
 
-def test_start_run_and_poll_until_done(manager: RunManager) -> None:
+def test_start_run_and_poll_until_done(tmp_path: Path) -> None:
+    manager = _manager_with(tmp_path, "--status-line", "Published to: d/W/F.md")
     client = _client(manager, viewer_url="https://example.test/fisher/")
     token = _preflight(client)["preflight_token"]
     res = _start(client, token, rationale="  Big Pharma  ", no_insider=True, site=True)
@@ -427,6 +428,85 @@ def test_start_run_and_poll_until_done(manager: RunManager) -> None:
     page = client.get("/")
     assert run_id in page.text
     assert "Noch keine Läufe." not in page.text
+
+
+def _manager_with(tmp_path: Path, *opts: str) -> RunManager:
+    return RunManager(
+        tmp_path / "runs",
+        base_command=[sys.executable, str(FAKE), *opts],
+        cwd=tmp_path,
+    )
+
+
+def test_index_has_no_publish_checkbox_and_sends_it(manager: RunManager) -> None:
+    text = _client(manager).get("/").text
+    assert 'id="no_publish"' in text
+    assert "Nicht veröffentlichen (<code>--no-publish</code>)" in text
+    assert 'no_publish: $("no_publish").checked' in text
+
+
+def test_no_publish_passes_through_to_the_cli(tmp_path: Path) -> None:
+    manager = _manager_with(tmp_path)
+    client = _client(manager)
+    token = _preflight(client)["preflight_token"]
+    run_id = _start(client, token, no_publish=True).json()["run_id"]
+    manager.join(timeout=30)
+    record = manager.get(run_id)
+    assert record is not None
+    assert "--no-publish" in record.argv
+
+
+@pytest.mark.parametrize(
+    ("line", "text", "link", "css"),
+    [
+        ("Published to: d/Watchlist/F.md", "ok · veröffentlicht", True, False),
+        (
+            "WARNING: dossier NOT published: boom",
+            "ok · nicht veröffentlicht",
+            False,
+            True,
+        ),
+        ("Dossier not published (--no-publish)", None, False, False),
+    ],
+)
+def test_publish_status_in_view_and_partial(
+    tmp_path: Path, line: str, text: str | None, link: bool, css: bool
+) -> None:
+    manager = _manager_with(tmp_path, "--status-line", line)
+    client = _client(manager, viewer_url="https://example.test/fisher")
+    run_id = _start(client, _preflight(client)["preflight_token"]).json()["run_id"]
+    manager.join(timeout=30)
+    data = client.get(f"/api/runs/{run_id}").json()
+    assert data["published_text"] == (text.split(" · ")[1] if text else None)
+    assert (data["viewer_link"] is not None) is link
+    html = client.get(f"/runs/{run_id}").text
+    if text:
+        assert text in html
+    else:
+        assert "veröffentlicht" not in html
+    assert ("st-warn" in html) is css
+    assert ("erscheint im Viewer innerhalb von ~5 min" in html) is link
+    assert ("Im Viewer öffnen" in html) is link
+
+
+def test_history_row_marks_unpublished_run(tmp_path: Path) -> None:
+    manager = _manager_with(
+        tmp_path, "--status-line", "WARNING: dossier NOT published: boom"
+    )
+    client = _client(manager, viewer_url="https://example.test/fisher")
+    _start(client, _preflight(client)["preflight_token"])
+    manager.join(timeout=30)
+    index = client.get("/").text
+    assert '<span class="st-warn"> · nicht veröffentlicht</span>' in index
+    assert "r.published === false" in index
+
+
+def test_history_row_plain_ok_when_published(tmp_path: Path) -> None:
+    manager = _manager_with(tmp_path, "--status-line", "Published to: d/Watchlist/F.md")
+    client = _client(manager, viewer_url="https://example.test/fisher")
+    _start(client, _preflight(client)["preflight_token"])
+    manager.join(timeout=30)
+    assert '<span class="st-warn"> · nicht' not in client.get("/").text
 
 
 def test_no_viewer_link_without_viewer_url(manager: RunManager) -> None:

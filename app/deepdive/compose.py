@@ -6,6 +6,7 @@ from typing import Any, Callable
 from app.config import settings
 from app.deepdive.adr_resolver import ADRResolver
 from app.deepdive.adr_table import load_adr_table
+from app.errors import DataSourceError
 from app.deepdive.eu_adr_resolution import resolve_eu_adr
 from app.deepdive.filing_cache import CachedFilingFetcher
 from app.deepdive.historical_cache import CachedHistoricalData
@@ -18,6 +19,7 @@ from app.screener.compose import build_github_client
 from app.screener.monthly import _load_universe
 from app.services.edgar_client import EdgarClientImpl
 from app.services.firestore_client import FirestoreClientImpl
+from app.services.github_client import GitHubClientImpl
 from app.services.openfigi_client import OpenFIGIClientImpl
 from app.services.gemini_deepdive_client import GeminiDeepDiveClient
 from app.services.historical_data_service import HistoricalDataServiceImpl
@@ -199,4 +201,23 @@ def build_synthesizer(model_override: str | None = None) -> GeminiDeepDiveClient
     return GeminiDeepDiveClient(
         api_key=settings.gemini_api_key,
         model=model_override or settings.deepdive_gemini_model,
+    )
+
+
+def build_dossier_publisher() -> GitHubClientImpl | None:
+    """GitHub client for the dossier repo, or None when publishing is not configured.
+
+    Raises DataSourceError when a repo is set but the dedicated dossier token is empty
+    (never falls back to the Tool A token FISHERSCREEN_GITHUB_TOKEN).
+    """
+    if not settings.dossier_repo:
+        return None
+    if not settings.dossier_token:
+        raise DataSourceError(
+            "FISHERSCREEN_DOSSIER_TOKEN not set (FISHERSCREEN_DOSSIER_REPO is)"
+        )
+    return GitHubClientImpl(
+        token=settings.dossier_token,
+        repo=settings.dossier_repo,
+        branch=settings.dossier_branch,
     )

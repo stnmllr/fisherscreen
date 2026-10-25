@@ -1,0 +1,13 @@
+# Triggers fisherscreen-viewer.service every 5 min (dossiers show up within ~5 min).
+# Persistent=false: no catch-up runs after downtime; OnBootSec covers the restart.
+
+[Unit]
+Description=FisherScreen dossier viewer refresh, every 5 min
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=false
+
+[Install]
+WantedBy=timers.target

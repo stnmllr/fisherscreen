@@ -5,6 +5,14 @@ import pytest
 from app.deepdive.__main__ import build_parser, main
 
 
+@pytest.fixture(autouse=True)
+def _no_dossier_repo(monkeypatch):
+    """Keep a developer's local .env from enabling real publishing."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "dossier_repo", "")
+
+
 def test_build_parser_parses_ticker_and_flags():
     ns = build_parser().parse_args(
         ["deepdive", "NOVO-B.CO", "--model", "x", "--no-cache"]
@@ -390,3 +398,161 @@ def test_preflight_two_peers_prints_suggestions_and_exits_one(monkeypatch, capsy
     out = capsys.readouterr().out
     assert "Peer 3  fehlt" in out
     assert "HO.PA" in out
+
+
+# --- publishing the dossier to the data repo -------------------------------
+
+STATUS_PREFIXES = (
+    "Published to: ",
+    "WARNING: dossier NOT published: ",
+    "Dossier not published (--no-publish)",
+    "Dossier not published (no dossier repo configured)",
+)
+
+
+def _status_lines(out: str) -> list[str]:
+    return [ln for ln in out.splitlines() if ln.startswith(STATUS_PREFIXES)]
+
+
+@pytest.fixture
+def publish_cli(tmp_path, monkeypatch):
+    """Successful deep dive, publishing configured, recording fakes."""
+    from unittest.mock import MagicMock
+    import app.deepdive.__main__ as cli
+
+    monkeypatch.setattr(cli.settings, "output_dir", str(tmp_path))
+    monkeypatch.setattr(cli.settings, "dossier_repo", "stnmllr/fisherscreen-dossiers")
+    _stub_builders(monkeypatch, cli)
+    dossier = tmp_path / "Watchlist" / "X_2026-10-25.md"
+    run = MagicMock(return_value=dossier)
+    monkeypatch.setattr(cli, "run_deep_dive", run)
+    monkeypatch.setattr(cli, "render_site", MagicMock(return_value=0))
+    builder = MagicMock(return_value=MagicMock())
+    monkeypatch.setattr(cli, "build_dossier_publisher", builder)
+    publish = MagicMock(
+        return_value="stnmllr/fisherscreen-dossiers/Watchlist/X_2026-10-25.md"
+    )
+    monkeypatch.setattr(cli, "publish_dossier", publish)
+    return cli, run, builder, publish, dossier
+
+
+def test_deepdive_publishes_after_writing(publish_cli, capsys):
+    cli, _, builder, publish, dossier = publish_cli
+    assert cli.main(["deepdive", "X"]) == 0
+    out = capsys.readouterr().out
+    assert (
+        "Published to: stnmllr/fisherscreen-dossiers/Watchlist/X_2026-10-25.md" in out
+    )
+    assert out.index("Dossier written to:") < out.index("Published to:")
+    assert publish.call_args.args[0] == dossier
+    assert len(_status_lines(out)) == 1
+
+
+def test_deepdive_no_publish_flag(publish_cli, capsys):
+    cli, _, builder, publish, _ = publish_cli
+    assert cli.main(["deepdive", "X", "--no-publish"]) == 0
+    out = capsys.readouterr().out
+    assert "Dossier not published (--no-publish)" in out
+    builder.assert_not_called()
+    publish.assert_not_called()
+    assert len(_status_lines(out)) == 1
+
+
+def test_deepdive_publish_unconfigured(publish_cli, monkeypatch, capsys):
+    cli, _, builder, publish, _ = publish_cli
+    monkeypatch.setattr(cli.settings, "dossier_repo", "")
+    monkeypatch.setattr(cli, "build_dossier_publisher", lambda: None)
+    assert cli.main(["deepdive", "X"]) == 0
+    out = capsys.readouterr().out
+    assert "Dossier not published (no dossier repo configured)" in out
+    publish.assert_not_called()
+    assert len(_status_lines(out)) == 1
+
+
+def test_deepdive_publish_failure_keeps_exit_zero(publish_cli, capsys, caplog):
+    from app.errors import DataSourceError
+
+    cli, _, _, publish, _ = publish_cli
+    publish.side_effect = DataSourceError("boom")
+    with caplog.at_level(logging.ERROR):
+        assert cli.main(["deepdive", "X"]) == 0
+    out = capsys.readouterr().out
+    assert "WARNING: dossier NOT published: " in out
+    assert "boom" in out
+    assert any(r.levelno >= logging.ERROR for r in caplog.records)
+    assert len(_status_lines(out)) == 1
+
+
+def test_deepdive_publish_half_configured_runs_then_warns(
+    publish_cli, monkeypatch, capsys
+):
+    from app.deepdive.compose import build_dossier_publisher
+
+    cli, run, _, _, _ = publish_cli
+    # Real builder: repo set, token empty -> raises before any client/network call.
+    monkeypatch.setattr(cli, "build_dossier_publisher", build_dossier_publisher)
+    monkeypatch.setattr(cli.settings, "dossier_repo", "o/dossiers")
+    monkeypatch.setattr(cli.settings, "dossier_token", "")
+    assert cli.main(["deepdive", "X"]) == 0
+    run.assert_called_once()
+    out = capsys.readouterr().out
+    warning = [ln for ln in out.splitlines() if "dossier NOT published" in ln]
+    assert len(warning) == 1 and "DOSSIER_TOKEN" in warning[0]
+    assert len(_status_lines(out)) == 1
+
+
+@pytest.mark.parametrize(
+    ("exc", "expected"),
+    [
+        (OSError(), "OSError"),
+        (RuntimeError("  \n "), "RuntimeError"),
+        (RuntimeError("first\nsecond"), "first"),
+        (RuntimeError("\nlead blank\nmore"), "lead blank"),
+    ],
+)
+def test_deepdive_publish_warning_is_one_line_with_reason(
+    publish_cli, capsys, exc, expected
+):
+    cli, _, _, publish, _ = publish_cli
+    publish.side_effect = exc
+    assert cli.main(["deepdive", "X"]) == 0
+    out = capsys.readouterr().out
+    assert f"WARNING: dossier NOT published: {expected}\n" in out
+    assert len(_status_lines(out)) == 1
+
+
+def test_deepdive_publish_unexpected_error_keeps_exit_zero(publish_cli, capsys, caplog):
+    cli, _, _, publish, _ = publish_cli
+    publish.side_effect = OSError("disk")
+    with caplog.at_level(logging.ERROR):
+        assert cli.main(["deepdive", "X"]) == 0
+    out = capsys.readouterr().out
+    assert "WARNING: dossier NOT published: " in out
+    assert any(r.exc_info for r in caplog.records)
+    assert len(_status_lines(out)) == 1
+
+
+def test_deepdive_publish_systemexit_keeps_exit_zero(publish_cli, capsys):
+    cli, _, _, publish, _ = publish_cli
+    publish.side_effect = SystemExit(2)
+    assert cli.main(["deepdive", "X"]) == 0
+    assert "WARNING: dossier NOT published: " in capsys.readouterr().out
+
+
+def test_deepdive_publishes_before_site_refresh(publish_cli, monkeypatch, capsys):
+    cli, _, _, publish, _ = publish_cli
+    order: list[str] = []
+
+    def fake_publish(*a, **k):
+        order.append("publish")
+        return "r/Watchlist/X_2026-10-25.md"
+
+    def fake_render(argv):
+        order.append("render")
+        return 0
+
+    monkeypatch.setattr(cli, "publish_dossier", fake_publish)
+    monkeypatch.setattr(cli, "render_site", fake_render)
+    assert cli.main(["deepdive", "X", "--site"]) == 0
+    assert order == ["publish", "render"]
+    assert "Published to:" in capsys.readouterr().out

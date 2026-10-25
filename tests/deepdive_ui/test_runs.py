@@ -57,6 +57,54 @@ def test_build_cli_args_from_fields_only() -> None:
     ]
 
 
+def test_build_cli_args_no_publish() -> None:
+    assert build_cli_args(_request(no_publish=True))[-1] == "--no-publish"
+    assert "--no-publish" not in build_cli_args(_request())
+
+
+@pytest.mark.parametrize(
+    ("line", "published"),
+    [
+        ("Published to: dossiers/Watchlist/FAKE_2026-10-24.md", True),
+        ("WARNING: dossier NOT published: push rejected", False),
+        ("WARNING: dossier NOT published: ", False),
+        ("Dossier not published (--no-publish)", None),
+        ("Dossier not published (no dossier repo configured)", None),
+        (None, None),
+    ],
+)
+def test_published_parsed_from_status_line(
+    tmp_path: Path, line: str | None, published: bool | None
+) -> None:
+    opts = ["--status-line", line] if line else []
+    manager = _manager(tmp_path, *opts)
+    record = manager.start(_request())
+    assert _finished(manager, record.run_id).published is published
+
+
+def test_old_record_without_published_loads_as_none(tmp_path: Path) -> None:
+    runs = tmp_path / "runs"
+    runs.mkdir()
+    old = {
+        "run_id": "2026-10-24T20-31-07_NOVO-B.CO",
+        "ticker": "NOVO-B.CO",
+        "peers": ["LLY", "PFE", "MRK"],
+        "rationale": None,
+        "flags": {},
+        "quant_only_ack": False,
+        "started_at": "2026-10-24T20:31:07+02:00",
+        "finished_at": "2026-10-24T20:40:00+02:00",
+        "exit_code": 0,
+        "status": "ok",
+        "dossier_path": "x.md",
+        "log_path": "x.log",
+    }
+    (runs / f"{old['run_id']}.json").write_text(json.dumps(old), encoding="utf-8")
+    manager = RunManager(runs, base_command=[sys.executable, str(FAKE)], cwd=tmp_path)
+    record = manager.get(old["run_id"])
+    assert record is not None and record.published is None
+
+
 def test_build_cli_args_minimal() -> None:
     assert build_cli_args(_request()) == [
         "deepdive",

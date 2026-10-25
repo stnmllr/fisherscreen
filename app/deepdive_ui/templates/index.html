@@ -22,6 +22,7 @@
   .table-wrap { overflow-x: auto; }
   .hint { color: var(--muted); font-size: .9rem; margin: 4px 0; }
   .ok, .st-ok { color: var(--ok); }
+  .st-warn { color: #b26a00; }
   .bad, .st-failed { color: var(--bad); }
   .msg { margin: 8px 0 0; }
   .msg:empty { display: none; }
@@ -53,6 +54,7 @@
   <div class="check">
     <label><input type="checkbox" id="no_cache"> Caches ignorieren (<code>--no-cache</code>)</label>
     <label><input type="checkbox" id="no_insider"> Insider-Stufe überspringen (<code>--no-insider</code>)</label>
+    <label><input type="checkbox" id="no_publish"> Nicht veröffentlichen (<code>--no-publish</code>)</label>
     <label><input type="checkbox" id="site"> Viewer danach neu bauen (<code>--site</code>)</label>
   </div>
 </section>
@@ -95,7 +97,7 @@
           <td>{{ r.started_at[:16] | replace("T", " ") }}</td>
           <td><a href="#" class="run-link" data-run-id="{{ r.run_id }}">{{ r.ticker }}</a></td>
           <td>{{ r.peers | join(", ") }}</td>
-          <td class="st-{{ r.status }}">{{ r.status }}{% if r.note %} — {{ r.note }}{% elif r.status == "failed" and r.exit_text %} — {{ r.exit_text }}{% endif %}</td>
+          <td class="st-{{ r.status }}">{{ r.status }}{% if r.note %} — {{ r.note }}{% elif r.status == "failed" and r.exit_text %} — {{ r.exit_text }}{% endif %}{% if r.published is false %}<span class="st-warn"> · nicht veröffentlicht</span>{% endif %}</td>
           <td>{% if r.viewer_link %}<a href="{{ r.viewer_link }}" target="_blank" rel="noopener">{{ r.dossier_path or "Viewer" }}</a>{% else %}{{ r.dossier_path or "" }}{% endif %}</td>
         </tr>
       {% else %}
@@ -363,6 +365,11 @@
         cell(tr, (r.peers || []).join(", "));
         var extra = r.note ? " — " + r.note : (r.status === "failed" && r.exit_text ? " — " + r.exit_text : "");
         cell(tr, r.status + extra, "st-" + r.status);
+        if (r.published === false) {
+          var warn = document.createElement("span");
+          warn.className = "st-warn"; warn.textContent = " · nicht veröffentlicht";
+          tr.lastChild.appendChild(warn);
+        }
         var dossier = document.createElement("td");
         if (r.viewer_link) {
           var link = document.createElement("a");
@@ -415,6 +422,7 @@
       no_cache: $("no_cache").checked,
       no_insider: $("no_insider").checked,
       site: $("site").checked,
+      no_publish: $("no_publish").checked,
       quant_only_ack: ack.checked,
       preflight_token: state.token || ""
     };
